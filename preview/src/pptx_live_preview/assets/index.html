@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pptx-live-preview</title>
+<link rel="stylesheet" href="./app.css">
+</head>
+<body>
+
+<header id="bar">
+  <button class="btn icon" id="stripBtn" title="page list">☰</button>
+  <div class="picker" id="picker">
+    <button class="pickerBtn" id="pickerBtn" aria-haspopup="listbox" aria-expanded="false">
+      <span class="dot" id="deckDot"></span>
+      <span class="deckName" id="deckName">-</span>
+      <span class="caret">▾</span>
+    </button>
+    <div class="pickerMenu" id="pickerMenu" role="listbox" hidden></div>
+  </div>
+
+  <span class="meta" id="meta"></span>
+
+  <span class="spacer"></span>
+
+  <span class="pageBox">
+    <input id="pageInput" type="text" inputmode="numeric" autocomplete="off" aria-label="page number">
+    <span class="pageTotal" id="pageTotal">/ 0</span>
+  </span>
+
+  <button class="btn" id="gridBtn" title="grid overview (g)">grid</button>
+  <button class="btn" id="notesBtn" title="speaker notes (n)">notes</button>
+  <button class="btn" id="compareBtn" title="compare two decks side by side (c)">compare</button>
+  <button class="btn icon" id="fullBtn" title="full screen (f)">⛶</button>
+  <button class="btn icon" id="refreshBtn" title="re-render now">↻</button>
+  <button class="btn icon" id="helpBtn" title="keyboard shortcuts (?)">?</button>
+</header>
+
+<div id="body">
+  <aside id="filmstrip" aria-label="pages"></aside>
+  <main id="stage">
+    <div id="pages"></div>
+    <div id="errorBox" class="errorBox" hidden></div>
+  </main>
+  <aside id="notesPane" hidden>
+    <h2>notes</h2>
+    <div id="notesBody"></div>
+  </aside>
+</div>
+
+<div id="grid" class="overlay" hidden>
+  <button class="overlayClose" data-close="1" title="close">×</button>
+  <div id="gridCells"></div>
+</div>
+
+<div id="viewer" class="overlay" hidden>
+  <button class="overlayClose" data-close="1" title="close">×</button>
+  <img id="viewerImg" alt="">
+  <div class="viewerBar">
+    <span id="viewerLabel"></span>
+    <span class="hint">← → to move · Space to go back</span>
+  </div>
+</div>
+
+<div id="compare" class="overlay" hidden>
+  <button class="overlayClose" data-close="1" title="close">×</button>
+  <div class="cmpHead">
+    <select id="cmpLeftPick" class="cmpPick" aria-label="deck on the left"></select>
+    <span id="cmpLabel"></span>
+    <select id="cmpRightPick" class="cmpPick" aria-label="deck on the right"></select>
+  </div>
+  <div class="compareGrid">
+    <figure><img id="cmpLeftImg" alt=""></figure>
+    <figure><img id="cmpRightImg" alt=""></figure>
+  </div>
+  <div class="cmpTracks">
+    <div class="cmpTrack">
+      <span class="cmpTrackName" id="cmpLeftName"></span>
+      <div class="cmpStrip" id="cmpLeftStrip" aria-label="pages on the left"></div>
+    </div>
+    <div class="cmpTrack">
+      <span class="cmpTrackName" id="cmpRightName"></span>
+      <div class="cmpStrip" id="cmpRightStrip" aria-label="pages on the right"></div>
+    </div>
+  </div>
+  <div class="viewerBar">
+    <span class="hint">← → moves both · Shift + ← → shifts the right one · Space to go back</span>
+  </div>
+</div>
+
+<div id="help" class="overlay" hidden>
+  <button class="overlayClose" data-close="1" title="close">×</button>
+  <div class="helpCard">
+    <h2>keyboard</h2>
+    <dl>
+      <dt>← →</dt><dd>previous / next page</dd>
+      <dt>PgUp PgDn</dt><dd>previous / next page</dd>
+      <dt>Home End</dt><dd>first / last page</dd>
+      <dt>1-9 then Enter</dt><dd>jump to page</dd>
+      <dt>Ctrl ← →</dt><dd>previous / next deck</dd>
+      <dt>f</dt><dd>zoom one page to the screen</dd>
+      <dt>g</dt><dd>grid overview</dd>
+      <dt>n</dt><dd>speaker notes</dd>
+      <dt>c</dt><dd>compare two decks side by side</dd>
+      <dt>Space</dt><dd>go back from an overlay</dd>
+    </dl>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="./app.js"></script>
+</body>
+</html>
