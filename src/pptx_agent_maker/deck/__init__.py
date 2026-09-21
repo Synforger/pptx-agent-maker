@@ -21,7 +21,14 @@ from . import text as _text
 from .archive import Archive
 from .text import ReplacementMissed
 
-__all__ = ["Deck", "Slide", "ReplacementMissed"]
+__all__ = ["Deck", "Slide", "ReplacementMissed", "build"]
+
+
+def build(workspace, manifest):
+    """Assemble the deck a manifest describes (= `deck.build.build`)."""
+    from .build import build as _build
+
+    return _build(workspace, manifest)
 
 
 class Slide:
