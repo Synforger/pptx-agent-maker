@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from pptx_agent_maker import DEFAULT, Page  # noqa: E402
-from pptx_agent_maker.page import Figure, Table  # noqa: E402
+from pptx_agent_maker.layout.page import Figure, Table  # noqa: E402
 
 
 def a_page() -> Page:

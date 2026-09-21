@@ -1,7 +1,9 @@
-"""Build slide decks by declaring structure, not coordinates."""
+"""Build slide decks by declaring structure, not coordinates.
 
-from .geometry import Rect, cm, pt
-from .page import Page, PageFullError
-from .tokens import DEFAULT, Palette, Spacing, Theme, Type
+    layout/   版面を割る (= 座標が在るのはここだけ)
+    write/    焼く
+"""
+
+from .layout import DEFAULT, Page, PageFullError, Palette, Rect, Spacing, Theme, Type, cm, pt
 
 __all__ = ["Rect", "cm", "pt", "Page", "PageFullError", "Theme", "Type", "Palette", "Spacing", "DEFAULT"]

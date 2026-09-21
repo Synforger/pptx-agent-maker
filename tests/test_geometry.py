@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from pptx_agent_maker.geometry import Rect, cm  # noqa: E402
+from pptx_agent_maker.layout.geometry import Rect, cm  # noqa: E402
 
 PARENT = Rect(0, 0, 12192000, 6858000)
 DIVISIONS = [

@@ -18,8 +18,8 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Emu, Pt
 
-from .page import Element, Figure, Fill, Table, Text
-from .tokens import DEFAULT, Theme
+from ..layout.page import Element, Figure, Fill, Table, Text
+from ..layout.tokens import DEFAULT, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
 
