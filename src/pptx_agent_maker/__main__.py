@@ -4,11 +4,22 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from .project import Workspace, WorkspaceError, create
 from .project.manifest import Manifest, ManifestError
 
 FOLDERS = ("base", "manifests", "pages", "assets", "output")
+
+
+def _deck_path(workspace, name: str) -> Path:
+    """A deck by name: a path as given, or a file in the project's output/."""
+    target = Path(name)
+    if not target.is_absolute():
+        target = workspace.output / name
+    if not target.suffix:
+        target = target.with_suffix(".pptx")
+    return target
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -25,6 +36,17 @@ def main(argv: list[str] | None = None) -> int:
     built = sub.add_parser("build", help="build a deck from one of the project's manifests")
     built.add_argument("path", help="the project folder")
     built.add_argument("manifest", help="a manifest name, with or without .toml")
+    built.add_argument("--skip-checks", action="store_true", help="build without checking")
+
+    checked = sub.add_parser("check", help="check a deck that is already built")
+    checked.add_argument("path", help="the project folder")
+    checked.add_argument("deck", help="a file in output/, or a path")
+
+    reviewed = sub.add_parser("review", help="see what a person changed in a built deck")
+    reviewed.add_argument("path", help="the project folder")
+    reviewed.add_argument("deck", help="the hand-edited deck in output/")
+    reviewed.add_argument("--against", default=None,
+                          help="the machine-built deck to compare with (default: the last shelved copy)")
 
     args = parser.parse_args(argv)
     try:
@@ -41,13 +63,43 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {name:<9} {folder}{'' if folder.exists() else '   (missing)'}")
             return 0
 
+        from .checks import report, run_all
+
+        if args.command == "review":
+            from .review import as_manifest_entries, changes, keep_safe, last_machine_build
+
+            edited = _deck_path(workspace, args.deck)
+            shelved = keep_safe(edited)
+            if shelved:
+                print(f"kept a copy at {shelved}")
+            reference = Path(args.against) if args.against else last_machine_build(edited)
+            if reference is None:
+                print("error: nothing to compare against — build the deck first", file=sys.stderr)
+                return 1
+            found = changes(reference, edited)
+            for change in found:
+                print(change.render())
+            print()
+            print(as_manifest_entries(found))
+            return 0
+
+        if args.command == "check":
+            target = _deck_path(workspace, args.deck)
+            findings = run_all(target, workspace.settings.get("checks", {}))
+            print(report(findings))
+            return 1 if findings else 0
+
         from .deck.build import build
 
         manifest = Manifest.load(workspace.manifest(args.manifest))
         built_deck = build(workspace, manifest)
         print(f"built {built_deck} ({len(manifest.entries)} pages)")
-        return 0
-    except (WorkspaceError, ManifestError, FileExistsError, IndexError) as error:
+        if args.skip_checks:
+            return 0
+        findings = run_all(built_deck, workspace.settings.get("checks", {}))
+        print(report(findings))
+        return 1 if findings else 0
+    except (WorkspaceError, ManifestError, FileExistsError, IndexError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
 

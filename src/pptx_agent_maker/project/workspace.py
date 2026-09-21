@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
@@ -34,6 +34,7 @@ class Workspace:
     pages: Path
     assets: Path
     output: Path
+    settings: dict = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: Path | str) -> "Workspace":
@@ -54,6 +55,7 @@ class Workspace:
         folders = data.get("paths", {})
         return cls(
             root=root,
+            settings=data,
             **{name: root / str(folders.get(name, name)) for name in FOLDERS},
         )
 

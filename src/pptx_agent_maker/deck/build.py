@@ -13,8 +13,14 @@ from pathlib import Path
 
 from ..project.manifest import Entry, Manifest, ManifestError
 from ..project.workspace import Workspace
+from ..review.fold import keep_safe
+from ..review.ledger import remember, touched_by_hand
 from ..write import add_page, new_deck, save
 from . import Deck, Slide
+
+
+class HandEditedError(RuntimeError):
+    """The deck on disk was edited by a person; building would erase that."""
 
 
 def build(workspace: Workspace, manifest: Manifest) -> Path:
@@ -24,6 +30,13 @@ def build(workspace: Workspace, manifest: Manifest) -> Path:
         raise ManifestError(f"specimen not found: {specimen}")
 
     destination = workspace.out(manifest.out)
+    if touched_by_hand(destination):
+        shelved = keep_safe(destination)
+        raise HandEditedError(
+            f"{destination.name} was edited by hand since it was built — a copy is at "
+            f"{shelved}. Fold those changes in (`review`) or delete the file, then build again."
+        )
+
     with tempfile.TemporaryDirectory() as scratch:
         declared = _bake_declared(workspace, manifest, Path(scratch))
         with Deck.open(specimen, destination) as deck:
@@ -31,6 +44,7 @@ def build(workspace: Workspace, manifest: Manifest) -> Path:
                 page = _place(deck, workspace, entry, declared, index)
                 for old, new in entry.replace:
                     page.replace(old, new)
+    remember(destination)
     return destination
 
 

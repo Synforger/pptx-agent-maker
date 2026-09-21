@@ -20,7 +20,7 @@ class ReplacementMissed(ValueError):
 def replace(slide: Path, old: str, new: str, *, count: int = 1) -> None:
     """Swap one run's text for another. Missing means stop."""
     text = slide.read_text(encoding="utf-8")
-    pattern = rf"(<a:t[^>]*>){re.escape(html.escape(old, quote=False))}(</a:t>)"
+    pattern = rf"(<a:t\b[^>]*(?<!/)>){re.escape(html.escape(old, quote=False))}(</a:t>)"
     text, hits = re.subn(pattern, lambda m: m.group(1) + html.escape(new, quote=False) + m.group(2),
                          text, count=count)
     if hits == 0:
@@ -34,7 +34,8 @@ def replace(slide: Path, old: str, new: str, *, count: int = 1) -> None:
 def words(slide: Path) -> list[str]:
     """Every run on the slide, in document order — what replacement can match."""
     text = slide.read_text(encoding="utf-8")
-    return [html.unescape(m.group(1)) for m in re.finditer(r"<a:t[^>]*>(.*?)</a:t>", text, re.S)]
+    return [html.unescape(m.group(1))
+            for m in re.finditer(r"<a:t\b[^>]*(?<!/)>(.*?)</a:t>", text, re.S)]
 
 
 def drop_annotation_marks(slide: Path) -> int:
