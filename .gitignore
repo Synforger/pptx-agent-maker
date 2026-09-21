@@ -1,0 +1,32 @@
+# --- A deck project never lives in this repo (see README) ---
+# The toolkit is here; manifests, assets, page scripts and built decks live in a
+# workspace outside it. These patterns make an accidental copy uncommittable.
+/workspace/
+/work/
+/projects/
+/decks/
+/output/
+*.pptx
+*.potx
+*.ppt
+*.pdf
+*.png
+*.jpg
+*.jpeg
+
+# --- build artefacts ---
+__pycache__/
+*.egg-info/
+.eggs/
+build/
+dist/
+.mypy_cache/
+.pytest_cache/
+
+# --- dev tools ---
+.venv/
+venv/
+.envrc
+.python-version
+.idea/
+.DS_Store
