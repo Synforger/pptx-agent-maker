@@ -12,6 +12,31 @@ from .project.manifest import Manifest, ManifestError
 FOLDERS = ("base", "manifests", "pages", "assets", "output")
 
 
+PREVIEW = Path(__file__).resolve().parents[2] / "preview" / "src"
+
+
+def _preview(workspace, port: int, no_open: bool) -> int:
+    """Hand the project's output/ to the live preview, which lives in this repo.
+
+    焼く工程と見る工程を同じ画面に置くのが、この repo を 1 つにした理由。
+    ビルドが `output/` を書き換えると、プレビューがそのまま焼き直す。
+    """
+    if str(PREVIEW) not in sys.path:
+        sys.path.insert(0, str(PREVIEW))
+    try:
+        from pptx_live_preview.__main__ import main as preview_main
+    except ImportError as error:  # pragma: no cover - depends on the environment
+        print(f"error: the preview needs its own dependencies ({error}).\n"
+              f"       run: .venv/bin/pip install -e {PREVIEW.parent}", file=sys.stderr)
+        return 1
+
+    workspace.output.mkdir(parents=True, exist_ok=True)
+    argv = [str(workspace.output), "--port", str(port)]
+    if no_open:
+        argv.append("--no-open")
+    return preview_main(argv)
+
+
 def _deck_path(workspace, name: str) -> Path:
     """A deck by name: a path as given, or a file in the project's output/."""
     target = Path(name)
@@ -42,6 +67,11 @@ def main(argv: list[str] | None = None) -> int:
     checked.add_argument("path", help="the project folder")
     checked.add_argument("deck", help="a file in output/, or a path")
 
+    watched = sub.add_parser("preview", help="watch the project's decks in a browser")
+    watched.add_argument("path", help="the project folder")
+    watched.add_argument("--port", type=int, default=0, help="0 picks a free port")
+    watched.add_argument("--no-open", action="store_true", help="do not launch a browser")
+
     reviewed = sub.add_parser("review", help="see what a person changed in a built deck")
     reviewed.add_argument("path", help="the project folder")
     reviewed.add_argument("deck", help="the hand-edited deck in output/")
@@ -62,6 +92,9 @@ def main(argv: list[str] | None = None) -> int:
                 folder = getattr(workspace, name)
                 print(f"  {name:<9} {folder}{'' if folder.exists() else '   (missing)'}")
             return 0
+
+        if args.command == "preview":
+            return _preview(workspace, args.port, args.no_open)
 
         from .checks import report, run_all
 

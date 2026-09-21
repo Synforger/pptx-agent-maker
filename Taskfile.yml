@@ -7,10 +7,16 @@ tasks:
     silent: true
 
   setup:
-    desc: Create the virtualenv and install the package
+    desc: Create the virtualenv and install the package (with the preview)
     cmds:
       - python3 -m venv .venv
       - .venv/bin/pip install -q -e .
+      - .venv/bin/pip install -q -e preview
+
+  preview:
+    desc: Watch a project's built decks in a browser
+    cmds:
+      - .venv/bin/python -m pptx_agent_maker preview {{.CLI_ARGS}}
 
   test:
     desc: Run the test suite
