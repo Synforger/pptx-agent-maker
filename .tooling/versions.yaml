@@ -26,5 +26,4 @@
 
 bash:   ">=5.0"      # host
 git:    ">=2.40"     # host
-node:   ">=20.0"     # node (Node.js LTS)
-python: ">=3.10"     # personalize.py + docs-check.sh + anon-scan parsing
+python: ">=3.11"     # pyproject requires-python + docs-check.sh + anon-scan parsing

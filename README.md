@@ -96,8 +96,11 @@ anything. `preview/` keeps its own README, tests and Taskfile, and is updated wi
 
 ## Status
 
-The declarative layer, the theme tokens and the pptx writer work end to end: a page declared in
-Python renders, converts and reads correctly, and the preview is now in the same repository.
-Next: the workspace file that points at a deck project, the project skeleton that lives outside
-this repo, and the layers worth porting from the previous generation (specimen copying, importing
-a page from an earlier deck).
+Every layer is in place and covered: declaring a page, writing it to pptx, copying a specimen,
+importing a page from an earlier deck, building a deck from one manifest, reading the built file
+back through five checks, protecting a hand edit, and watching the result in a browser.
+
+## License
+
+Apache-2.0 — see [LICENSE](LICENSE). The bundled preview under `preview/` is part of this
+repository and ships under the same license.

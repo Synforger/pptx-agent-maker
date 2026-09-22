@@ -55,6 +55,7 @@ function Get-PtVersion {
             'git'    { $raw = & git --version 2>$null }
             'python' { $raw = & python --version 2>&1 }
             'node'   { $raw = & node --version 2>$null }
+            'jq'     { $raw = & jq --version 2>$null }
             default  { return "" }
         }
     } catch { return "" }

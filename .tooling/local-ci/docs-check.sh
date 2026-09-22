@@ -174,12 +174,21 @@ for md in md_files():
                             depth = m.start()  # column of the branch char
                             # composite lines list siblings on one line
                             # ("A / B / C" or "A + B"); drop the trailing
-                            # comment, split on the separators, keep each
-                            # segment's first token
+                            # `#` comment and split on the separators.
+                            # Only treat the line as composite when every
+                            # segment is a single token — a multi-word
+                            # segment means free-text annotation (e.g.
+                            # "← ..." commentary), where splitting would
+                            # turn prose into bogus entries; fall back to
+                            # the first token only.
                             entry = m.group(1).split("#", 1)[0]
-                            names = [seg.split()[0]
-                                     for seg in re.split(r"\s+[/+]\s+", entry)
-                                     if seg.split()]
+                            segs = [seg.split()
+                                    for seg in re.split(r"\s+[/+]\s+", entry)
+                                    if seg.split()]
+                            if all(len(s) == 1 for s in segs):
+                                names = [s[0] for s in segs]
+                            else:
+                                names = [segs[0][0]] if segs else []
                             names = [n for n in names
                                      if not PLACEHOLDER.search(n)]
                             if not names:

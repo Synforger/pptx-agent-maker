@@ -13,7 +13,7 @@
 #                                  back to _core/.tooling/versions.yaml).
 #   check_command <name>           Return 0 if <name> is on PATH, 1 otherwise.
 #   get_version <name>             Print the binary's semver string to stdout.
-#                                  Supports bash / git / python / node.
+#                                  Supports bash / git / python / node / jq.
 #                                  Empty string on unknown tool / parse miss.
 #   version_satisfies <actual> <constraint>
 #                                  Return 0 if <actual> meets <constraint>.
@@ -110,6 +110,7 @@ get_version() {
         git)    out="$(LANG=C LC_ALL=C git --version 2>/dev/null | sed -nE 's/.*git version ([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/p')" ;;
         python) out="$(LANG=C LC_ALL=C python3 --version 2>&1 | sed -nE 's/Python ([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/p')" ;;
         node)   out="$(LANG=C LC_ALL=C node --version 2>/dev/null | sed -nE 's/^v?([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/p')" ;;
+        jq)     out="$(LANG=C LC_ALL=C jq --version 2>/dev/null | sed -nE 's/^jq-([0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/p')" ;;
         *)      out="" ;;
     esac
     printf '%s' "${out}"

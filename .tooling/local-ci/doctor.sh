@@ -32,6 +32,7 @@ install_hint() {
         git)    echo "brew install git | apt install git" ;;
         python) echo "brew install python@3.12 | apt install python3" ;;
         node)   echo "brew install node | nvm install --lts" ;;
+        jq)     echo "brew install jq | apt install jq" ;;
         *)      echo "(no install hint for $1)" ;;
     esac
 }
