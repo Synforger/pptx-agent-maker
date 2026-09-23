@@ -1,7 +1,23 @@
 """The one file that names a path outside this repository.
 
 案件のデータ (= 型見本・manifest・素材・焼いたデッキ) は repo の外に置く。道具が
-その在処を知る口はここ 1 つで、コードにも頁にも外の path を書かない。
+その在処を知る口はここ 1 つで、コードにも型にも外の path を書かない。
+
+置き方は 1 つ ― **焼いたデッキと、それを組んだマニフェストが対で直下に並ぶ**。
+
+    <案件>/
+    ├── workspace.toml     この設定 (= 予約名)
+    ├── specimen.pptx      意匠の元 (= 予約名。複製されて各頁の器になる)
+    ├── w1.toml            ← 何を並べるか
+    ├── w1.pptx            ← それを焼いたもの
+    ├── w2.toml
+    ├── w2.pptx
+    └── assets/
+        ├── w1/            マニフェストと同じ名前の folder が、その回の素材
+        └── w2/
+
+⚠ **回を folder で仕切らない。**開いて確かめるのは焼いたデッキなので、それが
+マニフェストの隣に在るのがいちばん短い。素材だけは数が多いので回ごとに分ける。
 
 守っているのは 2 つ:
 
@@ -17,7 +33,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 FILENAME = "workspace.toml"
-FOLDERS = ("base", "manifests", "assets", "output")
+#: 直下に置く folder (= 素材だけ。マニフェストも焼いたデッキも root に並ぶ)
+FOLDERS = ("assets",)
+#: root 直下で道具が使う名前 (= マニフェストに使えない)
+RESERVED = (FILENAME,)
 
 
 class WorkspaceError(RuntimeError):
@@ -29,10 +48,7 @@ class Workspace:
     """Where one deck project keeps its things."""
 
     root: Path
-    base: Path
-    manifests: Path
     assets: Path
-    output: Path
     settings: dict = field(default_factory=dict)
 
     @classmethod
@@ -66,21 +82,36 @@ class Workspace:
                 "a deck project lives outside it, so its data can never reach a push"
             )
 
-    def asset(self, name: str) -> Path:
-        """An asset by name. Missing means stop, not carry on with a broken path."""
+    def asset(self, name: str, *, within: str | None = None) -> Path:
+        """An asset by name, from the round's own folder.
+
+        `within` はふつうマニフェストの名前 (= `w1.toml` なら `assets/w1/`)。回ごとに
+        分けない案件もあるので、その回の folder が無ければ `assets/` 直下を見る。
+        """
+        if within:
+            candidate = self.assets / within / name
+            if candidate.exists():
+                return candidate
         return self._existing(self.assets / name, "asset")
 
     def manifest(self, name: str) -> Path:
         """A manifest by name, with or without the .toml suffix."""
-        candidate = self.manifests / name
+        candidate = self.root / name
         if not candidate.suffix:
             candidate = candidate.with_suffix(".toml")
+        if candidate.name in RESERVED:
+            raise WorkspaceError(
+                f"{candidate.name} is the workspace's own file, not a manifest"
+            )
         return self._existing(candidate, "manifest")
 
+    def manifests(self) -> list[Path]:
+        """Every manifest in the project, in reading order."""
+        return sorted(p for p in self.root.glob("*.toml") if p.name not in RESERVED)
+
     def out(self, name: str) -> Path:
-        """Where a built deck goes. The folder is made if it is not there yet."""
-        self.output.mkdir(parents=True, exist_ok=True)
-        return self.output / name
+        """Where a built deck goes — beside the manifest that describes it."""
+        return self.root / name
 
     @staticmethod
     def _existing(path: Path, what: str) -> Path:

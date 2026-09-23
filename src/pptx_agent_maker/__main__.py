@@ -9,17 +9,18 @@ from pathlib import Path
 from .project import Workspace, WorkspaceError, create
 from .project.manifest import Manifest, ManifestError
 
-FOLDERS = ("base", "manifests", "pages", "assets", "output")
+FOLDERS = ("assets",)
 
 
 PREVIEW = Path(__file__).resolve().parents[2] / "preview" / "src"
 
 
 def _preview(workspace, port: int, no_open: bool) -> int:
-    """Hand the project's output/ to the live preview, which lives in this repo.
+    """Hand the project's folder to the live preview, which lives in this repo.
 
     焼く工程と見る工程を同じ画面に置くのが、この repo を 1 つにした理由。
-    ビルドが `output/` を書き換えると、プレビューがそのまま焼き直す。
+    ビルドがデッキを書き換えると、プレビューがそのまま焼き直す。焼いたデッキは
+    マニフェストの隣に在るので、見るのは案件の folder そのもの。
     """
     if str(PREVIEW) not in sys.path:
         sys.path.insert(0, str(PREVIEW))
@@ -30,18 +31,17 @@ def _preview(workspace, port: int, no_open: bool) -> int:
               f"       run: .venv/bin/pip install -e {PREVIEW.parent}", file=sys.stderr)
         return 1
 
-    workspace.output.mkdir(parents=True, exist_ok=True)
-    argv = [str(workspace.output), "--port", str(port)]
+    argv = [str(workspace.root), "--port", str(port)]
     if no_open:
         argv.append("--no-open")
     return preview_main(argv)
 
 
 def _deck_path(workspace, name: str) -> Path:
-    """A deck by name: a path as given, or a file in the project's output/."""
+    """A deck by name: a path as given, or one beside its manifest."""
     target = Path(name)
     if not target.is_absolute():
-        target = workspace.output / name
+        target = workspace.root / name
     if not target.suffix:
         target = target.with_suffix(".pptx")
     return target
@@ -65,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
 
     checked = sub.add_parser("check", help="check a deck that is already built")
     checked.add_argument("path", help="the project folder")
-    checked.add_argument("deck", help="a file in output/, or a path")
+    checked.add_argument("deck", help="a built deck in the project, or a path")
 
     watched = sub.add_parser("preview", help="watch the project's decks in a browser")
     watched.add_argument("path", help="the project folder")
@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
 
     reviewed = sub.add_parser("review", help="see what a person changed in a built deck")
     reviewed.add_argument("path", help="the project folder")
-    reviewed.add_argument("deck", help="the hand-edited deck in output/")
+    reviewed.add_argument("deck", help="the hand-edited deck in the project")
     reviewed.add_argument("--full", action="store_true",
                           help="print the diff of every changed part, not just its name")
     reviewed.add_argument("--raw", action="store_true",
