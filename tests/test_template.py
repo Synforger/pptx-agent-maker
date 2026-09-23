@@ -4,7 +4,7 @@
 「型見本が無い」だった。**雛形は「写せば動く」ところまでを持つ。
 
 ⚠ **見本は `layout/tokens.py` から焼いた派生物**なので、色や書体を変えて焼き直しを
-忘れると、複製した頁 (= 見本の意匠) と型で組んだ頁 (= tokens の意匠) が割れる。
+忘れると、複製した頁 (= 見本の見た目) と型で組んだ頁 (= tokens の見た目) が割れる。
 ここがその番人で、鳴ったら `task specimen` を実行する。
 """
 
@@ -112,7 +112,7 @@ class TheProjectCanCallTheToolkitTest(unittest.TestCase):
 
 
 class TheSpecimenMatchesTheTokensTest(unittest.TestCase):
-    """焼き直し忘れを止める ― 見本の意匠と道具の意匠は同じ 1 枚から来る。"""
+    """焼き直し忘れを止める ― 見本の見た目と道具の見た目は同じ 1 枚から来る。"""
 
     def setUp(self) -> None:
         with zipfile.ZipFile(SPECIMEN) as archive:

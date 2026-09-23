@@ -1,15 +1,15 @@
 """Bake the real files the project template ships with (= a specimen and one picture).
 
-型見本は本来**案件のもの**で、案件ごとの意匠と表紙がそこに入る。雛形が 1 枚だけ持つのは、
+型見本は本来**案件のもの**で、案件ごとの見た目と表紙がそこに入る。雛形が 1 枚だけ持つのは、
 `init` した直後に 1 本焼けるようにするため ― 会社名もロゴも案件名も入っていない、道具の
-既定の意匠そのままの見本。案件は自分の `specimen.pptx` でこれを差し替える。
+既定の見た目そのままの見本。案件は自分の `specimen.pptx` でこれを差し替える。
 
-⚠ **意匠の真値は `layout/tokens.py` の 1 枚**で、この pptx はそこから焼いた派生物。
+⚠ **見た目の真値は `layout/tokens.py` の 1 枚**で、この pptx はそこから焼いた派生物。
 両者が一致していることは test が見ている (= 色や書体を変えたら `task specimen` で焼き直す)。
 
-型見本がデッキに効くのは 2 つ ― **複製される頁** (= 表紙) と、**焼いたデッキのマスター**
-(= PowerPoint で開いて手で頁を足したとき、この意匠で出る)。宣言で組んだ頁は
-`workspace.toml` の `[theme]` が決めるので、案件で意匠を差し替えるときは両方を揃える。
+型見本はデッキの見た目そのもの ― 複製される頁 (= 表紙)、焼いたデッキのマスター
+(= PowerPoint で開いて手で足した頁)、そして型で組んだ頁も、全部ここから見た目を取る。
+案件は**この 1 枚を差し替えるだけ**でよい。
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ PICTURE = TEMPLATE / "assets" / "example" / "example.png"
 TITLE = "案件名"
 SUBTITLE = "第 N 回 進捗報告"
 
-#: zip が書ける最も古い日時。**焼き直すたびに中身が変わると、意匠を変えていない回でも
+#: zip が書ける最も古い日時。**焼き直すたびに中身が変わると、見た目を変えていない回でも
 #: 差分が出て、履歴からは何が動いたのか読めなくなる。**
 EPOCH = (1980, 1, 1, 0, 0, 0)
 
@@ -68,8 +68,12 @@ def cover(theme: Theme) -> list[Element]:
 def dress(deck: Path, theme: Theme) -> None:
     """Put the theme's own colours and typeface into the deck's master.
 
-    python-pptx が起こすデッキは Office の既定の意匠を持つ。**そこを書き換えないと、
+    python-pptx が起こすデッキは Office の既定の見た目を持つ。**そこを書き換えないと、
     PowerPoint で手で足した頁だけ別の書体と色で出る。**
+
+    ⚠ **書き換えるのはテーマだけ** ― 頁の図形に直接書かれた色は動かない。案件の型見本は
+    その案件の色で焼かれている (= 表紙の帯も) ので実害は無いが、既に焼いた見本を別の色へ
+    「塗り替える」用途には使えない。
     """
     colours = "".join(
         f'<a:{slot}><a:srgbClr val="{getattr(theme.palette, name)}"/></a:{slot}>'

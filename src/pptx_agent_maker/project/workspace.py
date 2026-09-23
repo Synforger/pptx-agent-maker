@@ -7,7 +7,7 @@
 
     <案件>/
     ├── workspace.toml     この設定 (= 予約名)
-    ├── specimen.pptx      意匠の元 (= 予約名。複製されて各頁の器になる)
+    ├── specimen.pptx      見た目の元 (= 予約名。複製されて各頁の器になる)
     ├── w1.toml            ← 何を並べるか
     ├── w1.pptx            ← それを焼いたもの
     ├── w2.toml
@@ -16,7 +16,7 @@
         ├── w1/            マニフェストと同じ名前の folder が、その回の素材
         └── w2/
 
-意匠 (= 書体と色) は**型見本が持つ**。`[theme]` はその上に重ねる例外で、型見本の
+見た目 (= 書体と色) は**型見本が持つ**。`[theme]` はその上に重ねる例外で、型見本の
 配色が道具の語彙と合わないときだけ書く。版面の割り方は道具が持ったまま。
 
 ⚠ **回を folder で仕切らない。**開いて確かめるのは焼いたデッキなので、それが
@@ -55,7 +55,7 @@ class Workspace:
     root: Path
     assets: Path
     settings: dict = field(default_factory=dict)
-    #: この案件が宣言した意匠 (= 書体と色。無ければ型見本のものが使われる)
+    #: この案件が宣言した見た目 (= 書体と色。無ければ型見本のものが使われる)
     look: dict = field(default_factory=dict)
 
     @classmethod

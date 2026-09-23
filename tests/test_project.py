@@ -35,6 +35,30 @@ class ProjectTest(unittest.TestCase):
     def test_the_project_name_reaches_the_settings(self) -> None:
         self.assertIn("a-deck-project", (self.root / "workspace.toml").read_text())
 
+    def test_a_project_can_be_given_its_look_as_it_is_created(self) -> None:
+        """⚠ **建てる 1 手で決める** ― あとから手で上書きすると、忘れた回だけ顔が変わる。"""
+        elsewhere = Path(self.tmp.name) / "brand.pptx"
+        shutil.copy(REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx",
+                    elsewhere)
+        elsewhere.write_bytes(elsewhere.read_bytes())  # 別の 1 枚として置く
+        root = Path(self.tmp.name) / "with-a-look"
+        create(root, specimen=elsewhere)
+        self.assertEqual((root / "specimen.pptx").read_bytes(), elsewhere.read_bytes())
+
+    def test_a_specimen_that_is_not_there_is_said_before_anything_is_written(self) -> None:
+        root = Path(self.tmp.name) / "never-built"
+        with self.assertRaises(FileNotFoundError):
+            create(root, specimen=Path(self.tmp.name) / "nope.pptx")
+        self.assertFalse(root.exists(), "半分だけできた folder が残っている")
+
+    def test_a_specimen_that_is_not_a_pptx_is_refused(self) -> None:
+        plain = Path(self.tmp.name) / "notes.txt"
+        plain.write_text("not a deck", encoding="utf-8")
+        root = Path(self.tmp.name) / "never-built-either"
+        with self.assertRaises(ValueError):
+            create(root, specimen=plain)
+        self.assertFalse(root.exists())
+
     def test_an_existing_folder_is_not_overwritten(self) -> None:
         with self.assertRaises(FileExistsError):
             create(self.root)

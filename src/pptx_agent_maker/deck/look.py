@@ -1,8 +1,8 @@
 """Reading a deck's look out of the specimen itself.
 
-意匠は**案件のもの**で、案件が持つのは `specimen.pptx` 1 枚。そこにマスターとテーマが
+見た目は**案件のもの**で、案件が持つのは `specimen.pptx` 1 枚。そこにマスターとテーマが
 入っているのに、型で組む頁はそれを通らない (= 白紙に置いてから輸入する構造) ので、
-同じ意匠を `workspace.toml` にもう一度書く必要があった。
+同じ見た目を `workspace.toml` にもう一度書く必要があった。
 
 ⚠ **同じことが 2 か所に書いてあると、片方だけ直したときに顔が割れる。**ここは型見本の
 テーマを読んで、書くのを 1 か所に戻す層。`[theme]` を書けばそちらが勝つ (= 型見本の
@@ -57,7 +57,7 @@ def look_of(specimen: Path | str) -> dict:
 def merged(specimen: Path | str, declared: dict | None) -> dict:
     """The specimen's look, with whatever the project declared laid over it.
 
-    ⚠ **下地は型見本。**案件が持つ意匠は pptx 1 枚で、`[theme]` はその上の例外
+    ⚠ **下地は型見本。**案件が持つ見た目は pptx 1 枚で、`[theme]` はその上の例外
     (= 型見本の配色が道具の語彙と合わないときだけ書く)。色は 1 つずつ重なるので、
     差し色だけを宣言しても他の色は型見本のまま残る。
     """

@@ -1,9 +1,18 @@
 # 参照
 
+## 案件を建てる
+
+```bash
+pptx-agent-maker init <案件のフォルダ> --specimen <型見本.pptx>
+```
+
+⚠ **見た目は建てるときに決める** (= あとから `specimen.pptx` を手で置き換えると、
+忘れた回だけ顔が変わる)。
+
 ## manifest
 
 ```toml
-specimen = "specimen.pptx"     # 予約名。案件の意匠
+specimen = "specimen.pptx"     # 予約名。案件の見た目
 out = "w1.pptx"                # マニフェストの隣に焼かれる
 assets = "w1"                  # 省略すると、この file の名前が素材の folder 名
 
@@ -47,7 +56,7 @@ title = "…"
 
 `kicker` / `title` / `condition` / `conclusion` / `footer` / `replace` / `highlight`
 
-## 意匠 (= `workspace.toml`)
+## 見た目 (= `workspace.toml`)
 
 ```toml
 [theme]
@@ -59,7 +68,7 @@ accent = "0092D1"   # 読みを示す色 (= 表の見出しもここ)
 band = "EAF0F8"     # 条件の帯
 ```
 
-⚠ **ふつうは書かない** ― 意匠は `specimen.pptx` から読まれる。ここに書くのは、型見本の
+⚠ **ふつうは書かない** ― 見た目は `specimen.pptx` から読まれる。ここに書くのは、型見本の
 配色が道具の語彙と合わないときだけ。差し替えられるのは**書体と色だけ**で、
 余白・級数・間隔は道具が持つ。
 
