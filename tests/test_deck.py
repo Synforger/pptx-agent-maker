@@ -20,6 +20,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
+from pptx_agent_maker.deck.slides import _rename_media
 from pptx_agent_maker import DEFAULT, Page  # noqa: E402
 from pptx_agent_maker.deck import Deck, ReplacementMissed  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
@@ -157,3 +158,115 @@ class DeckTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RenamingMediaNeverEatsItsOwnOutput(unittest.TestCase):
+    """Renaming the pictures of an imported page must not chain.
+
+    ⚠ **付け替えは 1 パスで行う。**1 つずつ置換すると、付けたばかりの名前が次の置換の
+    **探す名前**になることがあり、そのときは前に置き換えた分も巻き込まれる ― 4 枚の絵を
+    持つ頁を輸入したら 4 枚とも同じ 1 枚になった (= 焼いて初めて出た。頁の形はもっとも
+    らしいままなので、絵を並べて見るまで気づけない)。どの順に処理されるかは set の
+    並びしだいなので、通る日と壊れる日があった。
+    """
+
+    def test_a_rename_that_would_chain_is_done_in_one_pass(self):
+        rels = ('<Relationship Id="rId1" Target="../media/image1.png"/>'
+                '<Relationship Id="rId2" Target="../media/image2.png"/>')
+        # image1 の行き先が image2 ― 1 つずつ置換すると、次に image2 を探した時点で
+        # さっき置き換えたほうも道連れになる
+        carried = {"image1.png": "image2.png", "image2.png": "image3.png"}
+        moved = _rename_media(rels, carried)
+        self.assertIn("../media/image2.png", moved)
+        self.assertIn("../media/image3.png", moved)
+        self.assertEqual(1, moved.count("image2.png"),
+                         "two relationships ended up pointing at the same picture")
+        self.assertEqual(1, moved.count("image3.png"))
+
+    def test_a_name_nobody_renamed_is_left_alone(self):
+        rels = '<Relationship Id="rId1" Target="../media/image9.png"/>'
+        self.assertEqual(rels, _rename_media(rels, {}))
+
+
+class ManyPicturesSurviveTheImport(unittest.TestCase):
+    """A page with several images keeps them all — the names must not collide.
+
+    ⚠ 絵を 1 枚ずつ番号の付け替えをしていた間は、付けた名前が次の付け替えの探す名前に
+    なり、4 枚の絵が 4 枚とも同じ 1 枚になった。頁の形はもっともらしいままなので、
+    焼いた絵を並べて見るまで気づけない。
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+
+    def _png(self, path: Path, width: int, height: int, rgb) -> Path:
+        import struct, zlib
+        raw = b"".join(b"\x00" + bytes(rgb) * width for _ in range(height))
+
+        def chunk(tag, data):
+            body = tag + data
+            return (struct.pack(">I", len(data)) + body
+                    + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF))
+
+        path.write_bytes(b"\x89PNG\r\n\x1a\n"
+                         + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+                         + chunk(b"IDAT", zlib.compress(raw))
+                         + chunk(b"IEND", b""))
+        return path
+
+    def test_four_different_pictures_stay_four_different_pictures(self):
+        import hashlib
+        import zipfile
+        from pptx_agent_maker.layout import Page, Rect
+        from pptx_agent_maker.write import add_page, new_deck, save
+
+        shades = [(10, 10, 10), (90, 90, 90), (170, 170, 170), (250, 250, 250)]
+        sources = [self._png(self.root / f"p{index}.png", 8, 8, shade)
+                   for index, shade in enumerate(shades)]
+        wanted = {hashlib.sha1(path.read_bytes()).hexdigest() for path in sources}
+        self.assertEqual(4, len(wanted), "the fixture itself must hold four different files")
+
+        # ⚠ 先に絵を持つ頁を 1 枚入れておく ― 付け替え先の番号が、付け替え元の番号と
+        # 重なる状況を作らないと、この欠陥は出ない (= 番号が重ならない見本では素通りする)
+        deck = new_deck()
+        first = Page("いちまい")
+        first.figure(first.body, sources[0], 1.0)
+        add_page(deck, first.build())
+
+        page = Page("よんまい")
+        for cell, source in zip([c for band in page.body.grid(2, 2, gap=0) for c in band],
+                                sources):
+            page.figure(cell, source, 1.0)
+        add_page(deck, page.build())
+        declared = save(deck, self.root / "declared.pptx")
+
+        with Deck.open(declared, self.root / "out.pptx") as built:
+            built.bring(declared, 1)
+            built.bring(declared, 2)
+
+        with zipfile.ZipFile(self.root / "out.pptx") as zipped:
+            carried = {hashlib.sha1(zipped.read(name)).hexdigest()
+                       for name in zipped.namelist() if name.startswith("ppt/media/")}
+        self.assertEqual(wanted, carried,
+                         "the imported page no longer holds the four pictures it was given")
+
+
+class TheFixturesTravelWithTheRepository(unittest.TestCase):
+    """The images the tests draw on must be tracked.
+
+    ⚠ 案件の絵を持ち込ませないために画像は丸ごと無視してあり、そのぶん **test の見本まで
+    一緒に落ちていた** ― 手元では通り、clone した先でだけ落ちる。
+    """
+
+    def test_every_image_under_tests_data_is_tracked(self):
+        import subprocess
+        root = Path(__file__).resolve().parents[1]
+        on_disk = {p.name for p in (root / "tests" / "data").glob("*.png")}
+        listed = subprocess.run(["git", "ls-files", "tests/data"], cwd=root,
+                                capture_output=True, text=True, check=True)
+        tracked = {Path(line).name for line in listed.stdout.split() if line.endswith(".png")}
+        self.assertEqual(on_disk, tracked,
+                         "a fixture image is not in the repository; a fresh clone cannot "
+                         "run these tests")

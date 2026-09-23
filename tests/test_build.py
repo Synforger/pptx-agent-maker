@@ -25,7 +25,7 @@ from pptx_agent_maker.project.manifest import Manifest, ManifestError  # noqa: E
 from test_deck import a_specimen, make_dot  # noqa: E402
 
 MANIFEST = """
-specimen = "base/specimen.pptx"
+specimen = "specimen.pptx"
 out = "built.pptx"
 
 [[pages]]
@@ -35,11 +35,13 @@ replace = [["一枚目", "差し替えた表紙"]]
 
 [[pages]]
 kind = "declare"
-module = "example_page"
+type = "board"
+title = "宣言で組んだ頁"
+table = [["列", "値"], ["A", "1"]]
 
 [[pages]]
 kind = "import"
-deck = "base/earlier.pptx"
+deck = "earlier.pptx"
 page = 1
 """
 
@@ -50,10 +52,10 @@ class BuildTest(unittest.TestCase):
         self.root = Path(self.tmp.name) / "project"
         create(self.root)
         make_dot()
-        a_specimen(self.root / "base" / "specimen.pptx", ["一枚目", "二枚目"])
-        a_specimen(self.root / "base" / "earlier.pptx", ["前の週の頁"])
+        a_specimen(self.root / "specimen.pptx", ["一枚目", "二枚目"])
+        a_specimen(self.root / "earlier.pptx", ["前の週の頁"])
         shutil.copy(REPO / "tests" / "data" / "dot.png", self.root / "assets" / "example.png")
-        (self.root / "manifests" / "deck.toml").write_text(MANIFEST, encoding="utf-8")
+        (self.root / "deck.toml").write_text(MANIFEST, encoding="utf-8")
         self.workspace = Workspace.load(self.root)
 
     def tearDown(self) -> None:
@@ -78,7 +80,7 @@ class BuildTest(unittest.TestCase):
     def test_the_pages_read_in_manifest_order(self) -> None:
         built = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
         self.assertIn("差し替えた表紙", self._text_of(built, 0))
-        self.assertIn("見本の頁", self._text_of(built, 1))
+        self.assertIn("宣言で組んだ頁", self._text_of(built, 1))
         self.assertIn("前の週の頁", self._text_of(built, 2))
 
     def test_the_specimen_pages_are_not_in_the_built_deck(self) -> None:
@@ -88,19 +90,20 @@ class BuildTest(unittest.TestCase):
 
     def test_the_deck_lands_where_the_manifest_says(self) -> None:
         built = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
-        self.assertEqual(built, self.workspace.output / "built.pptx")
+        self.assertEqual(built, self.workspace.root / "built.pptx")
 
-    def test_a_missing_page_recipe_says_which_file(self) -> None:
-        (self.root / "manifests" / "bad.toml").write_text(
-            'specimen = "base/specimen.pptx"\nout = "x.pptx"\n'
-            '[[pages]]\nkind = "declare"\nmodule = "not_there"\n', encoding="utf-8")
+    def test_an_unknown_page_type_says_which_ones_exist(self) -> None:
+        (self.root / "bad.toml").write_text(
+            'specimen = "specimen.pptx"\nout = "x.pptx"\n'
+            '[[pages]]\nkind = "declare"\ntype = "not_a_type"\ntitle = "だい"\n',
+            encoding="utf-8")
         with self.assertRaises(ManifestError) as caught:
             build(self.workspace, Manifest.load(self.workspace.manifest("bad")))
-        self.assertIn("not_there.py", str(caught.exception))
+        self.assertIn("board", str(caught.exception))
 
     def test_a_missing_specimen_stops_the_build(self) -> None:
-        (self.root / "manifests" / "bad.toml").write_text(
-            'specimen = "base/nope.pptx"\nout = "x.pptx"\n'
+        (self.root / "bad.toml").write_text(
+            'specimen = "nope.pptx"\nout = "x.pptx"\n'
             '[[pages]]\nkind = "copy"\npage = 1\n', encoding="utf-8")
         with self.assertRaises(ManifestError):
             build(self.workspace, Manifest.load(self.workspace.manifest("bad")))
@@ -131,7 +134,7 @@ class ManifestTest(unittest.TestCase):
         for body, missing in [
             ('[[pages]]\nkind = "copy"\n', "page"),
             ('[[pages]]\nkind = "import"\npage = 1\n', "deck"),
-            ('[[pages]]\nkind = "declare"\n', "module"),
+            ('[[pages]]\nkind = "declare"\n', "type"),
         ]:
             with self.subTest(missing=missing):
                 with self.assertRaises(ManifestError) as caught:
@@ -146,3 +149,42 @@ class ManifestTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheNoteStaysANote(unittest.TestCase):
+    """`why` says why the page is here — not what happened to it.
+
+    ⚠ 前の世代では 1 つのキーに日付つきの改訂が積まれ、頁の一覧を読む前に必ずそこを
+    通ることになった。長さも日付も機械が判定できるので、書いた時点で止める。
+    """
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+
+    def _load(self, why: str) -> Manifest:
+        path = self.root / "m.toml"
+        path.write_text('specimen = "s"\nout = "o"\n[[pages]]\nkind = "copy"\npage = 1\n'
+                        f'why = "{why}"\n', encoding="utf-8")
+        return Manifest.load(path)
+
+    def test_a_short_reason_is_kept(self) -> None:
+        self.assertEqual("型見本から複製して文言だけ差し替える",
+                         self._load("型見本から複製して文言だけ差し替える").entries[0].why)
+
+    def test_a_note_that_grew_into_a_history_is_refused(self) -> None:
+        with self.assertRaises(ManifestError) as caught:
+            self._load("この頁の経緯。" * 40)
+        self.assertIn("history", str(caught.exception))
+
+    def test_a_dated_line_is_refused(self) -> None:
+        for dated in ("2026-08-24: 結果頁を足した", "2026/8/24 に差し替え"):
+            with self.subTest(dated):
+                with self.assertRaises(ManifestError) as caught:
+                    self._load(dated)
+                self.assertIn("date", str(caught.exception))
+
+    def test_a_number_that_is_not_a_date_passes(self) -> None:
+        """版や枚数は覚え書きに書いてよい (= 止めたいのは日付の並びだけ)。"""
+        self.assertIn("3 型", self._load("3 型そろった run から引いている").entries[0].why)

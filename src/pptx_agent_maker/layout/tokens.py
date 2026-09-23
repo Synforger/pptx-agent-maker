@@ -76,13 +76,64 @@ class Theme:
         return self.slide.inset(left=s.margin_x, right=s.margin_x,
                                 top=s.margin_top, bottom=s.margin_bottom)
 
+    def line_height(self, size: float | None = None) -> int:
+        """One line of type, including its leading."""
+        return round(pt(self.type.body if size is None else size) * 1.45)
+
+    def lines(self, text: str, width: int, size: float | None = None) -> int:
+        """How many lines this text takes at that width.
+
+        ⚠ **全角 1 文字ぶんの幅で数える** ― 日本語の頁なので、これが実寸に近く、
+        英数字まじりでは多めに出る (= 余らせるほうへ外す)。折り返しを勘定せずに
+        枠を割ると、見出しが本文に重なり、表の下の読み方が表の中へ入る
+        (= どちらも実際に焼いて初めて出た)。
+        """
+        size = self.type.body if size is None else size
+        per_line = max(int(width / pt(size)), 1)
+        return max(sum(-(-len(line) // per_line) for line in str(text).split("\n")), 1)
+
+    def text_height(self, text: str, width: int, size: float | None = None) -> int:
+        """The height that text actually needs at that width."""
+        return self.lines(text, width, size) * self.line_height(size)
+
     def table_row_height(self) -> int:
         """One row: the line box plus the cell padding. Nothing renders shorter."""
-        return round(pt(self.type.body) * 1.45) + 2 * self.spacing.cell_pad_y
+        return self.line_height() + 2 * self.spacing.cell_pad_y
 
-    def table_height(self, rows: int) -> int:
-        """What a table of this many rows will actually occupy."""
-        return rows * self.table_row_height()
+    def table_height(self, rows, widths: list[int] | None = None) -> int:
+        """What a table will actually occupy.
+
+        行数だけを渡すと 1 行 1 段として数える。中身と列幅を渡すと**折り返しを
+        勘定する** ― 長いラベルの列は 2 段にも 3 段にもなる。
+        """
+        if isinstance(rows, int):
+            return rows * self.table_row_height()
+        if widths is None:
+            return len(rows) * self.table_row_height()
+        total = 0
+        for row in rows:
+            tallest = 1
+            for cell, width in zip(row, widths):
+                usable = width - 2 * self.spacing.cell_pad_x
+                tallest = max(tallest, self.lines(cell, max(usable, 1)))
+            total += tallest * self.line_height() + 2 * self.spacing.cell_pad_y
+        return total
+
+    def column_widths(self, rows, total: int) -> list[int]:
+        """Share the width out by how much each column has to say.
+
+        均等に割ると、長いラベルの列だけが折り返して表が縦に伸び、下に置いたはずの
+        読み方を飲み込む。中身の最大の長さに比例させ、どの列にも下限を置く。
+        """
+        columns = max(len(row) for row in rows)
+        want = [max((len(str(row[i])) if i < len(row) else 0) for row in rows) or 1
+                for i in range(columns)]
+        floor = total // (columns * 3)
+        room = total - floor * columns
+        scale = sum(want)
+        widths = [floor + round(room * w / scale) for w in want]
+        widths[-1] = total - sum(widths[:-1])
+        return widths
 
     def pt(self, size: float) -> int:
         """A type size in EMU, refusing anything below the floor."""

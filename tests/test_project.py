@@ -29,7 +29,7 @@ class ProjectTest(unittest.TestCase):
 
     def test_the_skeleton_is_laid_down_with_its_settings(self) -> None:
         self.assertTrue((self.root / "workspace.toml").is_file())
-        for folder in ("base", "manifests", "pages", "assets", "output"):
+        for folder in ("assets",):
             self.assertTrue((self.root / folder).is_dir(), folder)
 
     def test_the_project_name_reaches_the_settings(self) -> None:
@@ -62,11 +62,22 @@ class ProjectTest(unittest.TestCase):
         (workspace.assets / "there.png").write_bytes(b"x")
         self.assertTrue(workspace.asset("there.png").is_file())
 
-    def test_the_output_folder_is_made_on_demand(self) -> None:
+    def test_a_built_deck_lands_beside_its_manifest(self) -> None:
+        """焼いたデッキは、それを組んだマニフェストの隣に出る。"""
         workspace = Workspace.load(self.root)
-        shutil.rmtree(workspace.output)
-        target = workspace.out("deck.pptx")
-        self.assertTrue(target.parent.is_dir())
+        self.assertEqual(workspace.root / "w1.pptx", workspace.out("w1.pptx"))
+
+    def test_the_workspaces_own_file_is_not_a_manifest(self) -> None:
+        workspace = Workspace.load(self.root)
+        with self.assertRaises(WorkspaceError):
+            workspace.manifest("workspace.toml")
+
+    def test_the_manifests_are_listed_without_the_settings(self) -> None:
+        workspace = Workspace.load(self.root)
+        (self.root / "w1.toml").write_text("", encoding="utf-8")
+        (self.root / "w2.toml").write_text("", encoding="utf-8")
+        self.assertEqual(["example.toml", "w1.toml", "w2.toml"],
+                         [p.name for p in workspace.manifests()])
 
     def test_a_missing_settings_file_says_so(self) -> None:
         with self.assertRaises(WorkspaceError):
@@ -75,3 +86,41 @@ class ProjectTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheCommandLineReachesTheProject(unittest.TestCase):
+    """The CLI is walked, not just imported.
+
+    ⚠ **走らせない口は緑でも赤でもない。**置き方を変えたとき、test はすべて通ったのに
+    `show` と `check` と `preview` は消えた folder を指したままだった ― CLI を通す
+    test が 1 つも無かったため。
+    """
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name) / "project"
+        create(self.root)
+        self.addCleanup(self.tmp.cleanup)
+
+    def _run(self, *argv: str) -> tuple[int, str]:
+        import contextlib
+        import io
+        from pptx_agent_maker.__main__ import main
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            code = main(list(argv))
+        return code, out.getvalue()
+
+    def test_show_names_every_folder_the_workspace_has(self) -> None:
+        from pptx_agent_maker.project.workspace import FOLDERS
+        code, printed = self._run("show", str(self.root))
+        self.assertEqual(0, code)
+        for folder in FOLDERS:
+            self.assertIn(folder, printed)
+
+    def test_show_points_at_folders_that_are_really_there(self) -> None:
+        _code, printed = self._run("show", str(self.root))
+        for line in printed.splitlines():
+            parts = line.split()
+            if len(parts) == 2 and parts[1].startswith("/"):
+                self.assertTrue(Path(parts[1]).exists(), f"{parts[0]} points nowhere")

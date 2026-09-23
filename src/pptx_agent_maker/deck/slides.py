@@ -58,11 +58,13 @@ def import_from(archive: Archive, source: Path, page_number: int) -> str:
                     '<Relationships xmlns="http://schemas.openxmlformats.org/'
                     'package/2006/relationships"/>')
         rels = NOTES_REL.sub("", rels)
-        for name in set(MEDIA_TARGET.findall(rels)):
+        carried: dict[str, str] = {}
+        for name in sorted(set(MEDIA_TARGET.findall(rels))):
             extension = name.rsplit(".", 1)[1]
-            carried = archive.next_media_name(extension)
-            (archive.tree / "ppt/media" / carried).write_bytes(zipped.read(f"ppt/media/{name}"))
-            rels = rels.replace(f"../media/{name}", f"../media/{carried}")
+            carried[name] = archive.next_media_name(extension)
+            (archive.tree / "ppt/media" / carried[name]).write_bytes(
+                zipped.read(f"ppt/media/{name}"))
+        rels = _rename_media(rels, carried)
 
     archive.slide(new_name).write_text(slide_xml, encoding="utf-8")
     archive.rels_of(new_name).parent.mkdir(parents=True, exist_ok=True)
@@ -73,9 +75,23 @@ def import_from(archive: Archive, source: Path, page_number: int) -> str:
 
 def _copy_media_within(archive: Archive, rels: str) -> str:
     """Give the copy its own media files, so editing one page cannot change another."""
-    for name in set(MEDIA_TARGET.findall(rels)):
+    carried: dict[str, str] = {}
+    for name in sorted(set(MEDIA_TARGET.findall(rels))):
         extension = name.rsplit(".", 1)[1]
-        carried = archive.next_media_name(extension)
-        shutil.copy(archive.tree / "ppt/media" / name, archive.tree / "ppt/media" / carried)
-        rels = rels.replace(f"../media/{name}", f"../media/{carried}")
-    return rels
+        carried[name] = archive.next_media_name(extension)
+        shutil.copy(archive.tree / "ppt/media" / name,
+                    archive.tree / "ppt/media" / carried[name])
+    return _rename_media(rels, carried)
+
+
+def _rename_media(rels: str, carried: dict[str, str]) -> str:
+    """Point every media relationship at its new file, all in one pass.
+
+    ⚠ **1 つずつ置換してはいけない。**置換して付けた名前が、次の置換の**探す名前**に
+    なることがあり、そのときは前に置き換えた分も巻き込まれる ― 4 枚の絵を持つ頁を
+    輸入すると、4 枚とも同じ 1 枚になった (= 焼いて初めて出た。頁の見た目は
+    もっともらしいままなので、絵を並べて見るまで気づけない)。
+    """
+    return MEDIA_TARGET.sub(
+        lambda found: f'Target="../media/{carried.get(found.group(1), found.group(1))}"',
+        rels)

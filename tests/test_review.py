@@ -26,7 +26,7 @@ from pptx_agent_maker.review import changes, keep_safe, last_machine_build  # no
 from test_deck import a_specimen, make_dot  # noqa: E402
 
 MANIFEST = '''
-specimen = "base/specimen.pptx"
+specimen = "specimen.pptx"
 out = "built.pptx"
 
 [[pages]]
@@ -35,7 +35,9 @@ page = 1
 
 [[pages]]
 kind = "declare"
-module = "example_page"
+type = "board"
+title = "宣言で組んだ頁"
+table = [["列", "値"], ["A", "1"]]
 '''
 
 
@@ -58,9 +60,9 @@ class ReviewTest(unittest.TestCase):
         self.root = Path(self.tmp.name) / "project"
         create(self.root)
         make_dot()
-        a_specimen(self.root / "base" / "specimen.pptx", ["一枚目"])
+        a_specimen(self.root / "specimen.pptx", ["一枚目"])
         shutil.copy(REPO / "tests" / "data" / "dot.png", self.root / "assets" / "example.png")
-        (self.root / "manifests" / "deck.toml").write_text(MANIFEST, encoding="utf-8")
+        (self.root / "deck.toml").write_text(MANIFEST, encoding="utf-8")
         self.workspace = Workspace.load(self.root)
         self.deck = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
 
@@ -80,7 +82,7 @@ class ReviewTest(unittest.TestCase):
         edit(self.deck, "一枚目", "人が直した")
         with self.assertRaises(HandEditedError):
             build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
-        shelved = sorted((self.workspace.output / "_edits").glob("*.pptx"))
+        shelved = sorted((self.workspace.root / "_edits").glob("*.pptx"))
         self.assertTrue(shelved, "the edit was not kept anywhere")
 
     def test_the_change_is_visible_as_words(self) -> None:

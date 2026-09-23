@@ -17,24 +17,32 @@ cognitive load; the same shape is what lets me compare across weeks."*
 
 ## What is different here
 
-**A page is declared by dividing its frame.** There is no call that takes a coordinate.
+**A page picks a type and fills it in.** There is no call that takes a coordinate — not in the
+manifest, and not inside the types either.
 
-```python
-page = Page("Where the wait comes from",
-            kicker="02 | results",
-            condition="Same request mix, three builds, one build per column",
-            conclusion="Most of the wait is the first read after a deploy",
-            footer="measured on the load test of the day")
-
-left, right = page.body.columns([2, 1], gap=DEFAULT.spacing.gap_m)
-figure_area, cards = left.rows([3, 2], gap=DEFAULT.spacing.gap_m)
-
-page.figure(figure_area, "latency.png", 16 / 9, caption="p95 by endpoint")
-page.boxes(cards, [("Cold start", "..."), ("Warm cache", "...")])
-table, note = right.split_top(DEFAULT.table_height(4), gap=DEFAULT.spacing.gap_s)
-page.table(table, rows, highlight={(1, 1): DEFAULT.palette.good})
-page.note(note, "blue = within budget / red = over")
+```toml
+[[pages]]
+kind = "declare"
+type = "figure"
+kicker = "02 | results"
+title = "Where the wait comes from"
+condition = "Same request mix, three builds, one build per column"
+cards = [["Cold start", "..."], ["Warm cache", "..."]]
+figure = "latency.png"
+caption = "p95 by endpoint"
+table = [["build", "p95"], ["A", "120 ms"], ["B", "340 ms"]]
+note = "blue = within budget / red = over"
+conclusion = "Most of the wait is the first read after a deploy"
+footer = "measured on the load test of the day"
 ```
+
+The order of a page is settled and never varies: **title → condition → cards → body → table →
+reading → conclusion → footer.** A band left unwritten is simply not taken. The type decides one
+thing — what goes in the body — and there are seven of them (`figure`, `figures`, `figure_grid`,
+`flow`, `cards`, `board`, `agenda`). Cards, a table and the reading can be added to any of them.
+
+Naming a few positions and asking people to use them does not hold: the previous generation did
+exactly that, and values with no name piled up right beside the ones that had them.
 
 Four things then hold **by construction**, not by a checker run afterwards:
 
@@ -53,8 +61,8 @@ And four things are refused outright, because no one managed to hold them by dis
 
 ## The other rule: a deck project lives outside this repo
 
-The toolkit is here. Manifests, assets, page scripts and built decks live in a workspace that this
-repo only points at. Data cannot enter a commit, so it cannot enter a push.
+The toolkit is here. Manifests, assets and built decks live in a workspace that this repo only
+points at. Data cannot enter a commit, so it cannot enter a push.
 
 ## Try it
 
@@ -96,8 +104,11 @@ anything. `preview/` keeps its own README, tests and Taskfile, and is updated wi
 
 ## Status
 
-The declarative layer, the theme tokens and the pptx writer work end to end: a page declared in
-Python renders, converts and reads correctly, and the preview is now in the same repository.
-Next: the workspace file that points at a deck project, the project skeleton that lives outside
-this repo, and the layers worth porting from the previous generation (specimen copying, importing
-a page from an earlier deck).
+Every layer is in place and covered: declaring a page, writing it to pptx, copying a specimen,
+importing a page from an earlier deck, building a deck from one manifest, reading the built file
+back through five checks, protecting a hand edit, and watching the result in a browser.
+
+## License
+
+Apache-2.0 — see [LICENSE](LICENSE). The bundled preview under `preview/` is part of this
+repository and ships under the same license.

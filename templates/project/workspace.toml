@@ -3,12 +3,11 @@
 # The toolkit reads this file and nothing else to find them. It must sit outside
 # the toolkit's repository: anything in here is the project's, and the project's
 # data never belongs in a push.
+#
+# A built deck sits beside the manifest that describes it, so `w1.toml` and
+# `w1.pptx` are neighbours. Only the material is filed away, one folder per round.
 
 root = "."
 
 [paths]
-base = "base"           # the specimen deck this project builds from
-manifests = "manifests" # one per deck: what goes on which page
-pages = "pages"         # this project's own page recipes
-assets = "assets"       # images and other material
-output = "output"       # built decks
+assets = "assets"       # images and other material, one folder per round

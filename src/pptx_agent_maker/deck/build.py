@@ -1,21 +1,21 @@
 """Building one deck from a manifest.
 
-3 通りの作り方を **1 本の経路**に合わせる ― 宣言層で組んだ頁はいったん pptx に焼き、
+3 通りの作り方を **1 本の経路**に合わせる ― 型で組んだ頁はいったん pptx に焼き、
 型見本の複製も過去デッキからの輸入も同じ「頁を持ってくる」操作にする。経路が 2 本あると、
 どちらの順序が本当かが分からなくなる。
 """
 
 from __future__ import annotations
 
-import importlib.util
 import tempfile
 from pathlib import Path
 
+from ..layout import types
 from ..project.manifest import Entry, Manifest, ManifestError
 from ..project.workspace import Workspace
 from ..review.fold import keep_safe
 from ..review.ledger import remember, touched_by_hand
-from ..write import add_page, new_deck, save
+from ..write import add_page, aspect, new_deck, save
 from . import Deck, Slide
 
 
@@ -73,22 +73,19 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path) -> d
     deck = new_deck()
     where: dict = {}
     for position, (index, entry) in enumerate(declared, start=1):
-        page = _load_page(workspace, entry.module)
+        page = _declared_page(workspace, manifest, entry, index)
         add_page(deck, page.build())
         where[index] = position
     where["path"] = save(deck, scratch / "declared.pptx")
     return where
 
 
-def _load_page(workspace: Workspace, module: str):
-    """Run a page recipe from the project's own pages/ folder."""
-    source = workspace.pages / f"{module}.py"
-    if not source.is_file():
-        raise ManifestError(f"page recipe not found: {source}")
+def _declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index: int):
+    """Build a declared page, saying which page of the manifest went wrong."""
+    def asset(name: str):
+        return workspace.asset(name, within=manifest.assets)
 
-    spec = importlib.util.spec_from_file_location(f"project_page_{module}", source)
-    loaded = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(loaded)
-    if not hasattr(loaded, "build"):
-        raise ManifestError(f"{source} has no build(workspace) function")
-    return loaded.build(workspace)
+    try:
+        return types.build(entry.data, asset, aspect)
+    except (ValueError, KeyError) as reason:
+        raise ManifestError(f"page {index}: {reason}") from reason

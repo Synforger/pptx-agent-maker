@@ -1,0 +1,40 @@
+# One deck. A page is made in one of three ways and nothing else:
+#
+#   copy     — duplicate the specimen's Nth page and swap words
+#   import   — bring in the Nth page of a deck built earlier
+#   declare  — build it from one of the page types
+#
+# The order here is the order the deck reads. A page left out of this file does
+# not exist in the built deck.
+#
+# Material comes from `assets/<this file's name>/` unless `assets` says otherwise.
+
+specimen = "specimen.pptx"
+out = "example.pptx"
+
+[[pages]]
+kind = "copy"
+page = 1
+replace = [["旧いタイトル", "新しいタイトル"]]
+why = "表紙は型見本から複製して文言だけ差し替える"
+
+[[pages]]
+kind = "declare"
+type = "figure"
+kicker = "01 | 見本"
+title = "型を選べば、版面は決まっている"
+condition = "この頁で固定した条件を 1 行"
+cards = [["① 一つめ", "カードはどの型にも添えられる"], ["② 二つめ", "本体の上に並ぶ"]]
+figure = "example.png"
+caption = "図の読み方を 1 行"
+table = [["列", "値"], ["A", "1"], ["B", "2"]]
+note = "表の読み方を 1 行"
+conclusion = "読み手に持ち帰ってほしい 1 行"
+footer = "出所 (= どの run のどの表から来たか)"
+why = "型で書ける頁は型で書く (= 版面を頁ごとに決めない)"
+
+# [[pages]]
+# kind = "import"
+# deck = "w1.pptx"
+# page = 12
+# why = "前のデッキの 12 頁目を、手を入れたまま持ってくる"

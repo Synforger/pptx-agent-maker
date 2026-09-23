@@ -101,6 +101,8 @@ def _table(slide, element: Table, theme: Theme) -> None:
     )
     table = shape.table
     table.first_row = element.header
+    for column, width in zip(table.columns, element.widths):
+        column.width = Emu(width)
     for row in table.rows:
         row.height = Emu(theme.table_row_height())
     for r, row in enumerate(element.rows):
