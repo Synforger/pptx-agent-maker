@@ -43,8 +43,8 @@ Filler = Callable[[Page, "Spec", Rect], None]
 #: 枠の宣言 (= 書かなければその帯は取られない)
 FRAME_KEYS = frozenset({"type", "kind", "title", "kicker", "condition", "conclusion",
                         "footer", "replace", "highlight"})
-#: 本体に添えられるもの (= どの型でも任意)
-EXTRA_KEYS = frozenset({"cards", "table", "note", "points", "caption", "columns"})
+#: 本体に添えられるもの (= **どの型でも**読まれる。共通の処理が拾う)
+EXTRA_KEYS = frozenset({"cards", "table", "note", "points"})
 
 _TYPES: dict[str, tuple[Filler, frozenset, bool]] = {}
 
@@ -100,11 +100,16 @@ class Spec:
         return [(str(head), str(body)) for head, body in self.data["cards"]]
 
 
-def register(name: str, *, needs: Iterable[str], figure: bool = True
-             ) -> Callable[[Filler], Filler]:
-    """Declare a page type, what its body needs, and whether it must show a picture."""
+def register(name: str, *, needs: Iterable[str], takes: Iterable[str] = (),
+             figure: bool = True) -> Callable[[Filler], Filler]:
+    """Declare a page type: what its body needs, what else it reads, and whether it shows a picture.
+
+    ⚠ **`takes` は「この型が読む任意のキー」。**共通の付属 (= `EXTRA_KEYS`) と違って、
+    読むのは宣言した型だけ ― 読まない型に書けるままだと、書いた人は書いたつもりで、
+    焼いた頁にはそれが無い。実際に `figures` の頁で `caption` を黙って落としていた。
+    """
     def decorate(filler: Filler) -> Filler:
-        _TYPES[name] = (filler, frozenset(needs), figure)
+        _TYPES[name] = (filler, frozenset(needs), frozenset(takes), figure)
         return filler
     return decorate
 
@@ -116,7 +121,7 @@ def names() -> list[str]:
 
 def skeleton() -> list[str]:
     """The types allowed to carry no figure (= the deck's own scaffolding)."""
-    return sorted(name for name, spec in _TYPES.items() if not spec[2])
+    return sorted(name for name, spec in _TYPES.items() if not spec[3])
 
 
 def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], float],
@@ -129,8 +134,8 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
             "A page that fits none of them means a type is missing; add one rather than "
             "placing shapes by hand."
         )
-    filler, needs, wants_figure = _TYPES[name]
-    _check_keys(name, data, needs)
+    filler, needs, takes, wants_figure = _TYPES[name]
+    _check_keys(name, data, needs, takes)
 
     title = data.get("title")
     if not title:
@@ -152,7 +157,8 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
     return page
 
 
-def _check_keys(name: str, data: dict, needs: frozenset) -> None:
+def _check_keys(name: str, data: dict, needs: frozenset,
+                takes: frozenset = frozenset()) -> None:
     """Refuse a missing key and an unknown one alike.
 
     ⚠ **知らないキーを黙って捨てない。**綴り違いを捨てると、書いた人は書いたつもりで、
@@ -163,9 +169,9 @@ def _check_keys(name: str, data: dict, needs: frozenset) -> None:
         raise PageTypeError(
             f"{name}: missing {', '.join(missing)} — this type is not that page without it"
         )
-    unknown = sorted(data.keys() - needs - EXTRA_KEYS - FRAME_KEYS)
+    unknown = sorted(data.keys() - needs - takes - EXTRA_KEYS - FRAME_KEYS)
     if unknown:
-        allowed = ", ".join(sorted(needs | EXTRA_KEYS | FRAME_KEYS))
+        allowed = ", ".join(sorted(needs | takes | EXTRA_KEYS | FRAME_KEYS))
         raise PageTypeError(
             f"{name}: does not take {', '.join(unknown)} (= it accepts {allowed}). "
             "A key nobody reads is a change that silently never happened."
@@ -277,7 +283,7 @@ def _card_height(page: Page, cards, width: int, columns: int, *, small: bool = F
 # -- the seven bodies ------------------------------------------------------
 
 
-@register("figure", needs=["figure"])
+@register("figure", needs=["figure"], takes=["caption"])
 def _figure(page: Page, spec: Spec, area: Rect) -> None:
     """One image holding the body."""
     source, aspect = spec.figure()
@@ -295,7 +301,7 @@ def _figures(page: Page, spec: Spec, area: Rect) -> None:
         page.figure(cell, source, aspect, caption=caption)
 
 
-@register("figure_grid", needs=["figures"])
+@register("figure_grid", needs=["figures"], takes=["columns"])
 def _figure_grid(page: Page, spec: Spec, area: Rect) -> None:
     """Images on a grid — two axes at once (= item × method)."""
     items = spec.figures()

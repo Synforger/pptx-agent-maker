@@ -27,19 +27,21 @@ title = "…"
 
 ## 型 (= 本体に何を置くか)
 
-| 型 | 要るもの | 本体 |
-|---|---|---|
-| `figure` | `figure` | 絵を 1 枚、縦横比のまま最大で |
-| `figures` | `figures` | 絵を横に並べる |
-| `figure_grid` | `figures` | 絵を格子に並べる |
-| `flow` | `stages` | 段を左から右へ、あいだに印 |
-| `cards` | ― | 札だけの頁 (= 図が要らない骨格) |
-| `board` | `table` | 表が主役の頁 (= 同上) |
-| `agenda` | `buckets` | 章立て (= 同上) |
+| 型 | 要るもの | この型だけが読むもの | 本体 |
+|---|---|---|---|
+| `figure` | `figure` | `caption` | 絵を 1 枚、縦横比のまま最大で |
+| `figures` | `figures` | ― | 絵を横に並べる (= 説明は絵ごとに `["a.png", "説明"]`) |
+| `figure_grid` | `figures` | `columns` | 絵を格子に並べる |
+| `flow` | `stages` | ― | 段を左から右へ、あいだに印 |
+| `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
+| `board` | `table` | ― | 表が主役の頁 (= 同上) |
+| `agenda` | `buckets` | ― | 章立て (= 同上) |
 
 ## どの型にも添えられるもの
 
-`cards` / `table` / `note` / `points` / `caption` / `columns`
+`cards` / `table` / `note` / `points`
+
+⚠ **その型が読まないキーは拒まれる** (= 書いたつもりで頁に無い、を作らない)。
 
 ## 枠まわり (= どの頁も同じ順)
 
