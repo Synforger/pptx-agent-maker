@@ -1,39 +1,67 @@
 # 参照
 
-## 版面の語彙 (= `layout/`)
-
-| 呼び方 | 何 |
-|---|---|
-| `page.body` | 見出し・帯・出所を取った残り。ここを割って使う |
-| `.columns(n or weights, gap)` / `.rows(...)` | 左右 / 上下に割る。割った枠は必ず親の中 |
-| `.grid(rows, cols, gap)` | 行×列 |
-| `.split_top(height, gap)` | 上から固定高を取り、残りを返す (= 表のように高さが中身で決まるもの) |
-| `.inset(all / x / y / left …)` | 内側に縮める |
-| `.fit(aspect)` | その縦横比で最大、中央寄せ (= 絵はこれでしか置けない) |
-
-`DEFAULT.spacing.gap_s / gap_m / gap_l`、`DEFAULT.palette.ink / muted / accent / good / bad /
-band / box / rule`、`DEFAULT.type.title / heading / body / caption`、`DEFAULT.table_height(rows)`。
-
 ## manifest
 
 ```toml
-specimen = "base/specimen.pptx"
-out = "w1.pptx"
+specimen = "specimen.pptx"     # 予約名。案件の意匠
+out = "w1.pptx"                # マニフェストの隣に焼かれる
+assets = "w1"                  # 省略すると、この file の名前が素材の folder 名
 
 [[pages]]
-kind = "copy"        # 型見本の N 頁目
+kind = "copy"                  # 型見本の N 頁目を複製して文言を差し替える
 page = 1
 replace = [["旧", "新"]]
 
 [[pages]]
-kind = "import"      # 前のデッキの N 頁目
-deck = "output/w0.pptx"
+kind = "import"                # 前のデッキの N 頁目を、手を入れたまま持ってくる
+deck = "w0.pptx"
 page = 12
 
 [[pages]]
-kind = "declare"     # pages/<module>.py の build(workspace)
-module = "latency"
+kind = "declare"               # 型で組む
+type = "figure"
+title = "…"
 ```
+
+⚠ **`why` は 1 行の覚え書き** (= 200 字、日付を書くと拒まれる)。改訂の履歴は git log が持つ。
+
+## 型 (= 本体に何を置くか)
+
+| 型 | 要るもの | この型だけが読むもの | 本体 |
+|---|---|---|---|
+| `figure` | `figure` | `caption` | 絵を 1 枚、縦横比のまま最大で |
+| `figures` | `figures` | ― | 絵を横に並べる (= 説明は絵ごとに `["a.png", "説明"]`) |
+| `figure_grid` | `figures` | `columns` | 絵を格子に並べる |
+| `flow` | `stages` | ― | 段を左から右へ、あいだに印 |
+| `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
+| `board` | `table` | ― | 表が主役の頁 (= 同上) |
+| `agenda` | `buckets` | ― | 章立て (= 同上) |
+
+## どの型にも添えられるもの
+
+`cards` / `table` / `note` / `points`
+
+⚠ **その型が読まないキーは拒まれる** (= 書いたつもりで頁に無い、を作らない)。
+
+## 枠まわり (= どの頁も同じ順)
+
+`kicker` / `title` / `condition` / `conclusion` / `footer` / `replace` / `highlight`
+
+## 意匠 (= `workspace.toml`)
+
+```toml
+[theme]
+font = "Arial"
+
+[theme.palette]
+ink = "3F3F3F"      # 本文
+accent = "0092D1"   # 読みを示す色 (= 表の見出しもここ)
+band = "EAF0F8"     # 条件の帯
+```
+
+⚠ **ふつうは書かない** ― 意匠は `specimen.pptx` から読まれる。ここに書くのは、型見本の
+配色が道具の語彙と合わないときだけ。差し替えられるのは**書体と色だけ**で、
+余白・級数・間隔は道具が持つ。
 
 ## 検査
 
@@ -42,5 +70,5 @@ module = "latency"
 
 ```toml
 [checks]
-stale_words = ["W3 の値", "旧版"]
+stale_words = ["案件名", "第 N 回"]
 ```

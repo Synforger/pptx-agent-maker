@@ -1,0 +1,32 @@
+# <project> — where this deck project keeps its things.
+#
+# The toolkit reads this file and nothing else to find them. It must sit outside
+# the toolkit's repository: anything in here is the project's, and the project's
+# data never belongs in a push.
+#
+# A built deck sits beside the manifest that describes it, so `w1.toml` and
+# `w1.pptx` are neighbours. Only the material is filed away, one folder per round.
+
+root = "."
+
+[paths]
+assets = "assets"       # images and other material, one folder per round
+
+# The project's own look is read from specimen.pptx — its master carries the
+# typeface and the colours, and every page built from a type comes out in them.
+#
+# This block is the exception on top: write it only where the specimen's palette
+# does not line up with what the toolkit means by each colour (the one that marks
+# a reading, the strip behind a stated condition). Whatever is written here wins;
+# everything else stays as the specimen has it.
+#
+# [theme]
+# font = "Arial"
+#
+# [theme.palette]
+# accent = "0092D1"     # the colour that marks a reading (= also the table header)
+
+# Words the specimen leaves behind. A copied page that still says one of these
+# was never reworded, and the check after the build stops it.
+[checks]
+stale_words = ["案件名", "第 N 回"]

@@ -22,19 +22,38 @@ def _preview(workspace, port: int, no_open: bool) -> int:
     ビルドがデッキを書き換えると、プレビューがそのまま焼き直す。焼いたデッキは
     マニフェストの隣に在るので、見るのは案件の folder そのもの。
     """
-    if str(PREVIEW) not in sys.path:
+    # ⚠ repo から動かしたときだけ在る path。入れた道具では preview は別の package。
+    if PREVIEW.is_dir() and str(PREVIEW) not in sys.path:
         sys.path.insert(0, str(PREVIEW))
     try:
         from pptx_live_preview.__main__ import main as preview_main
     except ImportError as error:  # pragma: no cover - depends on the environment
-        print(f"error: the preview needs its own dependencies ({error}).\n"
-              f"       run: .venv/bin/pip install -e {PREVIEW.parent}", file=sys.stderr)
+        hint = (f"       run: pip install -e {PREVIEW.parent}" if PREVIEW.is_dir()
+                else "       the live preview is a separate package; install it "
+                     "beside the toolkit")
+        print(f"error: the live preview is not available ({error}).\n{hint}", file=sys.stderr)
         return 1
 
     argv = [str(workspace.root), "--port", str(port)]
     if no_open:
         argv.append("--no-open")
+    # ⚠ **型見本は焼いた成果ではない。**マニフェストが指している pptx を一覧から外す。
+    for name in _specimens(workspace):
+        argv += ["--skip", name]
     return preview_main(argv)
+
+
+def _specimens(workspace) -> set[str]:
+    """The files the project's manifests grow decks from (= not decks themselves)."""
+    from .project.manifest import Manifest, ManifestError
+
+    found = set()
+    for manifest in workspace.manifests():
+        try:
+            found.add(Path(Manifest.load(manifest).specimen).stem)
+        except (ManifestError, OSError):
+            continue  # 読めないマニフェストは build が言う。ここは一覧を作るだけ
+    return found
 
 
 def _deck_path(workspace, name: str) -> Path:
@@ -89,6 +108,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             where = create(args.path, name=args.name)
             print(f"created {where}")
+            # ⚠ **建てただけでは次に何を打つか分からない。**案件の folder には task の口が
+            # 入っているので、道具の名前ではなくそちらを案内する。
+            print(f"  next: cd {where} && task build -- example")
             return 0
 
         workspace = Workspace.load(args.path)
@@ -108,13 +130,19 @@ def main(argv: list[str] | None = None) -> int:
             from .review import as_manifest_entries, changes, keep_safe, last_machine_build
 
             edited = _deck_path(workspace, args.deck)
+            # ⚠ **比べる相手を先に確かめてから退避する。**先に控えを取っていた間は、
+            # 相手が無くて失敗した回でも控えだけが増え、その控えを渡すとまた控えが
+            # できて入れ子になった (= 失敗した操作が跡を残さないのが筋)。
+            reference = Path(args.against) if args.against else last_machine_build(edited)
+            if reference is None:
+                print(f"error: nothing to compare {edited.name} against. The toolkit keeps "
+                      "one copy of what it last built beside the deck; there is none here.\n"
+                      "       Pass the deck the toolkit built (not a copy of it), or name a "
+                      "reference with --against.", file=sys.stderr)
+                return 1
             shelved = keep_safe(edited)
             if shelved:
                 print(f"kept a copy at {shelved}")
-            reference = Path(args.against) if args.against else last_machine_build(edited)
-            if reference is None:
-                print("error: nothing to compare against — build the deck first", file=sys.stderr)
-                return 1
             from .review import compare_parts, render_parts
 
             # 落とさない層を先に出す (= 読み取る項目を 1 つずつ足す形は、

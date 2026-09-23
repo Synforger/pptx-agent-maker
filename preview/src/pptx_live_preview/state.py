@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import threading
+from collections.abc import Iterable
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -156,11 +157,14 @@ class DeckSet:
     appeared" and "the open deck changed".
     """
 
-    def __init__(self, source: Path, dpi: int = DEFAULT_DPI) -> None:
+    def __init__(self, source: Path, dpi: int = DEFAULT_DPI,
+                 skip: Iterable[str] = ()) -> None:
         self.source = source
         self.is_folder = source.is_dir()
         self.title = source.name if self.is_folder else source.stem
         self.dpi = dpi
+        #: 見張らない stem (= 焼いた成果ではない pptx が folder に在る場合)
+        self.skip = frozenset(skip)
         self.lock = threading.Lock()
         self.cond = threading.Condition(self.lock)
         self.decks: dict[str, DeckState] = {}
@@ -174,6 +178,7 @@ class DeckSet:
         return sorted(
             p for p in self.source.glob("*.pptx")
             if not p.name.startswith("~$")  # PowerPoint lock file
+            and p.stem not in self.skip
         )
 
     def rescan_and_rerender(self, force: bool = False, rebuild: bool = False) -> None:

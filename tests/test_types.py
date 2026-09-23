@@ -137,6 +137,35 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
         self.assertLess(placed["points"].bottom, placed["note"].top)
 
 
+class OnlyTheTypeThatReadsAKeyAcceptsIt(unittest.TestCase):
+    """⚠ **読まない型に書けるままだと、書いたつもりで頁には無い。**
+
+    `caption` は「どの型にも添えられる」一覧に入っていたが、絵を並べる型は頁全体の
+    caption を読まない (= 絵ごとの説明は `figures` の中に書く)。黙って落ちていた。
+    """
+
+    @staticmethod
+    def _build(data):
+        return types.build(data, lambda name: Path(name), lambda path: 1.0)
+
+    def test_one_image_takes_a_caption(self) -> None:
+        self._build({"type": "figure", "title": "t", "figure": "a.png", "caption": "読み方"})
+
+    def test_images_side_by_side_do_not(self) -> None:
+        with self.assertRaises(types.PageTypeError) as caught:
+            self._build({"type": "figures", "title": "t",
+                         "figures": ["a.png", "b.png"], "caption": "落ちていた"})
+        self.assertIn("does not take caption", str(caught.exception))
+
+    def test_a_grid_takes_its_column_count(self) -> None:
+        self._build({"type": "figure_grid", "title": "t",
+                     "figures": ["a.png", "b.png"], "columns": 2})
+
+    def test_one_image_does_not_take_a_column_count(self) -> None:
+        with self.assertRaises(types.PageTypeError):
+            self._build({"type": "figure", "title": "t", "figure": "a.png", "columns": 2})
+
+
 class WhatTheTypesRefuse(unittest.TestCase):
     """A declaration nobody can build must stop here, not later."""
 

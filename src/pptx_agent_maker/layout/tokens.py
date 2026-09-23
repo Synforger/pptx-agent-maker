@@ -5,11 +5,16 @@
 ここを 1 枚に閉じ込め、頁からは名前でしか触れないようにする。
 
 An entire deck's look is this file. Change a token, every page moves together.
+
+A project may swap two of them for its own — the typeface and the palette, through
+`theme_from` at the bottom. Sizes and spacing stay here: a project that can move its
+own margins is a project whose pages change shape from one round to the next.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass, field, fields
 
 from .geometry import Rect, cm, pt
 
@@ -143,3 +148,57 @@ class Theme:
 
 
 DEFAULT = Theme()
+
+
+#: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
+_HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
+#: 案件が自分で決めてよいもの。これ以外は道具が持つ
+_MINE = ("font", "palette")
+
+
+class ThemeError(ValueError):
+    """The project asked for a look that cannot be read."""
+
+
+def theme_from(settings: dict | None) -> Theme:
+    """The look a project sets for itself: its typeface and its colours, nothing else.
+
+    ⚠ **寸法と文字の大きさは受け取らない。**案件ごとに余白と級数が動くと、同じ役割の
+    頁が週をまたいで別の形になる (= 前の世代が壊れた道)。**意匠 (= どの書体で、どの色で)
+    は案件のもの、版面の割り方は道具のもの**という線をここで引く。
+
+    ⚠ **知らないキーは捨てずに拒む。**綴り違いを黙って落とすと、書いた人は意匠を変えた
+    つもりで、焼いた頁は既定のまま出る。
+    """
+    if not settings:
+        return DEFAULT
+
+    _refuse_unknown(sorted(set(settings) - set(_MINE)), "theme", _MINE)
+
+    family = str(settings.get("font", Type().family)).strip()
+    if not family:
+        raise ThemeError("theme.font is empty — name a typeface, or leave the key out")
+
+    colours = settings.get("palette") or {}
+    known = tuple(f.name for f in fields(Palette))
+    _refuse_unknown(sorted(set(colours) - set(known)), "theme.palette", known)
+    for name, value in colours.items():
+        if not _HEX.match(str(value)):
+            raise ThemeError(
+                f"theme.palette.{name} is {value!r} — a colour is six hex digits "
+                'with no "#", as in "1F5FA9"'
+            )
+
+    return Theme(
+        type=Type(family=family),
+        palette=Palette(**{name: str(value).upper() for name, value in colours.items()}),
+    )
+
+
+def _refuse_unknown(unknown: list[str], where: str, known) -> None:
+    if unknown:
+        raise ThemeError(
+            f"{where} does not take {', '.join(unknown)} (= it takes "
+            f"{', '.join(sorted(known))}). A key nobody reads is a change that "
+            "silently never happened."
+        )

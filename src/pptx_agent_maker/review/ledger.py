@@ -13,8 +13,15 @@ import json
 import shutil
 from pathlib import Path
 
-LEDGER = ".built.json"
-LAST = ".last"
+#: 道具が案件の folder に置く唯一のもの。**案件の持ち物と同じ階層に散らさない** ―
+#: 直下に並ぶのはマニフェストと焼いたデッキと素材だけ、という形を守る。
+STATE = ".pptx-agent-maker"
+LEDGER = "built.json"
+LAST = "last"
+
+
+def _state(deck: Path) -> Path:
+    return Path(deck).parent / STATE
 
 
 def _digest(deck: Path) -> str:
@@ -22,7 +29,7 @@ def _digest(deck: Path) -> str:
 
 
 def _path(deck: Path) -> Path:
-    return Path(deck).parent / LEDGER
+    return _state(deck) / LEDGER
 
 
 def remember(deck: Path) -> None:
@@ -33,18 +40,19 @@ def remember(deck: Path) -> None:
     """
     deck = Path(deck)
     ledger = _path(deck)
+    ledger.parent.mkdir(parents=True, exist_ok=True)
     known = json.loads(ledger.read_text()) if ledger.is_file() else {}
     known[deck.name] = _digest(deck)
     ledger.write_text(json.dumps(known, indent=2, sort_keys=True), encoding="utf-8")
 
-    shelf = deck.parent / LAST
+    shelf = _state(deck) / LAST
     shelf.mkdir(parents=True, exist_ok=True)
     shutil.copy2(deck, shelf / deck.name)
 
 
 def last_machine_build(deck: Path) -> Path | None:
     """The copy of what the toolkit last wrote, if there is one."""
-    candidate = Path(deck).parent / LAST / Path(deck).name
+    candidate = _state(deck) / LAST / Path(deck).name
     return candidate if candidate.is_file() else None
 
 

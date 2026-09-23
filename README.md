@@ -64,6 +64,39 @@ And four things are refused outright, because no one managed to hold them by dis
 The toolkit is here. Manifests, assets and built decks live in a workspace that this repo only
 points at. Data cannot enter a commit, so it cannot enter a push.
 
+## Three layers
+
+- **the toolkit** — this repository: the vocabulary of the page (seven types) and the machinery.
+  Installed **once per machine**
+- **the template** — `src/pptx_agent_maker/templates/project/`: where a project starts (its look,
+  an example manifest, and its entry point). It **ships with the toolkit**, so an installed
+  copy can lay down a project too
+- **a project** — what `init` lays down: data, declarations and a look. **The toolkit is not in it**
+
+**A new type is added to the toolkit**, and every project has it at once: there is nothing to
+distribute. What a project owns is its look and the order of its pages, and those differ by project.
+
+A project stands on its own — its `Taskfile.yml` is the door to the toolkit.
+
+```bash
+pipx install .                          # install the toolkit, once
+pptx-agent-maker init <project-dir>
+cd <project-dir> && task build -- example
+```
+
+## The look belongs to the project, the layout to the toolkit
+
+A project sets its own **typeface and colours** in `[theme]` in its `workspace.toml`, and pages
+built from a type come out in them. **Margins, type sizes and spacing cannot be set**: the same
+kind of page keeping the same shape from one round to the next is worth more, and the generation
+that left that open produced a different page every week.
+
+The template ships with **one specimen, baked in the toolkit's own look**, so a project can build
+a deck the moment it is created. To use a project's own look, **replace that one file** — copied
+pages, pages built from a type and the master a person sees in PowerPoint all take it from there.
+`[theme]` is the exception laid on top, for when a specimen's palette does not line up with what
+the toolkit means by each colour; only what is written there is overridden.
+
 ## Try it
 
 ```bash
@@ -81,7 +114,7 @@ src/pptx_agent_maker/
 ├── checks/    reading a built deck back, one check per file
 ├── review/    keeping a person's edit, and showing it as words
 └── project/   pointing at a deck project that lives outside this repo
-templates/     the skeleton a deck project is created from
+templates/     the skeleton a deck project is created from (it ships with a specimen)
 preview/       the live preview, vendored with its own history (git subtree)
 ```
 

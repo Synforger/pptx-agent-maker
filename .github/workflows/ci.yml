@@ -28,5 +28,14 @@ jobs:
           fetch-depth: 0   # the docs gate resolves references against history
       - name: Install go-task
         run: sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+      - name: Install LibreOffice
+        # One test converts a built deck end to end — the closest thing to
+        # opening it in PowerPoint, and how the repair dialog would be caught.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends libreoffice-impress
+      - name: Create the virtualenv the gates run in
+        # Every gate runs the interpreter in .venv, which a fresh checkout does
+        # not have: without this the suite stops at the first task, not at a
+        # real finding.
+        run: task setup
       - name: Run the local gate suite
         run: task ci
