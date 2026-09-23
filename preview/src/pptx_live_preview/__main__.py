@@ -62,6 +62,11 @@ def main(argv=None) -> int:
     parser.add_argument("--dpi", type=int, default=DEFAULT_DPI,
                         help=f"render DPI (default {DEFAULT_DPI})")
     parser.add_argument("--no-open", action="store_true", help="do not open a browser")
+    # A folder can hold a .pptx that is not a built deck — a template the decks
+    # are grown from, say. Naming it here keeps it out of the list without the
+    # preview having to know what it is.
+    parser.add_argument("--skip", action="append", default=[], metavar="NAME",
+                        help="a file name (without .pptx) to leave out; repeatable")
     args = parser.parse_args(argv)
 
     path = args.path.expanduser().resolve()
@@ -69,7 +74,7 @@ def main(argv=None) -> int:
         print(f"error: not found: {path}", file=sys.stderr)
         return 1
 
-    return serve(DeckSet(path, args.dpi), args.port, args.no_open)
+    return serve(DeckSet(path, args.dpi, skip=args.skip), args.port, args.no_open)
 
 
 if __name__ == "__main__":

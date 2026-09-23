@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import re
 import shutil
 import sys
@@ -26,7 +27,20 @@ from pptx_agent_maker.deck.build import build  # noqa: E402
 from pptx_agent_maker.layout.tokens import DEFAULT, ThemeError, theme_from  # noqa: E402
 from pptx_agent_maker.project import Workspace, WorkspaceError  # noqa: E402
 from pptx_agent_maker.project.manifest import Manifest  # noqa: E402
+from pptx_agent_maker.layout.tokens import Palette, Theme, Type  # noqa: E402
 from pptx_agent_maker.write.pptx import NO_TABLE_STYLE  # noqa: E402
+
+TEMPLATE_SPECIMEN = REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx"
+
+
+def _dress(destination, theme):
+    """A specimen wearing a given look (= what a project puts down as its own)."""
+    spec = importlib.util.spec_from_file_location("baker", REPO / "scripts" / "bake-template.py")
+    baker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(baker)
+    shutil.copy(TEMPLATE_SPECIMEN, destination)
+    baker.dress(destination, theme)
+    return destination
 
 MANIFEST = """
 specimen = "specimen.pptx"
@@ -109,8 +123,21 @@ class ThemeThroughTheWorkspaceTest(unittest.TestCase):
         assert found is not None, "the built deck has no table"
         return found.group(0)
 
-    def test_no_theme_means_the_default(self) -> None:
-        self.assertIs(self._settings("").theme, DEFAULT)
+    def test_nothing_declared_means_the_specimens_own_look(self) -> None:
+        """⚠ **意匠の真値は型見本 1 枚。**書かなければそこから来る。"""
+        _dress(self.root / "specimen.pptx",
+               Theme(type=Type(family="Arial"), palette=Palette(accent="0092D1")))
+        table = self._table_of(self._built(""))
+        self.assertIn('typeface="Arial"', table)
+        self.assertIn("0092D1", table)
+        self.assertNotIn(DEFAULT.palette.accent, table)
+
+    def test_a_declaration_is_laid_over_the_specimen(self) -> None:
+        _dress(self.root / "specimen.pptx",
+               Theme(type=Type(family="Arial"), palette=Palette(accent="0092D1")))
+        table = self._table_of(self._built('[theme.palette]\naccent = "B3261E"\n'))
+        self.assertIn("B3261E", table, "the declaration did not win")
+        self.assertIn('typeface="Arial"', table, "the specimen's typeface was dropped")
 
     def test_the_project_look_reaches_the_built_pages(self) -> None:
         slides = self._built('[theme]\nfont = "Arial"\n\n[theme.palette]\naccent = "0092D1"\n')

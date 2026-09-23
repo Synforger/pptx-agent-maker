@@ -92,9 +92,10 @@ kind of page keeping the same shape from one round to the next is worth more, an
 that left that open produced a different page every week.
 
 The template ships with **one specimen, baked in the toolkit's own look**, so a project can build
-a deck the moment it is created. To use a project's own look, replace that file *and* set
-`[theme]` to the same colours — the first decides copied pages and the master a person sees in
-PowerPoint, the second decides pages built from a type.
+a deck the moment it is created. To use a project's own look, **replace that one file** — copied
+pages, pages built from a type and the master a person sees in PowerPoint all take it from there.
+`[theme]` is the exception laid on top, for when a specimen's palette does not line up with what
+the toolkit means by each colour; only what is written there is overridden.
 
 ## Try it
 

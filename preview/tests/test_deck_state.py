@@ -324,3 +324,17 @@ def test_deck_appearing_wakes_event_waiters(tmp_path, fake):
     deckset.rescan_and_rerender()
     t.join(timeout=6.0)
     assert woke.is_set()
+
+
+def test_a_named_file_is_left_out_of_the_folder_scan(tmp_path, fake):
+    """⚠ **どれがデッキでないかの判断は呼ぶ側が持つ。**ここは渡された名前を外すだけ。
+
+    型見本のように「焼いた成果ではない .pptx」が同じ folder に並ぶことがあり、それを
+    一覧に出すと、開いても中身の無い頁が 1 本増える。
+    """
+    for name in ("w1.pptx", "specimen.pptx"):
+        (tmp_path / name).write_bytes(b"x")
+
+    deckset = st.DeckSet(tmp_path, skip=["specimen"])
+    deckset.rescan_and_rerender()
+    assert deckset.deck_names() == ["w1"]

@@ -16,8 +16,8 @@
         ├── w1/            マニフェストと同じ名前の folder が、その回の素材
         └── w2/
 
-案件が自分で決めるものがもう 1 つ ― **意匠** (= 書体と色) を `[theme]` に書く。
-版面の割り方は道具が持ったままで、動くのは見た目だけ (= `layout/tokens.py`)。
+意匠 (= 書体と色) は**型見本が持つ**。`[theme]` はその上に重ねる例外で、型見本の
+配色が道具の語彙と合わないときだけ書く。版面の割り方は道具が持ったまま。
 
 ⚠ **回を folder で仕切らない。**開いて確かめるのは焼いたデッキなので、それが
 マニフェストの隣に在るのがいちばん短い。素材だけは数が多いので回ごとに分ける。
@@ -34,7 +34,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..layout.tokens import DEFAULT, Theme, ThemeError, theme_from
+from ..layout.tokens import ThemeError, theme_from
 
 REPO = Path(__file__).resolve().parents[3]
 FILENAME = "workspace.toml"
@@ -55,8 +55,8 @@ class Workspace:
     root: Path
     assets: Path
     settings: dict = field(default_factory=dict)
-    #: この案件の意匠 (= 書体と色。無ければ道具の既定)
-    theme: Theme = DEFAULT
+    #: この案件が宣言した意匠 (= 書体と色。無ければ型見本のものが使われる)
+    look: dict = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: Path | str) -> "Workspace":
@@ -75,15 +75,17 @@ class Workspace:
         cls._refuse_inside_the_repo(root, path)
 
         folders = data.get("paths", {})
+        look = data.get("theme") or {}
         try:
-            theme = theme_from(data.get("theme"))
+            # 読んだ時点で言う (= 焼く段まで持っていくと、誤りに気づくのが 1 手遅れる)
+            theme_from(look)
         except ThemeError as reason:
             raise WorkspaceError(f"{path.name}: {reason}") from reason
 
         return cls(
             root=root,
             settings=data,
-            theme=theme,
+            look=look,
             **{name: root / str(folders.get(name, name)) for name in FOLDERS},
         )
 

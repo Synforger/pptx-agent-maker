@@ -11,10 +11,12 @@ import tempfile
 from pathlib import Path
 
 from ..layout import types
+from ..layout.tokens import Theme, theme_from
 from ..project.manifest import Entry, Manifest, ManifestError
 from ..project.workspace import Workspace
 from ..review.fold import keep_safe
 from ..review.ledger import remember, touched_by_hand
+from .look import merged
 from ..write import add_page, aspect, new_deck, save
 from . import Deck, Slide
 
@@ -37,8 +39,10 @@ def build(workspace: Workspace, manifest: Manifest) -> Path:
             f"{shelved}. Fold those changes in (`review`) or delete the file, then build again."
         )
 
+    theme = theme_from(merged(specimen, workspace.look))
+
     with tempfile.TemporaryDirectory() as scratch:
-        declared = _bake_declared(workspace, manifest, Path(scratch))
+        declared = _bake_declared(workspace, manifest, Path(scratch), theme)
         with Deck.open(specimen, destination) as deck:
             for index, entry in enumerate(manifest.entries, start=1):
                 page = _place(deck, workspace, entry, declared, index)
@@ -60,7 +64,8 @@ def _place(deck: Deck, workspace: Workspace, entry: Entry, declared: dict[int, i
     return deck.bring(declared["path"], declared[index])
 
 
-def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path) -> dict:
+def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
+                   theme: Theme) -> dict:
     """Render every declared page into one deck, remembering which page each became.
 
     宣言頁が 1 つも無ければ焼かない (= 空のデッキを作らない)。
@@ -70,22 +75,23 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path) -> d
     if not declared:
         return {}
 
-    deck = new_deck(workspace.theme)
+    deck = new_deck(theme)
     where: dict = {}
     for position, (index, entry) in enumerate(declared, start=1):
-        page = _declared_page(workspace, manifest, entry, index)
-        add_page(deck, page.build(), workspace.theme)
+        page = _declared_page(workspace, manifest, entry, index, theme)
+        add_page(deck, page.build(), theme)
         where[index] = position
     where["path"] = save(deck, scratch / "declared.pptx")
     return where
 
 
-def _declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index: int):
+def _declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index: int,
+                   theme: Theme):
     """Build a declared page, saying which page of the manifest went wrong."""
     def asset(name: str):
         return workspace.asset(name, within=manifest.assets)
 
     try:
-        return types.build(entry.data, asset, aspect, workspace.theme)
+        return types.build(entry.data, asset, aspect, theme)
     except (ValueError, KeyError) as reason:
         raise ManifestError(f"page {index}: {reason}") from reason

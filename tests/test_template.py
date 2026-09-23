@@ -128,6 +128,16 @@ class TheSpecimenMatchesTheTokensTest(unittest.TestCase):
                                  for slot, name in _baker().SCHEME},
                          "the specimen drifted from tokens.py — run task specimen")
 
+    def test_reading_a_look_back_uses_the_same_table_that_wrote_it(self) -> None:
+        """⚠ 焼く側と読む側で対応が割れると、型見本を差し替えたとき色が入れ替わる。"""
+        from pptx_agent_maker.deck.look import SLOTS
+
+        written = dict(_baker().SCHEME)
+        for slot, name in SLOTS:
+            with self.subTest(slot=slot):
+                self.assertEqual(written.get(slot), name,
+                                 f"{slot} is written as one colour and read back as another")
+
     def test_the_master_is_set_in_the_toolkits_typeface(self) -> None:
         families = set(re.findall(r'<a:latin typeface="([^"]*)"', self.theme))
         self.assertEqual(families, {DEFAULT.type.family}, "run task specimen")
@@ -156,6 +166,24 @@ class TheTemplateBuildsTest(unittest.TestCase):
 
     def test_the_project_is_laid_down_with_its_own_entry_point(self) -> None:
         self.assertTrue((self.root / "Taskfile.yml").is_file())
+
+    def test_the_toolkit_keeps_its_own_state_out_of_the_project(self) -> None:
+        """⚠ **直下に並ぶのは案件の持ち物だけ** ― マニフェスト、焼いたデッキ、素材、
+        型見本、設定、口。道具が覚えておきたいものは 1 つの folder に畳む。
+        """
+        workspace = Workspace.load(self.root)
+        build(workspace, Manifest.load(workspace.manifest("example")))
+        theirs = {"_README.md", "Taskfile.yml", "workspace.toml", "specimen.pptx",
+                  "example.toml", "example.pptx", "assets"}
+        self.assertEqual({p.name for p in self.root.iterdir()} - theirs,
+                         {".pptx-agent-maker"},
+                         "the toolkit left something of its own beside the project's files")
+
+    def test_the_specimen_is_not_offered_as_a_deck_to_look_at(self) -> None:
+        """⚠ 型見本は焼いた成果ではない (= 一覧に出すと中身の無い頁が 1 本増える)。"""
+        from pptx_agent_maker.__main__ import _specimens
+
+        self.assertEqual(_specimens(Workspace.load(self.root)), {"specimen"})
 
     def test_the_cover_is_reworded_by_the_example(self) -> None:
         workspace = Workspace.load(self.root)

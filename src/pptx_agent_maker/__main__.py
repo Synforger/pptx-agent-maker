@@ -22,19 +22,38 @@ def _preview(workspace, port: int, no_open: bool) -> int:
     ビルドがデッキを書き換えると、プレビューがそのまま焼き直す。焼いたデッキは
     マニフェストの隣に在るので、見るのは案件の folder そのもの。
     """
-    if str(PREVIEW) not in sys.path:
+    # ⚠ repo から動かしたときだけ在る path。入れた道具では preview は別の package。
+    if PREVIEW.is_dir() and str(PREVIEW) not in sys.path:
         sys.path.insert(0, str(PREVIEW))
     try:
         from pptx_live_preview.__main__ import main as preview_main
     except ImportError as error:  # pragma: no cover - depends on the environment
-        print(f"error: the preview needs its own dependencies ({error}).\n"
-              f"       run: .venv/bin/pip install -e {PREVIEW.parent}", file=sys.stderr)
+        hint = (f"       run: pip install -e {PREVIEW.parent}" if PREVIEW.is_dir()
+                else "       the live preview is a separate package; install it "
+                     "beside the toolkit")
+        print(f"error: the live preview is not available ({error}).\n{hint}", file=sys.stderr)
         return 1
 
     argv = [str(workspace.root), "--port", str(port)]
     if no_open:
         argv.append("--no-open")
+    # ⚠ **型見本は焼いた成果ではない。**マニフェストが指している pptx を一覧から外す。
+    for name in _specimens(workspace):
+        argv += ["--skip", name]
     return preview_main(argv)
+
+
+def _specimens(workspace) -> set[str]:
+    """The files the project's manifests grow decks from (= not decks themselves)."""
+    from .project.manifest import Manifest, ManifestError
+
+    found = set()
+    for manifest in workspace.manifests():
+        try:
+            found.add(Path(Manifest.load(manifest).specimen).stem)
+        except (ManifestError, OSError):
+            continue  # 読めないマニフェストは build が言う。ここは一覧を作るだけ
+    return found
 
 
 def _deck_path(workspace, name: str) -> Path:

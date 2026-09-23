@@ -12,21 +12,19 @@ root = "."
 [paths]
 assets = "assets"       # images and other material, one folder per round
 
-# The project's own look. Leave it out and the toolkit's default is used
-# (= Meiryo, and the colours in layout/tokens.py). Only the typeface and the
-# colours move: how a page divides its space is the toolkit's, so that the same
-# kind of page keeps the same shape from one round to the next.
+# The project's own look is read from specimen.pptx — its master carries the
+# typeface and the colours, and every page built from a type comes out in them.
 #
-# Set these to match `specimen.pptx`, or pages built from a type will not look
-# like the pages copied from it.
+# This block is the exception on top: write it only where the specimen's palette
+# does not line up with what the toolkit means by each colour (the one that marks
+# a reading, the strip behind a stated condition). Whatever is written here wins;
+# everything else stays as the specimen has it.
 #
 # [theme]
 # font = "Arial"
 #
 # [theme.palette]
-# ink = "3F3F3F"        # body text
-# accent = "0092D1"     # the colour that marks a reading
-# band = "EAF0F8"       # the strip behind a stated condition
+# accent = "0092D1"     # the colour that marks a reading (= also the table header)
 
 # Words the specimen leaves behind. A copied page that still says one of these
 # was never reworded, and the check after the build stops it.
