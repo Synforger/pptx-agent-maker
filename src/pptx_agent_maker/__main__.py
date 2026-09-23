@@ -75,6 +75,12 @@ def main(argv: list[str] | None = None) -> int:
     reviewed = sub.add_parser("review", help="see what a person changed in a built deck")
     reviewed.add_argument("path", help="the project folder")
     reviewed.add_argument("deck", help="the hand-edited deck in output/")
+    reviewed.add_argument("--full", action="store_true",
+                          help="print the diff of every changed part, not just its name")
+    reviewed.add_argument("--raw", action="store_true",
+                          help="with --full, keep PowerPoint's own churn instead of folding it")
+    reviewed.add_argument("--context", type=int, default=0,
+                          help="lines of context around each change (default: 0)")
     reviewed.add_argument("--against", default=None,
                           help="the machine-built deck to compare with (default: the last shelved copy)")
 
@@ -109,6 +115,14 @@ def main(argv: list[str] | None = None) -> int:
             if reference is None:
                 print("error: nothing to compare against — build the deck first", file=sys.stderr)
                 return 1
+            from .review import compare_parts, render_parts
+
+            # 落とさない層を先に出す (= 読み取る項目を 1 つずつ足す形は、
+            # 足していない項目を黙って落とす)。既定は一覧だけ、--full で中身まで。
+            inventory = compare_parts(reference, edited)
+            print(render_parts(inventory, full=args.full, context=args.context,
+                               fold_churn=not args.raw))
+            print()
             found = changes(reference, edited)
             for change in found:
                 print(change.render())
