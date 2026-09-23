@@ -13,6 +13,9 @@
 *.png
 *.jpg
 *.jpeg
+# ...except the few-byte images the tests draw on. Without them a fresh clone
+# cannot run its own test suite.
+!tests/data/*.png
 
 # --- build artefacts ---
 __pycache__/

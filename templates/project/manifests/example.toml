@@ -3,7 +3,7 @@
 # A page is made in one of three ways and nothing else:
 #   copy     — duplicate the specimen's Nth page and swap words
 #   import   — bring in the Nth page of a deck built earlier
-#   declare  — build it from a recipe in pages/
+#   declare  — pick a page type, or build it from a recipe in pages/
 #
 # The order here is the order the deck reads. A page left out of this file does
 # not exist in the built deck.
@@ -15,15 +15,29 @@ out = "example.pptx"
 kind = "copy"
 page = 1
 replace = [["旧いタイトル", "新しいタイトル"]]
-note = "表紙は型見本から複製して文言だけ差し替える"
+why = "表紙は型見本から複製して文言だけ差し替える"
+
+[[pages]]
+kind = "declare"
+type = "figure_table"
+kicker = "01 | 見本"
+title = "型を選べば、版面は決まっている"
+condition = "この頁で固定した条件を 1 行"
+figure = "example.png"
+caption = "図の読み方を 1 行"
+table = [["列", "値"], ["A", "1"], ["B", "2"]]
+note = "表の読み方を 1 行"
+conclusion = "読み手に持ち帰ってほしい 1 行"
+footer = "出所 (= どの run のどの表から来たか)"
+why = "型で書ける頁は型で書く (= 版面を頁ごとに決めない)"
 
 [[pages]]
 kind = "declare"
 module = "example_page"
-note = "この案件の頁 (= pages/example_page.py の build(workspace))"
+why = "型に収まらない頁だけ、案件の script で組む"
 
 # [[pages]]
 # kind = "import"
 # deck = "output/previous.pptx"
 # page = 12
-# note = "前のデッキの 12 頁目をそのまま載せる"
+# why = "前のデッキの 12 頁目をそのまま載せる"

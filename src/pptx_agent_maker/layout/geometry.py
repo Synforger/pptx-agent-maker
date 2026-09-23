@@ -97,10 +97,14 @@ class Rect:
         高さが中身で決まるもの (= 表) を置くための口。比で割ると、表が要る高さと
         割り当てた高さが食い違う。
         """
-        if height + gap > self.height:
+        if height > self.height:
             raise ValueError(f"{height} EMU does not fit in {self.height}")
         taken = Rect(self.left, self.top, self.width, height)
-        rest = Rect(self.left, self.top + height + gap, self.width, self.height - height - gap)
+        # 枠ちょうどを取ったときは余りが無いだけで、割れないわけではない
+        # (= 間の空きは、残りが在るときにだけ意味を持つ)
+        left_over = max(self.height - height - gap, 0)
+        rest = Rect(self.left, self.top + height + (gap if left_over else 0),
+                    self.width, left_over)
         return taken, rest
 
     def fit(self, aspect: float) -> "Rect":

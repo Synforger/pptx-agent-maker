@@ -3,6 +3,14 @@
 頁の作り方は 3 つしかない ― **型見本を複製する** / **前のデッキから輸入する** /
 **宣言層で組む**。manifest はその並びだけを持ち、寸法も色も持たない (= それは道具の token)。
 
+宣言頁は **型を選ぶ** (`type`) か、案件の頁 script を指す (`module`) かのどちらか。
+型で書けるものは型で書く ― 版面の割り方を頁ごとに決められる口を残すほど、同じ役割の
+頁が週ごとに別の形になる。
+
+⚠ **覚え書きは `why` に 1 行だけ。**`note` は頁の中身 (= 図表の読み方) で、型が読む。
+改訂履歴を manifest に積むと、何が載っているかを読む前にそれを通過することになる
+(= 前の世代では 1 つのキーに改訂が何本も溜まった)。履歴は git log が持つ。
+
 ⚠ **真値は 1 枚。**旧世代は manifest と頁 script の両方が絵を決められ、「design の値を
 変えても動かない」を 2 度踏んだ。ここでは manifest が並びの真値で、頁の中身は頁が持つ。
 """
@@ -14,6 +22,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 KINDS = ("copy", "import", "declare")
+
+#: manifest の運び方に属するキー (= 型へは渡さない)
+_NOT_PAGE_DATA = frozenset({"kind", "page", "deck", "module", "replace", "why"})
 
 
 class ManifestError(ValueError):
@@ -28,8 +39,10 @@ class Entry:
     page: int | None = None
     deck: str | None = None
     module: str | None = None
+    type: str | None = None
+    data: dict = field(default_factory=dict)
     replace: tuple[tuple[str, str], ...] = ()
-    note: str = ""
+    why: str = ""
 
 
 @dataclass(frozen=True)
@@ -72,9 +85,21 @@ class Manifest:
             raise ManifestError(f"{where}: a copied page needs `page` (= the specimen's Nth page)")
         if kind == "import" and not (page.get("deck") and page.get("page")):
             raise ManifestError(f"{where}: an imported page needs `deck` and `page`")
-        if kind == "declare" and not page.get("module"):
-            raise ManifestError(f"{where}: a declared page needs `module` (= a file in pages/)")
+        if kind == "declare":
+            named = [key for key in ("type", "module") if page.get(key)]
+            if not named:
+                raise ManifestError(
+                    f"{where}: a declared page needs `type` (= one of the page types) "
+                    "or `module` (= a file in pages/)"
+                )
+            if len(named) == 2:
+                raise ManifestError(
+                    f"{where}: `type` and `module` both given — a page is built one way. "
+                    "Drop `module` to use the type, or drop `type` to keep the script."
+                )
 
         replace = tuple((str(a), str(b)) for a, b in page.get("replace", []))
+        data = {key: value for key, value in page.items() if key not in _NOT_PAGE_DATA}
         return Entry(kind=kind, page=page.get("page"), deck=page.get("deck"),
-                     module=page.get("module"), replace=replace, note=str(page.get("note", "")))
+                     module=page.get("module"), type=page.get("type"), data=data,
+                     replace=replace, why=str(page.get("why", "")))

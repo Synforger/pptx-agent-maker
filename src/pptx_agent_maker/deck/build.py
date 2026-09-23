@@ -11,11 +11,12 @@ import importlib.util
 import tempfile
 from pathlib import Path
 
+from ..layout import types
 from ..project.manifest import Entry, Manifest, ManifestError
 from ..project.workspace import Workspace
 from ..review.fold import keep_safe
 from ..review.ledger import remember, touched_by_hand
-from ..write import add_page, new_deck, save
+from ..write import add_page, aspect, new_deck, save
 from . import Deck, Slide
 
 
@@ -73,11 +74,25 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path) -> d
     deck = new_deck()
     where: dict = {}
     for position, (index, entry) in enumerate(declared, start=1):
-        page = _load_page(workspace, entry.module)
+        page = _declared_page(workspace, entry, index)
         add_page(deck, page.build())
         where[index] = position
     where["path"] = save(deck, scratch / "declared.pptx")
     return where
+
+
+def _declared_page(workspace: Workspace, entry: Entry, index: int):
+    """Build a declared page, saying which page of the manifest went wrong.
+
+    型で組む頁と案件の script で組む頁は、ここから先は区別しない (= どちらも Page を
+    返し、同じように焼かれる)。
+    """
+    if entry.type:
+        try:
+            return types.build(entry.data, workspace.asset, aspect)
+        except (ValueError, KeyError) as reason:
+            raise ManifestError(f"page {index}: {reason}") from reason
+    return _load_page(workspace, entry.module)
 
 
 def _load_page(workspace: Workspace, module: str):
