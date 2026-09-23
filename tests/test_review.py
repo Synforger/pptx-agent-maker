@@ -117,3 +117,31 @@ class ReviewTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AFailedReviewLeavesNoTrace(unittest.TestCase):
+    """Asking to review something with no reference must not shelve a copy.
+
+    ⚠ 控えを先に取っていた間は、比べる相手が無くて失敗した回でも控えだけが増え、
+    その控えをもう一度渡すとまた控えができて入れ子になった。
+    """
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name) / "project"
+        create(self.root)
+        make_dot()
+        a_specimen(self.root / "stray.pptx", ["いちまい"])
+        self.addCleanup(self.tmp.cleanup)
+
+    def test_no_copy_is_kept_when_there_is_nothing_to_compare(self) -> None:
+        import contextlib
+        import io
+        from pptx_agent_maker.__main__ import main
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            code = main(["review", str(self.root), "stray"])
+        self.assertEqual(1, code)
+        self.assertIn("nothing to compare", out.getvalue())
+        self.assertFalse((self.root / "_edits").exists(),
+                         "a failed review left a copy behind")

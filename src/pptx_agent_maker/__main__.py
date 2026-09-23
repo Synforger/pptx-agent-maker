@@ -108,13 +108,19 @@ def main(argv: list[str] | None = None) -> int:
             from .review import as_manifest_entries, changes, keep_safe, last_machine_build
 
             edited = _deck_path(workspace, args.deck)
+            # ⚠ **比べる相手を先に確かめてから退避する。**先に控えを取っていた間は、
+            # 相手が無くて失敗した回でも控えだけが増え、その控えを渡すとまた控えが
+            # できて入れ子になった (= 失敗した操作が跡を残さないのが筋)。
+            reference = Path(args.against) if args.against else last_machine_build(edited)
+            if reference is None:
+                print(f"error: nothing to compare {edited.name} against. The toolkit keeps "
+                      "one copy of what it last built beside the deck; there is none here.\n"
+                      "       Pass the deck the toolkit built (not a copy of it), or name a "
+                      "reference with --against.", file=sys.stderr)
+                return 1
             shelved = keep_safe(edited)
             if shelved:
                 print(f"kept a copy at {shelved}")
-            reference = Path(args.against) if args.against else last_machine_build(edited)
-            if reference is None:
-                print("error: nothing to compare against — build the deck first", file=sys.stderr)
-                return 1
             from .review import compare_parts, render_parts
 
             # 落とさない層を先に出す (= 読み取る項目を 1 つずつ足す形は、
