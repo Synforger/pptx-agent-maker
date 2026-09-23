@@ -35,7 +35,9 @@ replace = [["一枚目", "差し替えた表紙"]]
 
 [[pages]]
 kind = "declare"
-module = "example_page"
+type = "board"
+title = "宣言で組んだ頁"
+table = [["列", "値"], ["A", "1"]]
 
 [[pages]]
 kind = "import"
@@ -78,7 +80,7 @@ class BuildTest(unittest.TestCase):
     def test_the_pages_read_in_manifest_order(self) -> None:
         built = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
         self.assertIn("差し替えた表紙", self._text_of(built, 0))
-        self.assertIn("見本の頁", self._text_of(built, 1))
+        self.assertIn("宣言で組んだ頁", self._text_of(built, 1))
         self.assertIn("前の週の頁", self._text_of(built, 2))
 
     def test_the_specimen_pages_are_not_in_the_built_deck(self) -> None:
@@ -90,13 +92,14 @@ class BuildTest(unittest.TestCase):
         built = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
         self.assertEqual(built, self.workspace.output / "built.pptx")
 
-    def test_a_missing_page_recipe_says_which_file(self) -> None:
+    def test_an_unknown_page_type_says_which_ones_exist(self) -> None:
         (self.root / "manifests" / "bad.toml").write_text(
             'specimen = "base/specimen.pptx"\nout = "x.pptx"\n'
-            '[[pages]]\nkind = "declare"\nmodule = "not_there"\n', encoding="utf-8")
+            '[[pages]]\nkind = "declare"\ntype = "not_a_type"\ntitle = "だい"\n',
+            encoding="utf-8")
         with self.assertRaises(ManifestError) as caught:
             build(self.workspace, Manifest.load(self.workspace.manifest("bad")))
-        self.assertIn("not_there.py", str(caught.exception))
+        self.assertIn("board", str(caught.exception))
 
     def test_a_missing_specimen_stops_the_build(self) -> None:
         (self.root / "manifests" / "bad.toml").write_text(
@@ -131,7 +134,7 @@ class ManifestTest(unittest.TestCase):
         for body, missing in [
             ('[[pages]]\nkind = "copy"\n', "page"),
             ('[[pages]]\nkind = "import"\npage = 1\n', "deck"),
-            ('[[pages]]\nkind = "declare"\n', "module"),
+            ('[[pages]]\nkind = "declare"\n', "type"),
         ]:
             with self.subTest(missing=missing):
                 with self.assertRaises(ManifestError) as caught:

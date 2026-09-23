@@ -31,27 +31,28 @@ def build(data: dict):
     return types.build(data, asset, aspect)
 
 
-#: 12 型それぞれの、最小限そろった宣言
+#: 7 型それぞれの、本体に最小限そろった宣言
 MINIMAL = {
     "figure": {"figure": SQUARE},
-    "figure_note": {"figure": SQUARE, "note": "読み方"},
-    "figure_table": {"figure": SQUARE, "table": [["列", "値"], ["A", "1"]]},
-    "figure_stack": {"figure": WIDE, "table": [["列", "値"], ["A", "1"]]},
     "figures": {"figures": [SQUARE, WIDE]},
     "figure_grid": {"figures": [SQUARE, WIDE, SQUARE, WIDE]},
-    "cards_figure": {"cards": [["①", "最初"], ["②", "次"]], "figure": SQUARE},
-    "figure_points": {"figure": SQUARE, "points": ["ひとつ", "ふたつ"]},
-    # 骨格の型 (= 絵を持たなくてよい)
-    "agenda": {"buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]],
-               "highlight": 1},
     "flow": {"stages": [{"name": "にゅうりょく", "nodes": [["A", "ほそく"]], "settled": "じょうけん"},
                         {"name": "せいせい", "nodes": [["B", "ほそく"]]}]},
+    # 絵を持たなくてよい型 (= デッキの骨格)
+    "agenda": {"buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]],
+               "highlight": 1},
     "board": {"table": [["列", "値"], ["A", "1"]]},
     "cards": {"cards": [["\u2460", "さいしょ"], ["\u2461", "つぎ"]]},
 }
 
 #: 絵を持たなくてよい型 (= デッキの骨格)
-SKELETON = {"agenda", "flow", "board", "cards"}
+SKELETON = {"agenda", "board", "cards"}
+
+#: 本体に添えられるもの (= どの型でも同じように効く)
+EXTRAS = {"table": [["列", "値"], ["A", "1"]],
+          "points": ["ひとつ", "ふたつ"],
+          "note": "読み方を 1 行",
+          "cards": [["\u2460", "さいしょ"], ["\u2461", "つぎ"]]}
 
 
 class EveryTypeBuilds(unittest.TestCase):
@@ -69,7 +70,7 @@ class EveryTypeBuilds(unittest.TestCase):
                 page = build({"type": name, "title": "だい", **data})
                 elements = page.build()
                 figures = [e for e in elements if isinstance(e, Figure)]
-                if name not in SKELETON:
+                if "figure" in data or "figures" in data:
                     self.assertTrue(figures, f"{name} produced no figure")
                 frame = page.theme.frame()
                 for element in elements:
@@ -95,17 +96,58 @@ class EveryTypeBuilds(unittest.TestCase):
         self.assertEqual({"kicker", "band", "band_text", "footer"}, kinds)
 
 
+class TheExtrasWorkOnEveryType(unittest.TestCase):
+    """Cards, a table and the reading are the same on every type.
+
+    ⚠ **付属の有無で型を分けない。**分けていた間は、実物の頁が持っているものを
+    受け取れる型が 1 つも無く、ほとんどの頁で何かが落ちた (= 表を持つ型は
+    カードを受け取れず、カードを持つ型は表を受け取れなかった)。
+    """
+
+    def test_every_type_accepts_every_extra(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                spec = {"type": name, "title": "だい", **data, **EXTRAS}
+                if name == "cards":
+                    spec.pop("cards", None)
+                    spec["cards"] = EXTRAS["cards"]
+                page = build(spec)
+                kinds = {e.kind for e in page.build()}
+                self.assertIn("table", kinds, f"{name} dropped the table")
+                self.assertIn("points", kinds, f"{name} dropped the points")
+                self.assertIn("note", kinds, f"{name} dropped the reading")
+                self.assertIn("box", kinds, f"{name} dropped the cards")
+
+    def test_the_extras_stay_inside_the_frame(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data, **EXTRAS})
+                frame = page.theme.frame()
+                for element in page.build():
+                    self.assertTrue(frame.contains(element.rect),
+                                    f"{name}: {element.kind} landed outside the frame")
+
+    def test_the_order_of_the_frame_never_changes(self):
+        """並びは 1 つしかない ― カードは本体の上、表と読み方は本体の下。"""
+        page = build({"type": "figure", "title": "だい", "figure": SQUARE, **EXTRAS})
+        placed = {e.kind: e.rect for e in page.build()}
+        self.assertLess(placed["box"].top, placed["figure"].top)
+        self.assertLess(placed["figure"].bottom, placed["table"].top)
+        self.assertLess(placed["table"].bottom, placed["points"].top)
+        self.assertLess(placed["points"].bottom, placed["note"].top)
+
+
 class WhatTheTypesRefuse(unittest.TestCase):
     """A declaration nobody can build must stop here, not later."""
 
     def test_an_unknown_type_is_refused_and_lists_what_exists(self):
         with self.assertRaises(PageTypeError) as raised:
             build({"type": "figure_and_vibes", "title": "だい", "figure": SQUARE})
-        self.assertIn("figure_table", str(raised.exception))
+        self.assertIn("figure_grid", str(raised.exception))
 
     def test_a_missing_required_key_is_refused(self):
         with self.assertRaises(PageTypeError) as raised:
-            build({"type": "figure_table", "title": "だい", "figure": SQUARE})
+            build({"type": "board", "title": "だい"})
         self.assertIn("table", str(raised.exception))
 
     def test_a_key_nobody_reads_is_refused(self):
@@ -134,12 +176,12 @@ class WhatTheTypesRefuse(unittest.TestCase):
 
     def test_an_empty_points_block_is_refused(self):
         with self.assertRaises(ValueError):
-            build({"type": "figure_points", "title": "だい", "figure": SQUARE,
+            build({"type": "figure", "title": "だい", "figure": SQUARE,
                    "points": ["", "  "]})
 
     def test_a_table_with_an_empty_cell_is_refused(self):
         with self.assertRaises(ValueError):
-            build({"type": "figure_table", "title": "だい", "figure": SQUARE,
+            build({"type": "figure", "title": "だい", "figure": SQUARE,
                    "table": [["列", "値"], ["A", ""]]})
 
 
@@ -168,18 +210,21 @@ class CoordinatesCannotBeDeclared(unittest.TestCase):
         self.assertEqual([], offenders,
                          f"a page type wrote a raw dimension: {offenders}")
 
-    def test_a_body_type_cannot_be_built_without_a_figure(self):
-        """本文の型が絵を落とせるなら、表と文章だけの頁が戻ってくる。"""
+    def test_a_body_type_must_show_something(self):
+        """本文の型が図解を落とせるなら、表と文章だけの頁が戻ってくる。
+
+        絵を持つか、図形で組んだ図解を持つか (= `flow`) のどちらかでなければ組めない。
+        """
         for name, data in MINIMAL.items():
             if name in SKELETON:
                 continue
             with self.subTest(name):
-                self.assertTrue({"figure", "figures"} & data.keys(),
-                                f"{name} can be built without a figure")
+                shows = {"figure", "figures", "stages"} & data.keys()
+                self.assertTrue(shows, f"{name} can be built without anything to look at")
 
     def test_the_scaffolding_stays_small(self):
         """例外の型は増やさない (= 増えた分だけ「表だけの頁」の逃げ道になる)。"""
-        self.assertLessEqual(len(types.skeleton()), 4)
+        self.assertLessEqual(len(types.skeleton()), 3)
 
 
 class ManifestCarriesTheType(unittest.TestCase):
@@ -204,21 +249,11 @@ class ManifestCarriesTheType(unittest.TestCase):
         self.assertEqual("おぼえがき", entry.why)
         self.assertEqual({"type", "title", "figure"}, set(entry.data))
 
-    def test_type_and_module_together_are_refused(self):
+    def test_a_declared_page_without_a_type_is_refused(self):
+        """型に収まらない頁は、型を足してから作る (= 手で図形を置く道は無い)。"""
         with self.assertRaises(ManifestError) as raised:
-            Manifest.load(self.write(
-                '[[pages]]\nkind = "declare"\ntype = "figure"\nmodule = "page"\n'))
-        self.assertIn("one way", str(raised.exception))
-
-    def test_a_declared_page_with_neither_is_refused(self):
-        with self.assertRaises(ManifestError):
             Manifest.load(self.write('[[pages]]\nkind = "declare"\n'))
-
-    def test_a_script_page_still_works(self):
-        manifest = Manifest.load(self.write(
-            '[[pages]]\nkind = "declare"\nmodule = "example_page"\n'))
-        self.assertEqual("example_page", manifest.entries[0].module)
-        self.assertIsNone(manifest.entries[0].type)
+        self.assertIn("type", str(raised.exception))
 
 
 if __name__ == "__main__":

@@ -29,7 +29,7 @@ class ProjectTest(unittest.TestCase):
 
     def test_the_skeleton_is_laid_down_with_its_settings(self) -> None:
         self.assertTrue((self.root / "workspace.toml").is_file())
-        for folder in ("base", "manifests", "pages", "assets", "output"):
+        for folder in ("base", "manifests", "assets", "output"):
             self.assertTrue((self.root / folder).is_dir(), folder)
 
     def test_the_project_name_reaches_the_settings(self) -> None:

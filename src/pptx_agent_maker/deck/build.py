@@ -1,13 +1,12 @@
 """Building one deck from a manifest.
 
-3 通りの作り方を **1 本の経路**に合わせる ― 宣言層で組んだ頁はいったん pptx に焼き、
+3 通りの作り方を **1 本の経路**に合わせる ― 型で組んだ頁はいったん pptx に焼き、
 型見本の複製も過去デッキからの輸入も同じ「頁を持ってくる」操作にする。経路が 2 本あると、
 どちらの順序が本当かが分からなくなる。
 """
 
 from __future__ import annotations
 
-import importlib.util
 import tempfile
 from pathlib import Path
 
@@ -82,28 +81,8 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path) -> d
 
 
 def _declared_page(workspace: Workspace, entry: Entry, index: int):
-    """Build a declared page, saying which page of the manifest went wrong.
-
-    型で組む頁と案件の script で組む頁は、ここから先は区別しない (= どちらも Page を
-    返し、同じように焼かれる)。
-    """
-    if entry.type:
-        try:
-            return types.build(entry.data, workspace.asset, aspect)
-        except (ValueError, KeyError) as reason:
-            raise ManifestError(f"page {index}: {reason}") from reason
-    return _load_page(workspace, entry.module)
-
-
-def _load_page(workspace: Workspace, module: str):
-    """Run a page recipe from the project's own pages/ folder."""
-    source = workspace.pages / f"{module}.py"
-    if not source.is_file():
-        raise ManifestError(f"page recipe not found: {source}")
-
-    spec = importlib.util.spec_from_file_location(f"project_page_{module}", source)
-    loaded = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(loaded)
-    if not hasattr(loaded, "build"):
-        raise ManifestError(f"{source} has no build(workspace) function")
-    return loaded.build(workspace)
+    """Build a declared page, saying which page of the manifest went wrong."""
+    try:
+        return types.build(entry.data, workspace.asset, aspect)
+    except (ValueError, KeyError) as reason:
+        raise ManifestError(f"page {index}: {reason}") from reason

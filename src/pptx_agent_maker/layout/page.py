@@ -248,6 +248,15 @@ class Page:
         t, p = self.theme.type, self.theme.palette
         self.elements.append(Text("caption", rect, text, t.caption, p.muted, align=align))
 
+    def drew_a_diagram(self) -> None:
+        """Declare that this page says something with shapes, not just words.
+
+        図解は絵だけではない ― 工程の流れを図形で組んだ頁も図解を持っている。置いた
+        側にしか分からないので、型がここで宣言する (= 宣言しない頁は、絵を 1 枚も
+        持たないまま `build` に拒まれる)。
+        """
+        self._figures += 1
+
     def marker(self, rect: Rect, text: str) -> None:
         """A single character carrying direction (= the arrow between two stages).
 

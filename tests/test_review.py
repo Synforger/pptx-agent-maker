@@ -35,7 +35,9 @@ page = 1
 
 [[pages]]
 kind = "declare"
-module = "example_page"
+type = "board"
+title = "宣言で組んだ頁"
+table = [["列", "値"], ["A", "1"]]
 '''
 
 

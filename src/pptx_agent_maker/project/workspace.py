@@ -17,7 +17,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 FILENAME = "workspace.toml"
-FOLDERS = ("base", "manifests", "pages", "assets", "output")
+FOLDERS = ("base", "manifests", "assets", "output")
 
 
 class WorkspaceError(RuntimeError):
@@ -31,7 +31,6 @@ class Workspace:
     root: Path
     base: Path
     manifests: Path
-    pages: Path
     assets: Path
     output: Path
     settings: dict = field(default_factory=dict)
