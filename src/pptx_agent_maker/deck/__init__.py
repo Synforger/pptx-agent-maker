@@ -84,9 +84,16 @@ class Deck:
         self._pages.append(page)
         return page
 
-    def bring(self, source: Path | str, page_number: int) -> Slide:
-        """Import the Nth page of another deck, media and all."""
-        page = Slide(self._archive, _slides.import_from(self._archive, Path(source), page_number))
+    def bring(self, source: Path | str, page_number: int,
+              relayout: bool = False) -> Slide:
+        """Import the Nth page of another deck, media and all.
+
+        `relayout` は宣言で組んだ頁を持ち込むとき (= 白紙に描いてあるので、型見本の
+        どのレイアウトの上に乗るかを引き継がせない)。過去デッキからの輸入では偽 ―
+        その頁は元のレイアウトの上で作られている。
+        """
+        page = Slide(self._archive, _slides.import_from(self._archive, Path(source), page_number,
+                                                        relayout=relayout))
         page.drop_marks()
         self._pages.append(page)
         return page
@@ -105,3 +112,4 @@ class Deck:
             if name not in kept:
                 self._archive.unregister_slide(name)
         self._archive.set_order(kept)
+        self._archive.drop_unreferenced_media()

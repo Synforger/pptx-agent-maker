@@ -18,6 +18,8 @@ from .archive import Archive
 
 NOTES_REL = re.compile(r'<Relationship [^>]*notesSlide[^>]*/>')
 MEDIA_TARGET = re.compile(r'Target="\.\./media/(image[\w.]+)"')
+#: 頁がどのレイアウトの上に乗るか
+LAYOUT_TARGET = re.compile(r'Target="\.\./slideLayouts/slideLayout\d+\.xml"')
 
 
 def duplicate(archive: Archive, source_name: str) -> str:
@@ -36,7 +38,8 @@ def duplicate(archive: Archive, source_name: str) -> str:
     return new_name
 
 
-def import_from(archive: Archive, source: Path, page_number: int) -> str:
+def import_from(archive: Archive, source: Path, page_number: int,
+                relayout: bool = False) -> str:
     """Bring one page of another deck in, media and all, by its reading position.
 
     Part names are an artefact of how a deck was built (`slide64.xml` means nothing),
@@ -65,6 +68,12 @@ def import_from(archive: Archive, source: Path, page_number: int) -> str:
             (archive.tree / "ppt/media" / carried[name]).write_bytes(
                 zipped.read(f"ppt/media/{name}"))
         rels = _rename_media(rels, carried)
+
+    if relayout:
+        # ⚠ **宣言で組んだ頁は白紙に描いてある。**持ち込むときレイアウトの参照を
+        # そのままにすると、番号だけが引き継がれて型見本の別のレイアウト (= 終わりの頁
+        # など) の上に乗り、その背景の飾りが出る。型見本の 1 枚目へ向け直す。
+        rels = LAYOUT_TARGET.sub('Target="../slideLayouts/slideLayout1.xml"', rels)
 
     archive.slide(new_name).write_text(slide_xml, encoding="utf-8")
     archive.rels_of(new_name).parent.mkdir(parents=True, exist_ok=True)

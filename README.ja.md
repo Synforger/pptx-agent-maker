@@ -59,7 +59,7 @@
 
 ```bash
 pipx install .                        # 道具を機械に入れる (= 1 度だけ)
-pptx-agent-maker init <案件のフォルダ> --specimen <型見本.pptx>
+pptx-agent-maker init <案件のフォルダ> --specimen <型見本.pptx or それを置いた folder>
 cd <案件のフォルダ> && task build -- example
 ```
 

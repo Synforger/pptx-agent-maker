@@ -45,6 +45,41 @@ class ProjectTest(unittest.TestCase):
         create(root, specimen=elsewhere)
         self.assertEqual((root / "specimen.pptx").read_bytes(), elsewhere.read_bytes())
 
+    def test_a_folder_hands_over_the_look_and_the_table_that_reads_it(self) -> None:
+        """⚠ pptx のテーマ色は意味を持たない枠で、道具は意味で色を使う。**その 2 つを
+        繋ぐ表は型見本の中に書けない**ので、対で渡せる。
+        """
+        shelf = Path(self.tmp.name) / "house-style"
+        shelf.mkdir()
+        shutil.copy(REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx",
+                    shelf / "specimen.pptx")
+        (shelf / "workspace.toml").write_text(
+            'root = "."\n\n[theme]\nfont = "Arial"\n', encoding="utf-8")
+
+        root = Path(self.tmp.name) / "from-a-shelf"
+        create(root, specimen=shelf)
+        self.assertEqual((root / "specimen.pptx").read_bytes(),
+                         (shelf / "specimen.pptx").read_bytes())
+        self.assertIn('font = "Arial"', (root / "workspace.toml").read_text(encoding="utf-8"))
+
+    def test_a_folder_without_a_specimen_is_said_plainly(self) -> None:
+        shelf = Path(self.tmp.name) / "empty-shelf"
+        shelf.mkdir()
+        root = Path(self.tmp.name) / "never-from-here"
+        with self.assertRaises(FileNotFoundError) as caught:
+            create(root, specimen=shelf)
+        self.assertIn("specimen.pptx", str(caught.exception))
+        self.assertFalse(root.exists())
+
+    def test_a_folder_may_hold_only_the_specimen(self) -> None:
+        shelf = Path(self.tmp.name) / "look-only"
+        shelf.mkdir()
+        shutil.copy(REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx",
+                    shelf / "specimen.pptx")
+        root = Path(self.tmp.name) / "look-only-project"
+        create(root, name="look-only-project", specimen=shelf)
+        self.assertIn("look-only-project", (root / "workspace.toml").read_text(encoding="utf-8"))
+
     def test_a_specimen_that_is_not_there_is_said_before_anything_is_written(self) -> None:
         root = Path(self.tmp.name) / "never-built"
         with self.assertRaises(FileNotFoundError):

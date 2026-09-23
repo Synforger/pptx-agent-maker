@@ -80,7 +80,7 @@ A project stands on its own — its `Taskfile.yml` is the door to the toolkit.
 
 ```bash
 pipx install .                          # install the toolkit, once
-pptx-agent-maker init <project-dir> --specimen <look.pptx>
+pptx-agent-maker init <project-dir> --specimen <look.pptx | a folder holding one>
 cd <project-dir> && task build -- example
 ```
 

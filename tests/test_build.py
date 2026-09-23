@@ -88,6 +88,18 @@ class BuildTest(unittest.TestCase):
         joined = "".join(self._text_of(built, i) for i in range(3))
         self.assertNotIn("二枚目", joined, "a page nobody declared came along")
 
+    def test_a_declared_page_is_put_on_the_first_layout(self) -> None:
+        """⚠ **宣言頁は白紙に描いてある。**持ち込むとき番号だけが引き継がれると、
+        型見本の別のレイアウト (= 終わりの頁など) の上に乗り、その飾りが出る。
+        """
+        built = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
+        with zipfile.ZipFile(built) as archive:
+            layouts = {found for name in archive.namelist()
+                       if name.startswith("ppt/slides/_rels/")
+                       for found in re.findall(r"slideLayout\d+",
+                                               archive.read(name).decode("utf-8"))}
+        self.assertIn("slideLayout1", layouts, "宣言頁が型見本の 1 枚目に乗っていない")
+
     def test_the_deck_lands_where_the_manifest_says(self) -> None:
         built = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
         self.assertEqual(built, self.workspace.root / "built.pptx")

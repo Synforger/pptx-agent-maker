@@ -3,11 +3,12 @@
 ## 案件を建てる
 
 ```bash
-pptx-agent-maker init <案件のフォルダ> --specimen <型見本.pptx>
+pptx-agent-maker init <案件のフォルダ> --specimen <型見本.pptx or それを置いた folder>
 ```
 
 ⚠ **見た目は建てるときに決める** (= あとから `specimen.pptx` を手で置き換えると、
-忘れた回だけ顔が変わる)。
+忘れた回だけ顔が変わる)。folder を渡すと `specimen.pptx` と隣の `workspace.toml`
+(= 色の表) を一緒に持ってくる。
 
 ## manifest
 

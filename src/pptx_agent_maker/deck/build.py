@@ -61,7 +61,7 @@ def _place(deck: Deck, workspace: Workspace, entry: Entry, declared: dict[int, i
         if not source.is_file():
             raise ManifestError(f"page {index}: deck to import from not found: {source}")
         return deck.bring(source, entry.page)
-    return deck.bring(declared["path"], declared[index])
+    return deck.bring(declared["path"], declared[index], relayout=True)
 
 
 def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,

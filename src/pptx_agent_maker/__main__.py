@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     started.add_argument("path")
     started.add_argument("--name", default=None)
     started.add_argument("--specimen", default=None, metavar="PPTX",
-                         help="the .pptx this project takes its look from")
+                         help="the .pptx this project takes its look from, or a folder\nholding specimen.pptx and a workspace.toml to go with it")
 
     shown = sub.add_parser("show", help="print where a project keeps its things")
     shown.add_argument("path")

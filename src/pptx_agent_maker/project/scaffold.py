@@ -24,7 +24,7 @@ def create(destination: Path | str, *, name: str | None = None,
     """
     destination = Path(destination).expanduser().resolve()
     name = name or destination.name
-    look = _readable_specimen(specimen)
+    look, settings = _readable_look(specimen)
 
     if destination.exists() and any(destination.iterdir()):
         raise FileExistsError(
@@ -35,6 +35,8 @@ def create(destination: Path | str, *, name: str | None = None,
     shutil.copytree(TEMPLATE, destination, dirs_exist_ok=True)
     if look is not None:
         shutil.copy2(look, destination / "specimen.pptx")
+    if settings is not None:
+        shutil.copy2(settings, destination / "workspace.toml")
 
     settings = destination / "workspace.toml"
     settings.write_text(
@@ -43,15 +45,32 @@ def create(destination: Path | str, *, name: str | None = None,
     return destination
 
 
-def _readable_specimen(given: Path | str | None) -> Path | None:
-    """Check the specimen before anything is written.
+def _readable_look(given: Path | str | None) -> tuple[Path | None, Path | None]:
+    """Check what the project will look like, before anything is written.
 
     ⚠ **建ててから断らない。**先に確かめておかないと、半分だけできた folder が残り、
     建て直そうとすると「空でない」と断られる。
+
+    渡せるのは 2 通り ― **型見本 1 枚**か、**型見本と設定を対で置いた folder**。
+    後者が要るのは、pptx のテーマ色が「1 番目の差し色」という枠でしかなく、道具の側が
+    「読みを示す色」「条件の帯」という**意味**で色を使うから ― その 2 つを繋ぐ表は
+    型見本の中に書けない。対で渡せば、案件は 1 手で自分の見た目になる。
     """
     if given is None:
-        return None
-    look = Path(given).expanduser()
+        return None, None
+
+    where = Path(given).expanduser()
+    if where.is_dir():
+        look = where / "specimen.pptx"
+        if not look.is_file():
+            raise FileNotFoundError(f"{where} holds no specimen.pptx")
+        settings = where / "workspace.toml"
+        return _a_deck(look), settings if settings.is_file() else None
+
+    return _a_deck(where), None
+
+
+def _a_deck(look: Path) -> Path:
     if not look.is_file():
         raise FileNotFoundError(f"no specimen at {look}")
     if not zipfile.is_zipfile(look):
