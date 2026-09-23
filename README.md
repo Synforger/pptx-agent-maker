@@ -64,6 +64,25 @@ And four things are refused outright, because no one managed to hold them by dis
 The toolkit is here. Manifests, assets and built decks live in a workspace that this repo only
 points at. Data cannot enter a commit, so it cannot enter a push.
 
+## Three layers
+
+- **the toolkit** — this repository: the vocabulary of the page (seven types) and the machinery.
+  Installed **once per machine**
+- **the template** — `templates/project/`: where a project starts (its look, an example manifest,
+  and its entry point)
+- **a project** — what `init` lays down: data, declarations and a look. **The toolkit is not in it**
+
+**A new type is added to the toolkit**, and every project has it at once: there is nothing to
+distribute. What a project owns is its look and the order of its pages, and those differ by project.
+
+A project stands on its own — its `Taskfile.yml` is the door to the toolkit.
+
+```bash
+pipx install .                          # install the toolkit, once
+pptx-agent-maker init <project-dir>
+cd <project-dir> && task build -- example
+```
+
 ## The look belongs to the project, the layout to the toolkit
 
 A project sets its own **typeface and colours** in `[theme]` in its `workspace.toml`, and pages

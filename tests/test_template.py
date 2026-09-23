@@ -28,6 +28,8 @@ from pptx_agent_maker.project.manifest import Manifest  # noqa: E402
 
 TEMPLATE = REPO / "templates" / "project"
 SPECIMEN = TEMPLATE / "specimen.pptx"
+TASKFILE = TEMPLATE / "Taskfile.yml"
+CLI = REPO / "src" / "pptx_agent_maker" / "__main__.py"
 
 
 def _baker():
@@ -59,6 +61,39 @@ class TemplateFilesTest(unittest.TestCase):
             presentation = archive.read("ppt/presentation.xml").decode("utf-8")
         self.assertIn(f'cx="{DEFAULT.slide.width}"', presentation)
         self.assertIn('type="screen16x9"', presentation)
+
+
+class TheProjectCanCallTheToolkitTest(unittest.TestCase):
+    """⚠ **案件の folder はそれ自体で完結していないといけない。**
+
+    道具は folder の中に入らないので、入っていなければ「どの python に入っているか」を
+    人が覚えている必要があった。`Taskfile.yml` がその口で、ここはそれが道具の動詞と
+    食い違っていないかを見る (= CLI 側の名前を変えたら鳴る)。
+    """
+
+    @staticmethod
+    def _verbs(text: str, pattern: str) -> set[str]:
+        return set(re.findall(pattern, text))
+
+    def test_the_template_carries_the_entry_point(self) -> None:
+        self.assertTrue(TASKFILE.is_file(), "a project with no Taskfile cannot be used on its own")
+
+    def test_every_command_of_the_toolkit_has_a_task(self) -> None:
+        """`init` だけは案件が在る前の動詞なので、案件の口には無い。"""
+        toolkit = self._verbs(CLI.read_text(encoding="utf-8"), r'add_parser\("(\w+)"')
+        # ⚠ 呼び出しの行だけを見る (= 道具の名前は説明の文にも出てくる)。
+        tasks = self._verbs(TASKFILE.read_text(encoding="utf-8"),
+                            r"- '\{\{\.MAKER\}\} (\w+)")
+        self.assertEqual(tasks, toolkit - {"init"})
+
+    def test_the_toolkit_is_named_rather_than_run_as_a_module(self) -> None:
+        """⚠ `python -m ...` で書くと、どの python かを案件が知る必要が出る。"""
+        self.assertNotIn("python3 -m", TASKFILE.read_text(encoding="utf-8"))
+
+    def test_a_missing_toolkit_is_said_plainly(self) -> None:
+        text = TASKFILE.read_text(encoding="utf-8")
+        self.assertIn("preconditions", text, "a missing toolkit should stop with a sentence")
+        self.assertIn("not on PATH", text)
 
 
 class TheSpecimenMatchesTheTokensTest(unittest.TestCase):
@@ -103,6 +138,9 @@ class TheTemplateBuildsTest(unittest.TestCase):
             pages = [n for n in archive.namelist()
                      if n.startswith("ppt/slides/slide") and n.endswith(".xml")]
         self.assertEqual(len(pages), len(manifest.entries))
+
+    def test_the_project_is_laid_down_with_its_own_entry_point(self) -> None:
+        self.assertTrue((self.root / "Taskfile.yml").is_file())
 
     def test_the_cover_is_reworded_by_the_example(self) -> None:
         workspace = Workspace.load(self.root)

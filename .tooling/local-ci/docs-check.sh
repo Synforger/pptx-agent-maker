@@ -60,8 +60,10 @@ if command -v task >/dev/null 2>&1; then
     TASK_NAMES="$(task --list-all --silent 2>/dev/null || true)"
     # Template state: collect names from staging Taskfiles as well, so docs
     # written against the post-init layout do not fire spurious "unknown
-    # task" hits when this script runs from the template root.
-    for tf in _core/Taskfile.yml Taskfile.local.yml; do
+    # task" hits when this script runs from the template root. A Taskfile
+    # under templates/ is handed to something this repo creates, and the docs
+    # beside it are written against that, not against this repo's own tasks.
+    for tf in _core/Taskfile.yml Taskfile.local.yml templates/*/Taskfile.yml; do
         [ -f "$tf" ] || continue
         more_names="$(task --list-all --silent --taskfile "$tf" 2>/dev/null || true)"
         if [ -n "${more_names}" ]; then

@@ -23,11 +23,24 @@
 ## 始め方
 
 ```bash
-python3 -m pptx_agent_maker init <案件のフォルダ>
-python3 -m pptx_agent_maker build <案件のフォルダ> example
+pptx-agent-maker init <案件のフォルダ>
+cd <案件のフォルダ> && task build -- example
 ```
 
 **写した直後に 1 本焼ける。**同梱の `example.toml` と、それが要る型見本と絵が入っている。
+
+以降はこの folder の中だけで済む (= `Taskfile.yml` が道具への口を持つ)。
+
+| | |
+|---|---|
+| `task build -- w1` | `w1.toml` からデッキを組んで検査する |
+| `task check -- w1.pptx` | 焼いたものを読み直す |
+| `task review -- w1.pptx` | 人が直した所を部品単位で出す |
+| `task preview` | 焼いたものをブラウザで追う |
+| `task show` | この案件が何をどこに置いているか |
+
+**道具はこの folder に入らない。**1 つの機械に 1 度入れて、案件はいくつでもそれを呼ぶ
+(= `pipx install <道具の checkout>`)。入っていなければ task がその旨だけ言って止まる。
 
 ## 意匠は 2 か所で揃える
 

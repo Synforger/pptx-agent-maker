@@ -89,6 +89,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             where = create(args.path, name=args.name)
             print(f"created {where}")
+            # ⚠ **建てただけでは次に何を打つか分からない。**案件の folder には task の口が
+            # 入っているので、道具の名前ではなくそちらを案内する。
+            print(f"  next: cd {where} && task build -- example")
             return 0
 
         workspace = Workspace.load(args.path)

@@ -1,0 +1,59 @@
+version: '3'
+
+# この案件のデッキを組む口。
+#
+# 道具そのものは `pptx-agent-maker` で、ここに在るのは**その呼び出しだけ** (= 案件の中に
+# 道具は入らない)。この file 1 枚で folder が完結する ― 道具がどの python に入っているかを
+# 覚えていなくても、ここで task を叩けば焼ける。
+#
+# 道具を別名で呼びたいときは `MAKER=...` で上書きする。
+
+vars:
+  MAKER: '{{.MAKER | default "pptx-agent-maker"}}'
+
+tasks:
+  default:
+    desc: Show what can be done in this project
+    cmds:
+      - task --list
+
+  build:
+    desc: Build a deck from its manifest and check it (= task build -- w1)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} build . {{.CLI_ARGS}}'
+
+  check:
+    desc: Read a built deck back and report what it found (= task check -- w1.pptx)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} check . {{.CLI_ARGS}}'
+
+  review:
+    desc: Show what a person changed in a built deck, part by part (= task review -- w1.pptx)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} review . {{.CLI_ARGS}}'
+
+  preview:
+    desc: Watch this project's built decks in a browser
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} preview .'
+
+  show:
+    desc: Say where this project keeps its things
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} show .'
+
+  _tool:
+    internal: true
+    preconditions:
+      - sh: command -v {{.MAKER}} >/dev/null 2>&1
+        msg: |
+          {{.MAKER}} is not on PATH, so nothing here can be built.
+
+          The toolkit lives outside this folder and is installed once per machine:
+            pipx install <the pptx-agent-maker checkout>
+          Nothing in this project needs to change — it never contains the toolkit.
