@@ -27,7 +27,7 @@ from pptx_agent_maker.layout.page import Element, Fill, Text  # noqa: E402
 from pptx_agent_maker.layout.tokens import DEFAULT, Theme  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
-TEMPLATE = REPO / "templates" / "project"
+TEMPLATE = REPO / "src" / "pptx_agent_maker" / "templates" / "project"
 DESTINATION = TEMPLATE / "specimen.pptx"
 #: `example.toml` が指す絵。**雛形が 1 枚持つのは、init した直後に 1 本焼けるようにするため**
 PICTURE = TEMPLATE / "assets" / "example" / "example.png"

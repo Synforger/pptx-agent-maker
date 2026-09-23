@@ -33,6 +33,7 @@ tasks:
       - python3 -m venv .venv
       - .venv/bin/pip install -q -e .
       - .venv/bin/pip install -q -e "preview[dev]"
+      - .venv/bin/pip install -q build
 
   update:
     desc: Reinstall both packages so a changed dependency is picked up
@@ -58,7 +59,9 @@ tasks:
   build:
     desc: Build the wheel and the source archive
     cmds:
-      - .venv/bin/python -m pip wheel -q --no-deps -w dist .
+      # PEP 517 の標準の口。wheel だけでは、pyproject が宣言した file が本当に
+      # 配られるかを誰も見ていない (= sdist はそれを組み立てる側から確かめる)。
+      - .venv/bin/python -m build --outdir dist .
 
   run:
     desc: Show the toolkit's commands

@@ -156,8 +156,6 @@ class DeckTest(unittest.TestCase):
         self.assertTrue((self.dir / "built.pdf").is_file(), "the deck did not convert")
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class RenamingMediaNeverEatsItsOwnOutput(unittest.TestCase):
@@ -270,3 +268,7 @@ class TheFixturesTravelWithTheRepository(unittest.TestCase):
         self.assertEqual(on_disk, tracked,
                          "a fixture image is not in the repository; a fresh clone cannot "
                          "run these tests")
+
+
+if __name__ == "__main__":
+    unittest.main()

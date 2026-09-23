@@ -18,8 +18,8 @@
 !tests/data/*.png
 # ...and the two files the project template ships with. A template whose example
 # cannot be baked is not a template: `init` would land on "no specimen" instead.
-!templates/project/specimen.pptx
-!templates/project/assets/**/*.png
+!src/pptx_agent_maker/templates/project/specimen.pptx
+!src/pptx_agent_maker/templates/project/assets/**/*.png
 
 # --- build artefacts ---
 __pycache__/

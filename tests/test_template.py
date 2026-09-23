@@ -21,12 +21,14 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
+import pptx_agent_maker  # noqa: E402
 from pptx_agent_maker.deck.build import build  # noqa: E402
+from pptx_agent_maker.project.scaffold import TEMPLATE as INSTALLED  # noqa: E402
 from pptx_agent_maker.layout.tokens import DEFAULT  # noqa: E402
 from pptx_agent_maker.project import Workspace, create  # noqa: E402
 from pptx_agent_maker.project.manifest import Manifest  # noqa: E402
 
-TEMPLATE = REPO / "templates" / "project"
+TEMPLATE = REPO / "src" / "pptx_agent_maker" / "templates" / "project"
 SPECIMEN = TEMPLATE / "specimen.pptx"
 TASKFILE = TEMPLATE / "Taskfile.yml"
 CLI = REPO / "src" / "pptx_agent_maker" / "__main__.py"
@@ -41,6 +43,19 @@ def _baker():
 
 
 class TemplateFilesTest(unittest.TestCase):
+    def test_the_template_travels_inside_the_toolkit(self) -> None:
+        """⚠ **repo の木に置いていた間、入れた道具には雛形が無かった** ― `init` が
+        FileNotFoundError で落ち、repo から動かしたときだけ動いていた。package の中に
+        在ることと、配る宣言があることの両方を見る。
+        """
+        package = Path(pptx_agent_maker.__file__).resolve().parent
+        self.assertEqual(INSTALLED, TEMPLATE, "the scaffold reads a different template")
+        self.assertIn(package, INSTALLED.parents, "the template is outside the package")
+        declared = [line for line in (REPO / "pyproject.toml").read_text(encoding="utf-8").splitlines()
+                    if "templates/project" in line]
+        self.assertTrue(declared,
+                        "the template is not declared as package data, so a wheel drops it")
+
     def test_the_template_carries_its_specimen(self) -> None:
         self.assertTrue(SPECIMEN.is_file(), f"{SPECIMEN} is missing — run task specimen")
 

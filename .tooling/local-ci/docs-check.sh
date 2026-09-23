@@ -63,7 +63,7 @@ if command -v task >/dev/null 2>&1; then
     # task" hits when this script runs from the template root. A Taskfile
     # under templates/ is handed to something this repo creates, and the docs
     # beside it are written against that, not against this repo's own tasks.
-    for tf in _core/Taskfile.yml Taskfile.local.yml templates/*/Taskfile.yml; do
+    for tf in _core/Taskfile.yml Taskfile.local.yml $(git ls-files '*templates/*/Taskfile.yml' 2>/dev/null); do
         [ -f "$tf" ] || continue
         more_names="$(task --list-all --silent --taskfile "$tf" 2>/dev/null || true)"
         if [ -n "${more_names}" ]; then

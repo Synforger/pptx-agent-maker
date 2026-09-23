@@ -1,53 +1,71 @@
 ---
 name: deck
-description: Build or change a slide deck with pptx-agent-maker. Use when asked to make, edit, rebuild or review a .pptx deck in a project that has a workspace.toml — creating pages, copying from a specimen, importing a page from an earlier deck, checking a built deck, or folding a person's hand edits back in.
+description: Build or change a slide deck with pptx-agent-maker. Use when asked to make, edit, rebuild or review a .pptx deck in a project that has a workspace.toml — declaring pages from the page types, copying from a specimen, importing a page from an earlier deck, checking a built deck, or folding a person's hand edits back in.
 ---
 
 # Building a deck
 
-**道具はこの repo、案件は外。**案件を見つける口は `workspace.toml` 1 枚で、それ以外に外の
-path を書かない。
+**道具は `pptx-agent-maker`、案件はその外の folder。**案件を見つける口は `workspace.toml` 1 枚で、
+それ以外に外の path を書かない。
+
+案件の folder の中だけで完結する (= `Taskfile.yml` が道具への口を持つ)。
 
 ## 順番
 
-1. **既に在るものを見る** ― `python3 -m pptx_agent_maker show <project>` と、
-   その案件の `manifests/` と `pages/`。**同じ役割の頁が過去に在れば、それを複製するか輸入する**
+1. **既に在るものを見る** ― `task show` と、案件の `*.toml` / `*.pptx`。
+   **同じ役割の頁が過去の回に在れば、複製するか輸入する** (= 作り直さない)
 2. **manifest を書く / 直す** ― 並びの真値はここ 1 枚。頁の作り方は 3 つだけ
    (`copy` / `import` / `declare`)
-3. **組む** ― `python3 -m pptx_agent_maker build <project> <manifest>`
-4. **焼いて見る** ― `python3 -m pptx_agent_maker preview <project>`。
+3. **組む** ― `task build -- w1` (= 組んで検査まで)
+4. **焼いて見る** ― `task preview`、または pptx を画像にして 1 枚ずつ見る。
    ⚠ **検査が通っても、読みやすさは座標に出ない。**目で見るまで終わりでない
-5. **人が直したら取り込む** ― `python3 -m pptx_agent_maker review <project> <deck>` で
-   差分を出し、置換の対を manifest に写す
+5. **人が直したら取り込む** ― `task review -- w1.pptx` で差分を出し、置換の対を manifest に写す
 
-## 頁を新しく書くとき
+## 宣言で頁を組む
 
-案件の `pages/<name>.py` に `build(workspace) -> Page` を書く。**座標を渡す口は無い** ―
-版面を割ることしかできない。
+**型を選ぶ。**`figure` / `figures` / `figure_grid` / `flow` / `cards` / `board` / `agenda` の 7 つ。
+⚠ **座標を書く口はどこにも無い。**版面の並びは固定で、書いた帯だけが出る:
 
-```python
-page = Page(title, kicker=..., condition=..., conclusion=..., footer=...)
-left, right = page.body.columns([2, 1], gap=DEFAULT.spacing.gap_m)
-figure_area, cards = left.rows([3, 2], gap=DEFAULT.spacing.gap_m)
-page.figure(figure_area, workspace.asset("x.png"), 16 / 9, caption="…")
-table, note = right.split_top(DEFAULT.table_height(len(rows)), gap=DEFAULT.spacing.gap_s)
-page.table(table, rows, highlight={(1, 1): DEFAULT.palette.good})
-page.note(note, "…")
 ```
+題 → 条件の帯 → カード → 本体 → 表 → 読み方 → 結論の帯 → 出所
+```
+
+型が決めるのは**本体**だけで、カード・表・読み方・要点・キャプションは**どの型にも**添えられる。
+
+```toml
+[[pages]]
+kind = "declare"
+type = "figure"
+title = "この頁が何の頁か"
+figure = "a.png"          # assets/<この manifest の名前>/ から引く
+caption = "図の読み方を 1 行"
+conclusion = "持ち帰ってほしい 1 行"
+```
+
+## 型に収まらない頁が出たら
+
+**型を足す。**手で図形を置く道は無い (= その口を塞いだのが、この道具の設計そのもの)。
+手順 = 道具の `docs/reference/adding-a-type.ja.md`。⚠ **足す前に、付属で足りないかを見る**
+(= カード・表・読み方・要点で済むことが多い)。
+
+## 意匠
+
+案件のもので、2 か所が持つ ― `specimen.pptx` (= マスターと表紙。複製した頁に効く) と
+`workspace.toml` の `[theme]` (= 書体と色。型で組んだ頁に効く)。**片方だけ変えると顔が割れる。**
 
 ## 組めないもの (= 直そうとせず、形を変える)
 
 | 拒まれるもの | なぜ |
 |---|---|
-| 図解を 1 つも持たない頁 | 表と文章だけの頁は、読み手が使えない |
+| 図解を 1 つも持たない頁 | 表と文章だけの頁は、読み手が使えない (= `cards` / `board` / `agenda` は骨格なので例外) |
 | 表の空セル | 値が無いなら「―」。空欄は埋め忘れと見分けが付かない |
 | 10pt を割る文字 | 席から読めない |
 | 枠に入らない表 | PowerPoint は表を縮めず枠を伸ばす。頁から溢れる |
+| 知らないキー | 綴り違いを捨てると、書いたつもりで頁には無い |
 | 手編集された deck への上書き | 人の直しは退避してから、`review` で取り込む |
 
 ## やらないこと
 
-- **寸法・色・文字を頁が決めない** ― `DEFAULT` の token を参照する。同じ役割が毎週同じ形で
-  出ることが、週をまたいだ比較の前提
-- **案件のものを道具側に置かない** ― 結果を並べる頁のように、並べ方が案件に固有のものは `pages/`
-- **1 往復 1 修正を繰り返さない** ― 焼く前に、その頁の文言と寸法を決め切る
+- **寸法・色・文字を頁が決めない** ― 同じ役割が毎回同じ形で出ることが、回をまたいだ比較の前提
+- **案件のものを道具側に置かない** ― 並べ方・素材・意匠は案件のもの。道具が持つのは型まで
+- **1 往復 1 修正を繰り返さない** ― 焼く前に、その頁の文言と中身を決め切る

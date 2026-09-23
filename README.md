@@ -68,8 +68,9 @@ points at. Data cannot enter a commit, so it cannot enter a push.
 
 - **the toolkit** — this repository: the vocabulary of the page (seven types) and the machinery.
   Installed **once per machine**
-- **the template** — `templates/project/`: where a project starts (its look, an example manifest,
-  and its entry point)
+- **the template** — `src/pptx_agent_maker/templates/project/`: where a project starts (its look,
+  an example manifest, and its entry point). It **ships with the toolkit**, so an installed
+  copy can lay down a project too
 - **a project** — what `init` lays down: data, declarations and a look. **The toolkit is not in it**
 
 **A new type is added to the toolkit**, and every project has it at once: there is nothing to
