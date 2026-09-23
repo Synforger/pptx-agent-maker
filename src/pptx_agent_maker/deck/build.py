@@ -70,11 +70,11 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path) -> d
     if not declared:
         return {}
 
-    deck = new_deck()
+    deck = new_deck(workspace.theme)
     where: dict = {}
     for position, (index, entry) in enumerate(declared, start=1):
         page = _declared_page(workspace, manifest, entry, index)
-        add_page(deck, page.build())
+        add_page(deck, page.build(), workspace.theme)
         where[index] = position
     where["path"] = save(deck, scratch / "declared.pptx")
     return where
@@ -86,6 +86,6 @@ def _declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index
         return workspace.asset(name, within=manifest.assets)
 
     try:
-        return types.build(entry.data, asset, aspect)
+        return types.build(entry.data, asset, aspect, workspace.theme)
     except (ValueError, KeyError) as reason:
         raise ManifestError(f"page {index}: {reason}") from reason

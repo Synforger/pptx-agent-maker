@@ -112,6 +112,11 @@ tasks:
     cmds:
       - python3 scripts/gen-third-party-notices.py
 
+  specimen:
+    desc: Re-bake the specimen and picture the project template ships with (after a token change)
+    cmds:
+      - .venv/bin/python3 scripts/bake-template.py
+
   audit:
     desc: Aggregate security audit (anon-scan + gitleaks full history + pip-audit + npm audit)
     cmds:

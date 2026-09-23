@@ -64,6 +64,18 @@ And four things are refused outright, because no one managed to hold them by dis
 The toolkit is here. Manifests, assets and built decks live in a workspace that this repo only
 points at. Data cannot enter a commit, so it cannot enter a push.
 
+## The look belongs to the project, the layout to the toolkit
+
+A project sets its own **typeface and colours** in `[theme]` in its `workspace.toml`, and pages
+built from a type come out in them. **Margins, type sizes and spacing cannot be set**: the same
+kind of page keeping the same shape from one round to the next is worth more, and the generation
+that left that open produced a different page every week.
+
+The template ships with **one specimen, baked in the toolkit's own look**, so a project can build
+a deck the moment it is created. To use a project's own look, replace that file *and* set
+`[theme]` to the same colours — the first decides copied pages and the master a person sees in
+PowerPoint, the second decides pages built from a type.
+
 ## Try it
 
 ```bash
@@ -81,7 +93,7 @@ src/pptx_agent_maker/
 ├── checks/    reading a built deck back, one check per file
 ├── review/    keeping a person's edit, and showing it as words
 └── project/   pointing at a deck project that lives outside this repo
-templates/     the skeleton a deck project is created from
+templates/     the skeleton a deck project is created from (it ships with a specimen)
 preview/       the live preview, vendored with its own history (git subtree)
 ```
 

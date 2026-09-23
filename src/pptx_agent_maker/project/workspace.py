@@ -16,6 +16,9 @@
         ├── w1/            マニフェストと同じ名前の folder が、その回の素材
         └── w2/
 
+案件が自分で決めるものがもう 1 つ ― **意匠** (= 書体と色) を `[theme]` に書く。
+版面の割り方は道具が持ったままで、動くのは見た目だけ (= `layout/tokens.py`)。
+
 ⚠ **回を folder で仕切らない。**開いて確かめるのは焼いたデッキなので、それが
 マニフェストの隣に在るのがいちばん短い。素材だけは数が多いので回ごとに分ける。
 
@@ -30,6 +33,8 @@ from __future__ import annotations
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from ..layout.tokens import DEFAULT, Theme, ThemeError, theme_from
 
 REPO = Path(__file__).resolve().parents[3]
 FILENAME = "workspace.toml"
@@ -50,6 +55,8 @@ class Workspace:
     root: Path
     assets: Path
     settings: dict = field(default_factory=dict)
+    #: この案件の意匠 (= 書体と色。無ければ道具の既定)
+    theme: Theme = DEFAULT
 
     @classmethod
     def load(cls, path: Path | str) -> "Workspace":
@@ -68,9 +75,15 @@ class Workspace:
         cls._refuse_inside_the_repo(root, path)
 
         folders = data.get("paths", {})
+        try:
+            theme = theme_from(data.get("theme"))
+        except ThemeError as reason:
+            raise WorkspaceError(f"{path.name}: {reason}") from reason
+
         return cls(
             root=root,
             settings=data,
+            theme=theme,
             **{name: root / str(folders.get(name, name)) for name in FOLDERS},
         )
 

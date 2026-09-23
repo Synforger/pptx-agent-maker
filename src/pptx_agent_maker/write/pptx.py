@@ -16,12 +16,17 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 
 from ..layout.page import Element, Figure, Fill, Table, Text
 from ..layout.tokens import DEFAULT, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
+
+#: 「スタイルなし・罫線なし」。PowerPoint が新しい表に付ける既定のスタイルは
+#: **テーマの accent1 で見出しを塗る**ので、色の出どころが palette と 2 つに割れる。
+NO_TABLE_STYLE = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"
 
 
 def _colour(value: str) -> RGBColor:
@@ -100,27 +105,54 @@ def _table(slide, element: Table, theme: Theme) -> None:
         Emu(element.rect.width), Emu(element.rect.height),
     )
     table = shape.table
-    table.first_row = element.header
+    _unstyle(table)
     for column, width in zip(table.columns, element.widths):
         column.width = Emu(width)
     for row in table.rows:
         row.height = Emu(theme.table_row_height())
     for r, row in enumerate(element.rows):
+        heading = bool(element.header and r == 0)
         for c, value in enumerate(row):
             cell = table.cell(r, c)
             cell.margin_top = Emu(theme.spacing.cell_pad_y)
             cell.margin_bottom = Emu(theme.spacing.cell_pad_y)
             cell.margin_left = Emu(theme.spacing.cell_pad_x)
             cell.margin_right = Emu(theme.spacing.cell_pad_x)
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = _colour(_cell_colour(theme, heading, r))
             cell.text = value
             paragraph = cell.text_frame.paragraphs[0]
             paragraph.alignment = PP_ALIGN.LEFT
             for run in paragraph.runs:
-                run.font.size = Pt(theme.type.body if r or not element.header else theme.type.body)
-                run.font.bold = bool(r == 0 and element.header)
+                run.font.size = Pt(theme.type.body)
+                run.font.bold = heading
                 run.font.name = theme.type.family
-                colour = element.highlight.get((r, c))
-                run.font.color.rgb = _colour(colour or theme.palette.ink)
+                ink = theme.palette.paper if heading else theme.palette.ink
+                run.font.color.rgb = _colour(element.highlight.get((r, c)) or ink)
+
+
+def _cell_colour(theme: Theme, heading: bool, row: int) -> str:
+    """見出しは差し色、本文は 1 行おきに薄く敷く (= 横に目が滑らないように)。"""
+    if heading:
+        return theme.palette.accent
+    return theme.palette.band if row % 2 == 0 else theme.palette.paper
+
+
+def _unstyle(table) -> None:
+    """Take PowerPoint's own style off the table so the palette is the only source of colour.
+
+    ⚠ **表だけ色の出どころが別だった。**`add_table` の既定スタイルはテーマの accent1 で
+    見出しを塗り、本文に縞を入れる。案件が `[theme]` で色を変えても表は追随せず、
+    さらに見出しの文字色をこちらが決めているので、暗い字が濃い地に乗っていた。
+    """
+    properties = table._tbl.find(qn("a:tblPr"))
+    for banding in ("firstRow", "bandRow"):
+        properties.attrib.pop(banding, None)
+    style = properties.find(qn("a:tableStyleId"))
+    if style is None:
+        style = properties.makeelement(qn("a:tableStyleId"), {})
+        properties.append(style)
+    style.text = NO_TABLE_STYLE
 
 
 def save(deck: Presentation, path: Path | str) -> Path:
