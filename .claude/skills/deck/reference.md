@@ -75,8 +75,8 @@ band = "EAF0F8"     # 条件の帯
 
 ## 検査
 
-`build` は最後に 5 つを回す ― 版面外 / 文字の下限 / 表の空セル / 内部 file 名 /
-型見本の語の残り。`stale_words` は案件の `workspace.toml` に書く。
+`build` は最後に 6 つを回す ― 版面外 / **重なり** / 文字の下限 / 表の空セル /
+内部 file 名 / 型見本の語の残り。`stale_words` は案件の `workspace.toml` に書く。
 
 ```toml
 [checks]

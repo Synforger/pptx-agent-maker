@@ -139,7 +139,7 @@ anything. `preview/` keeps its own README, tests and Taskfile, and is updated wi
 
 Every layer is in place and covered: declaring a page, writing it to pptx, copying a specimen,
 importing a page from an earlier deck, building a deck from one manifest, reading the built file
-back through five checks, protecting a hand edit, and watching the result in a browser.
+back through six checks, protecting a hand edit, and watching the result in a browser.
 
 ## License
 

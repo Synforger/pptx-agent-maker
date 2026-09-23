@@ -77,19 +77,26 @@ class BuiltSlide:
     number: int
     name: str
     xml: str
+    #: この頁が乗るレイアウトの図形 (= ロゴ・頁番号・飾り)。読めなければ空
+    beneath: tuple["Shape", ...] = ()
 
     def shapes(self) -> list[Shape]:
-        found: list[Shape] = []
-        for kind, body in SHAPE.findall(self.xml):
-            offset, extent = OFFSET.search(body), EXTENT.search(body)
-            if not (offset and extent):
-                continue
-            found.append(Shape(kind, int(offset.group(1)), int(offset.group(2)),
-                               int(extent.group(1)), int(extent.group(2)), body))
-        return found
+        return shapes_in(self.xml)
 
     def texts(self) -> list[str]:
         return [html.unescape(t) for t in TEXT.findall(self.xml)]
+
+
+def shapes_in(xml: str) -> list[Shape]:
+    """Every placed shape in one part's XML."""
+    found: list[Shape] = []
+    for kind, body in SHAPE.findall(xml):
+        offset, extent = OFFSET.search(body), EXTENT.search(body)
+        if not (offset and extent):
+            continue
+        found.append(Shape(kind, int(offset.group(1)), int(offset.group(2)),
+                           int(extent.group(1)), int(extent.group(2)), body))
+    return found
 
 
 def read(deck: Path) -> list[BuiltSlide]:
@@ -101,8 +108,41 @@ def read(deck: Path) -> list[BuiltSlide]:
         file_of = dict(re.findall(r'Id="(rId\d+)"[^>]*Target="slides/(slide\d+\.xml)"', rels))
         order = [file_of[rid] for rid in re.findall(r'<p:sldId[^>]*r:id="(rId\d+)"', presentation)
                  if rid in file_of]
-        return [BuiltSlide(number, name, archive.read(f"ppt/slides/{name}").decode("utf-8"))
+        return [BuiltSlide(number, name,
+                           archive.read(f"ppt/slides/{name}").decode("utf-8"),
+                           _beneath(archive, name))
                 for number, name in enumerate(order, start=1)]
+
+
+def _beneath(archive: zipfile.ZipFile, slide: str) -> tuple[Shape, ...]:
+    """What the page sits on: the shapes of its own layout, and of that layout's master.
+
+    ⚠ **頁ごとに別のレイアウトに乗る。**前の世代はレイアウトを全部混ぜて 1 つの
+    「ロゴの位置」を決めていたので、レイアウトごとにロゴの位置が違う型見本では
+    見当違いの枠と比べていた。
+    """
+    parts: list[str] = []
+    try:
+        rels = archive.read(f"ppt/slides/_rels/{slide}.rels").decode("utf-8")
+    except KeyError:
+        return ()
+    for layout in re.findall(r'Target="\.\./slideLayouts/(slideLayout\d+\.xml)"', rels):
+        try:
+            parts.append(archive.read(f"ppt/slideLayouts/{layout}").decode("utf-8"))
+        except KeyError:
+            continue
+        try:
+            layout_rels = archive.read(
+                f"ppt/slideLayouts/_rels/{layout}.rels").decode("utf-8")
+        except KeyError:
+            continue
+        for master in re.findall(r'Target="\.\./slideMasters/(slideMaster\d+\.xml)"',
+                                 layout_rels):
+            try:
+                parts.append(archive.read(f"ppt/slideMasters/{master}").decode("utf-8"))
+            except KeyError:
+                continue
+    return tuple(shape for part in parts for shape in shapes_in(part))
 
 
 def slide_size(deck: Path) -> tuple[int, int]:
