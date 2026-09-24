@@ -119,3 +119,22 @@ def test_a_single_project_page_has_no_projects(tmp_path, monkeypatch):
         assert caught.value.code == 404
     finally:
         server.shutdown()
+
+
+def test_a_new_project_appears_without_a_restart(tmp_path, monkeypatch):
+    """⚠ 常駐の画面は止めないので、`init` した案件が欄に出ないと見るために再起動が要る。"""
+    _fake_render(monkeypatch)
+    for name in ("alpha", "beta"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / f"{name}.pptx").write_bytes(b"x")
+    offered = {"alpha": (tmp_path / "alpha", [])}
+    board = st.Switchboard({"alpha": st.DeckSet(tmp_path / "alpha")},
+                           discover=lambda: dict(offered))
+    board.REDISCOVER_SECONDS = 0
+    assert board.projects() == ["alpha"]
+    offered["beta"] = (tmp_path / "beta", [])
+    assert board.projects() == ["alpha", "beta"]
+    board.select("beta")
+    offered.pop("beta")
+    offered.pop("alpha")
+    assert board.projects() == ["beta"], "the one being looked at was taken away"

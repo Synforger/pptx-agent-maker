@@ -239,12 +239,24 @@ class Switchboard:
     起こし、新しい方へ乗り換えさせる (= 起こさないと、次の keep-alive まで画面が変わらない)。
     """
 
-    def __init__(self, projects: dict[str, DeckSet], first: str | None = None) -> None:
+    #: 一覧を探し直す間隔の下限 (= 画面が一覧を取りに来るたびに folder を歩かない)
+    REDISCOVER_SECONDS = 2.0
+
+    def __init__(self, projects: dict[str, DeckSet], first: str | None = None, *,
+                 discover=None, dpi: int = DEFAULT_DPI) -> None:
+        """`discover` は名前 → (folder, 一覧から外す名前) を返す (= 在れば一覧を探し直す)。
+
+        ⚠ **新しい案件は再起動なしで欄に出す。**常駐の画面は止めないので、`init` した案件が
+        出てこないと、見るために再起動が要ることになる。
+        """
         if not projects:
             raise ValueError("no projects to show")
         self._projects = dict(projects)
         self._name = first if first in self._projects else sorted(self._projects)[0]
         self._switches = 0
+        self._discover = discover
+        self._dpi = dpi
+        self._looked = 0.0
 
     def __getattr__(self, name):  # 画面と server が触る残りは、今の案件のもの
         return getattr(self._projects[self._name], name)
@@ -263,7 +275,20 @@ class Switchboard:
         return self._switches * 1_000_000 + self.active.version
 
     def projects(self) -> list[str]:
+        self._rediscover()
         return sorted(self._projects)
+
+    def _rediscover(self) -> None:
+        if self._discover is None or time.monotonic() - self._looked < self.REDISCOVER_SECONDS:
+            return
+        self._looked = time.monotonic()
+        found = self._discover()
+        for name, (folder, skip) in found.items():
+            if name not in self._projects:
+                self._projects[name] = DeckSet(Path(folder), self._dpi, skip=skip)
+        for name in list(self._projects):
+            if name not in found and name != self._name:  # 今見ている物は外さない
+                del self._projects[name]
 
     @property
     def project(self) -> str:
