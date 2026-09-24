@@ -138,3 +138,54 @@ def test_a_new_project_appears_without_a_restart(tmp_path, monkeypatch):
     offered.pop("beta")
     offered.pop("alpha")
     assert board.projects() == ["beta"], "the one being looked at was taken away"
+
+
+def test_the_decks_are_the_new_projects_as_soon_as_the_switch_answers(board):
+    """⚠ 切り替えを裏で済ませていた間は、画面がすぐ取り直す一覧がまだ前の案件だった。"""
+    base, _ = board
+    with urllib.request.urlopen(base + "/api/projects/select/beta", timeout=5) as r:
+        assert r.status == 202
+    assert [d["name"] for d in _json(base + "/api/decks")] == ["b1"]  # 待たずに
+
+
+def test_the_last_opened_deck_and_project_outlive_a_restart(tmp_path, monkeypatch):
+    """⚠ 開き直すたびに古い回が出る、を止める (= server が覚え、再起動しても残る)。"""
+    _fake_render(monkeypatch)
+    for project, decks in (("alpha", ("a1", "a2")), ("beta", ("b1",))):
+        (tmp_path / project).mkdir()
+        for deck in decks:
+            (tmp_path / project / f"{deck}.pptx").write_bytes(b"x")
+
+    def start():
+        board = st.Switchboard({name: st.DeckSet(tmp_path / name) for name in ("alpha", "beta")})
+        board.rescan_and_rerender(force=True)
+        return (board, *_serve(board))
+
+    board, server, base = start()
+    assert _json(base + "/api/opened") == {"deck": None}
+    urllib.request.urlopen(base + "/api/opened/a2", timeout=5).read()
+    urllib.request.urlopen(base + "/api/projects/select/beta", timeout=5).read()
+    urllib.request.urlopen(base + "/api/opened/b1", timeout=5).read()
+    server.shutdown()
+
+    board, server, base = start()  # 再起動
+    try:
+        assert _json(base + "/api/projects")["active"] == "beta"
+        assert _json(base + "/api/opened") == {"deck": "b1"}
+        urllib.request.urlopen(base + "/api/projects/select/alpha", timeout=5).read()
+        assert _json(base + "/api/opened") == {"deck": "a2"}, "each project keeps its own"
+    finally:
+        server.shutdown()
+
+
+def test_a_deck_that_is_not_there_is_not_remembered(board):
+    base, _ = board
+    with pytest.raises(urllib.error.HTTPError) as caught:
+        urllib.request.urlopen(base + "/api/opened/nope", timeout=5)
+    assert caught.value.code == 404
+
+
+def test_the_deck_list_says_when_each_deck_was_changed(board):
+    """覚えが無い時は、一番新しく触ったデッキを開く (= 作業中の回はふつう最新)。"""
+    base, _ = board
+    assert all(d["modified"] > 0 for d in _json(base + "/api/decks"))

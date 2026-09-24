@@ -14,7 +14,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from .state import DeckSet
+from .state import DeckSet, Opened
 
 ASSETS = Path(__file__).parent / "assets"
 
@@ -48,6 +48,13 @@ class QuietThreadingHTTPServer(ThreadingHTTPServer):
 
 
 def make_handler(deckset: DeckSet):
+    # 最後に開いた物の覚え (= 束ねて見る時は切り替え盤が持ち、1 案件の時はここで持つ)
+    opened = getattr(deckset, "opened", None) or Opened()
+
+    def _project_key() -> str:
+        # 束ねて見る時は案件の名前、1 案件の時は見ている folder (= 案件ごとに覚える)
+        return deckset.project if hasattr(deckset, "projects") else str(deckset.source)
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
@@ -130,6 +137,10 @@ def make_handler(deckset: DeckSet):
                 self._refresh()
             elif path == "/api/projects":
                 self._projects()
+            elif path == "/api/opened":
+                self._json({"deck": opened.deck(_project_key())})
+            elif path.startswith("/api/opened/"):
+                self._remember(urllib.parse.unquote(path[len("/api/opened/"):]))
             elif path.startswith("/api/projects/select/"):
                 self._select(urllib.parse.unquote(path[len("/api/projects/select/"):]))
             elif path == "/events":
@@ -172,9 +183,19 @@ def make_handler(deckset: DeckSet):
             if not hasattr(deckset, "projects") or name not in deckset.projects():
                 self._not_found()
                 return
-            # 選んだ案件を焼くのは時間がかかるので、答えは先に返す (= 描けたら SSE が届く)
-            threading.Thread(target=deckset.select, args=(name,), daemon=True).start()
+            # 切り替えは返事の前に済ませる (= 画面がすぐ取り直す一覧が、もう新しい案件のもの)。
+            # 描くのは時間がかかるので裏で (= 描けた順に SSE が届く)
+            deckset.select(name)
+            threading.Thread(target=deckset.rescan_and_rerender, kwargs={"force": True},
+                             daemon=True).start()
             self._json({"ok": True, "active": name}, code=202)
+
+        def _remember(self, deck: str):
+            if deckset.deck(deck) is None:
+                self._not_found()
+                return
+            opened.remember_deck(_project_key(), deck)
+            self._json({"ok": True})
 
         def _refresh(self):
             # 手動の再描画だけがキャッシュを無視する (= 中身が同じでも焼き直す)。

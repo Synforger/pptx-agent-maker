@@ -18,7 +18,7 @@ from pathlib import Path
 
 from .scaffold import TEMPLATE
 
-#: ツールが持ち、案件が持たない file (= 案件の雛形からの相対 path)
+#: ツールが持ち、案件が持たない file (= プロジェクトテンプレートからの相対 path)
 TOOL_OWNED = ("Taskfile.yml", "_README.md", ".claude/skills/deck")
 STATE = ".pptx-agent-maker"
 

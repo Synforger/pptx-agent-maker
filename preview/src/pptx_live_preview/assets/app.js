@@ -554,6 +554,8 @@ function stepComparePage(which, delta) {
 async function selectDeck(name) {
   S.active = name;
   location.hash = encodeURIComponent(name);
+  // 最後に開いた物を server に覚えさせる (= 開き直した時、どの端末からでもここに戻る)
+  fetch(at('api/opened/' + encodeURIComponent(name))).catch(() => {});
   renderPicker();
   // 見ていた頁のまま隣のデッキへ移る (= 同じ骨格から育ったデッキを突き合わせるとき、
   // 毎回先頭へ戻されると同じところまで送り直すことになる)
@@ -586,6 +588,21 @@ async function loadDetail(opts) {
   if (opts && opts.scroll) scrollStageToPage('auto');
 }
 
+/* 開いた時に出すデッキ。⚠ URL の末尾 (#w2) は見ない ― ブックマークの URL が古い回を
+   指したまま、開き直すたびにその回が出ていた。最後に開いた物、無ければ一番新しく触った物。 */
+async function firstDeck(names) {
+  if (!names.length) return null;
+  try {
+    const r = await fetch(at('api/opened'));
+    if (r.ok) {
+      const remembered = (await r.json()).deck;
+      if (remembered && names.includes(remembered)) return remembered;
+    }
+  } catch (e) { /* 覚えが読めなくても、一番新しい物を出す */ }
+  const newest = S.decks.reduce((a, b) => ((b.modified || 0) > (a.modified || 0) ? b : a));
+  return newest.name;
+}
+
 async function loadDecks() {
   try {
     const r = await fetch(at('api/decks'));
@@ -604,8 +621,7 @@ async function loadDecks() {
 
   const names = S.decks.map((d) => d.name);
   if (S.active === null || !names.includes(S.active)) {
-    const fromHash = decodeURIComponent(location.hash.slice(1));
-    S.active = names.includes(fromHash) ? fromHash : (names[0] || null);
+    S.active = await firstDeck(names);
     renderPicker();
     await loadDetail({ keepPage: false });
     return;
