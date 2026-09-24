@@ -189,3 +189,32 @@ def test_the_deck_list_says_when_each_deck_was_changed(board):
     """覚えが無い時は、一番新しく触ったデッキを開く (= 作業中の回はふつう最新)。"""
     base, _ = board
     assert all(d["modified"] > 0 for d in _json(base + "/api/decks"))
+
+
+def test_each_page_sees_the_project_it_names(board):
+    """⚠ 発表用に 1 案件へ絞った画面は、別の画面が既定の案件を替えても動かない。"""
+    base, _ = board
+    urllib.request.urlopen(base + "/api/projects/select/beta", timeout=5).read()
+    for _ in range(50):
+        if [d["name"] for d in _json(base + "/api/decks?p=alpha")] == ["a1"]:
+            break
+        time.sleep(0.05)
+    assert [d["name"] for d in _json(base + "/api/decks?p=alpha")] == ["a1"]
+    assert [d["name"] for d in _json(base + "/api/decks")] == ["b1"]  # 名乗らない画面は既定
+    assert _json(base + "/api/meta?p=alpha")["title"] == "alpha"
+
+
+def test_a_project_named_by_a_page_is_kept_up_to_date(tmp_path, monkeypatch):
+    """既定でない案件も、画面が見ている間は file を直せば描き直される。"""
+    _fake_render(monkeypatch)
+    for project in ("alpha", "beta"):
+        (tmp_path / project).mkdir()
+        (tmp_path / project / f"{project}.pptx").write_bytes(b"x")
+    board = st.Switchboard({name: st.DeckSet(tmp_path / name) for name in ("alpha", "beta")})
+    board._drawn.add("beta")  # 裏で描き始めない (= test が終わった後まで走る処理を残さない)
+    board.get("beta")
+    watched = []
+    monkeypatch.setattr(board._projects["beta"], "rescan_and_rerender",
+                        lambda **kw: watched.append("beta"))
+    board.rescan_and_rerender()
+    assert watched == ["beta"]

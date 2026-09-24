@@ -13,12 +13,20 @@
     name = "old decks"
     path = "~/decks/archive/output"
 
+    [labels]              # 案件の表示名 (= folder の path → 欄とタブの題に出す名前)
+    "~/decks/client-a/deck" = "A"
+
+⚠ **欄とタブの題には folder 名を出さない。**folder 名には先方の名前が入りうるので、発表中に
+欄を開いただけで別の会社の名前が並ぶ。表示名を書いていない案件は「案件 」+ folder から作った
+短い印 (= 再起動しても変わらない) で出す。発表の時は `?only=<表示名>` で 1 案件に絞る。
+
 案件はそれぞれのテンプレートを一覧から外す。一覧は画面が取りに来るたびに探し直すので、
 新しく `init` した案件は再起動なしで欄に出る。
 """
 
 from __future__ import annotations
 
+import hashlib
 import tomllib
 from pathlib import Path
 
@@ -38,7 +46,7 @@ def load(path: Path | str = DEFAULT) -> dict:
             f"no places file at {path} — write one with [[search]] and [[folder]] entries "
             "(see `pptx_agent_maker.project.places`)")
     data = tomllib.loads(path.read_text(encoding="utf-8"))
-    unknown = sorted(set(data) - {"search", "folder"})
+    unknown = sorted(set(data) - {"search", "folder", "labels"})
     if unknown:
         raise PlacesError(f"{path.name}: only [[search]] and [[folder]] belong here, not {unknown}")
     for kind in ("search", "folder"):
@@ -75,14 +83,16 @@ def discover(places: dict, skip_of) -> dict[str, tuple[Path, list[str]]]:
     読めない案件は黙って飛ばす (= 画面が 2 秒ごとに探し直すので、ここで騒ぐと log が埋まる)。
     """
     found: dict[str, tuple[Path, list[str]]] = {}
+    labels = {str(Path(k).expanduser().resolve()): str(v)
+              for k, v in (places.get("labels") or {}).items()}
     for entry in places.get("search", []):
         root = Path(entry["path"]).expanduser()
         if not root.is_dir():
             continue
         for folder in projects_under(root, int(entry.get("depth", 3))):
-            name = folder.relative_to(root).as_posix()
+            name = labels.get(str(folder.resolve())) or unnamed(folder)
             if name in found:
-                name = f"{root.name}/{name}"
+                name = f"{name} ({unnamed(folder).split()[-1]})"
             try:
                 found[name] = (folder, sorted(skip_of(folder)))
             except Exception:  # noqa: BLE001 - 壊れた案件 1 つで一覧を止めない
@@ -92,3 +102,9 @@ def discover(places: dict, skip_of) -> dict[str, tuple[Path, list[str]]]:
         if folder.is_dir():
             found[str(entry["name"])] = (folder, [])
     return found
+
+
+def unnamed(folder: Path) -> str:
+    """A name for a project with no label: no folder name in it, the same on every start."""
+    mark = hashlib.sha1(str(Path(folder).resolve()).encode("utf-8")).hexdigest()[:4]
+    return f"案件 {mark}"

@@ -96,6 +96,7 @@ python3 -m pptx_agent_maker check <案件のフォルダ> w1   # 焼いたもの
 python3 -m pptx_agent_maker preview <案件のフォルダ>    # output/ をブラウザで見る
 python3 -m pptx_agent_maker preview <親のフォルダ>      # その下の案件を束ね、上で選んで見る
 python3 -m pptx_agent_maker preview                    # ~/.config/pptx-agent-maker/preview.toml の一覧から選ぶ
+#   …/?only=<表示名> で開くとその案件だけになり、欄が出ない (= 発表用。ほかの画面の選択に動かない)
 python3 -m pptx_agent_maker review <案件のフォルダ> w1 --apply  # PowerPoint の直しを取り込む
 ```
 

@@ -306,6 +306,8 @@ class Switchboard:
         self._discover = discover
         self._dpi = dpi
         self._looked = 0.0
+        self._seen: dict[str, float] = {}   # 画面が最後に見に来た時刻 (= 見張る相手)
+        self._drawn: set[str] = set()       # 一度でも描き始めた物
 
     def __getattr__(self, name):  # 画面と server が触る残りは、今の案件のもの
         return getattr(self._projects[self._name], name)
@@ -322,6 +324,29 @@ class Switchboard:
     def version(self) -> int:
         # 案件を替えたことも「変化」として画面に届ける (= 版が戻ると画面は描き直さない)
         return self._switches * 1_000_000 + self.active.version
+
+    #: 画面が最後に見に来てからこの秒数のあいだは、選ばれていない案件も見張り続ける
+    #: (= 発表用に 1 案件へ絞った画面は既定の案件でなくても、file を直せば描き直される)
+    WATCH_SECONDS = 600.0
+
+    def get(self, name: str) -> DeckSet:
+        """The decks of `name`, starting to draw them the first time they are asked for."""
+        decks = self._projects[name]
+        self._seen[name] = time.monotonic()
+        if name not in self._drawn:
+            self._drawn.add(name)
+            threading.Thread(target=decks.rescan_and_rerender, kwargs={"force": True},
+                             daemon=True).start()
+        return decks
+
+    def rescan_and_rerender(self, force: bool = False, rebuild: bool = False) -> None:
+        """Keep the default project, and every project looked at lately, up to date."""
+        now = time.monotonic()
+        watched = {self._name} | {name for name, at in self._seen.items()
+                                  if now - at < self.WATCH_SECONDS and name in self._projects}
+        self._drawn.update(watched)
+        for name in sorted(watched):
+            self._projects[name].rescan_and_rerender(force=force, rebuild=rebuild)
 
     def projects(self) -> list[str]:
         self._rediscover()

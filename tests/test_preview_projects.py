@@ -73,16 +73,28 @@ class ReadingThePlaces(unittest.TestCase):
 
     def test_projects_and_plain_folders_are_both_offered(self) -> None:
         from pptx_agent_maker.project.places import discover, load
-        create(self.base / "cases" / "one")
+        create(self.base / "cases" / "client-one")
         (self.base / "old").mkdir()
         (self.base / "old" / "w1.pptx").write_bytes(b"x")
         places = load(self._places(
             f'[[search]]\npath = "{self.base / "cases"}"\n\n'
-            f'[[folder]]\nname = "old decks"\npath = "{self.base / "old"}"\n'))
+            f'[[folder]]\nname = "old decks"\npath = "{self.base / "old"}"\n\n'
+            f'[labels]\n"{self.base / "cases" / "client-one"}" = "A"\n'))
         found = discover(places, lambda folder: _specimens(Workspace.load(folder)))
-        self.assertEqual(sorted(found), ["old decks", "one"])
-        self.assertEqual(found["one"][1], ["specimen"], "the project's template is listed as a deck")
+        self.assertEqual(sorted(found), ["A", "old decks"])
+        self.assertEqual(found["A"][1], ["specimen"], "the project's template is listed as a deck")
         self.assertEqual(found["old decks"][1], [])
+
+    def test_a_project_with_no_label_does_not_show_its_folder_name(self) -> None:
+        """⚠ folder 名には先方の名前が入りうる ― 発表中に欄を開くと別の会社の名前が並ぶ。"""
+        from pptx_agent_maker.project.places import discover, load
+        create(self.base / "cases" / "client-one")
+        places = load(self._places(f'[[search]]\npath = "{self.base / "cases"}"\n'))
+        first = discover(places, lambda f: set())
+        (name,) = first
+        self.assertNotIn("client", name)
+        self.assertTrue(name.startswith("案件 "))
+        self.assertEqual(sorted(discover(places, lambda f: set())), [name], "the name moved")
 
     def test_a_folder_that_is_not_there_is_left_out_quietly(self) -> None:
         from pptx_agent_maker.project.places import discover, load

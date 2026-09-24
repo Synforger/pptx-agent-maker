@@ -6,6 +6,7 @@ const S = {
   title: '',
   decks: [],        // 一覧用の軽い情報
   active: null,     // 開いているデッキ名
+  project: null,    // この画面が見ている案件 (= 束ねて見る時だけ。問い合わせのたびに名乗る)
   details: {},      // デッキ名 -> 全情報 (= 開いている 1 本と、並べ比較の相手)
   page: 1,          // 1 始まりの現在頁
   notesOpen: false,
@@ -30,7 +31,14 @@ const current = () => (S.active && S.details[S.active]) || null;
    別の住所の下に相乗りで配信されている場合 (= tailscale serve の /pptx など)、
    スラッシュ無しで開かれた瞬間に全部が親の住所へ飛び、隣のサービスに当たる。 */
 const BASE = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
-const at = (path) => BASE + path;
+/* 画面ごとに見ている案件を、server への問い合わせのたびに名乗る (= ほかの画面が案件を
+   替えても、この画面は動かない。発表用に 1 案件へ絞った画面が別の会社の資料に替わらない)。 */
+const at = (path) => {
+  const url = BASE + path;
+  const scoped = (path.startsWith('api/') && !path.startsWith('api/projects')) || path === 'events';
+  if (!S.project || !scoped) return url;
+  return url + (url.includes('?') ? '&' : '?') + 'p=' + encodeURIComponent(S.project);
+};
 
 /* 画面に入るまで絵を取りに行かない。
 
@@ -763,8 +771,12 @@ window.addEventListener('hashchange', () => {
   if (h && h !== S.active) selectDeck(h);
 });
 
-const events = new EventSource(at('events'));
-events.onmessage = () => loadDecks();
+let events = null;
+function connectEvents() {
+  if (events) events.close();
+  events = new EventSource(at('events'));
+  events.onmessage = () => loadDecks();
+}
 
 function loadMeta() {
   fetch(at('api/meta'))
@@ -782,6 +794,13 @@ async function loadProjects() {
     if (!r.ok) return;
     listing = await r.json();
   } catch (e) { return; }
+  // 発表用のリンク (?only=<表示名>) = その案件だけ。欄を出さず、画面から切り替えられない
+  const only = new URLSearchParams(location.search).get('only');
+  if (only !== null) {
+    S.project = listing.projects.includes(only) ? only : null;
+    return;
+  }
+  S.project = listing.active;
   const select = $('projectSelect');
   select.innerHTML = '';
   for (const name of listing.projects) {
@@ -793,15 +812,21 @@ async function loadProjects() {
   }
   select.hidden = false;
   select.onchange = async () => {
+    S.project = select.value;
+    // 既定の案件として覚えさせる (= 名乗らずに開いた画面と、次の起動がここから始まる)
     await fetch(at('api/projects/select/' + encodeURIComponent(select.value)));
     S.active = null;
     S.details = {};
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(null, '', location.pathname + location.search);
+    connectEvents();
     loadMeta();
     loadDecks();
   };
 }
 
-loadMeta();
-loadProjects();
-loadDecks();
+(async () => {
+  await loadProjects();  // 見る案件が決まってから、デッキと通知を取りに行く
+  connectEvents();
+  loadMeta();
+  loadDecks();
+})();
