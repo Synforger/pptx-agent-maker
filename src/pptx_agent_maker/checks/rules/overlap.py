@@ -39,7 +39,7 @@ def _words(shape) -> str:
 
 
 def run(deck: Path, config: dict | None = None) -> list[Finding]:
-    """`tolerance` は案件が緩められる (= 既定で足りない型見本のために)。"""
+    """`tolerance` は案件が緩められる (= 既定で足りないテンプレートのために)。"""
     tolerance = int((config or {}).get("overlap_tolerance", TOLERANCE))
     findings: list[Finding] = []
 

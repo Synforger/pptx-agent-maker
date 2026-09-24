@@ -1,7 +1,7 @@
 """Building a deck out of pages that already exist.
 
     archive.py   部品を触る最下層 (= pptx は zip)
-    slides.py    型見本の複製 / 過去デッキからの輸入
+    slides.py    テンプレートの複製 / 過去デッキからの輸入
     text.py      文言の置換
 
 ⚠ **宣言しなかった頁は、閉じるときに消える。**旧世代では「表示から外す」だけで部品が
@@ -88,7 +88,7 @@ class Deck:
               relayout: bool = False) -> Slide:
         """Import the Nth page of another deck, media and all.
 
-        `relayout` は宣言で組んだ頁を持ち込むとき (= 白紙に描いてあるので、型見本の
+        `relayout` は宣言で組んだ頁を持ち込むとき (= 白紙に描いてあるので、テンプレートの
         どのレイアウトの上に乗るかを引き継がせない)。過去デッキからの輸入では偽 ―
         その頁は元のレイアウトの上で作られている。
         """

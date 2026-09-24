@@ -1,7 +1,7 @@
 """The project template ships with real files, and they are the toolkit's own look.
 
-⚠ **雛形が pptx を 1 枚も持たない間は、`init` した直後の案件で最初に出るのが
-「型見本が無い」だった。**雛形は「写せば動く」ところまでを持つ。
+⚠ **プロジェクトテンプレートが pptx を 1 枚も持たない間は、`init` した直後の案件で最初に出るのが
+「テンプレートが無い」だった。**プロジェクトテンプレートは「写せば動く」ところまでを持つ。
 
 ⚠ **見本は `layout/tokens.py` から焼いた派生物**なので、色や書体を変えて焼き直しを
 忘れると、複製した頁 (= 見本の見た目) と型で組んだ頁 (= tokens の見た目) が割れる。
@@ -44,7 +44,7 @@ def _baker():
 
 class TemplateFilesTest(unittest.TestCase):
     def test_the_template_travels_inside_the_toolkit(self) -> None:
-        """⚠ **repo の木に置いていた間、入れた道具には雛形が無かった** ― `init` が
+        """⚠ **repo の木に置いていた間、入れたツールにはプロジェクトテンプレートが無かった** ― `init` が
         FileNotFoundError で落ち、repo から動かしたときだけ動いていた。package の中に
         在ることと、配る宣言があることの両方を見る。
         """
@@ -81,8 +81,8 @@ class TemplateFilesTest(unittest.TestCase):
 class TheProjectCanCallTheToolkitTest(unittest.TestCase):
     """⚠ **案件の folder はそれ自体で完結していないといけない。**
 
-    道具は folder の中に入らないので、入っていなければ「どの python に入っているか」を
-    人が覚えている必要があった。`Taskfile.yml` がその口で、ここはそれが道具の動詞と
+    ツールは folder の中に入らないので、入っていなければ「どの python に入っているか」を
+    人が覚えている必要があった。`Taskfile.yml` がその口で、ここはそれがツールの動詞と
     食い違っていないかを見る (= CLI 側の名前を変えたら鳴る)。
     """
 
@@ -96,7 +96,7 @@ class TheProjectCanCallTheToolkitTest(unittest.TestCase):
     def test_every_command_of_the_toolkit_has_a_task(self) -> None:
         """`init` だけは案件が在る前の動詞なので、案件の口には無い。"""
         toolkit = self._verbs(CLI.read_text(encoding="utf-8"), r'add_parser\("(\w+)"')
-        # ⚠ 呼び出しの行だけを見る (= 道具の名前は説明の文にも出てくる)。
+        # ⚠ 呼び出しの行だけを見る (= ツールの名前は説明の文にも出てくる)。
         tasks = self._verbs(TASKFILE.read_text(encoding="utf-8"),
                             r"- '\{\{\.MAKER\}\} (\w+)")
         self.assertEqual(tasks, toolkit - {"init"})
@@ -112,7 +112,7 @@ class TheProjectCanCallTheToolkitTest(unittest.TestCase):
 
 
 class TheSpecimenMatchesTheTokensTest(unittest.TestCase):
-    """焼き直し忘れを止める ― 見本の見た目と道具の見た目は同じ 1 枚から来る。"""
+    """焼き直し忘れを止める ― 見本の見た目とツールの見た目は同じ 1 枚から来る。"""
 
     def setUp(self) -> None:
         with zipfile.ZipFile(SPECIMEN) as archive:
@@ -129,7 +129,7 @@ class TheSpecimenMatchesTheTokensTest(unittest.TestCase):
                          "the specimen drifted from tokens.py — run task specimen")
 
     def test_reading_a_look_back_uses_the_same_table_that_wrote_it(self) -> None:
-        """⚠ 焼く側と読む側で対応が割れると、型見本を差し替えたとき色が入れ替わる。"""
+        """⚠ 焼く側と読む側で対応が割れると、テンプレートを差し替えたとき色が入れ替わる。"""
         from pptx_agent_maker.deck.look import SLOTS
 
         written = dict(_baker().SCHEME)
@@ -144,7 +144,7 @@ class TheSpecimenMatchesTheTokensTest(unittest.TestCase):
 
 
 class TheTemplateBuildsTest(unittest.TestCase):
-    """⚠ **init した直後に 1 本焼けること** ― 雛形が本当に完結しているかはこれで決まる。"""
+    """⚠ **init した直後に 1 本焼けること** ― プロジェクトテンプレートが本当に完結しているかはこれで決まる。"""
 
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
@@ -169,7 +169,7 @@ class TheTemplateBuildsTest(unittest.TestCase):
 
     def test_the_toolkit_keeps_its_own_state_out_of_the_project(self) -> None:
         """⚠ **直下に並ぶのは案件の持ち物だけ** ― マニフェスト、焼いたデッキ、素材、
-        型見本、設定、口。道具が覚えておきたいものは 1 つの folder に畳む。
+        テンプレート、設定、口。ツールが覚えておきたいものは 1 つの folder に畳む。
         """
         workspace = Workspace.load(self.root)
         build(workspace, Manifest.load(workspace.manifest("example")))
@@ -180,7 +180,7 @@ class TheTemplateBuildsTest(unittest.TestCase):
                          "the toolkit left something of its own beside the project's files")
 
     def test_the_specimen_is_not_offered_as_a_deck_to_look_at(self) -> None:
-        """⚠ 型見本は焼いた成果ではない (= 一覧に出すと中身の無い頁が 1 本増える)。"""
+        """⚠ テンプレートは焼いた成果ではない (= 一覧に出すと中身の無い頁が 1 本増える)。"""
         from pptx_agent_maker.__main__ import _specimens
 
         self.assertEqual(_specimens(Workspace.load(self.root)), {"specimen"})

@@ -89,7 +89,7 @@ class TextOverTheLayout(unittest.TestCase):
         self.assertEqual(found, [], f"枠が全幅なだけで上がった: {[f.why for f in found]}")
 
     def test_an_empty_placeholder_is_not_something_on_the_page(self) -> None:
-        """⚠ レイアウトのプレースホルダは版面いっぱいに取られている (= 中身は頁が入れる)。"""
+        """⚠ レイアウトのプレースホルダは頁いっぱいに取られている (= 中身は頁が入れる)。"""
         empty = a_box(9, 0, 0, 11000000, 6000000, "", placeholder='<p:ph type="body"/>')
         found = _Page([a_box(1, 0, 0, 3000000, 400000, "本文の文字")], beneath=[empty]).findings()
         self.assertEqual(found, [], "空のプレースホルダと重なったことにされた")

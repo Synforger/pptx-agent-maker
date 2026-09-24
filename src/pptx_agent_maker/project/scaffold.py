@@ -1,7 +1,7 @@
 """Create the folder a deck project lives in.
 
-雛形は**道具の package の中**に在り、そこから外へ展開する。既に在るものは上書きしない
-(= 案件の中身を道具が壊さない)。
+プロジェクトテンプレートは**ツールの package の中**に在り、そこから外へ展開する。既に在るものは上書きしない
+(= 案件の中身をツールが壊さない)。
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ import shutil
 import zipfile
 from pathlib import Path
 
-#: ⚠ **package の中に置く。**repo の木に置いていた間は、入れた道具から消えていて
+#: ⚠ **package の中に置く。**repo の木に置いていた間は、入れたツールから消えていて
 #: `init` が FileNotFoundError で落ちた (= repo から動かしたときだけ動いていた)。
 TEMPLATE = Path(__file__).resolve().parent.parent / "templates" / "project"
 
@@ -51,10 +51,10 @@ def _readable_look(given: Path | str | None) -> tuple[Path | None, Path | None]:
     ⚠ **建ててから断らない。**先に確かめておかないと、半分だけできた folder が残り、
     建て直そうとすると「空でない」と断られる。
 
-    渡せるのは 2 通り ― **型見本 1 枚**か、**型見本と設定を対で置いた folder**。
-    後者が要るのは、pptx のテーマ色が「1 番目の差し色」という枠でしかなく、道具の側が
+    渡せるのは 2 通り ― **テンプレート 1 枚**か、**テンプレートと設定を対で置いた folder**。
+    後者が要るのは、pptx のテーマ色が「1 番目の差し色」という枠でしかなく、ツールの側が
     「読みを示す色」「条件の帯」という**意味**で色を使うから ― その 2 つを繋ぐ表は
-    型見本の中に書けない。対で渡せば、案件は 1 手で自分の見た目になる。
+    テンプレートの中に書けない。対で渡せば、案件は 1 手で自分の見た目になる。
     """
     if given is None:
         return None, None

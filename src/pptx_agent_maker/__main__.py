@@ -22,7 +22,7 @@ def _preview(workspace, port: int, no_open: bool) -> int:
     ビルドがデッキを書き換えると、プレビューがそのまま焼き直す。焼いたデッキは
     マニフェストの隣に在るので、見るのは案件の folder そのもの。
     """
-    # ⚠ repo から動かしたときだけ在る path。入れた道具では preview は別の package。
+    # ⚠ repo から動かしたときだけ在る path。入れたツールでは preview は別の package。
     if PREVIEW.is_dir() and str(PREVIEW) not in sys.path:
         sys.path.insert(0, str(PREVIEW))
     try:
@@ -37,7 +37,7 @@ def _preview(workspace, port: int, no_open: bool) -> int:
     argv = [str(workspace.root), "--port", str(port)]
     if no_open:
         argv.append("--no-open")
-    # ⚠ **型見本は焼いた成果ではない。**マニフェストが指している pptx を一覧から外す。
+    # ⚠ **テンプレートは焼いた成果ではない。**マニフェストが指している pptx を一覧から外す。
     for name in _specimens(workspace):
         argv += ["--skip", name]
     return preview_main(argv)
@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
             where = create(args.path, name=args.name, specimen=args.specimen)
             print(f"created {where}")
             # ⚠ **建てただけでは次に何を打つか分からない。**案件の folder には task の口が
-            # 入っているので、道具の名前ではなくそちらを案内する。
+            # 入っているので、ツールの名前ではなくそちらを案内する。
             print(f"  next: cd {where} && task build -- example")
             return 0
 

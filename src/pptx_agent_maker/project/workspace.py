@@ -1,6 +1,6 @@
 """The one file that names a path outside this repository.
 
-案件のデータ (= 型見本・manifest・素材・焼いたデッキ) は repo の外に置く。道具が
+案件のデータ (= テンプレート・manifest・素材・焼いたデッキ) は repo の外に置く。ツールが
 その在処を知る口はここ 1 つで、コードにも型にも外の path を書かない。
 
 置き方は 1 つ ― **焼いたデッキと、それを組んだマニフェストが対で直下に並ぶ**。
@@ -16,8 +16,8 @@
         ├── w1/            マニフェストと同じ名前の folder が、その回の素材
         └── w2/
 
-見た目 (= 書体と色) は**型見本が持つ**。`[theme]` はその上に重ねる例外で、型見本の
-配色が道具の語彙と合わないときだけ書く。版面の割り方は道具が持ったまま。
+見た目 (= 書体と色) は**テンプレートが持つ**。`[theme]` はその上に重ねる例外で、テンプレートの
+配色がツールの色の使い方と合わないときだけ書く。頁の割り方はツールが持ったまま。
 
 ⚠ **回を folder で仕切らない。**開いて確かめるのは焼いたデッキなので、それが
 マニフェストの隣に在るのがいちばん短い。素材だけは数が多いので回ごとに分ける。
@@ -40,7 +40,7 @@ REPO = Path(__file__).resolve().parents[3]
 FILENAME = "workspace.toml"
 #: 直下に置く folder (= 素材だけ。マニフェストも焼いたデッキも root に並ぶ)
 FOLDERS = ("assets",)
-#: root 直下で道具が使う名前 (= マニフェストに使えない)
+#: root 直下でツールが使う名前 (= マニフェストに使えない)
 RESERVED = (FILENAME,)
 
 
@@ -55,7 +55,7 @@ class Workspace:
     root: Path
     assets: Path
     settings: dict = field(default_factory=dict)
-    #: この案件が宣言した見た目 (= 書体と色。無ければ型見本のものが使われる)
+    #: この案件が宣言した見た目 (= 書体と色。無ければテンプレートのものが使われる)
     look: dict = field(default_factory=dict)
 
     @classmethod

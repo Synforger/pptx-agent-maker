@@ -118,7 +118,7 @@ def _beneath(archive: zipfile.ZipFile, slide: str) -> tuple[Shape, ...]:
     """What the page sits on: the shapes of its own layout, and of that layout's master.
 
     ⚠ **頁ごとに別のレイアウトに乗る。**前の世代はレイアウトを全部混ぜて 1 つの
-    「ロゴの位置」を決めていたので、レイアウトごとにロゴの位置が違う型見本では
+    「ロゴの位置」を決めていたので、レイアウトごとにロゴの位置が違うテンプレートでは
     見当違いの枠と比べていた。
     """
     parts: list[str] = []

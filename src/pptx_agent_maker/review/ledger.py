@@ -13,7 +13,7 @@ import json
 import shutil
 from pathlib import Path
 
-#: 道具が案件の folder に置く唯一のもの。**案件の持ち物と同じ階層に散らさない** ―
+#: ツールが案件の folder に置く唯一のもの。**案件の持ち物と同じ階層に散らさない** ―
 #: 直下に並ぶのはマニフェストと焼いたデッキと素材だけ、という形を守る。
 STATE = ".pptx-agent-maker"
 LEDGER = "built.json"

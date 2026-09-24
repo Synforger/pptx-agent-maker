@@ -5,10 +5,10 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
 
 # Building a deck
 
-**道具は `pptx-agent-maker`、案件はその外の folder。**案件を見つける口は `workspace.toml` 1 枚で、
+**ツールは `pptx-agent-maker`、案件はその外の folder。**案件を見つける口は `workspace.toml` 1 枚で、
 それ以外に外の path を書かない。
 
-案件の folder の中だけで完結する (= `Taskfile.yml` が道具への口を持つ)。
+案件の folder の中だけで完結する (= `Taskfile.yml` がツールへの口を持つ)。
 
 ## 順番
 
@@ -24,7 +24,7 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
 ## 宣言で頁を組む
 
 **型を選ぶ。**`figure` / `figures` / `figure_grid` / `flow` / `cards` / `board` / `agenda` の 7 つ。
-⚠ **座標を書く口はどこにも無い。**版面の並びは固定で、書いた帯だけが出る:
+⚠ **座標を書く口はどこにも無い。**頁の並びは固定で、書いた帯だけが出る:
 
 ```
 題 → 条件の帯 → カード → 本体 → 表 → 読み方 → 結論の帯 → 出所
@@ -44,8 +44,8 @@ conclusion = "持ち帰ってほしい 1 行"
 
 ## 型に収まらない頁が出たら
 
-**型を足す。**手で図形を置く道は無い (= その口を塞いだのが、この道具の設計そのもの)。
-手順 = 道具の `docs/reference/adding-a-type.ja.md`。⚠ **足す前に、付属で足りないかを見る**
+**型を足す。**手で図形を置く道は無い (= その口を塞いだのが、このツールの設計そのもの)。
+手順 = ツールの `docs/reference/adding-a-type.ja.md`。⚠ **足す前に、付属で足りないかを見る**
 (= カード・表・読み方・要点で済むことが多い)。
 
 ## 見た目
@@ -67,5 +67,5 @@ conclusion = "持ち帰ってほしい 1 行"
 ## やらないこと
 
 - **寸法・色・文字を頁が決めない** ― 同じ役割が毎回同じ形で出ることが、回をまたいだ比較の前提
-- **案件のものを道具側に置かない** ― 並べ方・素材・見た目は案件のもの。道具が持つのは型まで
+- **案件のものをツール側に置かない** ― 並べ方・素材・見た目は案件のもの。ツールが持つのは型まで
 - **1 往復 1 修正を繰り返さない** ― 焼く前に、その頁の文言と中身を決め切る

@@ -120,7 +120,7 @@ def draws_anything(shape: Shape) -> bool:
     """True unless the shape is a placeholder, which prints nothing by itself.
 
     ⚠ **プレースホルダは「ここに入力」の空枠**で、頁が中身を入れなければ何も出ない。枠は
-    版面いっぱいに取られていることが多く、実体として数えると頁の全要素が「下敷きに
+    頁いっぱいに取られていることが多く、実体として数えると頁の全要素が「下敷きに
     重なっている」ことになる。
 
     ⚠ **プレースホルダが文字を持っていても同じ** ― `Click to edit Master title style` のような
@@ -131,7 +131,7 @@ def draws_anything(shape: Shape) -> bool:
     枠は右下に広く取られていて、実際に出るのは数桁。枠の幅で見ると前の世代と同じ
     誤検出になり (= どれも番号のだいぶ左で終わっていた)、数桁ぶんを
     見積もろうとすると**そのプレースホルダがレイアウトとマスターに二重に在って位置が合わない**。
-    右下の隅に本文が届く頁は版面の外れとして `off_page` が見る。
+    右下の隅に本文が届く頁は頁の外れとして `off_page` が見る。
     """
     return not PLACEHOLDER.search(shape.xml)
 

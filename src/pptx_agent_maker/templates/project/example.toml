@@ -16,7 +16,7 @@ out = "example.pptx"
 kind = "copy"
 page = 1
 replace = [["案件名", "見本の案件"], ["第 N 回 進捗報告", "第 1 回 進捗報告"]]
-why = "表紙は型見本から複製して文言だけ差し替える"
+why = "表紙はテンプレートから複製して文言だけ差し替える"
 
 [[pages]]
 kind = "declare"

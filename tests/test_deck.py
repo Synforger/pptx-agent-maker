@@ -332,7 +332,7 @@ class PicturesNobodyKeepsAreDropped(unittest.TestCase):
 class DeclaredPagesDoNotInheritALayout(unittest.TestCase):
     """⚠ **宣言で組んだ頁は白紙に描いてある。**
 
-    持ち込むときレイアウトの参照をそのままにすると、番号だけが引き継がれて型見本の別の
+    持ち込むときレイアウトの参照をそのままにすると、番号だけが引き継がれてテンプレートの別の
     レイアウトの上に乗る。実物では「終わりの頁」の上に乗り、その背景の飾りが全頁に出た。
     """
 

@@ -18,7 +18,7 @@ from .state import DeckSet
 
 ASSETS = Path(__file__).parent / "assets"
 
-# 画像名は保管庫が付けた 16 桁の hash に限る (= 経路をまたぐ細工を弾く)
+# 画像名はキャッシュが付けた 16 桁の hash に限る (= 経路をまたぐ細工を弾く)
 _HASH_RE = re.compile(r"^[0-9a-f]{16}$")
 
 # 変化通知は Condition 経由で即時に飛ぶので、ここは「切れた接続にいつ気付くか」
@@ -158,7 +158,7 @@ def make_handler(deckset: DeckSet):
             self._not_found()
 
         def _refresh(self):
-            # 手動の再描画だけが保管庫を無視する (= 中身が同じでも焼き直す)。
+            # 手動の再描画だけがキャッシュを無視する (= 中身が同じでも焼き直す)。
             threading.Thread(target=deckset.rescan_and_rerender,
                              kwargs={"force": True, "rebuild": True}, daemon=True).start()
             self._json({"ok": True}, code=202)

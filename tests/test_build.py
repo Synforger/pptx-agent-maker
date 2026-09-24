@@ -90,7 +90,7 @@ class BuildTest(unittest.TestCase):
 
     def test_a_declared_page_is_put_on_the_first_layout(self) -> None:
         """⚠ **宣言頁は白紙に描いてある。**持ち込むとき番号だけが引き継がれると、
-        型見本の別のレイアウト (= 終わりの頁など) の上に乗り、その飾りが出る。
+        テンプレートの別のレイアウト (= 終わりの頁など) の上に乗り、その飾りが出る。
         """
         built = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
         with zipfile.ZipFile(built) as archive:
@@ -98,7 +98,7 @@ class BuildTest(unittest.TestCase):
                        if name.startswith("ppt/slides/_rels/")
                        for found in re.findall(r"slideLayout\d+",
                                                archive.read(name).decode("utf-8"))}
-        self.assertIn("slideLayout1", layouts, "宣言頁が型見本の 1 枚目に乗っていない")
+        self.assertIn("slideLayout1", layouts, "宣言頁がテンプレートの 1 枚目に乗っていない")
 
     def test_the_deck_lands_where_the_manifest_says(self) -> None:
         built = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
@@ -182,8 +182,8 @@ class TheNoteStaysANote(unittest.TestCase):
         return Manifest.load(path)
 
     def test_a_short_reason_is_kept(self) -> None:
-        self.assertEqual("型見本から複製して文言だけ差し替える",
-                         self._load("型見本から複製して文言だけ差し替える").entries[0].why)
+        self.assertEqual("テンプレートから複製して文言だけ差し替える",
+                         self._load("テンプレートから複製して文言だけ差し替える").entries[0].why)
 
     def test_a_note_that_grew_into_a_history_is_refused(self) -> None:
         with self.assertRaises(ManifestError) as caught:

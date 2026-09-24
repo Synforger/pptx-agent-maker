@@ -71,8 +71,8 @@ def import_from(archive: Archive, source: Path, page_number: int,
 
     if relayout:
         # ⚠ **宣言で組んだ頁は白紙に描いてある。**持ち込むときレイアウトの参照を
-        # そのままにすると、番号だけが引き継がれて型見本の別のレイアウト (= 終わりの頁
-        # など) の上に乗り、その背景の飾りが出る。型見本の 1 枚目へ向け直す。
+        # そのままにすると、番号だけが引き継がれてテンプレートの別のレイアウト (= 終わりの頁
+        # など) の上に乗り、その背景の飾りが出る。テンプレートの 1 枚目へ向け直す。
         rels = LAYOUT_TARGET.sub('Target="../slideLayouts/slideLayout1.xml"', rels)
 
     archive.slide(new_name).write_text(slide_xml, encoding="utf-8")

@@ -46,8 +46,8 @@ class ProjectTest(unittest.TestCase):
         self.assertEqual((root / "specimen.pptx").read_bytes(), elsewhere.read_bytes())
 
     def test_a_folder_hands_over_the_look_and_the_table_that_reads_it(self) -> None:
-        """⚠ pptx のテーマ色は意味を持たない枠で、道具は意味で色を使う。**その 2 つを
-        繋ぐ表は型見本の中に書けない**ので、対で渡せる。
+        """⚠ pptx のテーマ色は意味を持たない枠で、ツールは意味で色を使う。**その 2 つを
+        繋ぐ表はテンプレートの中に書けない**ので、対で渡せる。
         """
         shelf = Path(self.tmp.name) / "house-style"
         shelf.mkdir()

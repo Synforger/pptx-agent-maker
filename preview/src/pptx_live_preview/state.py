@@ -37,13 +37,13 @@ class DeckState:
         self.error: str | None = None
         self.last_ms = 0
         self.notes: list[str] = []
-        # 通知用の単調増加カウンタ。保管庫の版とは別物で、こちらは「画面を
+        # 通知用の単調増加カウンタ。キャッシュの版とは別物で、こちらは「画面を
         # 描き直す必要がある変化が起きた」ことだけを表す。
         self.version = 0
         self._last_mtime = 0.0
         self._pending_mtime: float | None = None
         self.cond = threading.Condition()
-        # 前回の実行が焼いた絵は保管庫に残っている。起動直後から見えるように
+        # 前回の実行が焼いた絵はキャッシュに残っている。起動直後から見えるように
         # ここで拾っておく (= 再起動のたびに全頁を焼き直して待つ、が消える)。
         if self.cache.current is not None:
             self.notes = notes_mod.extract(pptx)
@@ -61,8 +61,8 @@ class DeckState:
         zip を書いている最中に読むと、壊れた入力で render error が出て
         次の巡回まで表示が化ける。
 
-        force は落ち着き待ちを飛ばすだけ (= 起動時と手動)。保管庫に同じ中身の
-        絵があれば描き直さない。rebuild だけが保管庫を無視して焼き直す。
+        force は落ち着き待ちを飛ばすだけ (= 起動時と手動)。キャッシュに同じ中身の
+        絵があれば描き直さない。rebuild だけがキャッシュを無視して焼き直す。
         """
         try:
             mtime = self.pptx.stat().st_mtime
@@ -91,7 +91,7 @@ class DeckState:
         """Return True when something the browser can see actually changed."""
         try:
             # 解像度も判定材料に混ぜる。デッキが同じでも焼く細かさを変えたら
-            # 焼き直さないと、保管庫に古い粗さの絵が残ったままになる。
+            # 焼き直さないと、キャッシュに古い粗さの絵が残ったままになる。
             source = f"{digest(self.pptx.read_bytes())}@{self.dpi}/{THUMB_DPI}"
         except OSError as exc:
             return self._fail(f"cannot read deck: {exc}")

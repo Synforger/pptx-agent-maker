@@ -1,6 +1,6 @@
 """Build slide decks by declaring structure, not coordinates.
 
-    layout/   版面を割る (= 座標が在るのはここだけ)。types が頁の型を持つ
+    layout/   頁を割る (= 座標が在るのはここだけ)。types が頁の型を持つ
     write/    焼く
 """
 
