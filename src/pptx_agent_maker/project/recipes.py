@@ -164,8 +164,13 @@ def append_recipe(root: Path | str, name: str, recipe: dict) -> str:
     text = path.read_text(encoding="utf-8") if path.is_file() else HEADER
     if text and not text.endswith("\n"):
         text += "\n"
-    block = [f"\n[recipes.{name}]"] + [f"{_key(k)} = {dump(v)}" for k, v in recipe.items()]
-    return text + "\n".join(block) + "\n"
+    return text + recipe_block(name, recipe)
+
+
+def recipe_block(name: str, recipe: dict) -> str:
+    """One `[recipes.<name>]` table, as it is written into the file."""
+    lines = [f"\n[recipes.{name}]"] + [f"{_key(k)} = {dump(v)}" for k, v in recipe.items()]
+    return "\n".join(lines) + "\n"
 
 
 HEADER = """\

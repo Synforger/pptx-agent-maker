@@ -82,6 +82,16 @@ def main(argv: list[str] | None = None) -> int:
     promoted.add_argument("pages", nargs="+", metavar="MANIFEST:PAGE",
                           help="two or more pages of one shape, e.g. w1:5 w2:7")
 
+    lifted = sub.add_parser("lift", help="lift recipes and pages into a template, with the project taken out")
+    lifted.add_argument("path", help="the project folder")
+    lifted.add_argument("template", help="the template folder (= specimen.pptx and its workspace.toml)")
+    lifted.add_argument("--recipe", action="append", default=[], metavar="NAME")
+    lifted.add_argument("--page", action="append", default=[], metavar="DECK:PAGE")
+    lifted.add_argument("--replace", action="append", default=[], metavar="OLD=NEW",
+                        help="a project word and what stands in for it")
+    lifted.add_argument("--keep", action="append", default=[], metavar="WORDS",
+                        help="words that stay as they are (everything else becomes <文言 N>)")
+
     shown = sub.add_parser("show", help="print where a project keeps its things")
     shown.add_argument("path")
     shown.add_argument("page", nargs="?", metavar="DECK:PAGE",
@@ -163,6 +173,42 @@ def main(argv: list[str] | None = None) -> int:
             print(f"promoted {len(targets)} pages to recipe {args.name!r}")
             for path in written:
                 print(f"  wrote {path.name}")
+            return 0
+
+        if args.command == "lift":
+            from .project.lift import LiftError, lift
+
+            pages, replace = [], []
+            for spec in args.page:
+                deck, _, number = spec.rpartition(":")
+                if not deck or not number.isdigit():
+                    print(f"error: {spec!r} is not DECK:PAGE (e.g. w1.pptx:3)", file=sys.stderr)
+                    return 1
+                pages.append((deck, int(number)))
+            for spec in args.replace:
+                old, sep, new = spec.partition("=")
+                if not sep:
+                    print(f"error: {spec!r} is not OLD=NEW", file=sys.stderr)
+                    return 1
+                replace.append((old, new))
+            try:
+                done = lift(workspace.root, args.template, recipes=args.recipe,
+                            pages=pages, replace=replace, keep=args.keep)
+            except LiftError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 1
+            for name in done.recipes:
+                print(f"lifted recipe {name!r} into {args.template}/recipes.toml")
+            for position in done.pages:
+                print(f"lifted a page as specimen page {position} (pictures grey, alt text dropped)")
+            for label, placed in done.words.items():
+                print(f"  {label} — what went in (= kept with --keep / --replace, the rest stands in):")
+                for original, now in placed:
+                    print(f"    {now}" if now == original else f"    {now}  <- {original}")
+            if done.stale:
+                print(f"stale_words now include: {', '.join(done.stale)}")
+            print(f"the template as it was is kept at {done.kept_at} "
+                  "(= copy those files back to undo)")
             return 0
 
         if args.command == "preview":

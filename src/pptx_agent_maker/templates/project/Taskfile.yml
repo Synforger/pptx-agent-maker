@@ -41,6 +41,12 @@ tasks:
     cmds:
       - '{{.MAKER}} preview .'
 
+  lift:
+    desc: Lift recipes and pages into the company template, the project taken out (= task lift -- <template> --page w1.pptx:3 --keep "Header")
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} lift . {{.CLI_ARGS}}'
+
   promote:
     desc: Keep a page written the same way twice as a recipe (= task promote -- result w1:5 w2:7)
     deps: [_tool]

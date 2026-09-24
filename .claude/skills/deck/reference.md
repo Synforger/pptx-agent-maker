@@ -51,6 +51,20 @@ footer = "採点表から"
 
 上げる: `task promote -- <名前> w1:5 w2:7` (= 2 頁以上、同じ型の `declare` だけ)。
 
+## 会社のテンプレートへ上げる (= `lift`)
+
+```bash
+pptx-agent-maker lift <案件> <テンプレートの folder> \
+    [--recipe <名前>]... [--page <deck>:<頁>]... \
+    [--keep "<そのまま残す文言>"]... [--replace "<案件の語>=<差し替え前提の語>"]...
+```
+
+テンプレートの folder = `specimen.pptx` + `workspace.toml` (+ `recipes.toml`)。頁は `specimen.pptx` の
+末尾へ、recipe は `recipes.toml` へ。`init --specimen <folder>` が 3 つとも配る。
+文言は `--keep` / `--replace` で扱った物のほか、全部 `<文言 N>` になる (= recipe の文言も同じ。
+型の名前は除く)。拒まれるもの = 当たらない `--replace` / グラフや埋め込み file を持つ頁 /
+テンプレートに既に在る recipe 名。
+
 ## 型 (= 本体に何を置くか)
 
 | 型 | 要るもの | この型だけが読むもの | 本体 |

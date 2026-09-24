@@ -275,3 +275,30 @@ def _copy(element, tag: str | None = None):
     if tag:
         clone.tag = f"{{{NS['a']}}}{tag}"
     return clone
+
+
+# -- emptying a page before it goes into a template ------------------------
+
+#: 仮の絵の色 (= 枠が在ることは見えるが、何かの絵には見えない薄い灰)
+PLACEHOLDER_GREY = (217, 217, 217)
+def blank_pictures(archive, slide: str, scratch: Path) -> int:
+    """Every picture on the page becomes a plain grey one of the same proportions.
+
+    ⚠ **案件の絵は、それ自体が案件の中身。**テンプレートに上げる頁は形だけを渡すもので、
+    絵は次の案件が `pictures` で入れ替える。
+    """
+    from PIL import Image
+
+    tree = etree.parse(str(archive.slide(slide)))
+    found = pictures(tree)
+    files = []
+    for number, pic in enumerate(found, start=1):
+        box = _box(pic.find("p:spPr/a:xfrm", NS))
+        height = 300
+        width = max(1, round(height * box.cx / box.cy)) if box and box.cy else height
+        path = scratch / f"placeholder-{number}.png"
+        Image.new("RGB", (width, height), PLACEHOLDER_GREY).save(path)
+        files.append(path)
+    if files:
+        swap_pictures(archive, slide, files)
+    return len(files)
