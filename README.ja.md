@@ -81,7 +81,7 @@ src/pptx_agent_maker/
 ├── write/     宣言した頁を file にする
 ├── deck/      テンプレートの複製と、過去デッキからの頁の輸入
 ├── checks/    焼いたものを読み直す検査 (= 1 検査 1 file)
-├── review/    人の直しを守り、差分として出す
+├── review/    人の直しを守り、manifest に取り込む
 └── project/   repo の外の案件を指す
 templates/     案件を作るときのプロジェクトテンプレート (= 見た目の見本を 1 枚持つ)
 preview/       ライブプレビュー (= 履歴ごと取り込み、git subtree)
@@ -94,7 +94,8 @@ python3 -m pptx_agent_maker init <案件のフォルダ>       # 案件のプロ
 python3 -m pptx_agent_maker build <案件のフォルダ> w1   # manifest からデッキを組む
 python3 -m pptx_agent_maker check <案件のフォルダ> w1   # 焼いたものを読み直して検査
 python3 -m pptx_agent_maker preview <案件のフォルダ>    # output/ をブラウザで見る
-python3 -m pptx_agent_maker review <案件のフォルダ> w1  # 人が直した所を差分で出す
+python3 -m pptx_agent_maker preview <親のフォルダ>      # その下の案件を束ね、上で選んで見る
+python3 -m pptx_agent_maker review <案件のフォルダ> w1 --apply  # PowerPoint の直しを取り込む
 ```
 
 ⚠ **repo の中を指す `workspace.toml` は拒む**。素材が無ければ、path を返さずそこで止まる。
@@ -105,7 +106,7 @@ python3 -m pptx_agent_maker review <案件のフォルダ> w1  # 人が直した
 ## 今の状態
 
 層は全部入って検査も付いた (= 頁を宣言する / pptx へ書く / テンプレートを複製する /
-過去のデッキから輸入する / manifest 1 枚から組む / 焼いたものを 6 口で読み直す /
+過去のデッキから輸入する / manifest 1 枚から組む / 焼いたものを 7 口で読み直す /
 人の手編集を守る / ブラウザで追う)。
 
 ## ライセンス

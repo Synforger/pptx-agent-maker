@@ -25,6 +25,8 @@ def create(destination: Path | str, *, name: str | None = None,
     destination = Path(destination).expanduser().resolve()
     name = name or destination.name
     look, settings = _readable_look(specimen)
+    # テンプレートの folder に recipe が上がっていれば、見た目と一緒に配る (= `lift.py`)
+    recipes = Path(specimen).expanduser() / "recipes.toml" if specimen is not None else None
 
     if destination.exists() and any(destination.iterdir()):
         raise FileExistsError(
@@ -37,6 +39,8 @@ def create(destination: Path | str, *, name: str | None = None,
         shutil.copy2(look, destination / "specimen.pptx")
     if settings is not None:
         shutil.copy2(settings, destination / "workspace.toml")
+    if recipes is not None and recipes.is_file():
+        shutil.copy2(recipes, destination / "recipes.toml")
 
     settings = destination / "workspace.toml"
     settings.write_text(

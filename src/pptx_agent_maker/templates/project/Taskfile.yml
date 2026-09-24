@@ -30,7 +30,7 @@ tasks:
       - '{{.MAKER}} check . {{.CLI_ARGS}}'
 
   review:
-    desc: Show what a person changed in a built deck, part by part (= task review -- w1.pptx)
+    desc: Show what a person changed in a built deck, or take it in (= task review -- w1.pptx --apply)
     deps: [_tool]
     cmds:
       - '{{.MAKER}} review . {{.CLI_ARGS}}'
@@ -41,11 +41,41 @@ tasks:
     cmds:
       - '{{.MAKER}} preview .'
 
-  show:
-    desc: Say where this project keeps its things
+  refresh:
+    desc: Take the tasks and the skill of the toolkit installed now (= after updating it)
     deps: [_tool]
     cmds:
-      - '{{.MAKER}} show .'
+      - '{{.MAKER}} refresh .'
+
+  types:
+    desc: List the page types, the keys each reads, and this project's recipes
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} types .'
+
+  round:
+    desc: Start the next round from the one before (= task round -- w2 --from w1)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} round . {{.CLI_ARGS}}'
+
+  lift:
+    desc: Lift recipes and pages into the company template, the project taken out (= task lift -- <template> --page w1.pptx:3 --keep "Header")
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} lift . {{.CLI_ARGS}}'
+
+  promote:
+    desc: Keep a page written the same way twice as a recipe (= task promote -- result w1:5 w2:7)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} promote . {{.CLI_ARGS}}'
+
+  show:
+    desc: Say where this project keeps its things (= task show -- w1.pptx:12 lists one page's pictures and tables)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} show . {{.CLI_ARGS}}'
 
   _tool:
     internal: true

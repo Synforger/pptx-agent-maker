@@ -26,6 +26,8 @@ replace = [["旧", "新"]]
 kind = "import"                # 前のデッキの N 頁目を、手を入れたまま持ってくる
 deck = "w0.pptx"
 page = 12
+pictures = ["a.png", "b.png"]  # 頁の絵を並び順 (= 上の段から、同じ段は左から) で入れ替える
+tables = [[["手法", "値"], ["A", "1"]]]  # 表の中身を並び順で入れ替える (= 行と列の数は元と同じ)
 
 [[pages]]
 kind = "declare"               # 型で組む
@@ -34,6 +36,34 @@ title = "…"
 ```
 
 ⚠ **`why` は 1 行の覚え書き** (= 200 字、日付を書くと拒まれる)。改訂の履歴は git log が持つ。
+
+## recipe (= `recipes.toml`)
+
+```toml
+[recipes.result]                # 名前は英数字・-・_
+type = "figures"                # 必須
+title = "{method} の結果"        # {穴} は呼ぶ頁の fill で埋める
+footer = "採点表から"
+```
+
+頁は `kind = "recipe"` / `recipe = "<名前>"` / `fill = { ... }` と、recipe に無いキーだけを書く。
+拒まれるもの = recipe が決めたキーの書き換え / 埋め残した穴 / 使わない fill / 無い recipe 名。
+
+上げる: `task promote -- <名前> w1:5 w2:7` (= 2 頁以上、同じ型の `declare` だけ)。
+
+## 会社のテンプレートへ上げる (= `lift`)
+
+```bash
+pptx-agent-maker lift <案件> <テンプレートの folder> \
+    [--recipe <名前>]... [--page <deck>:<頁>]... \
+    [--keep "<そのまま残す文言>"]... [--replace "<案件の語>=<差し替え前提の語>"]...
+```
+
+テンプレートの folder = `specimen.pptx` + `workspace.toml` (+ `recipes.toml`)。頁は `specimen.pptx` の
+末尾へ、recipe は `recipes.toml` へ。`init --specimen <folder>` が 3 つとも配る。
+文言は `--keep` / `--replace` で扱った物のほか、全部 `<文言 N>` になる (= recipe の文言も同じ。
+型の名前は除く)。拒まれるもの = 当たらない `--replace` / グラフや埋め込み file を持つ頁 /
+テンプレートに既に在る recipe 名。
 
 ## 型 (= 本体に何を置くか)
 
@@ -77,8 +107,8 @@ band = "EAF0F8"     # 条件の帯
 
 ## 検査
 
-`build` は最後に 6 つを回す ― 頁の外 / **重なり** / 文字の下限 / 表の空セル /
-内部 file 名 / テンプレートの語の残り。`stale_words` は案件の `workspace.toml` に書く。
+`build` は最後に 7 つを回す ― 頁の外 / **重なり** / 文字の下限 / 表の空セル /
+内部 file 名 / テンプレートの語の残り / 種類の登録が無い部品 (= 開けない pptx の種)。`stale_words` は案件の `workspace.toml` に書く。
 
 ```toml
 [checks]

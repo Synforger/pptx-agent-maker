@@ -22,7 +22,7 @@ sys.path.insert(0, str(REPO / "tests"))
 from pptx_agent_maker import DEFAULT, Page  # noqa: E402
 from pptx_agent_maker.checks import CHECKS, run_all  # noqa: E402
 from pptx_agent_maker.checks.rules import (  # noqa: E402
-    empty_cells, internal_names, off_page, overlap, type_floor, unreplaced)
+    empty_cells, internal_names, off_page, overlap, type_floor, unreplaced, untyped_parts)
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 from test_deck import make_dot  # noqa: E402
 
@@ -101,10 +101,24 @@ class ChecksFireTest(unittest.TestCase):
         deck = raw_deck(self.dir / "stacked.pptx", two_lines_in_one_place)
         self.assertTrue(overlap.run(deck), "重なっている文字が上がらない")
 
+    def test_a_part_with_no_content_type_is_caught(self) -> None:
+        """⚠ 頁には何も出ない壊れ方 ― 絵の file だけが写って、種類の登録が無い。"""
+        import zipfile
+        good = raw_deck(self.dir / "typed.pptx", lambda s: text_at(s, "ふつう"))
+        broken = self.dir / "untyped.pptx"
+        # 実際に起きた形 = 絵の file だけが入り、png の登録が無い (= 文字だけのデッキには無い)
+        with zipfile.ZipFile(good) as source, zipfile.ZipFile(broken, "w") as target:
+            self.assertNotRegex(source.read("[Content_Types].xml").decode(), 'Extension="png"')
+            for item in source.infolist():
+                target.writestr(item, source.read(item))
+            target.write(REPO / "tests" / "data" / "dot.png", "ppt/media/image9.png")
+        self.assertFalse(untyped_parts.run(good), "a sound package was reported")
+        self.assertTrue(untyped_parts.run(broken), "a part with no type went through")
+
     def test_every_check_has_a_fixture_that_fires_it(self) -> None:
         """A check nobody proved is a check nobody can trust."""
         proven = {off_page.NAME, overlap.NAME, type_floor.NAME, empty_cells.NAME,
-                  internal_names.NAME, unreplaced.NAME}
+                  internal_names.NAME, unreplaced.NAME, untyped_parts.NAME}
         self.assertEqual({check.NAME for check in CHECKS}, proven,
                          "a check exists with no fixture proving it fires")
 

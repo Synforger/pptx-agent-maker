@@ -1,6 +1,6 @@
 [project]
 name = "pptx-agent-maker"
-version = "0.4.0"
+version = "0.5.0"
 description = "Build slide decks by declaring structure, not coordinates."
 requires-python = ">=3.11"
 dependencies = ["python-pptx>=1.0"]
@@ -16,7 +16,8 @@ build-backend = "setuptools.build_meta"
 
 # 雛形はツールの一部として配る (= これが無いと、入れたツールの `init` が落ちる)。
 [tool.setuptools.package-data]
-pptx_agent_maker = ["templates/project/**/*", "templates/project/.gitignore"]
+pptx_agent_maker = ["templates/project/**/*", "templates/project/.gitignore",
+                    "templates/project/.claude/**/*"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -13,7 +13,7 @@ from pathlib import Path
 from ..layout import types
 from ..layout.tokens import Theme, theme_from
 from ..project.manifest import Entry, Manifest, ManifestError
-from ..project.workspace import Workspace
+from ..project.workspace import Workspace, WorkspaceError
 from ..review.fold import keep_safe
 from ..review.ledger import remember, touched_by_hand
 from .look import merged
@@ -46,6 +46,7 @@ def build(workspace: Workspace, manifest: Manifest) -> Path:
         with Deck.open(specimen, destination) as deck:
             for index, entry in enumerate(manifest.entries, start=1):
                 page = _place(deck, workspace, entry, declared, index)
+                _swap(page, workspace, manifest, entry, index)
                 for old, new in entry.replace:
                     page.replace(old, new)
     remember(destination)
@@ -62,6 +63,19 @@ def _place(deck: Deck, workspace: Workspace, entry: Entry, declared: dict[int, i
             raise ManifestError(f"page {index}: deck to import from not found: {source}")
         return deck.bring(source, entry.page)
     return deck.bring(declared["path"], declared[index], relayout=True)
+
+
+def _swap(page: Slide, workspace: Workspace, manifest: Manifest, entry: Entry,
+          index: int) -> None:
+    """New pictures and table cells into a copied or imported page."""
+    try:
+        if "pictures" in entry.data:
+            page.swap_pictures([workspace.asset(str(name), within=manifest.assets)
+                                for name in entry.data["pictures"]])
+        if "tables" in entry.data:
+            page.swap_tables(entry.data["tables"])
+    except (ValueError, WorkspaceError) as reason:
+        raise ManifestError(f"page {index}: {reason}") from reason
 
 
 def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
@@ -93,5 +107,5 @@ def _declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index
 
     try:
         return types.build(entry.data, asset, aspect, theme)
-    except (ValueError, KeyError) as reason:
+    except (ValueError, KeyError, WorkspaceError) as reason:
         raise ManifestError(f"page {index}: {reason}") from reason

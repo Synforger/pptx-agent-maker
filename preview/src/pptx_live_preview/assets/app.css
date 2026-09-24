@@ -484,3 +484,14 @@ body {
   .viewerBar { font-size: 11px; text-align: center; }
   .overlayClose { top: 8px; right: 8px; }
 }
+
+/* 案件を選ぶ欄 (= 束ねて起動した時だけ見える) */
+.projectSelect {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--line, #ccc);
+  border-radius: 6px;
+  padding: 4px 6px;
+  max-width: 16em;
+}

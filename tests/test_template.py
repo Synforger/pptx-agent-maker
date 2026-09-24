@@ -55,6 +55,9 @@ class TemplateFilesTest(unittest.TestCase):
                     if "templates/project" in line]
         self.assertTrue(declared,
                         "the template is not declared as package data, so a wheel drops it")
+        # ⚠ 点で始まる folder は `**/*` に拾われない (= wheel を作って確かめた)
+        self.assertTrue(any("templates/project/.claude" in line for line in declared),
+                        "the skill is not declared as package data, so a wheel drops it")
 
     def test_the_template_carries_its_specimen(self) -> None:
         self.assertTrue(SPECIMEN.is_file(), f"{SPECIMEN} is missing — run task specimen")
@@ -164,6 +167,36 @@ class TheTemplateBuildsTest(unittest.TestCase):
                      if n.startswith("ppt/slides/slide") and n.endswith(".xml")]
         self.assertEqual(len(pages), len(manifest.entries))
 
+    def test_the_example_opens_in_a_strict_reader(self) -> None:
+        """⚠ **頁の数が合っても、開けるとは限らない。**テンプレートは絵を 1 枚も持たないので
+        png の種類の登録が無く、見本の絵を持ち込んだデッキが開けなかった (= 頁は数えていたが、
+        開いてはいなかった)。python-pptx は種類の無い部品を拒むので、ここで開いて確かめる。
+        """
+        from pptx import Presentation
+        from pptx_agent_maker.checks.rules import untyped_parts
+
+        workspace = Workspace.load(self.root)
+        manifest = Manifest.load(workspace.manifest("example"))
+        built = build(workspace, manifest)
+        self.assertEqual(untyped_parts.run(built), [])
+        self.assertEqual(len(Presentation(str(built)).slides), len(manifest.entries))
+
+    def test_a_built_deck_does_not_name_the_material_it_was_made_from(self) -> None:
+        """⚠ 絵の代替テキストに素材の file 名が入っていた (= 開けば先方に読める)。"""
+        workspace = Workspace.load(self.root)
+        built = build(workspace, Manifest.load(workspace.manifest("example")))
+        with zipfile.ZipFile(built) as archive:
+            xml = "".join(archive.read(n).decode("utf-8") for n in archive.namelist()
+                          if n.startswith("ppt/slides/slide") and n.endswith(".xml"))
+        self.assertIn("<p:pic>", xml)
+        self.assertNotIn("example.png", xml)
+
+    def test_the_project_carries_the_skill_that_says_how_to_build_it(self) -> None:
+        """⚠ **手順書が repo にしか無いと、案件で起動したエージェントは組み方を知らない。**"""
+        skill = self.root / ".claude" / "skills" / "deck" / "SKILL.md"
+        self.assertTrue(skill.is_file(), "init did not lay the skill down in the project")
+        self.assertIn("name: deck", skill.read_text(encoding="utf-8"))
+
     def test_the_project_is_laid_down_with_its_own_entry_point(self) -> None:
         self.assertTrue((self.root / "Taskfile.yml").is_file())
 
@@ -174,7 +207,7 @@ class TheTemplateBuildsTest(unittest.TestCase):
         workspace = Workspace.load(self.root)
         build(workspace, Manifest.load(workspace.manifest("example")))
         theirs = {"_README.md", "Taskfile.yml", "workspace.toml", "specimen.pptx",
-                  "example.toml", "example.pptx", "assets"}
+                  "example.toml", "example.pptx", "assets", ".claude"}
         self.assertEqual({p.name for p in self.root.iterdir()} - theirs,
                          {".pptx-agent-maker"},
                          "the toolkit left something of its own beside the project's files")

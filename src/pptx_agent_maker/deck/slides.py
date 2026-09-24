@@ -62,11 +62,14 @@ def import_from(archive: Archive, source: Path, page_number: int,
                     'package/2006/relationships"/>')
         rels = NOTES_REL.sub("", rels)
         carried: dict[str, str] = {}
+        source_types = zipped.read("[Content_Types].xml").decode("utf-8")
         for name in sorted(set(MEDIA_TARGET.findall(rels))):
             extension = name.rsplit(".", 1)[1]
             carried[name] = archive.next_media_name(extension)
             (archive.tree / "ppt/media" / carried[name]).write_bytes(
                 zipped.read(f"ppt/media/{name}"))
+            # 種類は持ち込み元の登録を写す (= 拡張子から推測しない)
+            archive.register_media(carried[name], _media_type(source_types, name))
         rels = _rename_media(rels, carried)
 
     if relayout:
@@ -104,3 +107,17 @@ def _rename_media(rels: str, carried: dict[str, str]) -> str:
     return MEDIA_TARGET.sub(
         lambda found: f'Target="../media/{carried.get(found.group(1), found.group(1))}"',
         rels)
+
+
+def _media_type(content_types: str, name: str) -> str:
+    """What the source package says a media file is (= by its part, else by its extension)."""
+    part = re.search(rf'<Override\s+PartName="/ppt/media/{re.escape(name)}"\s+ContentType="([^"]+)"',
+                     content_types)
+    if part:
+        return part.group(1)
+    extension = name.rsplit(".", 1)[-1]
+    default = re.search(rf'<Default\s+Extension="{re.escape(extension)}"\s+ContentType="([^"]+)"',
+                        content_types, re.I)
+    if default:
+        return default.group(1)
+    raise ValueError(f"the deck being imported from does not say what {name} is")
