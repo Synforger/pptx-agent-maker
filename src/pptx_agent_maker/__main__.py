@@ -101,6 +101,9 @@ def main(argv: list[str] | None = None) -> int:
     listed = sub.add_parser("types", help="list the page types, the keys each reads, and the project's recipes")
     listed.add_argument("path", help="the project folder")
 
+    refreshed = sub.add_parser("refresh", help="hand an existing project the tasks and skill of this toolkit")
+    refreshed.add_argument("path", help="the project folder")
+
     shown = sub.add_parser("show", help="print where a project keeps its things")
     shown.add_argument("path")
     shown.add_argument("page", nargs="?", metavar="DECK:PAGE",
@@ -185,6 +188,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"promoted {len(targets)} pages to recipe {args.name!r}")
             for path in written:
                 print(f"  wrote {path.name}")
+            return 0
+
+        if args.command == "refresh":
+            from .project.refresh import refresh
+
+            changed, kept = refresh(workspace.root)
+            if not changed:
+                print("already up to date with this toolkit")
+                return 0
+            for relative in changed:
+                print(f"  refreshed {relative}")
+            if kept is not None:
+                print(f"the versions it had are kept at {kept.relative_to(workspace.root)}")
             return 0
 
         if args.command == "types":

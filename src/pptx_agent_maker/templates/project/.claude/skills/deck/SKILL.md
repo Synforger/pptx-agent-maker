@@ -12,6 +12,8 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
 
 ## 順番
 
+0. **ツールを更新したら `task refresh`** ― この folder の task の口と手順書 (= このファイル) は `init` の
+   時点の物。新しい口は配り直すまで届かない (= 案件の file には触らない)
 1. **既に在るものを見る** ― `task show` と、案件の `*.toml` / `*.pptx`。
    **同じ役割の頁が過去の回に在れば、複製するか輸入する** (= 作り直さない)。
    中身だけ新しくするなら `pictures` / `tables` で入れ替える ― 並び順は

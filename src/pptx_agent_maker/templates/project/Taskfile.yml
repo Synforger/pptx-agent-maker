@@ -41,6 +41,12 @@ tasks:
     cmds:
       - '{{.MAKER}} preview .'
 
+  refresh:
+    desc: Take the tasks and the skill of the toolkit installed now (= after updating it)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} refresh .'
+
   types:
     desc: List the page types, the keys each reads, and this project's recipes
     deps: [_tool]
