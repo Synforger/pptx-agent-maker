@@ -732,8 +732,42 @@ window.addEventListener('hashchange', () => {
 const events = new EventSource(at('events'));
 events.onmessage = () => loadDecks();
 
-fetch(at('api/meta'))
-  .then((r) => r.json())
-  .then((m) => { S.title = m.title; document.title = m.title + ' · pptx-live-preview'; })
-  .catch(() => {});
+function loadMeta() {
+  fetch(at('api/meta'))
+    .then((r) => r.json())
+    .then((m) => { S.title = m.title; document.title = m.title + ' · pptx-live-preview'; })
+    .catch(() => {});
+}
+
+/* 案件を束ねて起動した時だけ、上に案件を選ぶ欄を出す (= 1 案件の起動では /api/projects が 404)。
+   選び直したら、覚えているデッキの情報は全部前の案件のものなので捨てる。 */
+async function loadProjects() {
+  let listing;
+  try {
+    const r = await fetch(at('api/projects'));
+    if (!r.ok) return;
+    listing = await r.json();
+  } catch (e) { return; }
+  const select = $('projectSelect');
+  select.innerHTML = '';
+  for (const name of listing.projects) {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    option.selected = name === listing.active;
+    select.appendChild(option);
+  }
+  select.hidden = false;
+  select.onchange = async () => {
+    await fetch(at('api/projects/select/' + encodeURIComponent(select.value)));
+    S.active = null;
+    S.details = {};
+    history.replaceState(null, '', location.pathname);
+    loadMeta();
+    loadDecks();
+  };
+}
+
+loadMeta();
+loadProjects();
 loadDecks();

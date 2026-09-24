@@ -227,3 +227,56 @@ def watch(deckset: DeckSet, interval: float = 0.5) -> None:
     while True:
         deckset.rescan_and_rerender()
         time.sleep(interval)
+
+
+class Switchboard:
+    """Several projects behind one page, one of them looked at.
+
+    画面と server は 1 つの `DeckSet` を相手にする作りなので、ここはその顔をしたまま、
+    中身を選んだ案件へ差し替える。描くのは選んだ案件だけ (= 全案件を起動時に焼くと重い)。
+
+    ⚠ **画面への通知は、今の案件の待ち合わせをそのまま使う。**切り替えたら古い方の待ち手を
+    起こし、新しい方へ乗り換えさせる (= 起こさないと、次の keep-alive まで画面が変わらない)。
+    """
+
+    def __init__(self, projects: dict[str, DeckSet], first: str | None = None) -> None:
+        if not projects:
+            raise ValueError("no projects to show")
+        self._projects = dict(projects)
+        self._name = first if first in self._projects else sorted(self._projects)[0]
+        self._switches = 0
+
+    def __getattr__(self, name):  # 画面と server が触る残りは、今の案件のもの
+        return getattr(self._projects[self._name], name)
+
+    @property
+    def active(self) -> DeckSet:
+        return self._projects[self._name]
+
+    @property
+    def cond(self) -> threading.Condition:
+        return self.active.cond
+
+    @property
+    def version(self) -> int:
+        # 案件を替えたことも「変化」として画面に届ける (= 版が戻ると画面は描き直さない)
+        return self._switches * 1_000_000 + self.active.version
+
+    def projects(self) -> list[str]:
+        return sorted(self._projects)
+
+    @property
+    def project(self) -> str:
+        return self._name
+
+    def select(self, name: str) -> None:
+        if name not in self._projects:
+            raise KeyError(name)
+        if name == self._name:
+            return
+        previous = self.active
+        self._name = name
+        self._switches += 1
+        self.active.rescan_and_rerender(force=True)
+        with previous.cond:
+            previous.cond.notify_all()

@@ -128,6 +128,10 @@ def make_handler(deckset: DeckSet):
                 self._json(deckset.summaries())
             elif path == "/api/refresh":
                 self._refresh()
+            elif path == "/api/projects":
+                self._projects()
+            elif path.startswith("/api/projects/select/"):
+                self._select(urllib.parse.unquote(path[len("/api/projects/select/"):]))
             elif path == "/events":
                 self._serve_events()
             elif path.startswith("/api/decks/"):
@@ -156,6 +160,21 @@ def make_handler(deckset: DeckSet):
                 self._json(deck.detail())
                 return
             self._not_found()
+
+        def _projects(self):
+            # 案件を束ねて見ている時だけ在る (= 1 案件の起動では 404、画面は選ぶ欄を出さない)
+            if not hasattr(deckset, "projects"):
+                self._not_found()
+                return
+            self._json({"projects": deckset.projects(), "active": deckset.project})
+
+        def _select(self, name: str):
+            if not hasattr(deckset, "projects") or name not in deckset.projects():
+                self._not_found()
+                return
+            # 選んだ案件を焼くのは時間がかかるので、答えは先に返す (= 描けたら SSE が届く)
+            threading.Thread(target=deckset.select, args=(name,), daemon=True).start()
+            self._json({"ok": True, "active": name}, code=202)
 
         def _refresh(self):
             # 手動の再描画だけがキャッシュを無視する (= 中身が同じでも焼き直す)。
