@@ -112,7 +112,7 @@ src/pptx_agent_maker/
 ├── write/     turning a declared page into a file
 ├── deck/      copying a specimen page, importing one from an earlier deck
 ├── checks/    reading a built deck back, one check per file
-├── review/    keeping a person's edit, and showing it as words
+├── review/    keeping a person's edit, and taking it back into the manifest
 └── project/   pointing at a deck project that lives outside this repo
 templates/     the skeleton a deck project is created from (it ships with a specimen)
 preview/       the live preview, vendored with its own history (git subtree)
@@ -125,7 +125,7 @@ python3 -m pptx_agent_maker init <project-dir>    # lay down the project skeleto
 python3 -m pptx_agent_maker build <project-dir> w1   # build a deck from a manifest
 python3 -m pptx_agent_maker check <project-dir> w1   # read the built file back
 python3 -m pptx_agent_maker preview <project-dir>    # watch output/ in a browser
-python3 -m pptx_agent_maker review <project-dir> w1  # what a person changed, as pairs
+python3 -m pptx_agent_maker review <project-dir> w1 --apply  # take a PowerPoint edit back in
 ```
 
 A `workspace.toml` that points inside this repository is refused, and a missing asset stops the

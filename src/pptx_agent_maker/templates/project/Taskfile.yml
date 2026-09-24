@@ -30,7 +30,7 @@ tasks:
       - '{{.MAKER}} check . {{.CLI_ARGS}}'
 
   review:
-    desc: Show what a person changed in a built deck, part by part (= task review -- w1.pptx)
+    desc: Show what a person changed in a built deck, or take it in (= task review -- w1.pptx --apply)
     deps: [_tool]
     cmds:
       - '{{.MAKER}} review . {{.CLI_ARGS}}'

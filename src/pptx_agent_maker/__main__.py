@@ -129,6 +129,9 @@ def main(argv: list[str] | None = None) -> int:
                           help="with --full, keep PowerPoint's own churn instead of folding it")
     reviewed.add_argument("--context", type=int, default=0,
                           help="lines of context around each change (default: 0)")
+    reviewed.add_argument("--apply", action="store_true",
+                          help="take the edit into the manifest: words and pictures where the "
+                               "manifest can say them, the edited page itself where it cannot")
     reviewed.add_argument("--against", default=None,
                           help="the machine-built deck to compare with (default: the last shelved copy)")
 
@@ -258,6 +261,21 @@ def main(argv: list[str] | None = None) -> int:
             return _preview(workspace, args.port, args.no_open)
 
         from .checks import report, run_all
+
+        if args.command == "review" and args.apply:
+            from .review.apply import ApplyError, apply
+
+            try:
+                done = apply(workspace, args.deck)
+            except (ApplyError, ManifestError) as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 1
+            print(f"took {args.deck} into {done.manifest.name} (the edited deck is kept at "
+                  f"{done.kept_at.relative_to(workspace.root)})")
+            for note in done.notes:
+                print(f"  {note}")
+            print("  checked: built again, every page reads and shows as it was edited")
+            return 0
 
         if args.command == "review":
             from .review import as_manifest_entries, changes, keep_safe, last_machine_build

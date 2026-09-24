@@ -169,7 +169,7 @@ def append_recipe(root: Path | str, name: str, recipe: dict) -> str:
 
 def recipe_block(name: str, recipe: dict) -> str:
     """One `[recipes.<name>]` table, as it is written into the file."""
-    lines = [f"\n[recipes.{name}]"] + [f"{_key(k)} = {dump(v)}" for k, v in recipe.items()]
+    lines = [f"\n[recipes.{name}]"] + [f"{toml_key(k)} = {dump(v)}" for k, v in recipe.items()]
     return "\n".join(lines) + "\n"
 
 
@@ -185,10 +185,10 @@ def page_block(page: dict) -> str:
     lines = ["[[pages]]", 'kind = "recipe"']
     for key in order[1:]:
         if key in page:
-            lines.append(f"{_key(key)} = {dump(page[key])}")
+            lines.append(f"{toml_key(key)} = {dump(page[key])}")
     for key, value in page.items():
         if key not in order:
-            lines.append(f"{_key(key)} = {dump(value)}")
+            lines.append(f"{toml_key(key)} = {dump(value)}")
     return "\n".join(lines) + "\n"
 
 
@@ -226,11 +226,11 @@ def dump(value) -> str:
     if isinstance(value, list):
         return "[" + ", ".join(dump(item) for item in value) + "]"
     if isinstance(value, dict):
-        return "{ " + ", ".join(f"{_key(k)} = {dump(v)}" for k, v in value.items()) + " }"
+        return "{ " + ", ".join(f"{toml_key(k)} = {dump(v)}" for k, v in value.items()) + " }"
     raise RecipeError(f"cannot write {type(value).__name__} into TOML")
 
 
-def _key(key: str) -> str:
+def toml_key(key: str) -> str:
     return key if re.fullmatch(r"[A-Za-z0-9_-]+", key) else dump(key)
 
 
