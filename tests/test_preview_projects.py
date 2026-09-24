@@ -34,6 +34,15 @@ class FindingProjects(unittest.TestCase):
         found = [p.relative_to(self.parent).as_posix() for p in _projects_under(self.parent)]
         self.assertEqual(found, ["client-b/deck", "one"])
 
+    def test_another_tools_workspace_is_not_a_deck_project(self) -> None:
+        """⚠ `workspace.toml` はほかの道具も使う名前 ― テンプレートの無い folder を案件と読んでいた。"""
+        create(self.parent / "one")
+        other = self.parent / "handover"
+        other.mkdir()
+        (other / "workspace.toml").write_text('root = "."\n', encoding="utf-8")
+        found = [p.relative_to(self.parent).as_posix() for p in _projects_under(self.parent)]
+        self.assertEqual(found, ["one"])
+
     def test_too_deep_is_not_searched(self) -> None:
         create(self.parent / "a" / "b" / "c" / "d")
         self.assertEqual(_projects_under(self.parent), [])

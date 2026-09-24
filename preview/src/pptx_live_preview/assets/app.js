@@ -110,8 +110,9 @@ function renderPicker() {
   }
 
   const cur = S.decks.find((d) => d.name === S.active);
-  $('deckName').textContent = cur ? cur.name : (S.decks.length ? '-' : S.title);
+  $('deckName').textContent = cur ? cur.name : (S.decks.length ? '-' : '(no decks)');
   $('deckDot').className = 'dot' + (cur && cur.error ? ' err' : '');
+  $('deckDot').hidden = !cur;  // デッキが無い時に「正常」の緑を出さない
   $('meta').textContent = cur && !cur.error
     ? cur.slides + ' pages · ' + (cur.last_ms / 1000).toFixed(1) + 's · '
       + fmtTime(cur.last_rendered_at)
@@ -199,11 +200,21 @@ function renderStage() {
   const box = $('errorBox');
   const d = current();
 
+  box.classList.remove('info');
   if (d && d.error) {
     host.innerHTML = '';
     host.dataset.key = '';
     box.hidden = false;
     box.textContent = d.error;
+    return;
+  }
+  if (!S.decks.length) {
+    // エラーではない案内 (= 赤い文字だと壊れて見える)
+    host.innerHTML = '';
+    host.dataset.key = '';
+    box.hidden = false;
+    box.classList.add('info');
+    box.textContent = 'No decks here yet. They show up as soon as they are built.';
     return;
   }
   box.hidden = true;
@@ -563,7 +574,14 @@ async function selectDeck(name) {
 }
 
 async function loadDetail(opts) {
-  if (!S.active) { renderStage(); renderStrip(); return; }
+  if (!S.active) {
+    // デッキが 1 冊も無い (= 前に見ていた案件の頁数と頁の位置を残さない)
+    S.page = 0;
+    $('pageTotal').textContent = '/ 0';
+    $('pageInput').value = '';
+    renderStage(); renderStrip(); renderNotes();
+    return;
+  }
   let detail = null;
   try {
     const r = await fetch(at('api/decks/' + encodeURIComponent(S.active)));

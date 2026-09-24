@@ -60,6 +60,10 @@ def projects_under(parent: Path, depth: int = 3) -> list[Path]:
             parts = settings.parent.relative_to(parent).parts
             if any(p.startswith(".") or p in NOT_PROJECTS for p in parts):
                 continue
+            # ⚠ `workspace.toml` はほかの道具も使う名前 (= 納品の雛形の作業場もこの名前で持つ)。
+            # デッキの案件は `init` が必ず置くテンプレートも持つので、両方そろった folder だけにする
+            if not (settings.parent / "specimen.pptx").is_file():
+                continue
             found.append(settings.parent)
     return sorted(found)
 
