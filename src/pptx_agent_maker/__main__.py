@@ -24,46 +24,33 @@ def _preview_package():
     return entry, state
 
 
-#: 束ねて見る時に下りない folder (= 控え・ツールの状態・隠し folder)
-_NOT_PROJECTS = {"_archive", "_edits", ".pptx-agent-maker", "node_modules"}
+def _skip_of(folder: Path) -> set[str]:
+    """A project's own template, left out of its deck list."""
+    return _specimens(Workspace.load(folder))
 
 
-def _projects_under(parent: Path, depth: int = 3) -> list[Path]:
-    """Folders under `parent`, `depth` levels at most, that are deck projects."""
-    found = []
-    for settings in sorted(parent.rglob("workspace.toml")):
-        parts = settings.parent.relative_to(parent).parts
-        if len(parts) > depth or any(p.startswith(".") or p in _NOT_PROJECTS for p in parts):
-            continue
-        found.append(settings.parent)
-    return found
+def _preview_places(places: dict, port: int, no_open: bool) -> int:
+    """Everything a places file offers behind one page, one of them looked at.
 
-
-def _preview_projects(parent: Path, port: int, no_open: bool) -> int:
-    """Every project under a folder behind one page, one of them looked at.
-
-    1 案件の起動と同じ画面を使い、上に案件を選ぶ欄が出る。描くのは選んだ案件だけ。
+    1 案件の起動と同じ画面を使い、上の欄で選ぶ。描くのは選んだ物だけ。一覧は画面が
+    取りに来るたびに探し直す (= 常駐のまま、新しい案件が欄に出る)。
     """
+    from .project.places import discover
+
     try:
         entry, state = _preview_package()
     except ImportError as error:  # pragma: no cover - depends on the environment
         print(f"error: the live preview is not available ({error})", file=sys.stderr)
         return 1
-    projects = {}
-    for folder in _projects_under(parent):
-        try:
-            workspace = Workspace.load(folder)
-        except WorkspaceError as error:
-            print(f"skipped {folder}: {error}", file=sys.stderr)
-            continue
-        name = folder.relative_to(parent).as_posix()
-        projects[name] = state.DeckSet(workspace.root, skip=sorted(_specimens(workspace)))
-    if not projects:
-        print(f"error: no deck project (= a folder with workspace.toml) under {parent}",
+    found = discover(places, _skip_of)
+    if not found:
+        print("error: nothing to show — no deck project and no folder the places name exists",
               file=sys.stderr)
         return 1
-    print(f"{len(projects)} project(s): {', '.join(sorted(projects))}")
-    return entry.serve(state.Switchboard(projects), port, no_open)
+    print(f"{len(found)} to choose from: {', '.join(sorted(found))}")
+    first = {name: state.DeckSet(folder, skip=skip) for name, (folder, skip) in found.items()}
+    board = state.Switchboard(first, discover=lambda: discover(places, _skip_of))
+    return entry.serve(board, port, no_open)
 
 
 def _preview(workspace, port: int, no_open: bool) -> int:
@@ -170,7 +157,11 @@ def main(argv: list[str] | None = None) -> int:
     checked.add_argument("deck", help="a built deck in the project, or a path")
 
     watched = sub.add_parser("preview", help="watch the project's decks in a browser")
-    watched.add_argument("path", help="the project folder, or a folder holding several projects")
+    watched.add_argument("path", nargs="?", default=None,
+                         help="the project folder, or a folder holding several projects "
+                              "(= left out: what the places file offers)")
+    watched.add_argument("--places", default=None, metavar="FILE",
+                         help="the file listing what to offer (default ~/.config/pptx-agent-maker/preview.toml)")
     watched.add_argument("--port", type=int, default=0, help="0 picks a free port")
     watched.add_argument("--no-open", action="store_true", help="do not launch a browser")
 
@@ -199,9 +190,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  next: cd {where} && task build -- example")
             return 0
 
-        if args.command == "preview" and not (Path(args.path) / "workspace.toml").is_file():
-            return _preview_projects(Path(args.path).expanduser().resolve(), args.port,
-                                     args.no_open)
+        if args.command == "preview" and (
+                args.path is None or args.places or not (Path(args.path) / "workspace.toml").is_file()):
+            from .project.places import DEFAULT, PlacesError, load
+
+            if args.path is not None and not args.places:
+                places = {"search": [{"path": str(Path(args.path).expanduser().resolve())}]}
+            else:
+                try:
+                    places = load(args.places or DEFAULT)
+                except PlacesError as error:
+                    print(f"error: {error}", file=sys.stderr)
+                    return 1
+            return _preview_places(places, args.port, args.no_open)
 
         workspace = Workspace.load(args.path)
         if args.command == "show" and args.page:

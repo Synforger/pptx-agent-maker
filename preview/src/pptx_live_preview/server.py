@@ -14,7 +14,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from .state import DeckSet
+from .state import DeckSet, Opened
 
 ASSETS = Path(__file__).parent / "assets"
 
@@ -48,6 +48,23 @@ class QuietThreadingHTTPServer(ThreadingHTTPServer):
 
 
 def make_handler(deckset: DeckSet):
+    # 最後に開いた物の覚え (= 束ねて見る時は切り替え盤が持ち、1 案件の時はここで持つ)
+    opened = getattr(deckset, "opened", None) or Opened()
+    board = deckset if hasattr(deckset, "projects") else None
+
+    def resolve(query: dict) -> tuple[DeckSet, str]:
+        """The decks this request is about, and the name they are remembered under.
+
+        ⚠ **どの案件を見るかは画面ごと。**server 全体で 1 つにしていた間は、発表用に 1 案件へ
+        絞った画面も、別の端末で案件を替えると一緒に替わった (= 発表中の画面に別の会社の
+        資料が出る)。画面は問い合わせのたびに `p` で案件を名乗る。無ければ既定の案件。
+        """
+        if board is None:
+            return deckset, str(deckset.source)
+        wanted = (query.get("p") or [None])[0]
+        name = wanted if wanted in board.projects() else board.project
+        return board.get(name), name
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
@@ -100,7 +117,7 @@ def make_handler(deckset: DeckSet):
             if not _HASH_RE.match(page_hash):
                 self._not_found()
                 return
-            deck = deckset.deck(urllib.parse.unquote(deck_name))
+            deck = self.ds.deck(urllib.parse.unquote(deck_name))
             if deck is None:
                 self._not_found()
                 return
@@ -116,20 +133,27 @@ def make_handler(deckset: DeckSet):
         # ---- routing -----------------------------------------------------
 
         def do_GET(self):  # noqa: N802
-            path = self.path.split("?", 1)[0]
+            path, _, query = self.path.partition("?")
+            self.ds, self.key = resolve(urllib.parse.parse_qs(query))
 
             if path == "/":
                 self._index()
             elif path in ("/app.css", "/app.js"):
                 self._asset(path.lstrip("/"))
             elif path == "/api/meta":
-                self._json({"title": deckset.title, "folder": deckset.is_folder})
+                # 束ねて見る時の題は表示名 (= folder 名には会社の名前が入りうる。タブの題にも出る)
+                self._json({"title": self.key if board else self.ds.title,
+                            "folder": self.ds.is_folder})
             elif path == "/api/decks":
-                self._json(deckset.summaries())
+                self._json(self.ds.summaries())
             elif path == "/api/refresh":
                 self._refresh()
             elif path == "/api/projects":
                 self._projects()
+            elif path == "/api/opened":
+                self._json({"deck": opened.deck(self.key)})
+            elif path.startswith("/api/opened/"):
+                self._remember(urllib.parse.unquote(path[len("/api/opened/"):]))
             elif path.startswith("/api/projects/select/"):
                 self._select(urllib.parse.unquote(path[len("/api/projects/select/"):]))
             elif path == "/events":
@@ -152,7 +176,7 @@ def make_handler(deckset: DeckSet):
             if not parts:
                 self._not_found()
                 return
-            deck = deckset.deck(parts[0])
+            deck = self.ds.deck(parts[0])
             if deck is None:
                 self._not_found()
                 return
@@ -166,19 +190,28 @@ def make_handler(deckset: DeckSet):
             if not hasattr(deckset, "projects"):
                 self._not_found()
                 return
-            self._json({"projects": deckset.projects(), "active": deckset.project})
+            self._json({"projects": board.projects(), "active": board.project})
 
         def _select(self, name: str):
-            if not hasattr(deckset, "projects") or name not in deckset.projects():
+            if board is None or name not in board.projects():
                 self._not_found()
                 return
-            # 選んだ案件を焼くのは時間がかかるので、答えは先に返す (= 描けたら SSE が届く)
-            threading.Thread(target=deckset.select, args=(name,), daemon=True).start()
+            # 既定の案件を替えて覚える (= 名乗らずに開いた画面と、次の起動がここから始まる)。
+            # 描くのは `get` が裏で始める (= 描けた順に SSE が届く)
+            board.select(name)
+            board.get(name)
             self._json({"ok": True, "active": name}, code=202)
+
+        def _remember(self, deck: str):
+            if self.ds.deck(deck) is None:
+                self._not_found()
+                return
+            opened.remember_deck(self.key, deck)
+            self._json({"ok": True})
 
         def _refresh(self):
             # 手動の再描画だけがキャッシュを無視する (= 中身が同じでも焼き直す)。
-            threading.Thread(target=deckset.rescan_and_rerender,
+            threading.Thread(target=self.ds.rescan_and_rerender,
                              kwargs={"force": True, "rebuild": True}, daemon=True).start()
             self._json({"ok": True}, code=202)
 
@@ -194,10 +227,10 @@ def make_handler(deckset: DeckSet):
             last = -1
             try:
                 while True:
-                    with deckset.cond:
-                        if deckset.version == last:
-                            deckset.cond.wait(timeout=SSE_PING_SECONDS)
-                        cur = deckset.version
+                    with self.ds.cond:
+                        if self.ds.version == last:
+                            self.ds.cond.wait(timeout=SSE_PING_SECONDS)
+                        cur = self.ds.version
                     if cur != last:
                         last = cur
                         self.wfile.write(f"data: {cur}\n\n".encode())

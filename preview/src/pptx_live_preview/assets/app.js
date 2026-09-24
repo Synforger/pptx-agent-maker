@@ -6,6 +6,7 @@ const S = {
   title: '',
   decks: [],        // 一覧用の軽い情報
   active: null,     // 開いているデッキ名
+  project: null,    // この画面が見ている案件 (= 束ねて見る時だけ。問い合わせのたびに名乗る)
   details: {},      // デッキ名 -> 全情報 (= 開いている 1 本と、並べ比較の相手)
   page: 1,          // 1 始まりの現在頁
   notesOpen: false,
@@ -30,7 +31,14 @@ const current = () => (S.active && S.details[S.active]) || null;
    別の住所の下に相乗りで配信されている場合 (= tailscale serve の /pptx など)、
    スラッシュ無しで開かれた瞬間に全部が親の住所へ飛び、隣のサービスに当たる。 */
 const BASE = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
-const at = (path) => BASE + path;
+/* 画面ごとに見ている案件を、server への問い合わせのたびに名乗る (= ほかの画面が案件を
+   替えても、この画面は動かない。発表用に 1 案件へ絞った画面が別の会社の資料に替わらない)。 */
+const at = (path) => {
+  const url = BASE + path;
+  const scoped = (path.startsWith('api/') && !path.startsWith('api/projects')) || path === 'events';
+  if (!S.project || !scoped) return url;
+  return url + (url.includes('?') ? '&' : '?') + 'p=' + encodeURIComponent(S.project);
+};
 
 /* 画面に入るまで絵を取りに行かない。
 
@@ -110,8 +118,9 @@ function renderPicker() {
   }
 
   const cur = S.decks.find((d) => d.name === S.active);
-  $('deckName').textContent = cur ? cur.name : (S.decks.length ? '-' : S.title);
+  $('deckName').textContent = cur ? cur.name : (S.decks.length ? '-' : '(no decks)');
   $('deckDot').className = 'dot' + (cur && cur.error ? ' err' : '');
+  $('deckDot').hidden = !cur;  // デッキが無い時に「正常」の緑を出さない
   $('meta').textContent = cur && !cur.error
     ? cur.slides + ' pages · ' + (cur.last_ms / 1000).toFixed(1) + 's · '
       + fmtTime(cur.last_rendered_at)
@@ -199,11 +208,21 @@ function renderStage() {
   const box = $('errorBox');
   const d = current();
 
+  box.classList.remove('info');
   if (d && d.error) {
     host.innerHTML = '';
     host.dataset.key = '';
     box.hidden = false;
     box.textContent = d.error;
+    return;
+  }
+  if (!S.decks.length) {
+    // エラーではない案内 (= 赤い文字だと壊れて見える)
+    host.innerHTML = '';
+    host.dataset.key = '';
+    box.hidden = false;
+    box.classList.add('info');
+    box.textContent = 'No decks here yet. They show up as soon as they are built.';
     return;
   }
   box.hidden = true;
@@ -554,6 +573,8 @@ function stepComparePage(which, delta) {
 async function selectDeck(name) {
   S.active = name;
   location.hash = encodeURIComponent(name);
+  // 最後に開いた物を server に覚えさせる (= 開き直した時、どの端末からでもここに戻る)
+  fetch(at('api/opened/' + encodeURIComponent(name))).catch(() => {});
   renderPicker();
   // 見ていた頁のまま隣のデッキへ移る (= 同じ骨格から育ったデッキを突き合わせるとき、
   // 毎回先頭へ戻されると同じところまで送り直すことになる)
@@ -561,7 +582,14 @@ async function selectDeck(name) {
 }
 
 async function loadDetail(opts) {
-  if (!S.active) { renderStage(); renderStrip(); return; }
+  if (!S.active) {
+    // デッキが 1 冊も無い (= 前に見ていた案件の頁数と頁の位置を残さない)
+    S.page = 0;
+    $('pageTotal').textContent = '/ 0';
+    $('pageInput').value = '';
+    renderStage(); renderStrip(); renderNotes();
+    return;
+  }
   let detail = null;
   try {
     const r = await fetch(at('api/decks/' + encodeURIComponent(S.active)));
@@ -586,6 +614,21 @@ async function loadDetail(opts) {
   if (opts && opts.scroll) scrollStageToPage('auto');
 }
 
+/* 開いた時に出すデッキ。⚠ URL の末尾 (#w2) は見ない ― ブックマークの URL が古い回を
+   指したまま、開き直すたびにその回が出ていた。最後に開いた物、無ければ一番新しく触った物。 */
+async function firstDeck(names) {
+  if (!names.length) return null;
+  try {
+    const r = await fetch(at('api/opened'));
+    if (r.ok) {
+      const remembered = (await r.json()).deck;
+      if (remembered && names.includes(remembered)) return remembered;
+    }
+  } catch (e) { /* 覚えが読めなくても、一番新しい物を出す */ }
+  const newest = S.decks.reduce((a, b) => ((b.modified || 0) > (a.modified || 0) ? b : a));
+  return newest.name;
+}
+
 async function loadDecks() {
   try {
     const r = await fetch(at('api/decks'));
@@ -604,8 +647,7 @@ async function loadDecks() {
 
   const names = S.decks.map((d) => d.name);
   if (S.active === null || !names.includes(S.active)) {
-    const fromHash = decodeURIComponent(location.hash.slice(1));
-    S.active = names.includes(fromHash) ? fromHash : (names[0] || null);
+    S.active = await firstDeck(names);
     renderPicker();
     await loadDetail({ keepPage: false });
     return;
@@ -729,8 +771,12 @@ window.addEventListener('hashchange', () => {
   if (h && h !== S.active) selectDeck(h);
 });
 
-const events = new EventSource(at('events'));
-events.onmessage = () => loadDecks();
+let events = null;
+function connectEvents() {
+  if (events) events.close();
+  events = new EventSource(at('events'));
+  events.onmessage = () => loadDecks();
+}
 
 function loadMeta() {
   fetch(at('api/meta'))
@@ -748,6 +794,13 @@ async function loadProjects() {
     if (!r.ok) return;
     listing = await r.json();
   } catch (e) { return; }
+  // 発表用のリンク (?only=<表示名>) = その案件だけ。欄を出さず、画面から切り替えられない
+  const only = new URLSearchParams(location.search).get('only');
+  if (only !== null) {
+    S.project = listing.projects.includes(only) ? only : null;
+    return;
+  }
+  S.project = listing.active;
   const select = $('projectSelect');
   select.innerHTML = '';
   for (const name of listing.projects) {
@@ -759,15 +812,21 @@ async function loadProjects() {
   }
   select.hidden = false;
   select.onchange = async () => {
+    S.project = select.value;
+    // 既定の案件として覚えさせる (= 名乗らずに開いた画面と、次の起動がここから始まる)
     await fetch(at('api/projects/select/' + encodeURIComponent(select.value)));
     S.active = null;
     S.details = {};
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(null, '', location.pathname + location.search);
+    connectEvents();
     loadMeta();
     loadDecks();
   };
 }
 
-loadMeta();
-loadProjects();
-loadDecks();
+(async () => {
+  await loadProjects();  // 見る案件が決まってから、デッキと通知を取りに行く
+  connectEvents();
+  loadMeta();
+  loadDecks();
+})();

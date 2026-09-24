@@ -12,7 +12,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from pptx_agent_maker.__main__ import _projects_under, _specimens  # noqa: E402
+from pptx_agent_maker.__main__ import _specimens  # noqa: E402
+from pptx_agent_maker.project.places import projects_under as _projects_under  # noqa: E402
 from pptx_agent_maker.project import Workspace, create  # noqa: E402
 
 
@@ -33,6 +34,15 @@ class FindingProjects(unittest.TestCase):
         found = [p.relative_to(self.parent).as_posix() for p in _projects_under(self.parent)]
         self.assertEqual(found, ["client-b/deck", "one"])
 
+    def test_another_tools_workspace_is_not_a_deck_project(self) -> None:
+        """⚠ `workspace.toml` はほかの道具も使う名前 ― テンプレートの無い folder を案件と読んでいた。"""
+        create(self.parent / "one")
+        other = self.parent / "handover"
+        other.mkdir()
+        (other / "workspace.toml").write_text('root = "."\n', encoding="utf-8")
+        found = [p.relative_to(self.parent).as_posix() for p in _projects_under(self.parent)]
+        self.assertEqual(found, ["one"])
+
     def test_too_deep_is_not_searched(self) -> None:
         create(self.parent / "a" / "b" / "c" / "d")
         self.assertEqual(_projects_under(self.parent), [])
@@ -44,3 +54,58 @@ class FindingProjects(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReadingThePlaces(unittest.TestCase):
+    """What the standing preview offers comes from one file on the machine."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self.tmp.name)
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def _places(self, text: str) -> Path:
+        path = self.base / "preview.toml"
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_projects_and_plain_folders_are_both_offered(self) -> None:
+        from pptx_agent_maker.project.places import discover, load
+        create(self.base / "cases" / "client-one")
+        (self.base / "old").mkdir()
+        (self.base / "old" / "w1.pptx").write_bytes(b"x")
+        places = load(self._places(
+            f'[[search]]\npath = "{self.base / "cases"}"\n\n'
+            f'[[folder]]\nname = "old decks"\npath = "{self.base / "old"}"\n\n'
+            f'[labels]\n"{self.base / "cases" / "client-one"}" = "A"\n'))
+        found = discover(places, lambda folder: _specimens(Workspace.load(folder)))
+        self.assertEqual(sorted(found), ["A", "old decks"])
+        self.assertEqual(found["A"][1], ["specimen"], "the project's template is listed as a deck")
+        self.assertEqual(found["old decks"][1], [])
+
+    def test_a_project_with_no_label_does_not_show_its_folder_name(self) -> None:
+        """⚠ folder 名には先方の名前が入りうる ― 発表中に欄を開くと別の会社の名前が並ぶ。"""
+        from pptx_agent_maker.project.places import discover, load
+        create(self.base / "cases" / "client-one")
+        places = load(self._places(f'[[search]]\npath = "{self.base / "cases"}"\n'))
+        first = discover(places, lambda f: set())
+        (name,) = first
+        self.assertNotIn("client", name)
+        self.assertTrue(name.startswith("案件 "))
+        self.assertEqual(sorted(discover(places, lambda f: set())), [name], "the name moved")
+
+    def test_a_folder_that_is_not_there_is_left_out_quietly(self) -> None:
+        from pptx_agent_maker.project.places import discover, load
+        places = load(self._places(f'[[folder]]\nname = "gone"\npath = "{self.base / "gone"}"\n'))
+        self.assertEqual(discover(places, lambda f: set()), {})
+
+    def test_a_malformed_places_file_is_said(self) -> None:
+        from pptx_agent_maker.project.places import PlacesError, load
+        for text in ('[[folder]]\npath = "/x"\n', '[[search]]\ndepth = 2\n', '[other]\nx = 1\n'):
+            with self.subTest(text):
+                with self.assertRaises(PlacesError):
+                    load(self._places(text))
+        with self.assertRaises(PlacesError):
+            load(self.base / "missing.toml")

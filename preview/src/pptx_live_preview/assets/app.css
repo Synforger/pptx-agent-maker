@@ -495,3 +495,10 @@ body {
   padding: 4px 6px;
   max-width: 16em;
 }
+
+/* エラーではない案内 (= デッキがまだ無い時)。赤と等幅だと壊れて見える */
+.errorBox.info {
+  color: var(--muted);
+  font-family: inherit;
+  text-align: center;
+}

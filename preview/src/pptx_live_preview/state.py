@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import json
 import threading
 from collections.abc import Iterable
 import time
@@ -135,6 +136,8 @@ class DeckState:
             "version": self.version,
             "last_ms": self.last_ms,
             "last_rendered_at": cur.at if cur else 0.0,
+            # 覚えが無い時に「一番新しく触ったデッキ」を開くため (= 作業中の回はふつう最新)
+            "modified": self.pptx.stat().st_mtime if self.pptx.exists() else 0.0,
         }
 
     def detail(self) -> dict:
@@ -229,6 +232,49 @@ def watch(deckset: DeckSet, interval: float = 0.5) -> None:
         time.sleep(interval)
 
 
+class Opened:
+    """What was last opened: the project, and the deck in each (kept across restarts).
+
+    ⚠ **開き直すと別のデッキが出る、を止める。**以前は URL の末尾 (`#w2`) か一覧の先頭を
+    出していたので、ブックマークの URL が古い回を指したまま、作業中の回に戻るたびに選び直す
+    ことになった。覚えるのは server の側 (= スマホで開いても Mac で開いても同じ物が出る)。
+    """
+
+    def __init__(self, path: Path | None = None) -> None:
+        self.path = path or cache_root() / "_opened.json"
+        self._lock = threading.Lock()
+
+    def _read(self) -> dict:
+        try:
+            return json.loads(self.path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+
+    def _write(self, data: dict) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        staged = self.path.with_suffix(".tmp")
+        staged.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        staged.replace(self.path)
+
+    def deck(self, project: str) -> str | None:
+        return self._read().get("decks", {}).get(project)
+
+    def remember_deck(self, project: str, deck: str) -> None:
+        with self._lock:
+            data = self._read()
+            data.setdefault("decks", {})[project] = deck
+            self._write(data)
+
+    def project(self) -> str | None:
+        return self._read().get("project")
+
+    def remember_project(self, project: str) -> None:
+        with self._lock:
+            data = self._read()
+            data["project"] = project
+            self._write(data)
+
+
 class Switchboard:
     """Several projects behind one page, one of them looked at.
 
@@ -239,12 +285,29 @@ class Switchboard:
     起こし、新しい方へ乗り換えさせる (= 起こさないと、次の keep-alive まで画面が変わらない)。
     """
 
-    def __init__(self, projects: dict[str, DeckSet], first: str | None = None) -> None:
+    #: 一覧を探し直す間隔の下限 (= 画面が一覧を取りに来るたびに folder を歩かない)
+    REDISCOVER_SECONDS = 2.0
+
+    def __init__(self, projects: dict[str, DeckSet], first: str | None = None, *,
+                 discover=None, dpi: int = DEFAULT_DPI, opened: Opened | None = None) -> None:
+        """`discover` は名前 → (folder, 一覧から外す名前) を返す (= 在れば一覧を探し直す)。
+
+        ⚠ **新しい案件は再起動なしで欄に出す。**常駐の画面は止めないので、`init` した案件が
+        出てこないと、見るために再起動が要ることになる。
+        """
         if not projects:
             raise ValueError("no projects to show")
         self._projects = dict(projects)
+        self.opened = opened or Opened()
+        if first is None:
+            first = self.opened.project()  # 再起動しても、最後に選んだ物から始める
         self._name = first if first in self._projects else sorted(self._projects)[0]
         self._switches = 0
+        self._discover = discover
+        self._dpi = dpi
+        self._looked = 0.0
+        self._seen: dict[str, float] = {}   # 画面が最後に見に来た時刻 (= 見張る相手)
+        self._drawn: set[str] = set()       # 一度でも描き始めた物
 
     def __getattr__(self, name):  # 画面と server が触る残りは、今の案件のもの
         return getattr(self._projects[self._name], name)
@@ -262,21 +325,62 @@ class Switchboard:
         # 案件を替えたことも「変化」として画面に届ける (= 版が戻ると画面は描き直さない)
         return self._switches * 1_000_000 + self.active.version
 
+    #: 画面が最後に見に来てからこの秒数のあいだは、選ばれていない案件も見張り続ける
+    #: (= 発表用に 1 案件へ絞った画面は既定の案件でなくても、file を直せば描き直される)
+    WATCH_SECONDS = 600.0
+
+    def get(self, name: str) -> DeckSet:
+        """The decks of `name`, starting to draw them the first time they are asked for."""
+        decks = self._projects[name]
+        self._seen[name] = time.monotonic()
+        if name not in self._drawn:
+            self._drawn.add(name)
+            threading.Thread(target=decks.rescan_and_rerender, kwargs={"force": True},
+                             daemon=True).start()
+        return decks
+
+    def rescan_and_rerender(self, force: bool = False, rebuild: bool = False) -> None:
+        """Keep the default project, and every project looked at lately, up to date."""
+        now = time.monotonic()
+        watched = {self._name} | {name for name, at in self._seen.items()
+                                  if now - at < self.WATCH_SECONDS and name in self._projects}
+        self._drawn.update(watched)
+        for name in sorted(watched):
+            self._projects[name].rescan_and_rerender(force=force, rebuild=rebuild)
+
     def projects(self) -> list[str]:
+        self._rediscover()
         return sorted(self._projects)
+
+    def _rediscover(self) -> None:
+        if self._discover is None or time.monotonic() - self._looked < self.REDISCOVER_SECONDS:
+            return
+        self._looked = time.monotonic()
+        found = self._discover()
+        for name, (folder, skip) in found.items():
+            if name not in self._projects:
+                self._projects[name] = DeckSet(Path(folder), self._dpi, skip=skip)
+        for name in list(self._projects):
+            if name not in found and name != self._name:  # 今見ている物は外さない
+                del self._projects[name]
 
     @property
     def project(self) -> str:
         return self._name
 
     def select(self, name: str) -> None:
+        """Switch to `name` at once; drawing its decks is left to the caller.
+
+        ⚠ **切り替えと描くことを分ける。**描き終えてから切り替えていた間は、画面が
+        一覧を取り直した時にまだ前の案件で、選ぶ欄も頁数も前のまま残った。
+        """
         if name not in self._projects:
             raise KeyError(name)
+        self.opened.remember_project(name)
         if name == self._name:
             return
         previous = self.active
         self._name = name
         self._switches += 1
-        self.active.rescan_and_rerender(force=True)
         with previous.cond:
             previous.cond.notify_all()
