@@ -164,6 +164,20 @@ class TheTemplateBuildsTest(unittest.TestCase):
                      if n.startswith("ppt/slides/slide") and n.endswith(".xml")]
         self.assertEqual(len(pages), len(manifest.entries))
 
+    def test_the_example_opens_in_a_strict_reader(self) -> None:
+        """⚠ **頁の数が合っても、開けるとは限らない。**テンプレートは絵を 1 枚も持たないので
+        png の種類の登録が無く、見本の絵を持ち込んだデッキが開けなかった (= 頁は数えていたが、
+        開いてはいなかった)。python-pptx は種類の無い部品を拒むので、ここで開いて確かめる。
+        """
+        from pptx import Presentation
+        from pptx_agent_maker.checks.rules import untyped_parts
+
+        workspace = Workspace.load(self.root)
+        manifest = Manifest.load(workspace.manifest("example"))
+        built = build(workspace, manifest)
+        self.assertEqual(untyped_parts.run(built), [])
+        self.assertEqual(len(Presentation(str(built)).slides), len(manifest.entries))
+
     def test_the_project_is_laid_down_with_its_own_entry_point(self) -> None:
         self.assertTrue((self.root / "Taskfile.yml").is_file())
 

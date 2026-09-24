@@ -90,6 +90,23 @@ class Archive:
 
     # -- registration (= the part that, left out, produces a repair prompt) ---
 
+    def register_media(self, name: str, content_type: str) -> None:
+        """Make sure the package says what a media file is.
+
+        ⚠ **絵の file を写すだけでは足りない。**種類は拡張子ごとに `[Content_Types].xml` が
+        持っていて、絵を 1 枚も持たないテンプレートには png の登録が無い。そこへ絵のある頁を
+        持ち込むと、file はあるのに種類が無く、焼いたデッキが開けなくなっていた。
+        """
+        extension = name.rsplit(".", 1)[-1]
+        types = self.tree / "[Content_Types].xml"
+        text = types.read_text(encoding="utf-8")
+        if re.search(rf'<Default\s+Extension="{re.escape(extension)}"', text, re.I):
+            return
+        if f'PartName="/ppt/media/{name}"' in text:
+            return
+        entry = f'<Default Extension="{extension}" ContentType="{content_type}"/>'
+        types.write_text(text.replace("</Types>", f"{entry}</Types>"), encoding="utf-8")
+
     def register_slide(self, name: str) -> None:
         """Declare a new slide in the content types and the presentation rels."""
         types = self.tree / "[Content_Types].xml"
