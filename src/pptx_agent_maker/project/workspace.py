@@ -7,7 +7,7 @@
 
     <案件>/
     ├── workspace.toml     この設定 (= 予約名)
-    ├── specimen.pptx      見た目の元 (= 予約名。複製されて各頁の器になる)
+    ├── specimen.pptx      見た目の元 (= 予約名。この上に頁が書き足される)
     ├── w1.toml            ← 何を並べるか
     ├── w1.pptx            ← それを焼いたもの
     ├── w2.toml

@@ -96,7 +96,7 @@ def dress(deck: Path, theme: Theme) -> None:
     parts["ppt/theme/theme1.xml"] = theme_xml.encode("utf-8")
 
     # ⚠ **寸法を変えても、紙の種類の申告は python-pptx の既定 (= 4:3) のまま残る。**
-    # 器にするデッキでそれが食い違うと、PowerPoint の「スライドのサイズ」が
+    # 頁を書き足す先のデッキでそれが食い違うと、PowerPoint の「スライドのサイズ」が
     # 実寸と別のことを言う。
     presentation = parts["ppt/presentation.xml"].decode("utf-8")
     kind = "screen16x9" if theme.slide.width * 9 == theme.slide.height * 16 else "custom"
