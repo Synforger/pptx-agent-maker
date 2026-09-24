@@ -41,7 +41,7 @@ FILENAME = "workspace.toml"
 #: 直下に置く folder (= 素材だけ。マニフェストも焼いたデッキも root に並ぶ)
 FOLDERS = ("assets",)
 #: root 直下でツールが使う名前 (= マニフェストに使えない)
-RESERVED = (FILENAME,)
+RESERVED = (FILENAME, "recipes.toml")
 
 
 class WorkspaceError(RuntimeError):

@@ -35,6 +35,20 @@ title = "…"
 
 ⚠ **`why` は 1 行の覚え書き** (= 200 字、日付を書くと拒まれる)。改訂の履歴は git log が持つ。
 
+## recipe (= `recipes.toml`)
+
+```toml
+[recipes.result]                # 名前は英数字・-・_
+type = "figures"                # 必須
+title = "{method} の結果"        # {穴} は呼ぶ頁の fill で埋める
+footer = "採点表から"
+```
+
+頁は `kind = "recipe"` / `recipe = "<名前>"` / `fill = { ... }` と、recipe に無いキーだけを書く。
+拒まれるもの = recipe が決めたキーの書き換え / 埋め残した穴 / 使わない fill / 無い recipe 名。
+
+上げる: `task promote -- <名前> w1:5 w2:7` (= 2 頁以上、同じ型の `declare` だけ)。
+
 ## 型 (= 本体に何を置くか)
 
 | 型 | 要るもの | この型だけが読むもの | 本体 |

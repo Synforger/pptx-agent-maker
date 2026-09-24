@@ -41,6 +41,12 @@ tasks:
     cmds:
       - '{{.MAKER}} preview .'
 
+  promote:
+    desc: Keep a page written the same way twice as a recipe (= task promote -- result w1:5 w2:7)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} promote . {{.CLI_ARGS}}'
+
   show:
     desc: Say where this project keeps its things
     deps: [_tool]

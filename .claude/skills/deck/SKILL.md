@@ -14,12 +14,33 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
 
 1. **既に在るものを見る** ― `task show` と、案件の `*.toml` / `*.pptx`。
    **同じ役割の頁が過去の回に在れば、複製するか輸入する** (= 作り直さない)
-2. **manifest を書く / 直す** ― 並びの真値はここ 1 枚。頁の作り方は 3 つだけ
-   (`copy` / `import` / `declare`)
+2. **manifest を書く / 直す** ― 並びの真値はここ 1 枚。頁の作り方は 3 つ
+   (`copy` / `import` / `declare`) と、案件の recipe を呼ぶ `recipe`
 3. **組む** ― `task build -- w1` (= 組んで検査まで)
 4. **焼いて見る** ― `task preview`、または pptx を画像にして 1 枚ずつ見る。
    ⚠ **検査が通っても、読みやすさは座標に出ない。**目で見るまで終わりでない
 5. **人が直したら取り込む** ― `task review -- w1.pptx` で差分を出し、置換の対を manifest に写す
+6. **同じ形を 2 回書いたら上げる** ― `task promote -- <名前> w1:5 w2:7`。
+   ⚠ **3 回目を複製で書かない。**前の世代は上げずに複製し続け、同じ頁の手書きが溜まった
+
+## 同じ形の頁は recipe にする
+
+毎回同じ形で組む頁 (= 毎週の結果頁など) は、`recipes.toml` に決まった部分を 1 回だけ書き、
+manifest の頁は**変わる部分だけ**を渡す。上げるのは `promote` 1 回 ― 全部で同じ値のキーが
+recipe になり、違うキーが各頁に残り、元の頁は recipe を呼ぶ形に書き換わる。書き換えた後の頁が
+元と 1 つでも違えば、1 file も書かずに止まる。
+
+```toml
+[[pages]]
+kind = "recipe"
+recipe = "result"
+fill = { method = "手法 A" }     # recipe の文言の {method} を埋める
+figures = [["a.png", "正面"], ["b.png", "背面"]]
+```
+
+⚠ **頁は recipe が決めたキーを書き換えられない** (= 書き換えると同じ recipe の頁が回ごとに
+ずれる)。違う形が要るなら recipe を直すか、別の recipe を上げる。題の一部だけ違う場合、
+`promote` は題ごと頁に残す ― `{method}` のような穴を空けて recipe へ寄せるのは人が決める。
 
 ## 宣言で頁を組む
 

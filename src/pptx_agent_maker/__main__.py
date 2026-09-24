@@ -76,6 +76,12 @@ def main(argv: list[str] | None = None) -> int:
     started.add_argument("--specimen", default=None, metavar="PPTX",
                          help="the .pptx this project takes its look from, or a folder\nholding specimen.pptx and a workspace.toml to go with it")
 
+    promoted = sub.add_parser("promote", help="keep pages written the same way as one recipe")
+    promoted.add_argument("path", help="the project folder")
+    promoted.add_argument("name", help="the recipe's name")
+    promoted.add_argument("pages", nargs="+", metavar="MANIFEST:PAGE",
+                          help="two or more pages of one shape, e.g. w1:5 w2:7")
+
     shown = sub.add_parser("show", help="print where a project keeps its things")
     shown.add_argument("path")
 
@@ -121,6 +127,26 @@ def main(argv: list[str] | None = None) -> int:
             for name in FOLDERS:
                 folder = getattr(workspace, name)
                 print(f"  {name:<9} {folder}{'' if folder.exists() else '   (missing)'}")
+            return 0
+
+        if args.command == "promote":
+            from .project.recipes import RecipeError, promote
+
+            targets = []
+            for spec in args.pages:
+                manifest, _, number = spec.rpartition(":")
+                if not manifest or not number.isdigit():
+                    print(f"error: {spec!r} is not MANIFEST:PAGE (e.g. w1:5)", file=sys.stderr)
+                    return 1
+                targets.append((manifest, int(number)))
+            try:
+                written = promote(workspace.root, args.name, targets)
+            except RecipeError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 1
+            print(f"promoted {len(targets)} pages to recipe {args.name!r}")
+            for path in written:
+                print(f"  wrote {path.name}")
             return 0
 
         if args.command == "preview":

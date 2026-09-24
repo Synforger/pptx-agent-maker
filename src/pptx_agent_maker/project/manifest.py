@@ -1,7 +1,8 @@
 """What goes on which page, read from one file in the project.
 
 頁の作り方は 3 つしかない ― **テンプレートを複製する** / **前のデッキから輸入する** /
-**宣言層で組む**。manifest はその並びだけを持ち、寸法も色も持たない (= それはツールの token)。
+**宣言層で組む**。毎回同じ形で組む頁は案件の recipe を呼べる (`kind = "recipe"`) が、
+読んだ時点で宣言に展開されるので、組む経路は宣言と同じ 1 本 (= `recipes.py`)。manifest はその並びだけを持ち、寸法も色も持たない (= それはツールの token)。
 
 宣言頁は**型を選ぶ**しかない (`type`)。頁の割り方を頁ごとに決められる口を残すほど、
 同じ役割の頁が週ごとに別の形になる ― 前の世代では、名前を用意しただけの位置の隣に
@@ -23,7 +24,10 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-KINDS = ("copy", "import", "declare")
+from .recipes import RecipeError, expand
+from .recipes import load as load_recipes
+
+KINDS = ("copy", "import", "declare", "recipe")
 
 #: `why` の上限。日本語 1 行がおよそ 45 字なので、覚え書き 3 行ぶんまで許す。
 #: 超えるものは覚え書きではなく経緯で、置き場は git log。
@@ -50,6 +54,8 @@ class Entry:
     data: dict = field(default_factory=dict)
     replace: tuple[tuple[str, str], ...] = ()
     why: str = ""
+    #: recipe から展開した頁なら、その名前 (= 組むときは宣言と同じに扱う)
+    recipe: str | None = None
 
 
 @dataclass(frozen=True)
@@ -79,17 +85,33 @@ class Manifest:
         if not pages:
             raise ManifestError(f"{path.name}: a deck with no pages is not a deck")
 
-        entries = tuple(cls._entry(path, index, page) for index, page in enumerate(pages, start=1))
+        try:
+            recipes = load_recipes(path.parent)
+        except RecipeError as error:
+            raise ManifestError(str(error)) from error
+        entries = tuple(cls._entry(path, index, page, recipes)
+                        for index, page in enumerate(pages, start=1))
         return cls(specimen=str(data["specimen"]), out=str(data["out"]),
                    entries=entries, source=path,
                    assets=str(data.get("assets", path.stem)))
 
     @staticmethod
-    def _entry(path: Path, index: int, page: dict) -> Entry:
+    def _entry(path: Path, index: int, page: dict, recipes: dict | None = None) -> Entry:
         kind = str(page.get("kind", "")).strip()
         where = f"{path.name} page {index}"
         if kind not in KINDS:
             raise ManifestError(f"{where}: kind must be one of {', '.join(KINDS)}, not {kind!r}")
+
+        recipe = None
+        if kind == "recipe":
+            recipe = str(page.get("recipe", ""))
+            try:
+                declared = expand(where, page, recipes or {})
+            except RecipeError as error:
+                raise ManifestError(str(error)) from error
+            page = {**declared, "kind": "declare",
+                    **{k: page[k] for k in ("why", "replace") if k in page}}
+            kind = "declare"
 
         if kind == "copy" and not page.get("page"):
             raise ManifestError(f"{where}: a copied page needs `page` (= the specimen's Nth page)")
@@ -109,7 +131,7 @@ class Manifest:
         data = {key: value for key, value in page.items() if key not in _NOT_PAGE_DATA}
         return Entry(kind=kind, page=page.get("page"), deck=page.get("deck"),
                      type=page.get("type"), data=data,
-                     replace=replace, why=why)
+                     replace=replace, why=why, recipe=recipe)
 
 
 def _check_why(where: str, why: str) -> None:
