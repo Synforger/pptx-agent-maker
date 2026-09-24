@@ -55,6 +55,9 @@ class TemplateFilesTest(unittest.TestCase):
                     if "templates/project" in line]
         self.assertTrue(declared,
                         "the template is not declared as package data, so a wheel drops it")
+        # ⚠ 点で始まる folder は `**/*` に拾われない (= wheel を作って確かめた)
+        self.assertTrue(any("templates/project/.claude" in line for line in declared),
+                        "the skill is not declared as package data, so a wheel drops it")
 
     def test_the_template_carries_its_specimen(self) -> None:
         self.assertTrue(SPECIMEN.is_file(), f"{SPECIMEN} is missing — run task specimen")
@@ -188,6 +191,12 @@ class TheTemplateBuildsTest(unittest.TestCase):
         self.assertIn("<p:pic>", xml)
         self.assertNotIn("example.png", xml)
 
+    def test_the_project_carries_the_skill_that_says_how_to_build_it(self) -> None:
+        """⚠ **手順書が repo にしか無いと、案件で起動したエージェントは組み方を知らない。**"""
+        skill = self.root / ".claude" / "skills" / "deck" / "SKILL.md"
+        self.assertTrue(skill.is_file(), "init did not lay the skill down in the project")
+        self.assertIn("name: deck", skill.read_text(encoding="utf-8"))
+
     def test_the_project_is_laid_down_with_its_own_entry_point(self) -> None:
         self.assertTrue((self.root / "Taskfile.yml").is_file())
 
@@ -198,7 +207,7 @@ class TheTemplateBuildsTest(unittest.TestCase):
         workspace = Workspace.load(self.root)
         build(workspace, Manifest.load(workspace.manifest("example")))
         theirs = {"_README.md", "Taskfile.yml", "workspace.toml", "specimen.pptx",
-                  "example.toml", "example.pptx", "assets"}
+                  "example.toml", "example.pptx", "assets", ".claude"}
         self.assertEqual({p.name for p in self.root.iterdir()} - theirs,
                          {".pptx-agent-maker"},
                          "the toolkit left something of its own beside the project's files")

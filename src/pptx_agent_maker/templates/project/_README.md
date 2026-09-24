@@ -5,6 +5,7 @@
 
 ```
 <project>/
+├── .claude/skills/deck/  組み方の手順書 (= この folder で起動したエージェントが読む)
 ├── workspace.toml     この設定 (= 予約名)
 ├── specimen.pptx      見た目の元 (= 予約名。この上に頁が書き足される。プロジェクトテンプレートが 1 枚持っている)
 ├── recipes.toml       毎回同じ形で組む頁 (= 予約名。`task promote` で上げると現れる)

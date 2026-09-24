@@ -89,7 +89,8 @@ conclusion = "持ち帰ってほしい 1 行"
 ## 型に収まらない頁が出たら
 
 **型を足す。**手で図形を置く道は無い (= その口を塞いだのが、このツールの設計そのもの)。
-手順 = ツールの `docs/reference/adding-a-type.ja.md`。⚠ **足す前に、付属で足りないかを見る**
+手順 = ツールの repo の `docs/reference/adding-a-type.ja.md`
+(= https://github.com/Synforger/pptx-agent-maker/blob/main/docs/reference/adding-a-type.ja.md)。⚠ **足す前に、付属で足りないかを見る**
 (= カード・表・読み方・要点で済むことが多い)。
 
 ## 見た目

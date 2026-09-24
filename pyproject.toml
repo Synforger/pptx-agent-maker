@@ -16,7 +16,8 @@ build-backend = "setuptools.build_meta"
 
 # 雛形はツールの一部として配る (= これが無いと、入れたツールの `init` が落ちる)。
 [tool.setuptools.package-data]
-pptx_agent_maker = ["templates/project/**/*", "templates/project/.gitignore"]
+pptx_agent_maker = ["templates/project/**/*", "templates/project/.gitignore",
+                    "templates/project/.claude/**/*"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
