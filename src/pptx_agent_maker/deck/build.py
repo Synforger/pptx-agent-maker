@@ -107,5 +107,5 @@ def _declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index
 
     try:
         return types.build(entry.data, asset, aspect, theme)
-    except (ValueError, KeyError) as reason:
+    except (ValueError, KeyError, WorkspaceError) as reason:
         raise ManifestError(f"page {index}: {reason}") from reason

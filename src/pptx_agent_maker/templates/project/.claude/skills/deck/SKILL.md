@@ -16,13 +16,15 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
    **同じ役割の頁が過去の回に在れば、複製するか輸入する** (= 作り直さない)。
    中身だけ新しくするなら `pictures` / `tables` で入れ替える ― 並び順は
    `task show -- w1.pptx:12` が出す。数や表の形が合わなければ build が止まる
-2. **manifest を書く / 直す** ― 並びの真値はここ 1 枚。頁の作り方は 3 つ
+2. **次の回は前の回から始める** ― `task round -- w2 --from w1` (= manifest を複製し、出力の名前と
+   素材の置き場を新しい回へ。素材は写らないので、この回の絵を `assets/<回の名前>/` に置く)
+3. **manifest を書く / 直す** ― 並びの真値はここ 1 枚。頁の作り方は 3 つ
    (`copy` / `import` / `declare`) と、案件の recipe を呼ぶ `recipe`
-3. **組む** ― `task build -- w1` (= 組んで検査まで)
-4. **焼いて見る** ― `task preview`、または pptx を画像にして 1 枚ずつ見る。
+4. **組む** ― `task build -- w1` (= 組んで検査まで)
+5. **焼いて見る** ― `task preview`、または pptx を画像にして 1 枚ずつ見る。
    ⚠ **検査が通っても、読みやすさは座標に出ない。**目で見るまで終わりでない
-5. **人が直したら取り込む** ― `task review -- w1.pptx` で差分を出し、置換の対を manifest に写す
-6. **同じ形を 2 回書いたら上げる** ― `task promote -- <名前> w1:5 w2:7`。
+6. **人が直したら取り込む** ― `task review -- w1.pptx` で差分を出し、置換の対を manifest に写す
+7. **同じ形を 2 回書いたら上げる** ― `task promote -- <名前> w1:5 w2:7`。
    ⚠ **3 回目を複製で書かない。**前の世代は上げずに複製し続け、同じ頁の手書きが溜まった
 
 ## 同じ形の頁は recipe にする

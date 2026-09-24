@@ -107,6 +107,10 @@ class Workspace:
             candidate = self.assets / within / name
             if candidate.exists():
                 return candidate
+            if not (self.assets / name).exists():
+                # 探した 2 か所を両方言う (= 回の folder を先に見ている、が分からないと迷う)
+                raise WorkspaceError(
+                    f"asset not found: {name} (= looked in assets/{within}/ and assets/)")
         return self._existing(self.assets / name, "asset")
 
     def manifest(self, name: str) -> Path:

@@ -92,6 +92,12 @@ def main(argv: list[str] | None = None) -> int:
     lifted.add_argument("--keep", action="append", default=[], metavar="WORDS",
                         help="words that stay as they are (everything else becomes <文言 N>)")
 
+    rounded = sub.add_parser("round", help="start the next round from the one before")
+    rounded.add_argument("path", help="the project folder")
+    rounded.add_argument("name", help="the new round, e.g. w2")
+    rounded.add_argument("--from", dest="previous", required=True, metavar="MANIFEST",
+                         help="the round to start from, e.g. w1")
+
     shown = sub.add_parser("show", help="print where a project keeps its things")
     shown.add_argument("path")
     shown.add_argument("page", nargs="?", metavar="DECK:PAGE",
@@ -173,6 +179,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"promoted {len(targets)} pages to recipe {args.name!r}")
             for path in written:
                 print(f"  wrote {path.name}")
+            return 0
+
+        if args.command == "round":
+            from .project.round import RoundError, start
+
+            try:
+                written = start(workspace.root, args.name, args.previous)
+            except RoundError as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 1
+            print(f"started {written.name} from {args.previous} "
+                  f"(= its pages as they were; assets/{written.stem}/ is empty — "
+                  "put this round's material there)")
             return 0
 
         if args.command == "lift":

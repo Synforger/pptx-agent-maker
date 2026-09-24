@@ -41,6 +41,12 @@ tasks:
     cmds:
       - '{{.MAKER}} preview .'
 
+  round:
+    desc: Start the next round from the one before (= task round -- w2 --from w1)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} round . {{.CLI_ARGS}}'
+
   lift:
     desc: Lift recipes and pages into the company template, the project taken out (= task lift -- <template> --page w1.pptx:3 --keep "Header")
     deps: [_tool]
