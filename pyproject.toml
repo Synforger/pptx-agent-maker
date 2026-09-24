@@ -1,6 +1,6 @@
 [project]
 name = "pptx-agent-maker"
-version = "0.5.0"
+version = "0.5.1"
 description = "Build slide decks by declaring structure, not coordinates."
 requires-python = ">=3.11"
 dependencies = ["python-pptx>=1.0"]
