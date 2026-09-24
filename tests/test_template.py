@@ -178,6 +178,16 @@ class TheTemplateBuildsTest(unittest.TestCase):
         self.assertEqual(untyped_parts.run(built), [])
         self.assertEqual(len(Presentation(str(built)).slides), len(manifest.entries))
 
+    def test_a_built_deck_does_not_name_the_material_it_was_made_from(self) -> None:
+        """⚠ 絵の代替テキストに素材の file 名が入っていた (= 開けば先方に読める)。"""
+        workspace = Workspace.load(self.root)
+        built = build(workspace, Manifest.load(workspace.manifest("example")))
+        with zipfile.ZipFile(built) as archive:
+            xml = "".join(archive.read(n).decode("utf-8") for n in archive.namelist()
+                          if n.startswith("ppt/slides/slide") and n.endswith(".xml"))
+        self.assertIn("<p:pic>", xml)
+        self.assertNotIn("example.png", xml)
+
     def test_the_project_is_laid_down_with_its_own_entry_point(self) -> None:
         self.assertTrue((self.root / "Taskfile.yml").is_file())
 

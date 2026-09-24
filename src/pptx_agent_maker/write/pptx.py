@@ -92,10 +92,13 @@ def _text(slide, element: Text, theme: Theme) -> None:
 
 
 def _figure(slide, element: Figure) -> None:
-    slide.shapes.add_picture(
+    picture = slide.shapes.add_picture(
         str(element.source), Emu(element.rect.left), Emu(element.rect.top),
         Emu(element.rect.width), Emu(element.rect.height),
     )
+    # ⚠ python-pptx は素材の file 名を代替テキストに入れる。頁には見えないが、渡したデッキを
+    # 開けば読める ― 案件の素材名が先方に届く経路なので置かない。
+    picture._element.nvPicPr.cNvPr.attrib.pop("descr", None)
 
 
 def _table(slide, element: Table, theme: Theme) -> None:
