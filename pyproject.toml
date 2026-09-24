@@ -1,11 +1,11 @@
 [project]
 name = "pptx-agent-maker"
-version = "0.3.0"
+version = "0.4.0"
 description = "Build slide decks by declaring structure, not coordinates."
 requires-python = ">=3.11"
 dependencies = ["python-pptx>=1.0"]
 
-# 案件の folder から名前で呼べるようにする。`python -m ...` だけだと、道具が
+# 案件の folder から名前で呼べるようにする。`python -m ...` だけだと、ツールが
 # どの python に入っているかを人が覚えていないと 1 頁も焼けない。
 [project.scripts]
 pptx-agent-maker = "pptx_agent_maker.__main__:main"
@@ -14,7 +14,7 @@ pptx-agent-maker = "pptx_agent_maker.__main__:main"
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
-# 雛形は道具の一部として配る (= これが無いと、入れた道具の `init` が落ちる)。
+# 雛形はツールの一部として配る (= これが無いと、入れたツールの `init` が落ちる)。
 [tool.setuptools.package-data]
 pptx_agent_maker = ["templates/project/**/*", "templates/project/.gitignore"]
 

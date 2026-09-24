@@ -1,15 +1,15 @@
 """Bake the real files the project template ships with (= a specimen and one picture).
 
-型見本は本来**案件のもの**で、案件ごとの意匠と表紙がそこに入る。雛形が 1 枚だけ持つのは、
-`init` した直後に 1 本焼けるようにするため ― 会社名もロゴも案件名も入っていない、道具の
-既定の意匠そのままの見本。案件は自分の `specimen.pptx` でこれを差し替える。
+テンプレートは本来**案件のもの**で、案件ごとの見た目と表紙がそこに入る。プロジェクトテンプレートが 1 枚だけ持つのは、
+`init` した直後に 1 本焼けるようにするため ― 会社名もロゴも案件名も入っていない、ツールの
+既定の見た目そのままの見本。案件は自分の `specimen.pptx` でこれを差し替える。
 
-⚠ **意匠の真値は `layout/tokens.py` の 1 枚**で、この pptx はそこから焼いた派生物。
+⚠ **見た目の真値は `layout/tokens.py` の 1 枚**で、この pptx はそこから焼いた派生物。
 両者が一致していることは test が見ている (= 色や書体を変えたら `task specimen` で焼き直す)。
 
-型見本がデッキに効くのは 2 つ ― **複製される頁** (= 表紙) と、**焼いたデッキのマスター**
-(= PowerPoint で開いて手で頁を足したとき、この意匠で出る)。宣言で組んだ頁は
-`workspace.toml` の `[theme]` が決めるので、案件で意匠を差し替えるときは両方を揃える。
+テンプレートはデッキの見た目そのもの ― 複製される頁 (= 表紙)、焼いたデッキのマスター
+(= PowerPoint で開いて手で足した頁)、そして型で組んだ頁も、全部ここから見た目を取る。
+案件は**この 1 枚を差し替えるだけ**でよい。
 """
 
 from __future__ import annotations
@@ -29,18 +29,18 @@ from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
 TEMPLATE = REPO / "src" / "pptx_agent_maker" / "templates" / "project"
 DESTINATION = TEMPLATE / "specimen.pptx"
-#: `example.toml` が指す絵。**雛形が 1 枚持つのは、init した直後に 1 本焼けるようにするため**
+#: `example.toml` が指す絵。**プロジェクトテンプレートが 1 枚持つのは、init した直後に 1 本焼けるようにするため**
 PICTURE = TEMPLATE / "assets" / "example" / "example.png"
 
 #: 表紙の文言。差し替える前提なので、案件は `checks.stale_words` にこれを宣言しておく
 TITLE = "案件名"
 SUBTITLE = "第 N 回 進捗報告"
 
-#: zip が書ける最も古い日時。**焼き直すたびに中身が変わると、意匠を変えていない回でも
+#: zip が書ける最も古い日時。**焼き直すたびに中身が変わると、見た目を変えていない回でも
 #: 差分が出て、履歴からは何が動いたのか読めなくなる。**
 EPOCH = (1980, 1, 1, 0, 0, 0)
 
-#: テーマの色の枠 → 道具の色。PowerPoint 側の「デザイン」はこの 12 個しか持たない
+#: テーマの色の枠 → ツールの色。PowerPoint 側の「デザイン」はこの 12 個しか持たない
 SCHEME = (
     ("dk1", "ink"), ("lt1", "paper"), ("dk2", "muted"), ("lt2", "band"),
     ("accent1", "accent"), ("accent2", "good"), ("accent3", "bad"),
@@ -68,8 +68,12 @@ def cover(theme: Theme) -> list[Element]:
 def dress(deck: Path, theme: Theme) -> None:
     """Put the theme's own colours and typeface into the deck's master.
 
-    python-pptx が起こすデッキは Office の既定の意匠を持つ。**そこを書き換えないと、
+    python-pptx が起こすデッキは Office の既定の見た目を持つ。**そこを書き換えないと、
     PowerPoint で手で足した頁だけ別の書体と色で出る。**
+
+    ⚠ **書き換えるのはテーマだけ** ― 頁の図形に直接書かれた色は動かない。案件のテンプレートは
+    その案件の色で焼かれている (= 表紙の帯も) ので実害は無いが、既に焼いた見本を別の色へ
+    「塗り替える」用途には使えない。
     """
     colours = "".join(
         f'<a:{slot}><a:srgbClr val="{getattr(theme.palette, name)}"/></a:{slot}>'
@@ -92,7 +96,7 @@ def dress(deck: Path, theme: Theme) -> None:
     parts["ppt/theme/theme1.xml"] = theme_xml.encode("utf-8")
 
     # ⚠ **寸法を変えても、紙の種類の申告は python-pptx の既定 (= 4:3) のまま残る。**
-    # 器にするデッキでそれが食い違うと、PowerPoint の「スライドのサイズ」が
+    # 頁を書き足す先のデッキでそれが食い違うと、PowerPoint の「スライドのサイズ」が
     # 実寸と別のことを言う。
     presentation = parts["ppt/presentation.xml"].decode("utf-8")
     kind = "screen16x9" if theme.slide.width * 9 == theme.slide.height * 16 else "custom"
@@ -118,7 +122,7 @@ def make(destination: Path = DESTINATION, theme: Theme = DEFAULT) -> Path:
 def picture(destination: Path = PICTURE, theme: Theme = DEFAULT) -> Path:
     """Bake the one picture the example manifest points at.
 
-    ⚠ **絵が無いと図の型は焼けない。**雛形が 1 枚持っていないと、init した直後の案件で
+    ⚠ **絵が無いと図の型は焼けない。**プロジェクトテンプレートが 1 枚持っていないと、init した直後の案件で
     最初に出るのが「素材が無い」になる。中身は無地で、絵の入る場所だと分かればよい。
     """
     from PIL import Image, ImageDraw

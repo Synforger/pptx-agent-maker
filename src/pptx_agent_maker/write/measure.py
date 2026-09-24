@@ -1,6 +1,6 @@
 """Reading an image's proportions — the one thing the layout layer cannot do itself.
 
-版面の層は python-pptx を知らないまま保つ (= 焼く層が唯一それに触る)。絵の縦横比は
+頁の層は python-pptx を知らないまま保つ (= 焼く層が唯一それに触る)。絵の縦横比は
 file の中にしか無いので、測る口だけをこちら側に置き、型には関数として渡す。
 """
 

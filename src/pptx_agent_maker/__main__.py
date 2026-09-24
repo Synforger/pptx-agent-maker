@@ -22,7 +22,7 @@ def _preview(workspace, port: int, no_open: bool) -> int:
     ビルドがデッキを書き換えると、プレビューがそのまま焼き直す。焼いたデッキは
     マニフェストの隣に在るので、見るのは案件の folder そのもの。
     """
-    # ⚠ repo から動かしたときだけ在る path。入れた道具では preview は別の package。
+    # ⚠ repo から動かしたときだけ在る path。入れたツールでは preview は別の package。
     if PREVIEW.is_dir() and str(PREVIEW) not in sys.path:
         sys.path.insert(0, str(PREVIEW))
     try:
@@ -37,7 +37,7 @@ def _preview(workspace, port: int, no_open: bool) -> int:
     argv = [str(workspace.root), "--port", str(port)]
     if no_open:
         argv.append("--no-open")
-    # ⚠ **型見本は焼いた成果ではない。**マニフェストが指している pptx を一覧から外す。
+    # ⚠ **テンプレートは焼いた成果ではない。**マニフェストが指している pptx を一覧から外す。
     for name in _specimens(workspace):
         argv += ["--skip", name]
     return preview_main(argv)
@@ -73,6 +73,8 @@ def main(argv: list[str] | None = None) -> int:
     started = sub.add_parser("init", help="lay down a new deck project, outside this repo")
     started.add_argument("path")
     started.add_argument("--name", default=None)
+    started.add_argument("--specimen", default=None, metavar="PPTX",
+                         help="the .pptx this project takes its look from, or a folder\nholding specimen.pptx and a workspace.toml to go with it")
 
     shown = sub.add_parser("show", help="print where a project keeps its things")
     shown.add_argument("path")
@@ -106,10 +108,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
-            where = create(args.path, name=args.name)
+            where = create(args.path, name=args.name, specimen=args.specimen)
             print(f"created {where}")
             # ⚠ **建てただけでは次に何を打つか分からない。**案件の folder には task の口が
-            # 入っているので、道具の名前ではなくそちらを案内する。
+            # 入っているので、ツールの名前ではなくそちらを案内する。
             print(f"  next: cd {where} && task build -- example")
             return 0
 
@@ -174,7 +176,8 @@ def main(argv: list[str] | None = None) -> int:
         findings = run_all(built_deck, workspace.settings.get("checks", {}))
         print(report(findings))
         return 1 if findings else 0
-    except (WorkspaceError, ManifestError, FileExistsError, IndexError, RuntimeError) as error:
+    except (WorkspaceError, ManifestError, FileExistsError, FileNotFoundError,
+            ValueError, IndexError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
 

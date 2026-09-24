@@ -165,6 +165,47 @@ class OnlyTheTypeThatReadsAKeyAcceptsIt(unittest.TestCase):
         with self.assertRaises(types.PageTypeError):
             self._build({"type": "figure", "title": "t", "figure": "a.png", "columns": 2})
 
+    def test_only_the_agenda_takes_a_highlight(self) -> None:
+        """強調する章を持つのは目次だけ ― 他の型に書けた間は、黙って落ちていた。"""
+        with self.assertRaises(types.PageTypeError) as caught:
+            self._build({"type": "figure", "title": "t", "figure": "a.png", "highlight": 2})
+        self.assertIn("does not take highlight", str(caught.exception))
+
+
+class TheCardsKeepTheirOwnColumnCount(unittest.TestCase):
+    """⚠ **カードの列数と絵の格子の列数は別の数。**
+
+    同じ `columns` を読んでいた間は、格子を 3 列にするとカード 4 枚が 3 + 1 に割れ、
+    格子以外の型ではカードの列数を書く口が無かった。
+    """
+
+    CARDS = [["①", "a"], ["②", "b"], ["③", "c"], ["④", "d"]]
+
+    @classmethod
+    def _card_rows(cls, page) -> int:
+        """Rows the cards took, counted by their own headings (= 流れ図や目次の箱は数えない)."""
+        heads = {head for head, _body in cls.CARDS}
+        return len({e.rect.top for e in page.build()
+                    if isinstance(e, Text) and e.text in heads})
+
+    def test_the_grid_columns_leave_the_cards_alone(self):
+        page = build({"type": "figure_grid", "title": "だい", "columns": 3,
+                      "figures": [SQUARE] * 6, "cards": self.CARDS})
+        self.assertEqual(1, self._card_rows(page))
+
+    def test_any_type_can_wrap_its_cards(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data,
+                              "cards": self.CARDS, "card_columns": 2})
+                self.assertEqual(2, self._card_rows(page))
+
+    def test_the_card_count_is_not_read_as_a_grid(self):
+        page = build({"type": "figure_grid", "title": "だい", "card_columns": 2,
+                      "figures": [SQUARE] * 6, "cards": self.CARDS})
+        rows = {e.rect.top for e in page.build() if e.kind == "figure"}
+        self.assertEqual(2, len(rows), "the grid kept its own 3 columns")
+
 
 class WhatTheTypesRefuse(unittest.TestCase):
     """A declaration nobody can build must stop here, not later."""

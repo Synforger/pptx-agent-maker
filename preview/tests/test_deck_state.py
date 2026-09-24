@@ -214,7 +214,7 @@ def test_recovering_from_an_error_notifies(deck, fake):
 
 
 def test_rasterise_failure_keeps_the_previous_pages(deck, fake):
-    """焼き直しに失敗しても、前回の絵は保管庫に残ったまま見える。"""
+    """焼き直しに失敗しても、前回の絵はキャッシュに残ったまま見える。"""
     deck.rerender_if_stale(force=True)
     deck.pptx.write_bytes(b"edited")
     fake.raster_error = "pdftoppm failed"
@@ -329,7 +329,7 @@ def test_deck_appearing_wakes_event_waiters(tmp_path, fake):
 def test_a_named_file_is_left_out_of_the_folder_scan(tmp_path, fake):
     """⚠ **どれがデッキでないかの判断は呼ぶ側が持つ。**ここは渡された名前を外すだけ。
 
-    型見本のように「焼いた成果ではない .pptx」が同じ folder に並ぶことがあり、それを
+    テンプレートのように「焼いた成果ではない .pptx」が同じ folder に並ぶことがあり、それを
     一覧に出すと、開いても中身の無い頁が 1 本増える。
     """
     for name in ("w1.pptx", "specimen.pptx"):

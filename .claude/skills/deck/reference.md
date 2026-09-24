@@ -1,14 +1,24 @@
 # 参照
 
+## 案件を建てる
+
+```bash
+pptx-agent-maker init <案件のフォルダ> --specimen <テンプレート.pptx or それを置いた folder>
+```
+
+⚠ **見た目は建てるときに決める** (= あとから `specimen.pptx` を手で置き換えると、
+忘れた回だけ顔が変わる)。folder を渡すと `specimen.pptx` と隣の `workspace.toml`
+(= 色の表) を一緒に持ってくる。
+
 ## manifest
 
 ```toml
-specimen = "specimen.pptx"     # 予約名。案件の意匠
+specimen = "specimen.pptx"     # 予約名。案件の見た目
 out = "w1.pptx"                # マニフェストの隣に焼かれる
 assets = "w1"                  # 省略すると、この file の名前が素材の folder 名
 
 [[pages]]
-kind = "copy"                  # 型見本の N 頁目を複製して文言を差し替える
+kind = "copy"                  # テンプレートの N 頁目を複製して文言を差し替える
 page = 1
 replace = [["旧", "新"]]
 
@@ -35,19 +45,21 @@ title = "…"
 | `flow` | `stages` | ― | 段を左から右へ、あいだに印 |
 | `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
 | `board` | `table` | ― | 表が主役の頁 (= 同上) |
-| `agenda` | `buckets` | ― | 章立て (= 同上) |
+| `agenda` | `buckets` | `highlight` | 章立て (= 同上。`highlight` = 強調する章の番号) |
 
 ## どの型にも添えられるもの
 
-`cards` / `table` / `note` / `points`
+`cards` / `card_columns` / `table` / `note` / `points`
+
+`card_columns` = カードを何枚ずつ並べるか (= 省略すると全部 1 段)。`figure_grid` の `columns` とは別の数。
 
 ⚠ **その型が読まないキーは拒まれる** (= 書いたつもりで頁に無い、を作らない)。
 
 ## 枠まわり (= どの頁も同じ順)
 
-`kicker` / `title` / `condition` / `conclusion` / `footer` / `replace` / `highlight`
+`kicker` / `title` / `condition` / `conclusion` / `footer` / `replace`
 
-## 意匠 (= `workspace.toml`)
+## 見た目 (= `workspace.toml`)
 
 ```toml
 [theme]
@@ -59,14 +71,14 @@ accent = "0092D1"   # 読みを示す色 (= 表の見出しもここ)
 band = "EAF0F8"     # 条件の帯
 ```
 
-⚠ **ふつうは書かない** ― 意匠は `specimen.pptx` から読まれる。ここに書くのは、型見本の
-配色が道具の語彙と合わないときだけ。差し替えられるのは**書体と色だけ**で、
-余白・級数・間隔は道具が持つ。
+⚠ **ふつうは書かない** ― 見た目は `specimen.pptx` から読まれる。ここに書くのは、テンプレートの
+配色がツールの色の使い方と合わないときだけ。差し替えられるのは**書体と色だけ**で、
+余白・級数・間隔はツールが持つ。
 
 ## 検査
 
-`build` は最後に 5 つを回す ― 版面外 / 文字の下限 / 表の空セル / 内部 file 名 /
-型見本の語の残り。`stale_words` は案件の `workspace.toml` に書く。
+`build` は最後に 6 つを回す ― 頁の外 / **重なり** / 文字の下限 / 表の空セル /
+内部 file 名 / テンプレートの語の残り。`stale_words` は案件の `workspace.toml` に書く。
 
 ```toml
 [checks]

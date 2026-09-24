@@ -1,6 +1,6 @@
 """A project sets its own look, and only its look.
 
-⚠ **意匠 (= 書体と色) は案件のもの、版面の割り方は道具のもの。**ここが緩むと、案件ごとに
+⚠ **見た目 (= 書体と色) は案件のもの、頁の割り方はツールのもの。**ここが緩むと、案件ごとに
 余白と級数が動いて、同じ役割の頁が週をまたいで別の形になる (= 前の世代が壊れた道)。
 
 もう 1 つ守るのは**色の出どころが 1 つであること**。表だけ PowerPoint 自前のスタイルで
@@ -124,7 +124,7 @@ class ThemeThroughTheWorkspaceTest(unittest.TestCase):
         return found.group(0)
 
     def test_nothing_declared_means_the_specimens_own_look(self) -> None:
-        """⚠ **意匠の真値は型見本 1 枚。**書かなければそこから来る。"""
+        """⚠ **見た目の真値はテンプレート 1 枚。**書かなければそこから来る。"""
         _dress(self.root / "specimen.pptx",
                Theme(type=Type(family="Arial"), palette=Palette(accent="0092D1")))
         table = self._table_of(self._built(""))

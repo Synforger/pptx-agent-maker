@@ -136,7 +136,7 @@ def test_unknown_deck_and_page_are_404(live):
 
 
 def test_image_names_outside_the_hash_shape_are_refused(live):
-    """画像名は保管庫が付けた 16 桁の hash だけを通す。"""
+    """画像名はキャッシュが付けた 16 桁の hash だけを通す。"""
     base, _ = live
     for bad in ("..%2f..%2fetc%2fpasswd", "short", "versions.json", "x" * 16):
         assert status_of(f"{base}/api/pages/w1/{bad}.jpg") == 404

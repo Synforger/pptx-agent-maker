@@ -35,6 +35,65 @@ class ProjectTest(unittest.TestCase):
     def test_the_project_name_reaches_the_settings(self) -> None:
         self.assertIn("a-deck-project", (self.root / "workspace.toml").read_text())
 
+    def test_a_project_can_be_given_its_look_as_it_is_created(self) -> None:
+        """⚠ **建てる 1 手で決める** ― あとから手で上書きすると、忘れた回だけ顔が変わる。"""
+        elsewhere = Path(self.tmp.name) / "brand.pptx"
+        shutil.copy(REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx",
+                    elsewhere)
+        elsewhere.write_bytes(elsewhere.read_bytes())  # 別の 1 枚として置く
+        root = Path(self.tmp.name) / "with-a-look"
+        create(root, specimen=elsewhere)
+        self.assertEqual((root / "specimen.pptx").read_bytes(), elsewhere.read_bytes())
+
+    def test_a_folder_hands_over_the_look_and_the_table_that_reads_it(self) -> None:
+        """⚠ pptx のテーマ色は意味を持たない枠で、ツールは意味で色を使う。**その 2 つを
+        繋ぐ表はテンプレートの中に書けない**ので、対で渡せる。
+        """
+        shelf = Path(self.tmp.name) / "house-style"
+        shelf.mkdir()
+        shutil.copy(REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx",
+                    shelf / "specimen.pptx")
+        (shelf / "workspace.toml").write_text(
+            'root = "."\n\n[theme]\nfont = "Arial"\n', encoding="utf-8")
+
+        root = Path(self.tmp.name) / "from-a-shelf"
+        create(root, specimen=shelf)
+        self.assertEqual((root / "specimen.pptx").read_bytes(),
+                         (shelf / "specimen.pptx").read_bytes())
+        self.assertIn('font = "Arial"', (root / "workspace.toml").read_text(encoding="utf-8"))
+
+    def test_a_folder_without_a_specimen_is_said_plainly(self) -> None:
+        shelf = Path(self.tmp.name) / "empty-shelf"
+        shelf.mkdir()
+        root = Path(self.tmp.name) / "never-from-here"
+        with self.assertRaises(FileNotFoundError) as caught:
+            create(root, specimen=shelf)
+        self.assertIn("specimen.pptx", str(caught.exception))
+        self.assertFalse(root.exists())
+
+    def test_a_folder_may_hold_only_the_specimen(self) -> None:
+        shelf = Path(self.tmp.name) / "look-only"
+        shelf.mkdir()
+        shutil.copy(REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx",
+                    shelf / "specimen.pptx")
+        root = Path(self.tmp.name) / "look-only-project"
+        create(root, name="look-only-project", specimen=shelf)
+        self.assertIn("look-only-project", (root / "workspace.toml").read_text(encoding="utf-8"))
+
+    def test_a_specimen_that_is_not_there_is_said_before_anything_is_written(self) -> None:
+        root = Path(self.tmp.name) / "never-built"
+        with self.assertRaises(FileNotFoundError):
+            create(root, specimen=Path(self.tmp.name) / "nope.pptx")
+        self.assertFalse(root.exists(), "半分だけできた folder が残っている")
+
+    def test_a_specimen_that_is_not_a_pptx_is_refused(self) -> None:
+        plain = Path(self.tmp.name) / "notes.txt"
+        plain.write_text("not a deck", encoding="utf-8")
+        root = Path(self.tmp.name) / "never-built-either"
+        with self.assertRaises(ValueError):
+            create(root, specimen=plain)
+        self.assertFalse(root.exists())
+
     def test_an_existing_folder_is_not_overwritten(self) -> None:
         with self.assertRaises(FileExistsError):
             create(self.root)

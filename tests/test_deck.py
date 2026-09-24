@@ -270,5 +270,103 @@ class TheFixturesTravelWithTheRepository(unittest.TestCase):
                          "run these tests")
 
 
+
+class PicturesNobodyKeepsAreDropped(unittest.TestCase):
+    """⚠ **頁を消しても、その頁の絵は残っていた。**
+
+    部品を消すのは参照の側だけなので、載せなかった絵が最後まで運ばれる ― デッキが重く
+    なるだけでなく、**載せないと決めた絵が納品物の中まで付いてくる**。実物では、頁を
+    落として 1 頁にしたデッキの重さのほとんどが、誰からも参照されない絵だった。
+    """
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        # ⚠ 頁ごとに**別の**絵を持たせる (= 同じ 1 枚を共有していると、頁を落としても
+        # その絵はまだ誰かに使われていて、掃除が効いたのか分からない)
+        deck = new_deck()
+        for title, picture in (("一枚目", "dot.png"), ("二枚目", "wide.png")):
+            page = Page(title, footer="出所")
+            page.figure(page.body, REPO / "tests" / "data" / picture, 1.0, caption=title)
+            add_page(deck, page.build())
+        self.specimen = save(deck, self.dir / "specimen.pptx")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    @staticmethod
+    def _media(deck: Path) -> set[str]:
+        with zipfile.ZipFile(deck) as archive:
+            return {Path(n).name for n in archive.namelist() if n.startswith("ppt/media/")}
+
+    def test_the_pictures_of_a_page_nobody_declared_are_gone(self) -> None:
+        out = self.dir / "built.pptx"
+        with Deck.open(self.specimen, out) as deck:
+            deck.copy(1)
+        self.assertLess(len(self._media(out)), len(self._media(self.specimen)),
+                        "誰からも参照されない絵が残っている")
+
+    def test_the_picture_of_a_page_that_stayed_is_still_there(self) -> None:
+        out = self.dir / "built.pptx"
+        with Deck.open(self.specimen, out) as deck:
+            deck.copy(1)
+        with zipfile.ZipFile(out) as archive:
+            rels = "".join(archive.read(n).decode("utf-8") for n in archive.namelist()
+                           if n.endswith(".rels"))
+        wanted = set(re.findall(r'media/([\w.]+)"', rels))
+        self.assertTrue(wanted, "頁が絵を 1 枚も指していない")
+        self.assertTrue(wanted <= self._media(out), "まだ使われている絵まで落ちている")
+
+    def test_nothing_is_dropped_when_every_page_stays(self) -> None:
+        out = self.dir / "built.pptx"
+        with Deck.open(self.specimen, out) as deck:
+            deck.copy(1)
+            deck.copy(2)
+        with zipfile.ZipFile(out) as archive:
+            rels = "".join(archive.read(n).decode("utf-8") for n in archive.namelist()
+                           if n.endswith(".rels"))
+        self.assertTrue(set(re.findall(r'media/([\w.]+)"', rels)) <= self._media(out))
+
+
+
+class DeclaredPagesDoNotInheritALayout(unittest.TestCase):
+    """⚠ **宣言で組んだ頁は白紙に描いてある。**
+
+    持ち込むときレイアウトの参照をそのままにすると、番号だけが引き継がれてテンプレートの別の
+    レイアウトの上に乗る。実物では「終わりの頁」の上に乗り、その背景の飾りが全頁に出た。
+    """
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.specimen = a_specimen(self.dir / "specimen.pptx", ["表紙"])
+        self.elsewhere = a_specimen(self.dir / "elsewhere.pptx", ["前の回", "その次"])
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def _layouts(self, deck: Path) -> list[str]:
+        with zipfile.ZipFile(deck) as archive:
+            return [found for name in archive.namelist() if name.startswith("ppt/slides/_rels/")
+                    for found in re.findall(r"slideLayout\d+", archive.read(name).decode("utf-8"))]
+
+    def test_a_declared_page_lands_on_the_first_layout(self) -> None:
+        out = self.dir / "built.pptx"
+        with Deck.open(self.specimen, out) as deck:
+            deck.copy(1)
+            deck.bring(self.elsewhere, 1, relayout=True)
+        self.assertIn("slideLayout1", self._layouts(out))
+
+    def test_a_page_imported_from_an_earlier_deck_keeps_its_own(self) -> None:
+        """過去の回の頁は、元のレイアウトの上で作られている (= 動かさない)。"""
+        out = self.dir / "built.pptx"
+        with Deck.open(self.specimen, out) as deck:
+            deck.copy(1)
+            deck.bring(self.elsewhere, 2)
+        with zipfile.ZipFile(self.elsewhere) as archive:
+            rels = archive.read("ppt/slides/_rels/slide2.xml.rels").decode("utf-8")
+        self.assertIn(re.findall(r"slideLayout\d+", rels)[0], self._layouts(out))
+
+
 if __name__ == "__main__":
     unittest.main()

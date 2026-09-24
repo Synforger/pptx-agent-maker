@@ -22,7 +22,7 @@ sys.path.insert(0, str(REPO / "tests"))
 from pptx_agent_maker import DEFAULT, Page  # noqa: E402
 from pptx_agent_maker.checks import CHECKS, run_all  # noqa: E402
 from pptx_agent_maker.checks.rules import (  # noqa: E402
-    empty_cells, internal_names, off_page, type_floor, unreplaced)
+    empty_cells, internal_names, off_page, overlap, type_floor, unreplaced)
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 from test_deck import make_dot  # noqa: E402
 
@@ -86,9 +86,24 @@ class ChecksFireTest(unittest.TestCase):
         deck = raw_deck(self.dir / "stale.pptx", lambda s: text_at(s, "W3 の値をそのまま掲載"))
         self.assertTrue(unreplaced.run(deck, CONFIG))
 
+    def test_words_printed_on_top_of_each_other_are_caught(self) -> None:
+        """⚠ **枠ではなく描かれた文字で見る** ― 枠で見ていた頃は、画面では離れている
+        物が上がり、実デッキでは上がったものが全部空振りだった。
+        """
+        def two_lines_in_one_place(slide):
+            text_at(slide, "うえに乗る長い文字の行")
+            box = slide.shapes.add_textbox(Emu(1000000), Emu(1050000),
+                                           Emu(3000000), Emu(500000))
+            run = box.text_frame.paragraphs[0].add_run()
+            run.text = "したに敷かれる長い文字の行"
+            run.font.size = Pt(14)
+
+        deck = raw_deck(self.dir / "stacked.pptx", two_lines_in_one_place)
+        self.assertTrue(overlap.run(deck), "重なっている文字が上がらない")
+
     def test_every_check_has_a_fixture_that_fires_it(self) -> None:
         """A check nobody proved is a check nobody can trust."""
-        proven = {off_page.NAME, type_floor.NAME, empty_cells.NAME,
+        proven = {off_page.NAME, overlap.NAME, type_floor.NAME, empty_cells.NAME,
                   internal_names.NAME, unreplaced.NAME}
         self.assertEqual({check.NAME for check in CHECKS}, proven,
                          "a check exists with no fixture proving it fires")

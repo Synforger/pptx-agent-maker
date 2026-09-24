@@ -1,7 +1,7 @@
 """A .pptx is a zip of XML parts. This opens one, and writes it back.
 
 python-pptx では頁を複製できず、別の pptx から頁を持ってくることもできない
-(= 公式に口が無い)。型見本の複製と過去デッキからの輸入は、部品を直に触るしかない。
+(= 公式に口が無い)。テンプレートの複製と過去デッキからの輸入は、部品を直に触るしかない。
 ここはその最下層で、**部品の登録を 1 箇所に集める** ― 登録漏れは PowerPoint の
 「修復しますか」に化ける。
 """
@@ -12,6 +12,9 @@ import re
 import shutil
 import zipfile
 from pathlib import Path
+
+#: rels が絵を指す書き方 (= `Target="../media/image3.png"`)
+MEDIA_TARGET = re.compile(r'Target="[^"]*?media/([^"]+)"')
 
 SLIDE_TYPE = ("application/vnd.openxmlformats-officedocument.presentationml.slide+xml")
 SLIDE_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide"
@@ -58,6 +61,25 @@ class Archive:
         numbers = [int(m.group(1)) for name in self.slide_names()
                    if (m := re.match(r"slide(\d+)\.xml", name))]
         return f"slide{max(numbers, default=0) + 1}.xml"
+
+    def drop_unreferenced_media(self) -> list[str]:
+        """Remove the pictures nothing points at any more, and say which went.
+
+        ⚠ **頁を消しても、その頁の絵は残る。**部品を消すのは参照の側だけなので、
+        載せなかった絵が最後まで運ばれる ― デッキが重くなるだけでなく、**載せないと
+        決めた絵が納品物の中まで付いてくる**。
+        """
+        wanted: set[str] = set()
+        for rels in self.tree.rglob("*.rels"):
+            wanted |= set(MEDIA_TARGET.findall(rels.read_text(encoding="utf-8")))
+
+        media = self.tree / "ppt/media"
+        dropped = []
+        for picture in sorted(media.glob("*")) if media.is_dir() else []:
+            if picture.name not in wanted:
+                picture.unlink()
+                dropped.append(picture.name)
+        return dropped
 
     def next_media_name(self, extension: str) -> str:
         media = self.tree / "ppt/media"

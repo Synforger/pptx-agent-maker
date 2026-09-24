@@ -1,12 +1,12 @@
 """The finite set of page shapes a deck may use.
 
-**型を用意して「使ってください」にすると、使われない。**前の世代では版面の縦位置を
+**型を用意して「使ってください」にすると、使われない。**前の世代では頁の縦位置を
 いくつか名前で持っていたが、頁は隣に自分の値を書き、名前のある位置のすぐ横に
 名前のない値が積み上がった。読み手には、0.3mm のずれが重なった揺れとして届く。
 
 ここでは頁が**型を選ぶことしかできない**。座標を書く口も、並びを変える口も無い。
 
-版面の並びは 1 つしかない。書かなかった帯は取られないだけで、順序は動かない:
+頁の並びは 1 つしかない。書かなかった帯は取られないだけで、順序は動かない:
 
     題 → 条件の帯 → カード → **本体** → 表 → 読み方 → 結論の帯 → 出所
 
@@ -42,9 +42,11 @@ Filler = Callable[[Page, "Spec", Rect], None]
 
 #: 枠の宣言 (= 書かなければその帯は取られない)
 FRAME_KEYS = frozenset({"type", "kind", "title", "kicker", "condition", "conclusion",
-                        "footer", "replace", "highlight"})
+                        "footer", "replace"})
 #: 本体に添えられるもの (= **どの型でも**読まれる。共通の処理が拾う)
-EXTRA_KEYS = frozenset({"cards", "table", "note", "points"})
+#: ⚠ **カードの列数は `card_columns`。**絵の格子の `columns` と同じ名前だった間は、
+#: 格子を 3 列にするとカードまで 3 枚ずつに割れ、格子以外の型ではカードの列数を書けなかった。
+EXTRA_KEYS = frozenset({"cards", "card_columns", "table", "note", "points"})
 
 _TYPES: dict[str, tuple[Filler, frozenset, bool]] = {}
 
@@ -57,7 +59,7 @@ class PageTypeError(ValueError):
 class Spec:
     """One declared page, plus the two things it needs from outside.
 
-    `asset` と `aspect` を渡してもらうのは、版面の層が外の path も画像の中身も
+    `asset` と `aspect` を渡してもらうのは、頁の層が外の path も画像の中身も
     知らないまま保つため (= 座標が在るのはこの層だけ、という境界と同じ理由)。
     """
 
@@ -188,9 +190,9 @@ def _place_cards(page: Page, spec: Spec, area: Rect) -> Rect:
     cards = spec.cards()
     if not cards:
         raise PageTypeError("cards: the list is empty")
-    columns = int(spec.get("columns", len(cards)))
+    columns = int(spec.get("card_columns", len(cards)))
     if columns < 1:
-        raise PageTypeError("`columns` must be at least 1")
+        raise PageTypeError("`card_columns` must be at least 1")
     lines = -(-len(cards) // columns)
     tall = _card_height(page, cards, area.width, columns)
     wanted = tall * lines + page.theme.spacing.gap_m * (lines - 1)
@@ -393,7 +395,7 @@ def _board(page: Page, spec: Spec, area: Rect) -> None:
     """
 
 
-@register("agenda", needs=["buckets"], figure=False)
+@register("agenda", needs=["buckets"], takes=["highlight"], figure=False)
 def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     """Every item on the left, the buckets on the right, this chapter marked.
 

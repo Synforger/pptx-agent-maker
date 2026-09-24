@@ -1,7 +1,7 @@
 """Building one deck from a manifest.
 
 3 通りの作り方を **1 本の経路**に合わせる ― 型で組んだ頁はいったん pptx に焼き、
-型見本の複製も過去デッキからの輸入も同じ「頁を持ってくる」操作にする。経路が 2 本あると、
+テンプレートの複製も過去デッキからの輸入も同じ「頁を持ってくる」操作にする。経路が 2 本あると、
 どちらの順序が本当かが分からなくなる。
 """
 
@@ -61,7 +61,7 @@ def _place(deck: Deck, workspace: Workspace, entry: Entry, declared: dict[int, i
         if not source.is_file():
             raise ManifestError(f"page {index}: deck to import from not found: {source}")
         return deck.bring(source, entry.page)
-    return deck.bring(declared["path"], declared[index])
+    return deck.bring(declared["path"], declared[index], relayout=True)
 
 
 def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
