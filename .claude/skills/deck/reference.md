@@ -45,17 +45,19 @@ title = "…"
 | `flow` | `stages` | ― | 段を左から右へ、あいだに印 |
 | `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
 | `board` | `table` | ― | 表が主役の頁 (= 同上) |
-| `agenda` | `buckets` | ― | 章立て (= 同上) |
+| `agenda` | `buckets` | `highlight` | 章立て (= 同上。`highlight` = 強調する章の番号) |
 
 ## どの型にも添えられるもの
 
-`cards` / `table` / `note` / `points`
+`cards` / `card_columns` / `table` / `note` / `points`
+
+`card_columns` = カードを何枚ずつ並べるか (= 省略すると全部 1 段)。`figure_grid` の `columns` とは別の数。
 
 ⚠ **その型が読まないキーは拒まれる** (= 書いたつもりで頁に無い、を作らない)。
 
 ## 枠まわり (= どの頁も同じ順)
 
-`kicker` / `title` / `condition` / `conclusion` / `footer` / `replace` / `highlight`
+`kicker` / `title` / `condition` / `conclusion` / `footer` / `replace`
 
 ## 見た目 (= `workspace.toml`)
 

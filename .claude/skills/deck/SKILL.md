@@ -30,7 +30,8 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
 題 → 条件の帯 → カード → 本体 → 表 → 読み方 → 結論の帯 → 出所
 ```
 
-型が決めるのは**本体**だけで、カード・表・読み方・要点・キャプションは**どの型にも**添えられる。
+型が決めるのは**本体**だけで、カード・表・読み方・要点は**どの型にも**添えられる
+(= キャプションは絵の型だけ。型ごとに読むキーは `reference.md`)。
 
 ```toml
 [[pages]]
