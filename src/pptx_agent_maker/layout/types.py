@@ -425,3 +425,17 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
         tall = _card_height(page, [(head, mark)], band.width, 1)
         cell, _rest = band.split_top(min(tall, band.height))
         page.boxes(cell, [(head, mark)])
+
+
+def describe() -> str:
+    """Every type and the keys each reads, from the registry itself (= never out of date)."""
+    lines = ["page types (kind = \"declare\"):"]
+    for name in names():
+        _filler, needs, takes, figure = _TYPES[name]
+        needed = ", ".join(sorted(needs)) or "—"
+        own = ", ".join(sorted(takes)) or "—"
+        lines.append(f"  {name:<12} needs: {needed:<10} also reads: {own:<10}"
+                     f"{'' if figure else '  (may carry no picture)'}")
+    lines.append(f"  on any type: {', '.join(sorted(EXTRA_KEYS))}")
+    lines.append(f"  the frame:   {', '.join(sorted(FRAME_KEYS - {'type', 'kind'}))}")
+    return "\n".join(lines)

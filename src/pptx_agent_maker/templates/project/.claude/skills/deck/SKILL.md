@@ -69,6 +69,7 @@ task lift -- <テンプレートの folder> --page w1.pptx:3 --keep "項目" --r
 ## 宣言で頁を組む
 
 **型を選ぶ。**`figure` / `figures` / `figure_grid` / `flow` / `cards` / `board` / `agenda` の 7 つ。
+型ごとに読むキーと案件の recipe は `task types` が出す (= コードの登録から出るので、ここより正しい)。
 ⚠ **座標を書く口はどこにも無い。**頁の並びは固定で、書いた帯だけが出る:
 
 ```

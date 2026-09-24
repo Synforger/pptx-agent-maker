@@ -41,6 +41,12 @@ tasks:
     cmds:
       - '{{.MAKER}} preview .'
 
+  types:
+    desc: List the page types, the keys each reads, and this project's recipes
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} types .'
+
   round:
     desc: Start the next round from the one before (= task round -- w2 --from w1)
     deps: [_tool]

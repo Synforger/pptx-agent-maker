@@ -98,6 +98,9 @@ def main(argv: list[str] | None = None) -> int:
     rounded.add_argument("--from", dest="previous", required=True, metavar="MANIFEST",
                          help="the round to start from, e.g. w1")
 
+    listed = sub.add_parser("types", help="list the page types, the keys each reads, and the project's recipes")
+    listed.add_argument("path", help="the project folder")
+
     shown = sub.add_parser("show", help="print where a project keeps its things")
     shown.add_argument("path")
     shown.add_argument("page", nargs="?", metavar="DECK:PAGE",
@@ -179,6 +182,27 @@ def main(argv: list[str] | None = None) -> int:
             print(f"promoted {len(targets)} pages to recipe {args.name!r}")
             for path in written:
                 print(f"  wrote {path.name}")
+            return 0
+
+        if args.command == "types":
+            from .layout.types import describe
+            from .project.manifest import CARRIED_KEYS
+            from .project.recipes import HOLE
+            from .project.recipes import load as load_recipes
+
+            print(describe())
+            print(f"copy / import pages read: {', '.join(sorted(CARRIED_KEYS - {'kind'}))} "
+                  "(copy has no deck)")
+            print("recipe pages read: recipe, fill, why, replace, and what the recipe leaves open")
+            print("any page may carry: why (= a one-line note, 200 characters, no dates)")
+            recipes = load_recipes(workspace.root)
+            print(f"recipes in this project ({len(recipes)}):")
+            for name, recipe in recipes.items():
+                holes = sorted({h for v in recipe.values() if isinstance(v, str)
+                                for h in HOLE.findall(v)})
+                fixed = ", ".join(k for k in recipe if k != "type")
+                print(f"  {name:<12} type: {recipe['type']:<12} fixes: {fixed or '—'}"
+                      f"{'  fill: ' + ', '.join(holes) if holes else ''}")
             return 0
 
         if args.command == "round":
