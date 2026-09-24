@@ -48,10 +48,10 @@ tasks:
       - '{{.MAKER}} promote . {{.CLI_ARGS}}'
 
   show:
-    desc: Say where this project keeps its things
+    desc: Say where this project keeps its things (= task show -- w1.pptx:12 lists one page's pictures and tables)
     deps: [_tool]
     cmds:
-      - '{{.MAKER}} show .'
+      - '{{.MAKER}} show . {{.CLI_ARGS}}'
 
   _tool:
     internal: true

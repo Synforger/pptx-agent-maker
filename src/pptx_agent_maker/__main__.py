@@ -84,6 +84,8 @@ def main(argv: list[str] | None = None) -> int:
 
     shown = sub.add_parser("show", help="print where a project keeps its things")
     shown.add_argument("path")
+    shown.add_argument("page", nargs="?", metavar="DECK:PAGE",
+                       help="list one page's pictures and tables in the order a manifest fills them")
 
     built = sub.add_parser("build", help="build a deck from one of the project's manifests")
     built.add_argument("path", help="the project folder")
@@ -122,6 +124,20 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         workspace = Workspace.load(args.path)
+        if args.command == "show" and args.page:
+            from .deck.swap import SwapError, describe
+
+            deck, _, number = args.page.rpartition(":")
+            if not deck or not number.isdigit():
+                print(f"error: {args.page!r} is not DECK:PAGE (e.g. w1.pptx:12)", file=sys.stderr)
+                return 1
+            try:
+                print(describe(_deck_path(workspace, deck), int(number)))
+            except (SwapError, OSError) as error:
+                print(f"error: {error}", file=sys.stderr)
+                return 1
+            return 0
+
         if args.command == "show":
             print(f"root       {workspace.root}")
             for name in FOLDERS:

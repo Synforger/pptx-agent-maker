@@ -13,7 +13,9 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
 ## 順番
 
 1. **既に在るものを見る** ― `task show` と、案件の `*.toml` / `*.pptx`。
-   **同じ役割の頁が過去の回に在れば、複製するか輸入する** (= 作り直さない)
+   **同じ役割の頁が過去の回に在れば、複製するか輸入する** (= 作り直さない)。
+   中身だけ新しくするなら `pictures` / `tables` で入れ替える ― 並び順は
+   `task show -- w1.pptx:12` が出す。数や表の形が合わなければ build が止まる
 2. **manifest を書く / 直す** ― 並びの真値はここ 1 枚。頁の作り方は 3 つ
    (`copy` / `import` / `declare`) と、案件の recipe を呼ぶ `recipe`
 3. **組む** ― `task build -- w1` (= 組んで検査まで)

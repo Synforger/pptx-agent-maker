@@ -35,6 +35,9 @@ WHY_LIMIT = 200
 #: 覚え書きの中の日付 (= 改訂履歴が積まれ始めた印)
 DATED = re.compile(r"\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b")
 
+#: 複製と輸入の頁が読むキー (= 型を通らないので、ここで読むものを決めて残りは拒む)
+CARRIED_KEYS = frozenset({"kind", "page", "deck", "replace", "why", "pictures", "tables"})
+
 #: manifest の運び方に属するキー (= 型へは渡さない)
 _NOT_PAGE_DATA = frozenset({"kind", "page", "deck", "replace", "why"})
 
@@ -123,6 +126,17 @@ class Manifest:
                 "A page that fits none of them means a type is missing; add one rather "
                 "than placing shapes by hand."
             )
+
+        if kind in ("copy", "import"):
+            # ⚠ **読まないキーを黙って捨てない。**型を通らない頁は、ここで拒まないと
+            # 綴り違いも型のキーもそのまま消える (= 書いたつもりで頁に無い)。
+            takes = CARRIED_KEYS - ({"deck"} if kind == "copy" else set())
+            unknown = sorted(set(page) - takes)
+            if unknown:
+                raise ManifestError(
+                    f"{where}: a {kind} page does not take {', '.join(unknown)} "
+                    f"(= it takes {', '.join(sorted(takes))})"
+                )
 
         why = str(page.get("why", ""))
         _check_why(where, why)

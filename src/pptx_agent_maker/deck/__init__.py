@@ -3,6 +3,7 @@
     archive.py   部品を触る最下層 (= pptx は zip)
     slides.py    テンプレートの複製 / 過去デッキからの輸入
     text.py      文言の置換
+    swap.py      絵と表の中身の入れ替え (= 人が整えた頁の形はそのまま)
 
 ⚠ **宣言しなかった頁は、閉じるときに消える。**旧世代では「表示から外す」だけで部品が
 残り、それが PowerPoint の修復ダイアログの主因だった。掃除を呼ぶ手順にすると忘れるので、
@@ -45,6 +46,18 @@ class Slide:
     def replace(self, old: str, new: str, *, count: int = 1) -> "Slide":
         """Swap exact words. Missing text raises rather than passing silently."""
         _text.replace(self.path, old, new, count=count)
+        return self
+
+    def swap_pictures(self, files: list[Path]) -> "Slide":
+        """New pictures into the page's pictures, in reading order (= `swap.py`)."""
+        from .swap import swap_pictures
+        swap_pictures(self._archive, self.name, files)
+        return self
+
+    def swap_tables(self, grids: list) -> "Slide":
+        """New cells into the page's tables, in reading order, same shape only."""
+        from .swap import swap_tables
+        swap_tables(self.path, grids)
         return self
 
     def words(self) -> list[str]:
