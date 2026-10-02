@@ -48,7 +48,7 @@ def add_page(deck: Presentation, elements: list[Element], theme: Theme = DEFAULT
     slide = deck.slides.add_slide(deck.slide_layouts[6])  # 6 = blank
     for element in elements:
         if isinstance(element, Fill):
-            _fill(slide, element)
+            _fill(slide, element, theme)
         elif isinstance(element, Bar):
             _bar(slide, element, theme)
         elif isinstance(element, Diamond):
@@ -76,14 +76,25 @@ def _plain(shape) -> None:
         shape._element.remove(style)
 
 
-def _fill(slide, element: Fill) -> None:
+def _edge(shape, outline: str, theme: Theme, *, dashed: bool = False) -> None:
+    """The line round a shape, or none: every shape says which, so none inherits one."""
+    if not outline:
+        shape.line.fill.background()
+        return
+    shape.line.color.rgb = _colour(outline)
+    shape.line.width = Emu(theme.spacing.hairline)
+    if dashed:
+        shape.line.dash_style = MSO_LINE_DASH_STYLE.DASH
+
+
+def _fill(slide, element: Fill, theme: Theme) -> None:
     shape = slide.shapes.add_shape(
         MSO_SHAPE.RECTANGLE, Emu(element.rect.left), Emu(element.rect.top),
         Emu(element.rect.width), Emu(element.rect.height),
     )
     shape.fill.solid()
     shape.fill.fore_color.rgb = _colour(element.colour)
-    shape.line.fill.background()
+    _edge(shape, element.outline, theme)
     _plain(shape)
     # A shape with no text still carries an empty paragraph; give it nothing to
     # render rather than an empty run.
@@ -101,13 +112,7 @@ def _bar(slide, element: Bar, theme: Theme) -> None:
         shape.fill.fore_color.rgb = _colour(element.fill)
     else:
         shape.fill.background()
-    if element.outline:
-        shape.line.color.rgb = _colour(element.outline)
-        shape.line.width = Emu(theme.spacing.hairline)
-        if element.dashed:
-            shape.line.dash_style = MSO_LINE_DASH_STYLE.DASH
-    else:
-        shape.line.fill.background()
+    _edge(shape, element.outline, theme, dashed=element.dashed)
     _plain(shape)
     frame = shape.text_frame
     frame.word_wrap = True

@@ -76,6 +76,28 @@ class ReadingAThemeTest(unittest.TestCase):
                 theme_from(settings)
             self.assertIn("does not take", str(caught.exception))
 
+    def test_the_edge_of_a_ground_is_the_same_hue_further_from_white(self) -> None:
+        palette = Palette()
+        for ground in (palette.box, palette.band, palette.tint):
+            with self.subTest(ground):
+                edge = palette.edge(ground)
+                self.assertRegex(edge, r"\A[0-9A-F]{6}\Z")
+                pairs = [(int(ground[i:i + 2], 16), int(edge[i:i + 2], 16)) for i in (0, 2, 4)]
+                self.assertTrue(all(deep <= light for light, deep in pairs))
+                # 白から離れているぶんの順 (= 色あい) は変わらない
+                self.assertEqual(sorted(range(3), key=lambda i: pairs[i][0]),
+                                 sorted(range(3), key=lambda i: pairs[i][1]))
+
+    def test_the_edge_of_white_is_white_and_no_channel_goes_below_zero(self) -> None:
+        self.assertEqual("FFFFFF", Palette().edge("FFFFFF"))
+        self.assertEqual("000000", Palette().edge("101010"))
+
+    def test_how_deep_an_edge_is_drawn_is_not_the_projects_to_set(self) -> None:
+        with self.assertRaises(ThemeError):
+            theme_from({"palette": {"EDGE_DEPTH": "2"}})
+        with self.assertRaises(ThemeError):
+            theme_from({"palette": {"edge": "000000"}})
+
     def test_a_misspelled_colour_is_refused_rather_than_dropped(self) -> None:
         with self.assertRaises(ThemeError) as caught:
             theme_from({"palette": {"acccent": "1F5FA9"}})

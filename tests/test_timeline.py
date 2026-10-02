@@ -19,7 +19,7 @@ sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
-from pptx_agent_maker.layout.page import Bar, Diamond, PageFullError, Text  # noqa: E402
+from pptx_agent_maker.layout.page import LIGHT, Bar, Diamond, PageFullError, Text  # noqa: E402
 from pptx_agent_maker.deck.look import SLOTS, look_of  # noqa: E402
 from pptx_agent_maker.layout.tokens import DEFAULT, theme_from  # noqa: E402
 from pptx_agent_maker.layout.types import PageTypeError  # noqa: E402
@@ -159,13 +159,15 @@ class TheWordsStayWords(unittest.TestCase):
         sure, maybe = named(built, "sure"), named(built, "maybe")
         self.assertTrue(maybe.dashed and maybe.outline)
         self.assertEqual(DEFAULT.palette.paper, maybe.fill)
-        self.assertFalse(sure.dashed or sure.outline)
+        self.assertFalse(sure.dashed)
         self.assertNotEqual(DEFAULT.palette.paper, sure.fill)
 
     def test_neighbouring_lanes_differ_in_tone_and_use_only_palette_colours(self):
         built = page([lane("One", [bar(0, 6, "a")]), lane("Two", [bar(0, 6, "b")])])
         self.assertNotEqual(named(built, "a").fill, named(built, "b").fill)
         palette = set(vars(DEFAULT.palette).values())
+        # 薄い地の枠は palette がその地から出す色 (= 頁が自分で選んだ色ではない)
+        palette |= {DEFAULT.palette.edge(getattr(DEFAULT.palette, tone)) for tone in LIGHT}
         for element in built.build():
             for colour in (getattr(element, "colour", ""), getattr(element, "fill", ""),
                            getattr(element, "outline", "")):
@@ -246,6 +248,75 @@ class TheToneOfALane(unittest.TestCase):
         self.assertNotIn("tint", [name for _slot, name in SLOTS])
         template = REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx"
         self.assertNotIn("tint", look_of(template).get("palette", {}))
+
+
+class TheEdgeOfABar(unittest.TestCase):
+    """A bar on a light ground carries a line of its own colour, deeper.
+
+    ⚠ **薄い地は列の地とも紙とも近い。**枠が無かった間は、棒の端が背景に溶けて、どこからどこまでの
+    棒なのか読めなかった (= 実物のデッキで差し戻された)。
+    """
+
+    def lanes(self, *tones):
+        return [{"name": f"Lane {n}", "tone": tone, "bars": [bar(0, 6, f"bar {n}")]}
+                for n, tone in enumerate(tones, start=1)]
+
+    def test_a_bar_on_a_light_ground_has_a_solid_edge_of_its_own_ground_made_deeper(self):
+        palette = DEFAULT.palette
+        built = page(self.lanes(*LIGHT))
+        for n, tone in enumerate(LIGHT, start=1):
+            with self.subTest(tone):
+                drawn = named(built, f"bar {n}")
+                self.assertEqual(palette.edge(getattr(palette, tone)), drawn.outline)
+                self.assertFalse(drawn.dashed)
+
+    def test_the_edge_differs_from_the_ground_the_paper_and_the_wash(self):
+        palette = DEFAULT.palette
+        for tone in LIGHT:
+            with self.subTest(tone):
+                edge = palette.edge(getattr(palette, tone))
+                self.assertNotIn(edge, {getattr(palette, tone), palette.paper, palette.wash})
+
+    def test_the_three_light_grounds_have_three_different_edges(self):
+        built = page(self.lanes(*LIGHT))
+        self.assertEqual(3, len({named(built, f"bar {n}").outline for n in range(1, 4)}))
+
+    def test_a_bar_on_a_dark_ground_has_none(self):
+        for tone in ("accent", "good", "bad"):
+            with self.subTest(tone):
+                self.assertEqual("", named(page(self.lanes(tone)), "bar 1").outline)
+
+    def test_unsaid_the_alternating_grounds_each_take_their_own_edge(self):
+        palette = DEFAULT.palette
+        built = page([lane("One", [bar(0, 6, "a")]), lane("Two", [bar(0, 6, "b")])])
+        self.assertEqual([palette.edge(palette.box), palette.edge(palette.band)],
+                         [named(built, text).outline for text in "ab"])
+
+    def test_a_tentative_bar_keeps_its_own_dashed_line(self):
+        built = page([{"name": "One", "tone": "tint",
+                       "bars": [bar(0, 2, "sure"), bar(2, 4, "maybe", tentative=True)]}])
+        maybe = named(built, "maybe")
+        self.assertTrue(maybe.dashed)
+        self.assertEqual(DEFAULT.palette.muted, maybe.outline)
+
+    def test_the_projects_own_ground_brings_its_edge_along(self):
+        theme = theme_from({"palette": {"tint": "abcdef"}})
+        built = types.build({"type": "timeline", "title": "A plan", "periods": MONTHS,
+                             "lanes": self.lanes("tint")}, lambda name: Path(name),
+                            lambda path: 1.0, theme)
+        drawn = named(built, "bar 1")
+        self.assertEqual(theme.palette.edge("ABCDEF"), drawn.outline)
+        self.assertNotEqual(DEFAULT.palette.edge(DEFAULT.palette.tint), drawn.outline)
+
+    def test_the_edge_takes_no_room(self):
+        """枠は棒の端の上に引く線で、棒の位置も大きさも変えない。"""
+        light, dark = page(self.lanes("box")), page(self.lanes("accent"))
+        self.assertEqual(named(dark, "bar 1").rect, named(light, "bar 1").rect)
+
+    def test_the_period_cells_and_the_phase_bands_have_none(self):
+        built = page(self.lanes("box"), phases=[{"from": 0, "to": 6, "label": "this half"}])
+        for kind in ("period", "span"):
+            self.assertEqual({""}, {piece.outline for piece in of(built, kind)}, kind)
 
 
 class DatesThatCutAcross(unittest.TestCase):
@@ -557,10 +628,18 @@ class OnceBaked(unittest.TestCase):
         width, height = re.search(r'<a:ext cx="(\d+)" cy="(\d+)"', turned[0]).groups()
         self.assertEqual(width, height)
 
-    def test_a_tentative_bar_has_a_dashed_line_and_a_normal_bar_has_none(self):
+    def test_a_tentative_bar_has_a_dashed_line_and_a_light_bar_a_solid_one(self):
         self.assertIn('<a:prstDash val="dash"/>', self.shape("maybe"))
+        edge = DEFAULT.palette.edge(DEFAULT.palette.box)
         self.assertNotIn("prstDash", self.shape("build"))
-        self.assertRegex(self.shape("build"), r"<a:ln[^>]*>\s*<a:noFill/>")
+        self.assertRegex(self.shape("build"),
+                         rf'<a:ln w="{DEFAULT.spacing.hairline}">\s*<a:solidFill>\s*'
+                         rf'<a:srgbClr val="{edge}"/>')
+
+    def test_a_shape_with_no_edge_says_so(self):
+        """線を書かない図形はテーマの線を引く。持たないなら「無い」と書く。"""
+        for text in ("Jan", "this half"):
+            self.assertRegex(self.shape(text), r"<a:ln[^>]*>\s*<a:noFill/>", text)
 
     def test_no_shape_borrows_the_themes_shape_style(self):
         """参照が残ると、LibreOffice で焼いた絵にだけ影が付く。"""
