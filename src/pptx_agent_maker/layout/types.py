@@ -13,12 +13,14 @@
 型が決めるのは**本体に何をどう置くか**だけで、カード・表・読み方・要点はどの型でも
 添えられる。既に組まれたデッキ群を数えると、頁の中身は「絵が 1 枚か / 並ぶか / 無いか」
 と「表と文を添えるか」でほとんど尽きていた ― 本体の形を型に、それ以外を付属にすると、
-型はこの 7 つで足りる。
+型は 7 つで足りた。8 つめの `timeline` は、絵で描いて貼ると文字が絵に焼き込まれて人が
+直せなくなる頁 (= 期間 × レーンの計画) のために足した。
 
     figure          絵 1 枚が本体
     figures         絵を横に並べる (= 条件ちがいの比較)
     figure_grid     絵を格子に並べる (= 対象 × 条件のような 2 軸)
     flow            段が左から右へ流れる (= 各段にノード、段の下に分かったこと)
+    timeline        期間が左から右、レーンが上から下 (= レーンの中に棒と印)
     cards           カードの並びが本体 (= 今週の計画、まとめ)
     board           表 1 枚が本体 (= 毎週積み上げる早見表)
     agenda          目次 (= 左に全項目、右にバケット。今いる章を強調する)
@@ -30,6 +32,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from numbers import Real
 from pathlib import Path
 from typing import Callable, Iterable
 
@@ -282,7 +285,7 @@ def _card_height(page: Page, cards, width: int, columns: int, *, small: bool = F
     return tallest + 2 * s.pad
 
 
-# -- the seven bodies ------------------------------------------------------
+# -- the bodies --------------------------------------------------------------
 
 
 @register("figure", needs=["figure"], takes=["caption"])
@@ -372,6 +375,330 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
         if stage.get("settled") and settled_height:
             page.caption(after.split_top(settled_height)[0], str(stage["settled"]),
                          align="left")
+
+
+#: 余った高さを棒へ配る上限 (= 棒 1 段の高さに対する比)。配り切ると、3 本しか無い線表が
+#: 頁いっぱいの帯になる (= カードに頁の高さを配らないのと同じ理由)
+ROOMY = 0.6
+#: 名前を棒の中で 2 行に折ってよい長さ (= 棒の幅に対する比)。語の切れ目で折れるぶん、
+#: 2 行ちょうどは入らない
+TWO_LINES = 1.7
+
+
+@dataclass
+class _Piece:
+    """One thing on the time axis: a bar, a mark or a date, with the room its name takes."""
+
+    left: int
+    right: int
+    text: str
+    #: 名前をどこに書くか (= `in` 棒の中 / `right` / `left` 隣)
+    side: str
+    tall: int
+    #: 名前の幅 (= 隣に書くときに取る)
+    wide: int = 0
+    tentative: bool = False
+    point: bool = False
+    row: int = 0
+
+    def room(self, gap: int) -> tuple[int, int]:
+        """What it keeps clear of its neighbours: itself, and its name when that sits beside it."""
+        start = self.left - (gap + self.wide + gap if self.side == "left" else 0)
+        end = self.right + (gap + self.wide + gap if self.side == "right" else 0)
+        return start, end
+
+
+def _keys(item, allowed: set, what: str, hint: str = "") -> None:
+    """Refuse a key nobody reads inside a timeline's tables, the way a page's keys are."""
+    if not isinstance(item, dict):
+        raise PageTypeError(f"timeline: {what} is {item!r} — write it as a table of keys")
+    unknown = sorted(item.keys() - allowed)
+    if unknown:
+        raise PageTypeError(
+            f"timeline: {what} does not take {', '.join(unknown)} (= it accepts "
+            f"{', '.join(sorted(allowed))}).{hint}")
+
+
+def _position(item: dict, key: str, count: int, what: str) -> float:
+    """A place on the time axis, given as a period number (= 0 is where the first period starts)."""
+    value = item.get(key)
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise PageTypeError(
+            f"timeline: {what} needs `{key}` as a period number (= 0 is the start of the first "
+            f"period, {count} the end of the last; 0.5 is half a period), not {value!r}")
+    if not 0 <= value <= count:
+        raise PageTypeError(
+            f"timeline: {what} has `{key}` = {value:g}, outside the {count} periods (= 0 to {count})")
+    return float(value)
+
+
+def _stretch(item: dict, count: int, what: str) -> tuple[float, float]:
+    start, end = _position(item, "from", count, what), _position(item, "to", count, what)
+    if end <= start:
+        raise PageTypeError(
+            f"timeline: {what} runs from {start:g} to {end:g} — it has to end after it starts")
+    return start, end
+
+
+def _rows(pieces: list[_Piece], gap: int) -> int:
+    """Give each piece the first row it clears, left to right, and say how many rows that took."""
+    ends: list[int] = []
+    for piece in sorted(pieces, key=lambda p: p.room(gap)[0]):
+        start, end = piece.room(gap)
+        for row, taken in enumerate(ends):
+            if taken <= start:
+                piece.row, ends[row] = row, end
+                break
+        else:
+            piece.row = len(ends)
+            ends.append(end)
+    return len(ends)
+
+
+def _flags(pieces: list[_Piece], gap: int) -> int:
+    """Rows for the names of dates that cut across the page, each name flying from its own line.
+
+    線は自分の名前の段から下へ伸びる。だから**名前が、上の段から降りてくる別の線に
+    貫かれない**段を選ぶ (= 貫かれると、どの線の名前か読めなくなる)。置ける段が無ければ
+    いちばん上に段を足す。
+    """
+    placed: list[_Piece] = []
+    rows = 0
+
+    def clear(piece: _Piece, row: int) -> bool:
+        start, end = piece.room(gap)
+        for other in placed:
+            o_start, o_end = other.room(gap)
+            if other.row == row and start < o_end and o_start < end:
+                return False                      # 同じ段で名前どうしが重なる
+            if other.row < row and start < other.left < end:
+                return False                      # 上の段の線が、この名前を貫く
+            if other.row > row and o_start < piece.left < o_end:
+                return False                      # この線が、下の段の名前を貫く
+        return True
+
+    for piece in sorted(pieces, key=lambda p: p.left):
+        row = next((r for r in range(rows + 1) if clear(piece, r)), None)
+        if row is None:
+            for other in placed:
+                other.row += 1
+            row = 0
+            if not clear(piece, row):
+                raise PageFullError(
+                    f"the milestone {piece.text!r} sits too close to the others for every name "
+                    "to be read — fewer milestones here, or shorter names; they will not shrink")
+        piece.row = row
+        placed.append(piece)
+        rows = max(p.row for p in placed) + 1
+    return rows
+
+
+@register("timeline", needs=["periods", "lanes"], takes=["phases", "milestones"])
+def _timeline(page: Page, spec: Spec, area: Rect) -> None:
+    """Periods left to right, lanes top to bottom, bars and marks on the lanes.
+
+    位置は**期間の番号**で受ける (= 0 が最初の期間の頭、`len(periods)` が最後の期間の終わり、
+    半期間なら 0.5)。座標は受け取らない ― 型が `area` を割って決める。
+
+    ⚠ **文字は全部 pptx の文字のまま置く。**この型は、絵で描いて貼った計画の頁を人が
+    直せなかったために在る。棒の名前は棒の中に持たせ、2 行でも収まらない名前は棒の隣へ
+    出す (= 縮めない、切らない)。隣にも置けなければ棒の中で折り返し、それで頁に
+    収まらなければ `PageFullError` で止める。
+
+    ⚠ **向きは矢印の図形で描かない** (= `flow` と同じ理由)。順序は棒の並びが示す。
+    """
+    theme, s = page.theme, page.theme.spacing
+    size = theme.type.caption
+    line = theme.line_height(size)
+    periods = [str(period) for period in spec.get("periods") or []]
+    lanes = spec.get("lanes") or []
+    if not periods:
+        raise PageTypeError("timeline: `periods` is empty — a timeline needs its periods")
+    if not lanes:
+        raise PageTypeError("timeline: `lanes` is empty — a timeline needs at least one lane")
+    count = len(periods)
+    misplaced = (" `phases` and `milestones` belong to the page: in TOML, write them above the "
+                 "first `[[pages.lanes]]`.")
+    for index, lane in enumerate(lanes, start=1):
+        _keys(lane, {"name", "bars", "marks"}, f"lane {index}", misplaced)
+
+    # 左にレーンの名前、右に時間。名前の列は一番長い名前ぶんで、取りすぎるなら折り返させる。
+    # 時間の側は印の半分だけ内へ寄せる (= 端の時点に置いた印が枠から出ない)
+    widest = max(theme.width(str(lane.get("name", "")), size, bold=True) for lane in lanes)
+    name_width = min(widest + s.gap_s, area.width // 4)
+    names, column = area.columns([name_width, area.width - name_width], gap=s.gap_s)
+    plot = column.inset(x=s.mark // 2)
+
+    def at(position: float) -> int:
+        return plot.span(0, position / count).right
+
+    crossing: list[int] = []   # 頁を横切る日付の線の位置 (= 先に読む。名前を置く側を選ぶのに要る)
+
+    def beside(left: int, right: int, wide: int) -> str | None:
+        """Which side of something a name of this width can go on, if either.
+
+        右が先。ただし日付の線が名前を貫く側は、貫かれない側が在ればそちらへ譲る。
+        """
+        fits = []
+        if right + s.gap_s + wide <= column.right:
+            fits.append(("right", right + s.gap_s, right + s.gap_s + wide))
+        if left - s.gap_s - wide >= column.left:
+            fits.append(("left", left - s.gap_s - wide, left - s.gap_s))
+        clear = [side for side, start, end in fits if not any(start < x < end for x in crossing)]
+        return (clear or [side for side, _start, _end in fits] or [None])[0]
+
+    # -- 何がどれだけの高さを要るかを、置く前に全部出す ---------------------------
+    spans = []
+    for index, phase in enumerate(spec.get("phases") or [], start=1):
+        _keys(phase, {"from", "to", "label"}, f"phase {index}")
+        start, end = _stretch(phase, count, f"phase {index}")
+        spans.append((start, end, str(phase.get("label", ""))))
+    spans.sort()
+    for (_s, before, _l), (after, _e, label) in zip(spans, spans[1:]):
+        if after < before:
+            raise PageTypeError(f"timeline: phase {label!r} starts before the one before it ends")
+    span_height = 0
+    for start, end, label in spans:
+        inner = at(end) - at(start) - 2 * (s.bar_gap + s.bar_pad_x)
+        tall = line if theme.width(label, size) <= inner \
+            else theme.text_height(label, max(inner, 1), size)
+        span_height = max(span_height, tall + 2 * s.bar_pad_y)
+
+    for index, period in enumerate(periods):
+        if theme.width(period, size) > at(index + 1) - at(index):
+            raise PageFullError(
+                f"the period name {period!r} is wider than one of {count} columns — shorter "
+                "names, or fewer periods on this page; it will not shrink")
+
+    stones = []
+    for index, stone in enumerate(spec.get("milestones") or [], start=1):
+        _keys(stone, {"at", "text"}, f"milestone {index}")
+        where = at(_position(stone, "at", count, f"milestone {index}"))
+        text = str(stone.get("text", ""))
+        wide = theme.width(text, size, bold=True)
+        side = beside(where, where, wide)
+        if side is None:
+            raise PageFullError(f"the milestone name {text!r} is wider than the timeline itself")
+        stones.append(_Piece(where, where, text, side, line, wide))
+    stone_rows = _flags(stones, s.bar_pad_x)
+    crossing.extend(stone.left for stone in stones)
+
+    packed = []
+    for index, lane in enumerate(lanes, start=1):
+        pieces = []
+        for number, bar in enumerate(lane.get("bars") or [], start=1):
+            what = f"lane {index}, bar {number}"
+            _keys(bar, {"from", "to", "text", "tentative"}, what)
+            start, end = _stretch(bar, count, what)
+            left, right = at(start) + s.bar_gap, at(end) - s.bar_gap
+            if right <= left:
+                raise PageFullError(f"{what} is too short a stretch to draw at this scale")
+            text = str(bar.get("text", ""))
+            wide, inner = theme.width(text, size), right - left - 2 * s.bar_pad_x
+            if wide <= inner:
+                side, lines = "in", 1
+            elif wide <= inner * TWO_LINES:
+                side, lines = "in", 2
+            elif beside(left, right, wide):
+                side, lines = beside(left, right, wide), 1
+            else:
+                side, lines = "in", theme.lines(text, max(inner, 1), size)
+            pieces.append(_Piece(left, right, text, side, lines * line + 2 * s.bar_pad_y, wide,
+                                 tentative=bool(bar.get("tentative"))))
+        for number, mark in enumerate(lane.get("marks") or [], start=1):
+            what = f"lane {index}, mark {number}"
+            _keys(mark, {"at", "text"}, what)
+            where = at(_position(mark, "at", count, what))
+            left, right = where - s.mark // 2, where - s.mark // 2 + s.mark
+            text = str(mark.get("text", ""))
+            wide = theme.width(text, size)
+            side = beside(left, right, wide)
+            if side is None:
+                raise PageFullError(f"the name of {what} ({text!r}) is wider than the timeline itself")
+            pieces.append(_Piece(left, right, text, side, max(s.mark, line), wide, point=True))
+        if not pieces:
+            raise PageTypeError(f"timeline: lane {index} has neither bars nor marks")
+        name = str(lane.get("name", ""))
+        name_tall = line if theme.width(name, size, bold=True) <= names.width \
+            else theme.text_height(name, names.width, size)
+        rows = _rows(pieces, s.gap_s)
+        heights = [max(p.tall for p in pieces if p.row == row) for row in range(rows)]
+        packed.append((name, name_tall, pieces, heights))
+
+    def lane_height(name_tall: int, heights: list[int], extra: int = 0) -> int:
+        stack = sum(tall + extra for tall in heights) + s.row_gap * (len(heights) - 1)
+        return max(stack, name_tall) + 2 * s.gap_s
+
+    head = (span_height + s.gap_s if spans else 0) + line + s.gap_s \
+        + (stone_rows * line + s.gap_s if stones else 0)
+    wanted = head + sum(lane_height(name_tall, heights) for _n, name_tall, _p, heights in packed)
+    if wanted > area.height:
+        raise PageFullError(
+            f"this timeline needs {wanted} EMU of height and the body has {area.height} — "
+            "fewer lanes, shorter names, or two pages; it will not shrink")
+    extra = min((area.height - wanted) // sum(len(heights) for _n, _t, _p, heights in packed),
+                round((line + 2 * s.bar_pad_y) * ROOMY))
+
+    # -- 置く (= 上から帯を取り、その中を割る) -------------------------------------
+    page.drew_a_diagram()  # レーンと棒で組んだ線表そのものが、この頁の図解
+    rest = area
+    if spans:
+        band, rest = rest.split_top(span_height, gap=s.gap_s)
+        for start, end, label in spans:
+            page.span(Rect(plot.left, band.top, plot.width, band.height)
+                      .span(start / count, end / count).inset(x=s.bar_gap), label)
+    band, rest = rest.split_top(line, gap=s.gap_s)
+    for index, period in enumerate(periods):
+        page.label(Rect(plot.left, band.top, plot.width, band.height)
+                   .span(index / count, (index + 1) / count), period, align="center", role="muted")
+    flags_top = rest.top
+    if stones:
+        _band, rest = rest.split_top(stone_rows * line, gap=s.gap_s)
+
+    lanes_top = rest.top
+    bands = []
+    for _name, name_tall, _pieces, heights in packed:
+        band, rest = rest.split_top(lane_height(name_tall, heights, extra))
+        bands.append(band)
+    lanes_bottom = bands[-1].bottom
+
+    # 目盛りと区切り、頁を横切る日付の線は先に引く (= 棒の下に敷く。上に引くと棒の名前を貫く)
+    for index in range(count + 1):
+        page.rule(Rect(at(index) - s.hairline // 2, lanes_top, s.hairline, lanes_bottom - lanes_top))
+    for edge in [band.top for band in bands] + [lanes_bottom - s.hairline]:
+        page.rule(Rect(area.left, edge, area.width, s.hairline))
+    for stone in stones:
+        top = flags_top + stone.row * line
+        page.rule(Rect(stone.left - s.hairline, top, 2 * s.hairline, lanes_bottom - top), strong=True)
+
+    for tone, (band, (name, _name_tall, pieces, heights)) in enumerate(zip(bands, packed)):
+        inner = band.inset(y=s.gap_s)
+        page.lane(Rect(names.left, inner.top, names.width, inner.height), name)
+        tops = [inner.top]
+        for tall in heights:
+            tops.append(tops[-1] + tall + extra + s.row_gap)
+        for piece in pieces:
+            top, tall = tops[piece.row], heights[piece.row] + extra
+            if piece.point:
+                page.diamond(Rect(piece.left, top + (tall - s.mark) // 2, s.mark, s.mark))
+            else:
+                page.bar(Rect(piece.left, top, piece.right - piece.left, tall),
+                         piece.text if piece.side == "in" else "",
+                         tone=tone, tentative=piece.tentative)
+            if piece.side == "right":
+                page.label(Rect(piece.right + s.gap_s, top, piece.wide, tall), piece.text)
+            elif piece.side == "left":
+                page.label(Rect(piece.left - s.gap_s - piece.wide, top, piece.wide, tall),
+                           piece.text, align="right")
+
+    for stone in stones:
+        top = flags_top + stone.row * line
+        if stone.side == "right":
+            page.label(Rect(stone.left + s.bar_pad_x, top, stone.wide, line), stone.text,
+                       role="accent")
+        else:
+            page.label(Rect(stone.left - s.bar_pad_x - stone.wide, top, stone.wide, line),
+                       stone.text, align="right", role="accent")
 
 
 @register("cards", needs=[], figure=False)

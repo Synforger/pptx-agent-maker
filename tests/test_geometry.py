@@ -61,6 +61,30 @@ class DivisionTest(unittest.TestCase):
             Rect(0, 0, cm(2), cm(2)).inset(cm(2))
 
 
+class SpanTest(unittest.TestCase):
+    """A place given as a fraction of the width still comes out of dividing the parent."""
+
+    def test_a_span_stays_inside_and_keeps_the_height(self) -> None:
+        parent = Rect(100, 50, 1000, 300)
+        part = parent.span(0.25, 0.5)
+        self.assertTrue(parent.contains(part))
+        self.assertEqual((part.left, part.width, part.top, part.height), (350, 250, 50, 300))
+
+    def test_spans_that_meet_share_an_edge_and_do_not_overlap(self) -> None:
+        parent = Rect(0, 0, 1001, 10)
+        first, second = parent.span(0, 1 / 3), parent.span(1 / 3, 1)
+        self.assertEqual(first.right, second.left)
+        self.assertEqual(second.right, parent.right)
+        self.assertFalse(first.overlaps(second))
+
+    def test_a_span_outside_the_parent_or_running_backwards_is_refused(self) -> None:
+        parent = Rect(0, 0, 100, 10)
+        for start, end in ((-0.1, 0.5), (0.5, 1.2), (0.6, 0.4)):
+            with self.subTest(start=start, end=end):
+                with self.assertRaises(ValueError):
+                    parent.span(start, end)
+
+
 class FitTest(unittest.TestCase):
     def test_an_image_keeps_its_aspect_and_stays_inside(self) -> None:
         for aspect in (16 / 9, 1.0, 3 / 4, 2.35):

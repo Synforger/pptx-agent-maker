@@ -73,9 +73,41 @@ pptx-agent-maker lift <案件> <テンプレートの folder> \
 | `figures` | `figures` | ― | 絵を横に並べる (= 説明は絵ごとに `["a.png", "説明"]`) |
 | `figure_grid` | `figures` | `columns` | 絵を格子に並べる |
 | `flow` | `stages` | ― | 段を左から右へ、あいだに印 |
+| `timeline` | `periods` `lanes` | `phases` `milestones` | 期間を左から右、レーンを上から下。レーンの中に棒と印 |
 | `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
 | `board` | `table` | ― | 表が主役の頁 (= 同上) |
 | `agenda` | `buckets` | `highlight` | 章立て (= 同上。`highlight` = 強調する章の番号) |
+
+### `timeline` の書き方
+
+```toml
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "…"
+periods = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]   # 列 = 期間 (左から右)
+phases = [                                             # 任意。期間の上に掛ける帯
+  { from = 0, to = 3, label = "flexible" },
+  { from = 3, to = 6, label = "fixed deadlines" },
+]
+milestones = [ { at = 5.6, text = "Expo" } ]           # 任意。全レーンを貫く日付
+
+[[pages.lanes]]                                        # レーン = 上から下
+name = "Core"
+bars = [
+  { from = 0, to = 1, text = "1.0 complete" },
+  { from = 2.5, to = 3, text = "event (if any)", tentative = true },   # 点線の枠
+]
+marks = [ { at = 1, text = "1.0 release" } ]           # レーンの中の菱形
+```
+
+- **位置は期間の番号** ― 0 が最初の期間の頭、`periods` の数が最後の期間の終わり、半期間なら 0.5
+- ⚠ **`phases` と `milestones` は最初の `[[pages.lanes]]` より上に書く** (= TOML では、
+  `[[pages.lanes]]` の下に書いたキーはそのレーンのキーになる。下に書くと拒まれる)
+- 同じレーンで時期が重なる棒は、自動で段が分かれる
+- 棒の名前は棒の中。2 行でも収まらない名前は棒の隣へ出る。印の名前も隣 (= 右が先、端では左)
+- 文字は全部 pptx の文字 (= PowerPoint で直せる)。棒は名前ごと 1 つの図形
+- 収まらない頁は縮めずに止まる (= レーンを減らすか、2 頁に分ける)
 
 ## どの型にも添えられるもの
 

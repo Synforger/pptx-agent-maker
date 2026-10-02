@@ -3,7 +3,8 @@
 宣言層は座標だけを持ち、pptx のことを何も知らない。ここが唯一 python-pptx に触る層で、
 **壊れた pptx の種を作らない**のもここの責任:
 
-* 図形のプリセットを使わない (= 矢印のプリセット 1 つで PowerPoint が修復を言い出した実例がある)
+* 図形のプリセットは矩形だけ (= 矢印のプリセット 1 つで PowerPoint が修復を言い出した実例がある。
+  菱形も矩形を 45 度回して描く)
 * 空の run を書かない (= 文字の無い run は修復の種)
 * 表示から外したスライドを残さない (= 孤児のスライドも同じ)
 """
@@ -14,12 +15,13 @@ from pathlib import Path
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 
-from ..layout.page import Element, Figure, Fill, Table, Text
+from ..layout.page import Bar, Diamond, Element, Figure, Fill, Table, Text
 from ..layout.tokens import DEFAULT, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
@@ -47,6 +49,10 @@ def add_page(deck: Presentation, elements: list[Element], theme: Theme = DEFAULT
     for element in elements:
         if isinstance(element, Fill):
             _fill(slide, element)
+        elif isinstance(element, Bar):
+            _bar(slide, element, theme)
+        elif isinstance(element, Diamond):
+            _diamond(slide, element)
         elif isinstance(element, Text):
             _text(slide, element, theme)
         elif isinstance(element, Figure):
@@ -54,6 +60,20 @@ def add_page(deck: Presentation, elements: list[Element], theme: Theme = DEFAULT
         elif isinstance(element, Table):
             _table(slide, element, theme)
     return slide
+
+
+def _plain(shape) -> None:
+    """Take the theme's shape style off, so what is written here is all the shape has.
+
+    ⚠ **図形はテーマの「図形のスタイル」を引いて生まれる** (= 影・線・文字色の参照)。影は
+    `shadow.inherit = False` で止めてあるが、参照そのものは残り、LibreOffice はそれを読んで
+    影を描く ― PowerPoint には無い影が、絵に焼いたときだけ全部の図形に付いていた。
+    色と線はここが自分で書くので、参照ごと外す。
+    """
+    shape.shadow.inherit = False
+    style = shape._element.find(qn("p:style"))
+    if style is not None:
+        shape._element.remove(style)
 
 
 def _fill(slide, element: Fill) -> None:
@@ -64,9 +84,66 @@ def _fill(slide, element: Fill) -> None:
     shape.fill.solid()
     shape.fill.fore_color.rgb = _colour(element.colour)
     shape.line.fill.background()
-    shape.shadow.inherit = False
+    _plain(shape)
     # A shape with no text still carries an empty paragraph; give it nothing to
     # render rather than an empty run.
+    shape.text_frame.paragraphs[0].text = ""
+
+
+def _bar(slide, element: Bar, theme: Theme) -> None:
+    """A rectangle with its words inside it (= one shape, so it moves as one)."""
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE, Emu(element.rect.left), Emu(element.rect.top),
+        Emu(element.rect.width), Emu(element.rect.height),
+    )
+    if element.fill:
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = _colour(element.fill)
+    else:
+        shape.fill.background()
+    if element.outline:
+        shape.line.color.rgb = _colour(element.outline)
+        shape.line.width = Emu(theme.spacing.hairline)
+        if element.dashed:
+            shape.line.dash_style = MSO_LINE_DASH_STYLE.DASH
+    else:
+        shape.line.fill.background()
+    _plain(shape)
+    frame = shape.text_frame
+    frame.word_wrap = True
+    frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+    frame.margin_left = frame.margin_right = Emu(theme.spacing.bar_pad_x)
+    frame.margin_top = frame.margin_bottom = Emu(0)
+    paragraph = frame.paragraphs[0]
+    if not element.text.strip():
+        paragraph.text = ""  # never write an empty run
+        return
+    paragraph.alignment = ALIGN[element.align]
+    run = paragraph.add_run()
+    run.text = element.text
+    run.font.size = Pt(element.size)
+    run.font.color.rgb = _colour(element.colour)
+    run.font.name = theme.type.family
+
+
+def _diamond(slide, element: Diamond) -> None:
+    """A square turned 45 degrees, its corners touching the sides of the square given.
+
+    ⚠ **菱形のプリセットを使わない。**矩形を回すだけなら、図形の種類は頁のほかの物と
+    同じ 1 つのまま (= プリセットを増やさない)。
+    """
+    side = round(element.rect.width / 2 ** 0.5)
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE,
+        Emu(element.rect.left + (element.rect.width - side) // 2),
+        Emu(element.rect.top + (element.rect.height - side) // 2),
+        Emu(side), Emu(side),
+    )
+    shape.rotation = 45
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = _colour(element.colour)
+    shape.line.fill.background()
+    _plain(shape)
     shape.text_frame.paragraphs[0].text = ""
 
 
@@ -78,8 +155,11 @@ def _text(slide, element: Text, theme: Theme) -> None:
         Emu(element.rect.width), Emu(element.rect.height),
     )
     frame = box.text_frame
-    frame.word_wrap = True
-    frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.kind in {"band_text", "title", "caption"} else MSO_ANCHOR.TOP
+    # 隣の物に付く名前は折り返さない。線表の名前は枠の余白も取らない (= 測った幅がそのまま使える幅)
+    frame.word_wrap = element.kind != "label"
+    if element.kind in {"label", "lane"}:
+        frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(0)
+    frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.kind in {"band_text", "title", "caption", "label", "lane"} else MSO_ANCHOR.TOP
     for index, line in enumerate(element.text.split("\n")):
         paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
         paragraph.alignment = ALIGN[element.align]

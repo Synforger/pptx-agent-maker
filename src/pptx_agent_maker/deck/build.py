@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 
 from ..layout import types
+from ..layout.page import PageFullError
 from ..layout.tokens import Theme, theme_from
 from ..project.manifest import Entry, Manifest, ManifestError
 from ..project.workspace import Workspace, WorkspaceError
@@ -105,7 +106,8 @@ def _declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index
     def asset(name: str):
         return workspace.asset(name, within=manifest.assets)
 
+    # 収まらない頁も「どの頁か」を付けて返す (= 型が縮めずに止めた理由は、頁を直す人が読む)
     try:
         return types.build(entry.data, asset, aspect, theme)
-    except (ValueError, KeyError, WorkspaceError) as reason:
+    except (ValueError, KeyError, WorkspaceError, PageFullError) as reason:
         raise ManifestError(f"page {index}: {reason}") from reason

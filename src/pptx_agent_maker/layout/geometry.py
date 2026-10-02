@@ -107,6 +107,18 @@ class Rect:
                     self.width, left_over)
         return taken, rest
 
+    def span(self, start: float, end: float) -> "Rect":
+        """The part between two fractions of the width (= 0 is the left edge, 1 the right).
+
+        位置が**比で決まる**物 (= 時間の上の棒) を置くための口。割った枠と同じく、得た枠は
+        必ず親の中に在る。
+        """
+        if not 0 <= start <= end <= 1:
+            raise ValueError(f"a span runs between 0 and 1, left to right: {start} to {end}")
+        left = self.left + round(self.width * start)
+        right = self.left + round(self.width * end)
+        return Rect(left, self.top, right - left, self.height)
+
     def fit(self, aspect: float) -> "Rect":
         """The largest centred rectangle of this aspect ratio (= width / height).
 

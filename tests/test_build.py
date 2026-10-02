@@ -104,6 +104,21 @@ class BuildTest(unittest.TestCase):
         built = build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
         self.assertEqual(built, self.workspace.root / "built.pptx")
 
+    def test_a_page_that_does_not_fit_says_which_page_it_is(self) -> None:
+        """型は収まらない頁を縮めずに止める。止めた理由は、どの頁かと一緒に届く。"""
+        lanes = "".join(f'[[pages.lanes]]\nname = "Lane {n}"\n'
+                        'bars = [{ from = 0, to = 2, text = "work" }]\n' for n in range(30))
+        (self.root / "full.toml").write_text(
+            'specimen = "specimen.pptx"\nout = "x.pptx"\n'
+            '[[pages]]\nkind = "declare"\ntype = "board"\ntitle = "だい"\n'
+            'table = [["列", "値"], ["A", "1"]]\n'
+            '[[pages]]\nkind = "declare"\ntype = "timeline"\ntitle = "だい"\n'
+            'periods = ["a", "b"]\n' + lanes, encoding="utf-8")
+        with self.assertRaises(ManifestError) as raised:
+            build(self.workspace, Manifest.load(self.workspace.manifest("full")))
+        self.assertIn("page 2:", str(raised.exception))
+        self.assertIn("will not shrink", str(raised.exception))
+
     def test_an_unknown_page_type_says_which_ones_exist(self) -> None:
         (self.root / "bad.toml").write_text(
             'specimen = "specimen.pptx"\nout = "x.pptx"\n'

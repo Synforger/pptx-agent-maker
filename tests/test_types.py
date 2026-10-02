@@ -31,13 +31,15 @@ def build(data: dict):
     return types.build(data, asset, aspect)
 
 
-#: 7 型それぞれの、本体に最小限そろった宣言
+#: 型それぞれの、本体に最小限そろった宣言
 MINIMAL = {
     "figure": {"figure": SQUARE},
     "figures": {"figures": [SQUARE, WIDE]},
     "figure_grid": {"figures": [SQUARE, WIDE, SQUARE, WIDE]},
     "flow": {"stages": [{"name": "にゅうりょく", "nodes": [["A", "ほそく"]], "settled": "じょうけん"},
                         {"name": "せいせい", "nodes": [["B", "ほそく"]]}]},
+    "timeline": {"periods": ["いま", "つぎ"],
+                 "lanes": [{"name": "しごと", "bars": [{"from": 0, "to": 1, "text": "きめる"}]}]},
     # 絵を持たなくてよい型 (= デッキの骨格)
     "agenda": {"buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]],
                "highlight": 1},
@@ -283,13 +285,13 @@ class CoordinatesCannotBeDeclared(unittest.TestCase):
     def test_a_body_type_must_show_something(self):
         """本文の型が図解を落とせるなら、表と文章だけの頁が戻ってくる。
 
-        絵を持つか、図形で組んだ図解を持つか (= `flow`) のどちらかでなければ組めない。
+        絵を持つか、図形で組んだ図解を持つか (= `flow` / `timeline`) のどちらかでなければ組めない。
         """
         for name, data in MINIMAL.items():
             if name in SKELETON:
                 continue
             with self.subTest(name):
-                shows = {"figure", "figures", "stages"} & data.keys()
+                shows = {"figure", "figures", "stages", "lanes"} & data.keys()
                 self.assertTrue(shows, f"{name} can be built without anything to look at")
 
     def test_the_scaffolding_stays_small(self):
