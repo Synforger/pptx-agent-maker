@@ -122,6 +122,7 @@ def _bar(slide, element: Bar, theme: Theme) -> None:
     run = paragraph.add_run()
     run.text = element.text
     run.font.size = Pt(element.size)
+    run.font.bold = element.bold
     run.font.color.rgb = _colour(element.colour)
     run.font.name = theme.type.family
 

@@ -98,10 +98,15 @@ class Type:
 
     title: float = 24
     heading: float = 16
-    #: 流れ図の段の名前と、段の間の向き
+    #: 流れ図の段の名前・線表のレーンの名前と、段の間の向き
     stage: float = 14
     marker: float = 28
     body: float = 12
+    #: 線表の文字 (= 棒・印・帯・期間・日付の名前)。**頁に収まる最初の大きさ**を採る ― 余った
+    #: 高さは文字にも配り、詰まった頁は本文の大きさで組む。これより小さくはしない
+    plan: tuple[float, ...] = (14, 12)
+    #: 出所と脚注、絵の下の説明だけ。頁の中身 (= 箱の本文、線表の名前) には使わない ― 席から
+    #: 読める下限で、実物のデッキでは「文字が小さい」と差し戻された
     caption: float = 10
     minimum: float = 10
     family: str = "Meiryo"
@@ -122,6 +127,9 @@ class Palette:
     #: 空いている枠には濃い色が入っていることが多く、薄い地のはずが文字の読めない色になる。
     #: 変えるのは案件の `[theme.palette]` だけ
     tint: str = "E8F3EA"
+    #: 線表の列を 1 つおきに塗る、ごく薄い地 (= 棒の下に敷く。期間の境が一目で分かるように)。
+    #: これも `[theme.palette]` でだけ変える
+    wash: str = "F3F3F3"
     rule: str = "D9D9D9"
     paper: str = "FFFFFF"
 
