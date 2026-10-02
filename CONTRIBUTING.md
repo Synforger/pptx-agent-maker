@@ -17,19 +17,4 @@ status check. You can run the same gates yourself with `task --list`.
 
 ## Keeping private decks out of a push
 
-Trying the toolkit on a real deck is how most of its defects were found, and it is also how a
-value from that deck ends up in a test or an example. The anonymity guard checks names from a
-list; a copied measurement is on no list.
-
-`.githooks/pre-push` runs `.tooling/local-ci/private-corpus-check.py` on every commit a push is
-about to send, and stops it when an added line or a commit message holds text or a value from
-the decks named on this machine:
-
-```
-~/.config/private-corpus/sources.txt   one .pptx, or a folder of them, per line
-~/.config/private-corpus/words.txt     extra words, one per line (optional)
-~/.config/private-corpus/allow.txt     phrases that are fine (optional)
-```
-
-Nothing about those decks is written in this repository. A machine with no `sources.txt` is
-told the check did not run, and the push goes on.
+Test with made-up decks. Text copied out of a real document is stopped machine-wide at push time by the guard every repository on the maintainer's machine goes through, so this repository carries no check of its own.
