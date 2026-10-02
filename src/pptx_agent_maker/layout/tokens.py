@@ -118,6 +118,10 @@ class Palette:
     bad: str = "B3261E"
     band: str = "EAF0F8"
     box: str = "FFF4E5"
+    #: 3 つめの薄い地 (= 同じ頁で 3 者を色で分けるとき)。⚠ テンプレートのテーマ色からは読まない ―
+    #: 空いている枠には濃い色が入っていることが多く、薄い地のはずが文字の読めない色になる。
+    #: 変えるのは案件の `[theme.palette]` だけ
+    tint: str = "E8F3EA"
     rule: str = "D9D9D9"
     paper: str = "FFFFFF"
 

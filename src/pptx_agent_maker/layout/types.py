@@ -334,6 +334,15 @@ def _keys(item, allowed: set, what: str, hint: str = "") -> None:
             f"{', '.join(sorted(allowed))}).{hint}")
 
 
+def _tone(item: dict, what: str, unsaid: str) -> str:
+    """The tone a table asks for (= one of the palette's roles), or `unsaid` when it asks for none."""
+    tone = str(item.get("tone", unsaid))
+    if tone not in TONES:
+        raise PageTypeError(
+            f"{what} has tone {tone!r} — a tone is one of the palette's roles: {', '.join(TONES)}")
+    return tone
+
+
 def _node(node, what: str) -> tuple[tuple[str, str], str]:
     """One node of a flow as ((heading, body), tone).
 
@@ -344,11 +353,7 @@ def _node(node, what: str) -> tuple[tuple[str, str], str]:
         _keys(node, {"heading", "body", "tone"}, what)
         if not str(node.get("heading", "")).strip():
             raise PageTypeError(f"{what} has no `heading` — a node says what it is")
-        tone = str(node.get("tone", TONES[0]))
-        if tone not in TONES:
-            raise PageTypeError(
-                f"{what} has tone {tone!r} — a tone is one of the palette's roles: {', '.join(TONES)}")
-        return (str(node["heading"]), str(node.get("body", ""))), tone
+        return (str(node["heading"]), str(node.get("body", ""))), _tone(node, what, TONES[0])
     if isinstance(node, (list, tuple)) and len(node) == 2:
         return (str(node[0]), str(node[1])), TONES[0]
     raise PageTypeError(
@@ -541,6 +546,9 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
     位置は**期間の番号**で受ける (= 0 が最初の期間の頭、`len(periods)` が最後の期間の終わり、
     半期間なら 0.5)。座標は受け取らない ― 型が `area` を割って決める。
 
+    レーンの棒の地は、書かなければ 2 つの薄い地の交互。レーンに `tone` を書くとその色の役に
+    なる (= `flow` のノードと同じ語彙。3 者を色で分ける、1 本だけ目立たせる)。
+
     ⚠ **文字は全部 pptx の文字のまま置く。**この型は、絵で描いて貼った計画の頁を人が
     直せなかったために在る。棒の名前は棒の中に持たせ、2 行でも収まらない名前は棒の隣へ
     出す (= 縮めない、切らない)。隣にも置けなければ棒の中で折り返し、それで頁に
@@ -561,7 +569,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
     misplaced = (" `phases` and `milestones` belong to the page: in TOML, write them above the "
                  "first `[[pages.lanes]]`.")
     for index, lane in enumerate(lanes, start=1):
-        _keys(lane, {"name", "bars", "marks"}, f"timeline: lane {index}", misplaced)
+        _keys(lane, {"name", "bars", "marks", "tone"}, f"timeline: lane {index}", misplaced)
 
     # 左にレーンの名前、右に時間。名前の列は一番長い名前ぶんで、取りすぎるなら折り返させる。
     # 時間の側は印の半分だけ内へ寄せる (= 端の時点に置いた印が枠から出ない)
@@ -664,7 +672,9 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
             else theme.text_height(name, names.width, size)
         rows = _rows(pieces, s.gap_s)
         heights = [max(p.tall for p in pieces if p.row == row) for row in range(rows)]
-        packed.append((name, name_tall, pieces, heights))
+        # 色の役を書いたレーンはその色、書かなければ 2 つの薄い地の交互 (= 隣と見分けるだけ)
+        tone = _tone(lane, f"timeline: lane {index}", TONES[(index - 1) % 2])
+        packed.append((name, name_tall, pieces, heights, tone))
 
     def lane_height(name_tall: int, heights: list[int], extra: int = 0) -> int:
         stack = sum(tall + extra for tall in heights) + s.row_gap * (len(heights) - 1)
@@ -672,12 +682,12 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
 
     head = (span_height + s.gap_s if spans else 0) + line + s.gap_s \
         + (stone_rows * line + s.gap_s if stones else 0)
-    wanted = head + sum(lane_height(name_tall, heights) for _n, name_tall, _p, heights in packed)
+    wanted = head + sum(lane_height(name_tall, heights) for _n, name_tall, _p, heights, _t in packed)
     if wanted > area.height:
         raise PageFullError(
             f"this timeline needs {wanted} EMU of height and the body has {area.height} — "
             "fewer lanes, shorter names, or two pages; it will not shrink")
-    extra = min((area.height - wanted) // sum(len(heights) for _n, _t, _p, heights in packed),
+    extra = min((area.height - wanted) // sum(len(heights) for _n, _t, _p, heights, _tone_ in packed),
                 round((line + 2 * s.bar_pad_y) * ROOMY))
 
     # -- 置く (= 上から帯を取り、その中を割る) -------------------------------------
@@ -698,7 +708,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
 
     lanes_top = rest.top
     bands = []
-    for _name, name_tall, _pieces, heights in packed:
+    for _name, name_tall, _pieces, heights, _lane_tone in packed:
         band, rest = rest.split_top(lane_height(name_tall, heights, extra))
         bands.append(band)
     lanes_bottom = bands[-1].bottom
@@ -712,7 +722,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
         top = flags_top + stone.row * line
         page.rule(Rect(stone.left - s.hairline, top, 2 * s.hairline, lanes_bottom - top), strong=True)
 
-    for tone, (band, (name, _name_tall, pieces, heights)) in enumerate(zip(bands, packed)):
+    for band, (name, _name_tall, pieces, heights, tone) in zip(bands, packed):
         inner = band.inset(y=s.gap_s)
         page.lane(Rect(names.left, inner.top, names.width, inner.height), name)
         tops = [inner.top]
@@ -725,7 +735,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
             else:
                 page.bar(Rect(piece.left, top, piece.right - piece.left, tall),
                          piece.text if piece.side == "in" else "",
-                         tone=TONES[tone % 2], tentative=piece.tentative)
+                         tone=tone, tentative=piece.tentative)
             if piece.side == "right":
                 page.label(Rect(piece.right + s.gap_s, top, piece.wide, tall), piece.text)
             elif piece.side == "left":
