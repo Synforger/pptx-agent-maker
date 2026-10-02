@@ -319,6 +319,200 @@ class TheEdgeOfABar(unittest.TestCase):
             self.assertEqual({""}, {piece.outline for piece in of(built, kind)}, kind)
 
 
+class ABarAcrossLanes(unittest.TestCase):
+    """A bar may cover the lanes under its own: one stretch shared by lanes that part later.
+
+    ⚠ **またがる棒は、覆うレーンの高さを全部取る。**同じ時期に同じレーンへ置かれた物は、段を
+    分けて逃がせない (= 重ねて描くことになる) ので、縮めも重ねもせずに拒む。
+    """
+
+    LONG = "a name far too long for a bar this short"
+
+    def shared(self, **more):
+        """Two lanes that share months 0-3 and part after: (the page, the shared bar)."""
+        built = page([lane("Inside", [bar(0, 3, "shared", spans=2, **more), bar(3, 6, "ours")]),
+                      lane("Outside", [bar(3, 6, "theirs")])])
+        return built, named(built, "shared")
+
+    def test_it_runs_from_the_top_of_its_own_lane_to_the_bottom_of_the_last_lane_it_spans(self):
+        built, shared = self.shared()
+        self.assertEqual(named(built, "ours").rect.top, shared.rect.top)
+        self.assertEqual(named(built, "theirs").rect.bottom, shared.rect.bottom)
+
+    def test_its_ends_fall_where_any_bars_would(self):
+        built = page([lane("One", [bar(0, 3, "shared", spans=2)]), lane("Two"),
+                      lane("Three", [bar(0, 3, "alone")])])
+        shared, alone = named(built, "shared").rect, named(built, "alone").rect
+        self.assertEqual((alone.left, alone.right), (shared.left, shared.right))
+
+    def test_it_is_one_shape_with_its_name_inside(self):
+        built, shared = self.shared()
+        self.assertIsInstance(shared, Bar)
+        self.assertEqual(1, len([e for e in built.build() if getattr(e, "text", None) == "shared"]))
+
+    def test_it_covers_every_row_of_a_lane_that_has_several(self):
+        built = page([lane("One", [bar(0, 2, "shared", spans=2), bar(2, 5, "a"), bar(3, 6, "b")]),
+                      lane("Two", [bar(2, 5, "c"), bar(3, 6, "d")])])
+        shared = named(built, "shared").rect
+        self.assertEqual(named(built, "a").rect.top, shared.top)
+        self.assertGreater(named(built, "d").rect.top, named(built, "c").rect.top)
+        self.assertEqual(named(built, "d").rect.bottom, shared.bottom)
+
+    def test_it_can_cover_more_than_two(self):
+        built = page([lane("One", [bar(0, 3, "shared", spans=3), bar(3, 6, "a")]),
+                      lane("Two", [bar(3, 6, "b")]), lane("Three", [bar(3, 6, "c")]),
+                      lane("Four", [bar(0, 6, "d")])])
+        shared = named(built, "shared").rect
+        self.assertEqual(named(built, "c").rect.bottom, shared.bottom)
+        self.assertLess(shared.bottom, named(built, "d").rect.top)
+
+    def test_one_lane_is_what_a_bar_spans_when_nothing_is_said(self):
+        said = page([lane(bars=[bar(0, 3, "a", spans=1)])])
+        unsaid = page([lane(bars=[bar(0, 3, "a")])])
+        self.assertEqual(unsaid.build(), said.build())
+
+    def test_it_takes_the_tone_of_the_lane_it_is_written_in(self):
+        palette = DEFAULT.palette
+        built = page([{"name": "One", "tone": "tint", "bars": [bar(0, 6, "shared", spans=2)]},
+                      {"name": "Two", "tone": "accent"}])
+        shared = named(built, "shared")
+        self.assertEqual((palette.tint, palette.ink, palette.edge(palette.tint)),
+                         (shared.fill, shared.colour, shared.outline))
+
+    def test_a_tentative_one_is_still_a_dashed_line_on_paper(self):
+        _built, shared = self.shared(tentative=True)
+        self.assertTrue(shared.dashed)
+        self.assertEqual(DEFAULT.palette.paper, shared.fill)
+
+    def test_it_is_laid_over_the_line_between_the_lanes_it_spans(self):
+        """区切りの線を棒が隠すから 1 本に見える。線が後なら、棒を横切って 2 本に見える。"""
+        built, shared = self.shared()
+        elements = built.build()
+        between = [e for e in elements if e.kind == "rule" and e.rect.width > e.rect.height
+                   and shared.rect.top < e.rect.top < shared.rect.bottom]
+        self.assertTrue(between)
+        self.assertGreater(elements.index(shared), max(elements.index(line) for line in between))
+
+    def test_a_lane_that_is_only_spanned_needs_nothing_of_its_own(self):
+        built = page([lane("One", [bar(0, 6, "shared", spans=2)]), lane("Two")])
+        two = named(built, "Two").rect
+        shared = named(built, "shared").rect
+        self.assertGreater(shared.bottom, two.top)
+        self.assertGreater(shared.height, 2 * DEFAULT.line_height(named(built, "shared").size))
+
+    def test_a_lane_with_nothing_in_it_and_nothing_over_it_is_still_refused(self):
+        with self.assertRaises(PageTypeError) as raised:
+            page([lane("One", [bar(0, 6, "shared", spans=2)]), lane("Two"), lane("Three")])
+        self.assertIn("lane 3 has neither bars nor marks", str(raised.exception))
+
+    def test_bars_that_only_touch_its_ends_are_taken(self):
+        built = page([lane("One", [bar(0, 2, "before"), bar(2, 4, "shared", spans=2), bar(4, 6, "after")]),
+                      lane("Two", [bar(0, 2, "under before"), bar(4, 6, "under after")])])
+        shared = named(built, "shared").rect
+        for text in ("before", "under before"):
+            self.assertLess(named(built, text).rect.right, shared.left)
+        for text in ("after", "under after"):
+            self.assertGreater(named(built, text).rect.left, shared.right)
+
+    def refused(self, lanes, *said):
+        with self.assertRaises(PageTypeError) as raised:
+            page(lanes)
+        for word in said:
+            self.assertIn(word, str(raised.exception))
+
+    def test_a_bar_under_it_in_a_lane_it_spans_is_refused_and_both_are_named(self):
+        self.refused([lane("One", [bar(0, 3, "shared", spans=2)]), lane("Two", [bar(2, 4, "under")])],
+                     "lane 2, bar 1", "lane 1, bar 1", "spans lane 2")
+
+    def test_a_bar_beside_it_in_its_own_lane_over_the_same_periods_is_refused(self):
+        self.refused([lane("One", [bar(0, 3, "shared", spans=2), bar(2, 4, "mine")]), lane("Two")],
+                     "lane 1, bar 2", "lane 1, bar 1", "spans lane 1")
+
+    def test_a_mark_on_it_is_refused_and_so_is_one_on_either_end(self):
+        for at in (0, 1.5, 3):
+            with self.subTest(at):
+                self.refused([lane("One", [bar(0, 3, "shared", spans=2)]),
+                              lane("Two", marks=[{"at": at, "text": "gate"}])],
+                             "lane 2, mark 1", "lane 1, bar 1")
+
+    def test_two_of_them_cannot_span_one_lane_over_the_same_periods(self):
+        self.refused([lane("One", [bar(0, 3, "upper", spans=2)]),
+                      lane("Two", [bar(2, 5, "lower", spans=2)]), lane("Three")],
+                     "lane 1, bar 1", "lane 2, bar 1", "both span lane 2")
+
+    def test_two_of_them_one_after_the_other_are_taken(self):
+        built = page([lane("One", [bar(0, 3, "upper", spans=2)]),
+                      lane("Two", [bar(3, 6, "lower", spans=2)]), lane("Three")])
+        self.assertLess(named(built, "upper").rect.top, named(built, "lower").rect.top)
+        self.assertLess(named(built, "upper").rect.bottom, named(built, "lower").rect.bottom)
+
+    def test_it_cannot_span_past_the_last_lane(self):
+        self.refused([lane("One", [bar(0, 6, "a")]), lane("Two", [bar(0, 3, "shared", spans=2)])],
+                     "lane 2, bar 1", "spans 2 lanes", "only 1 is left")
+
+    def test_how_many_lanes_is_a_whole_number_of_one_or_more(self):
+        for value in (0, -1, 1.5, "2", True, None):
+            with self.subTest(value):
+                self.refused([lane("One", [bar(0, 3, "shared", spans=value)]), lane("Two")],
+                             "lane 1, bar 1", "`spans`", "whole number of lanes")
+
+    def test_a_name_beside_a_neighbour_goes_to_the_side_it_does_not_stand_on(self):
+        """右が先。ただし右へ出すとまたがる棒の上に乗るなら、左へ出す。"""
+        text = "a name that goes beside it"
+        lanes = [lane("One", [bar(2.6, 2.9, text), bar(3.5, 4.5, "shared", spans=2)]),
+                 lane("Two", [bar(0, 3, "under")])]
+        name = named(page(lanes), text)
+        self.assertIsInstance(name, Text)
+        self.assertLess(name.rect.right, named(page(lanes), "shared").rect.left)
+        self.assertEqual("right", name.align)
+        # 同じ棒は、またがる棒が無ければ右へ出る (= 左へ出たのは、またがる棒を避けたから)
+        lanes[0]["bars"][1] = bar(3.5, 4.5, "shared")
+        self.assertEqual("left", named(page(lanes), text).align)
+
+    def test_a_name_with_it_on_both_sides_stays_inside_its_bar(self):
+        built = page([lane("One", [bar(0, 2.8, "before", spans=2), bar(2.9, 3.1, self.LONG),
+                                   bar(3.2, 6, "after", spans=2)]), lane("Two")])
+        self.assertIsInstance(named(built, self.LONG), Bar)
+
+    def test_a_marks_name_with_it_on_both_sides_stops_the_page_and_says_why(self):
+        with self.assertRaises(PageFullError) as raised:
+            page([lane("One", [bar(0, 2.8, "before", spans=2), bar(3.2, 6, "after", spans=2)],
+                       [{"at": 3, "text": self.LONG}]), lane("Two")])
+        self.assertIn("lane 1, mark 1", str(raised.exception))
+        self.assertIn("spanning", str(raised.exception))
+
+    def test_a_name_too_long_for_the_lanes_makes_them_taller_instead_of_being_cut(self):
+        text = " ".join(["a long name"] * 12)
+        built = page([lane("One", [bar(0, 1, text, spans=2), bar(1, 6, "ours")]),
+                      lane("Two", [bar(1, 6, "theirs")])])
+        long = named(built, text)
+        inner = long.rect.width - 2 * DEFAULT.spacing.bar_pad_x
+        needed = DEFAULT.wrapped_height(text, inner, long.size) + 2 * DEFAULT.spacing.bar_pad_y
+        self.assertGreaterEqual(long.rect.height, needed)
+        self.assertGreater(named(built, "ours").rect.height, named(built, "theirs").rect.height)
+        self.assertLessEqual(long.rect.bottom, built.theme.frame().bottom)
+
+    def test_everything_stays_inside_the_frame_and_passes_the_checks_once_baked(self):
+        built = page([lane("One", [bar(0, 3, "shared", spans=3), bar(3, 5, "a"), bar(4, 6, "b")]),
+                      lane("Two", [bar(3, 6, "c")], [{"at": 4, "text": "gate"}]),
+                      lane("Three", [bar(3, 4, "d"), bar(4, 6, "last", spans=2, tentative=True)]),
+                      lane("Four", [bar(0, 4, "e")])],
+                     phases=[{"from": 0, "to": 6, "label": "this half"}],
+                     milestones=[{"at": 5.5, "text": "review"}])
+        frame = built.theme.frame()
+        for element in built.build():
+            self.assertTrue(frame.contains(element.rect), element.kind)
+        with tempfile.TemporaryDirectory() as tmp:
+            deck = new_deck()
+            add_page(deck, built.build())
+            baked = save(deck, Path(tmp) / "across.pptx")
+            self.assertEqual([], checks.run_all(baked))
+            with zipfile.ZipFile(baked) as archive:
+                xml = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        self.assertEqual(1, xml.count(">shared<"))
+        self.assertEqual({"rect"}, set(re.findall(r'<a:prstGeom prst="(\w+)"', xml)))
+
+
 class DatesThatCutAcross(unittest.TestCase):
     """A milestone is a line through every lane, with its name flying from the top of it."""
 
