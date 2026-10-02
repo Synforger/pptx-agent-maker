@@ -15,6 +15,12 @@
 * `points` ― 読み手に渡す要点の並び
 * `caption` ― 置いた物の下に付く短い名
 * `marker` ― 段と段の間の向き (= 文字で置く)
+* `bar` ― 期間を占める棒 (= 文字を自分で持つ 1 つの図形)
+* `span` ― 期間の性格を示す帯
+* `diamond` ― 時点の印
+* `rule` ― 区切りの細い線
+* `label` ― 棒や印の隣、列の頭に付く 1 行の名前
+* `lane` ― レーンの名前
 * `footer` ― 出所
 
 ⚠ **図解を 1 つも持たない頁は組めない** (= 表と文章だけの頁を人に見せない)。
@@ -64,6 +70,28 @@ class Table(Element):
     highlight: dict[tuple[int, int], str] = field(default_factory=dict)
     #: 列ごとの幅 (= 中身の長さで配る。空なら均等)
     widths: tuple[int, ...] = ()
+
+
+@dataclass(frozen=True)
+class Bar(Element):
+    """A rectangle that carries its own words: one shape, so a person can drag it whole."""
+
+    text: str
+    size: float
+    colour: str
+    #: 塗りの色。空なら塗らない
+    fill: str = ""
+    #: 枠の色。空なら枠を引かない
+    outline: str = ""
+    dashed: bool = False
+    align: str = "center"
+
+
+@dataclass(frozen=True)
+class Diamond(Element):
+    """A point in time. `rect` is the square the diamond sits in."""
+
+    colour: str
 
 
 class PageFullError(RuntimeError):
@@ -141,7 +169,7 @@ class Page:
         else:
             main = bar
         self.elements.append(Text("title", main, title, t.title, p.ink, bold=True))
-        self.elements.append(Fill("rule", Rect(bar.left, bar.bottom, bar.width, 12700), p.rule))
+        self.elements.append(Fill("rule", Rect(bar.left, bar.bottom, bar.width, s.hairline), p.rule))
 
     def _band(self, text: str, *, conclusion: bool = False) -> None:
         """A declared condition (top) or the reading to take away (bottom)."""
@@ -265,6 +293,56 @@ class Page:
         """
         t, p = self.theme.type, self.theme.palette
         self.elements.append(Text("marker", rect, text, t.heading, p.muted, align="center"))
+
+    def bar(self, rect: Rect, text: str, *, tone: int = 0, tentative: bool = False) -> None:
+        """Something that takes a stretch of time, with its name on it.
+
+        `tone` はレーンごとに替える地の色 (= 隣のレーンと見分けるためで、意味は持たない)。
+        `tentative` は**点線の枠** (= 在れば / 内容未定)。地は紙の色なので、決まった棒の
+        隣に置いても同じ重さに見えない ― 塗らずに透かすと、後ろを通る日付の線が名前を貫く。
+
+        ⚠ **文字は棒の中に持たせる** (= 別の枠にしない)。人が PowerPoint で棒を動かすとき、
+        文字が置き去りにならない。
+        """
+        t, p = self.theme.type, self.theme.palette
+        if tentative:
+            self.elements.append(Bar("bar", rect, text, t.caption, p.muted,
+                                     fill=p.paper, outline=p.muted, dashed=True))
+        else:
+            self.elements.append(Bar("bar", rect, text, t.caption, p.ink,
+                                     fill=(p.box, p.band)[tone % 2]))
+
+    def span(self, rect: Rect, text: str) -> None:
+        """What a stretch of periods is like (= movable, fixed), laid over the columns."""
+        t, p = self.theme.type, self.theme.palette
+        self.elements.append(Bar("span", rect, text, t.caption, p.ink, fill=p.rule))
+
+    def diamond(self, rect: Rect) -> None:
+        """A point in time, drawn in the square given."""
+        self.elements.append(Diamond("diamond", rect, self.theme.palette.accent))
+
+    def rule(self, rect: Rect, *, strong: bool = False) -> None:
+        """A thin line: a division between columns or lanes, or (`strong`) a date that cuts across them."""
+        p = self.theme.palette
+        self.elements.append(Fill("line" if strong else "rule", rect, p.accent if strong else p.rule))
+
+    def label(self, rect: Rect, text: str, *, align: str = "left", role: str = "ink") -> None:
+        """A short name on one line: beside a bar or a mark, or at the head of a column.
+
+        `role` は色の役 (= `ink` / `muted` / `accent`)。`accent` は頁を横切る日付の名前で、太字。
+
+        ⚠ **折り返さない。**隣の物に付く名前なので、長すぎれば横へ伸びる ― 2 行に折ると
+        下の段に乗る。
+        """
+        t, p = self.theme.type, self.theme.palette
+        colour = {"ink": p.ink, "muted": p.muted, "accent": p.accent}[role]
+        self.elements.append(Text("label", rect, text, t.caption, colour,
+                                  bold=role == "accent", align=align))
+
+    def lane(self, rect: Rect, name: str) -> None:
+        """What one lane of a timeline is (= who, or which line of work)."""
+        t, p = self.theme.type, self.theme.palette
+        self.elements.append(Text("lane", rect, name, t.caption, p.ink, bold=True))
 
     def _footer(self, text: str) -> None:
         """Where the numbers came from."""

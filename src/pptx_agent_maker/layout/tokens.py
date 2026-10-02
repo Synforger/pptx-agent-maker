@@ -64,6 +64,15 @@ class Spacing:
     cell_pad_x: int = cm(0.18)
     band_height: int = cm(1.1)
     footer_height: int = cm(0.7)
+    #: 区切りの細い線 (= 題の下、線表の目盛り)
+    hairline: int = pt(1)
+    #: 線表の棒 ― 文字のまわりの余白、隣の棒との間、同じレーンの段と段の間
+    bar_pad_x: int = cm(0.15)
+    bar_pad_y: int = cm(0.12)
+    bar_gap: int = cm(0.05)
+    row_gap: int = cm(0.15)
+    #: 時点の印 (= 菱形) の差し渡し
+    mark: int = cm(0.4)
 
 
 @dataclass(frozen=True)
@@ -100,6 +109,19 @@ class Theme:
     def text_height(self, text: str, width: int, size: float | None = None) -> int:
         """The height that text actually needs at that width."""
         return self.lines(text, width, size) * self.line_height(size)
+
+    def width(self, text: str, size: float | None = None, *, bold: bool = False) -> int:
+        """How wide this text runs on one line.
+
+        `lines` は全角 1 文字ぶんで数えて余らせるが、**1 行に収まるかどうか**を決める場面では
+        それだと欧文が倍に出て、収まる文字まで外へ追い出す。ここは全角を 1 文字ぶん、
+        それ以外を 0.7 文字ぶんで数える ― 既定の書体は欧文の幅が広く、0.6 で数えた間は
+        4 文字の名前が枠から溢れて折れた (= 焼いて初めて出た)。太字は 1 割増す。
+        """
+        size = self.type.body if size is None else size
+        longest = max(str(text).split("\n"), key=len)
+        wide = sum(pt(size) if ord(c) > 0x2E7F else pt(size) * 0.7 for c in longest)
+        return round(wide * (1.1 if bold else 1))
 
     def table_row_height(self) -> int:
         """One row: the line box plus the cell padding. Nothing renders shorter."""
