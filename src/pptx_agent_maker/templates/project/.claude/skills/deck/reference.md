@@ -72,11 +72,38 @@ pptx-agent-maker lift <案件> <テンプレートの folder> \
 | `figure` | `figure` | `caption` | 絵を 1 枚、縦横比のまま最大で |
 | `figures` | `figures` | ― | 絵を横に並べる (= 説明は絵ごとに `["a.png", "説明"]`) |
 | `figure_grid` | `figures` | `columns` | 絵を格子に並べる |
-| `flow` | `stages` | ― | 段を左から右へ、あいだに印 |
+| `flow` | `stages` | `align_rows` | 段を左から右へ、あいだに → |
 | `timeline` | `periods` `lanes` | `phases` `milestones` | 期間を左から右、レーンを上から下。レーンの中に棒と印 |
 | `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
 | `board` | `table` | ― | 表が主役の頁 (= 同上) |
 | `agenda` | `buckets` | `highlight` | 章立て (= 同上。`highlight` = 強調する章の番号) |
+
+### `flow` の書き方
+
+```toml
+[[pages]]
+kind = "declare"
+type = "flow"
+title = "…"
+align_rows = true                                      # 任意。同じ順番のノードを横に揃える
+
+[[pages.stages]]
+name = "Intake"                                        # 段の名前
+nodes = [
+  ["Triage", "sort by impact"],                        # [見出し, 本文]
+  { heading = "No owner", body = "the request waits", tone = "bad" },   # 色の役を付ける書き方
+]
+settled = "one queue"                                  # 任意。段の下に置く 1 行
+```
+
+- **ノードは 2 通りに書ける** ― `["見出し", "本文"]` か、`{ heading = …, body = …, tone = … }`
+  (= `body` と `tone` は省ける)
+- **`tone` は色の役** ― `box` (= 既定) / `band` / `accent` / `good` / `bad`。色そのものは
+  `[theme.palette]` が持つ。⚠ **`good` / `bad` は読み (= 良い / 悪い) を示す物にだけ使う**
+  (= 飾りで塗ると、色が意味を持たなくなる)
+- **`align_rows = true`** は、行が意味を持つ頁のため (= 上から 1 番目は誰、2 番目は誰)。
+  行の高さはその行で一番高いノードに揃う。書かなければ、ノードは段ごとに自分の高さで積まれる
+- ノードの高さは中の文字が実際に折れる行数で決まる (= 書体ごとに測った字幅で数える)
 
 ### `timeline` の書き方
 

@@ -94,6 +94,11 @@ class Diamond(Element):
     colour: str
 
 
+#: 箱と棒の地に使える色の役。`box` / `band` は地の色で意味を持たない。`accent` は目を
+#: 集めたい物、`good` / `bad` は**読み** (= 良い / 悪い) を示す物にだけ使う
+TONES = ("box", "band", "accent", "good", "bad")
+
+
 class PageFullError(RuntimeError):
     """Raised when a page is asked for more room than it has left."""
 
@@ -180,27 +185,37 @@ class Page:
             Text("band_text", rect.inset(s.pad), text, t.heading, p.ink, bold=conclusion)
         )
 
+    def ground(self, tone: str) -> tuple[str, str]:
+        """(the fill, the colour of words on it) for a tone: dark grounds take the paper's colour."""
+        p = self.theme.palette
+        return {"box": (p.box, p.ink), "band": (p.band, p.ink), "accent": (p.accent, p.paper),
+                "good": (p.good, p.paper), "bad": (p.bad, p.paper)}[tone]
+
     def boxes(self, rect: Rect, cards: list[tuple[str, str]], *, gap: int | None = None,
-              small: bool = False) -> None:
+              small: bool = False, tones: list[str] | None = None) -> None:
         """Cards side by side inside an area you already divided off.
+
+        `tones` は箱ごとの地の色の役 (= `TONES`。書かなければ全部 `box`)。
 
         ⚠ **見出しの高さは字数で決める。**比で割っていた間は、2 行に折り返した見出しが
         本文の上に乗った (= 焼いて初めて出た。枠の中に収まっているので検査は通る)。
         """
-        p, t, s = self.theme.palette, self.theme.type, self.theme.spacing
+        t, s = self.theme.type, self.theme.spacing
         columns = rect.columns(len(cards), gap if gap is not None else s.gap_m)
-        for card, (heading, body) in zip(columns, cards):
-            self.elements.append(Fill("box", card, p.box))
+        for index, (card, (heading, body)) in enumerate(zip(columns, cards)):
+            fill, ink = self.ground(tones[index] if tones else "box")
+            self.elements.append(Fill("box", card, fill))
             inner = card.inset(s.pad)
             body_size = t.caption if small else t.body
             if body:
-                needed = self.theme.text_height(heading, inner.width, t.heading)
+                needed = self.theme.wrapped_height(
+                    heading, max(inner.width - 2 * s.text_inset, 1), t.heading, bold=True)
                 head, rest = inner.split_top(
                     min(needed, max(inner.height - s.gap_s, 1)), gap=s.gap_s)
-                self.elements.append(Text("box_body", rest, body, body_size, p.ink))
+                self.elements.append(Text("box_body", rest, body, body_size, ink))
             else:
                 head = inner
-            self.elements.append(Text("box_heading", head, heading, t.heading, p.ink, bold=True))
+            self.elements.append(Text("box_heading", head, heading, t.heading, ink, bold=True))
 
     def figure(self, rect: Rect, source: Path | str, aspect: float, *, caption: str = "") -> None:
         """An image, kept at its own aspect ratio inside the area given.
@@ -289,15 +304,21 @@ class Page:
         """A single character carrying direction (= the arrow between two stages).
 
         ⚠ **矢印は図形で描かない。**プリセットの矢印 1 つで PowerPoint が修復を
-        言い出した実例があるので、向きは文字で置く。
+        言い出した実例があるので、向きは文字で置く。小さい灰色の字のままだと頁の上で
+        見えないので、本文と同じ濃さで大きく置く。
         """
         t, p = self.theme.type, self.theme.palette
-        self.elements.append(Text("marker", rect, text, t.heading, p.muted, align="center"))
+        self.elements.append(Text("marker", rect, text, t.marker, p.ink, bold=True, align="center"))
 
-    def bar(self, rect: Rect, text: str, *, tone: int = 0, tentative: bool = False) -> None:
+    def stage(self, rect: Rect, name: str) -> None:
+        """What one stage of a flow is called: the heading its nodes hang under."""
+        t, p = self.theme.type, self.theme.palette
+        self.elements.append(Text("stage", rect, name, t.stage, p.ink, bold=True, align="center"))
+
+    def bar(self, rect: Rect, text: str, *, tone: str = "box", tentative: bool = False) -> None:
         """Something that takes a stretch of time, with its name on it.
 
-        `tone` はレーンごとに替える地の色 (= 隣のレーンと見分けるためで、意味は持たない)。
+        `tone` は地の色の役 (= `TONES`。箱と同じ語彙)。
         `tentative` は**点線の枠** (= 在れば / 内容未定)。地は紙の色なので、決まった棒の
         隣に置いても同じ重さに見えない ― 塗らずに透かすと、後ろを通る日付の線が名前を貫く。
 
@@ -309,8 +330,8 @@ class Page:
             self.elements.append(Bar("bar", rect, text, t.caption, p.muted,
                                      fill=p.paper, outline=p.muted, dashed=True))
         else:
-            self.elements.append(Bar("bar", rect, text, t.caption, p.ink,
-                                     fill=(p.box, p.band)[tone % 2]))
+            fill, ink = self.ground(tone)
+            self.elements.append(Bar("bar", rect, text, t.caption, ink, fill=fill))
 
     def span(self, rect: Rect, text: str) -> None:
         """What a stretch of periods is like (= movable, fixed), laid over the columns."""
