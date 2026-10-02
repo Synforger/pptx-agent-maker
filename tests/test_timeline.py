@@ -125,10 +125,18 @@ class TheWordsStayWords(unittest.TestCase):
 
     def test_a_name_too_long_for_one_line_takes_two_inside_the_bar(self):
         short = named(page([lane(bars=[bar(0, 1, "short")])]), "short").rect
-        text = "hand over the face input"
+        text = "hand over the face input to the team"
         long = named(page([lane(bars=[bar(0, 1, text)])]), text)
         self.assertIsInstance(long, Bar)
         self.assertGreater(long.rect.height, short.height)
+        fits = "hand over the input"
+        self.assertEqual(short.height, named(page([lane(bars=[bar(0, 1, fits)])]), fits).rect.height)
+
+    def test_a_single_word_is_never_folded_in_the_middle(self):
+        """1 語の名前を 2 行に折ると、語の途中で切れる (= 焼いて初めて出た)。"""
+        built = page([lane(bars=[bar(2, 2.3, "auditing")])], periods=MONTHS)
+        self.assertIsInstance(named(built, "auditing"), Text)
+        self.assertEqual(1, len([e for e in built.build() if isinstance(e, Bar) and not e.text]))
 
     def test_a_name_too_long_for_two_lines_goes_beside_the_bar_uncut(self):
         text = "a name far too long for a bar this short"
@@ -189,9 +197,10 @@ class DatesThatCutAcross(unittest.TestCase):
                            {"at": 3.6, "text": "another one close by"}, {"at": 5.9, "text": "launch"}],
         "a name flying left at the edge": [{"at": 5, "text": "early"},
                                            {"at": 5.95, "text": "a long name near the edge"}],
-        "a late line under a long name": [{"at": 1, "text": "a long name that runs on"},
-                                          {"at": 2, "text": "another long name that runs far"},
-                                          {"at": 3.5, "text": "short"}],
+        "a late line under a long name": [
+            {"at": 1, "text": "a long name that runs on and on a while"},
+            {"at": 2, "text": "another long name that runs far across the page"},
+            {"at": 3.5, "text": "short"}],
     }
 
     def test_no_line_cuts_through_another_milestones_name(self):
@@ -205,6 +214,19 @@ class DatesThatCutAcross(unittest.TestCase):
                 for index, one in enumerate(names):
                     for other in names[index + 1:]:
                         self.assertFalse(one.overlaps(other), "two names share a place")
+
+    def test_the_crowded_cases_are_the_cases_they_say_they_are(self):
+        """見本の名前が短くなると、規則の枝を通らないまま緑になる (= 幅の数え方を変えた時に起きた)。"""
+        def row(built, text):
+            tops = sorted({e.rect.top for e in built.build() if e.kind == "label" and e.bold})
+            return tops.index(named(built, text).rect.top)
+
+        built = page(self.LANES, milestones=self.CROWDED["close together"])
+        self.assertEqual([0, 1, 2], [row(built, s["text"]) for s in self.CROWDED["close together"][:3]])
+        built = page(self.LANES, milestones=self.CROWDED["a name flying left at the edge"])
+        self.assertEqual((1, 0), (row(built, "early"), row(built, "a long name near the edge")))
+        built = page(self.LANES, milestones=self.CROWDED["a late line under a long name"])
+        self.assertEqual(2, row(built, "short"), "the short name had room on the first row but for the line")
 
     def test_a_name_with_no_room_on_the_right_flies_left_from_its_line(self):
         built = page(self.LANES, milestones=self.CROWDED["a name flying left at the edge"])

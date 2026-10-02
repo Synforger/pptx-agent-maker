@@ -155,11 +155,13 @@ def _text(slide, element: Text, theme: Theme) -> None:
         Emu(element.rect.width), Emu(element.rect.height),
     )
     frame = box.text_frame
-    # 隣の物に付く名前は折り返さない。線表の名前は枠の余白も取らない (= 測った幅がそのまま使える幅)
-    frame.word_wrap = element.kind != "label"
-    if element.kind in {"label", "lane"}:
+    # 隣の物に付く名前と、段の間の向きは折り返さない。線表の名前と向きは枠の余白も取らない
+    # (= 測った幅がそのまま使える幅。向きは狭い列に 1 文字で立つ)
+    frame.word_wrap = element.kind not in {"label", "marker"}
+    if element.kind in {"label", "lane", "marker"}:
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(0)
-    frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.kind in {"band_text", "title", "caption", "label", "lane"} else MSO_ANCHOR.TOP
+    frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.kind in {
+        "band_text", "title", "caption", "label", "lane", "stage", "marker"} else MSO_ANCHOR.TOP
     for index, line in enumerate(element.text.split("\n")):
         paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
         paragraph.alignment = ALIGN[element.align]

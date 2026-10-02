@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from .geometry import Rect
-from .page import Page, PageFullError
+from .page import TONES, Page, PageFullError
 from .tokens import DEFAULT, Theme
 
 #: A page type fills the area left for the body, and returns nothing.
@@ -270,16 +270,19 @@ def _card_height(page: Page, cards, width: int, columns: int, *, small: bool = F
 
     ⚠ **カードに頁の高さを配らない** ― 3 行のカードが 12cm の枠に入ると、字のうしろに
     その差ぶんの空きが残る (= 焼いて初めて出た)。
+
+    ⚠ **行数は箱が実際に折る数で数える** (= `wraps`)。全角 1 文字ぶんで数えていた間は、
+    英数字の短い見出しが 2 行と数えられ、箱の中に 1 行ぶんの空白ができた。
     """
     s, ty = page.theme.spacing, page.theme.type
     columns = max(columns, 1)
     column = (width - s.gap_m * (columns - 1)) // columns
-    inner = max(column - 2 * s.pad, 1)
+    inner = max(column - 2 * s.pad - 2 * s.text_inset, 1)   # 文字が使える幅
     tallest = 0
     for heading, body in cards:
-        tall = page.theme.text_height(heading, inner, ty.heading)
+        tall = page.theme.wrapped_height(heading, inner, ty.heading, bold=True)
         if body:
-            tall += s.gap_s + page.theme.text_height(
+            tall += s.gap_s + page.theme.wrapped_height(
                 body, inner, ty.caption if small else ty.body)
         tallest = max(tallest, tall)
     return tallest + 2 * s.pad
@@ -320,9 +323,46 @@ def _figure_grid(page: Page, spec: Spec, area: Rect) -> None:
         page.figure(cell, source, aspect, caption=caption)
 
 
-@register("flow", needs=["stages"])
+def _keys(item, allowed: set, what: str, hint: str = "") -> None:
+    """Refuse a key nobody reads inside a type's own tables, the way a page's keys are."""
+    if not isinstance(item, dict):
+        raise PageTypeError(f"{what} is {item!r} — write it as a table of keys")
+    unknown = sorted(item.keys() - allowed)
+    if unknown:
+        raise PageTypeError(
+            f"{what} does not take {', '.join(unknown)} (= it accepts "
+            f"{', '.join(sorted(allowed))}).{hint}")
+
+
+def _node(node, what: str) -> tuple[tuple[str, str], str]:
+    """One node of a flow as ((heading, body), tone).
+
+    書き方は 2 つ ― `["見出し", "本文"]` か、色の役を付けるときの
+    `{ heading = "…", body = "…", tone = "accent" }`。
+    """
+    if isinstance(node, dict):
+        _keys(node, {"heading", "body", "tone"}, what)
+        if not str(node.get("heading", "")).strip():
+            raise PageTypeError(f"{what} has no `heading` — a node says what it is")
+        tone = str(node.get("tone", TONES[0]))
+        if tone not in TONES:
+            raise PageTypeError(
+                f"{what} has tone {tone!r} — a tone is one of the palette's roles: {', '.join(TONES)}")
+        return (str(node["heading"]), str(node.get("body", ""))), tone
+    if isinstance(node, (list, tuple)) and len(node) == 2:
+        return (str(node[0]), str(node[1])), TONES[0]
+    raise PageTypeError(
+        f"{what} is {node!r} — write it as [\"heading\", \"body\"], or as a table "
+        "{ heading = …, body = …, tone = … }")
+
+
+@register("flow", needs=["stages"], takes=["align_rows"])
 def _flow(page: Page, spec: Spec, area: Rect) -> None:
     """Stages left to right, each holding its nodes, each with what is settled below.
+
+    `align_rows = true` は、同じ順番のノードを段をまたいで横に揃える (= 行が「誰の仕事か」の
+    ような意味を持つ頁のため。行の高さはその行で一番高いノードに合わせる)。書かなければ、
+    ノードは段ごとに自分の言葉の高さで積まれる。
 
     ⚠ **段の間の向きは文字で置く** (= `marker`)。矢印のプリセット 1 つで PowerPoint が
     修復を言い出した実例がある。
@@ -330,6 +370,9 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
     stages = spec.get("stages")
     if len(stages) < 2:
         raise PageTypeError("flow: a flow needs at least two stages")
+    aligned = spec.get("align_rows", False)
+    if not isinstance(aligned, bool):
+        raise PageTypeError(f"flow: `align_rows` is true or false, not {aligned!r}")
 
     weights: list[float] = []
     for index in range(len(stages)):
@@ -341,19 +384,31 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
     # ノードの高さは**そのノードの言葉**で決め、段ごとに積む。積んだ高さの最大に全段を
     # 揃えるので、列の下端は揃いながら、1 つしかない段が 2 つ分の空きを抱えることもない。
     gap = page.theme.spacing.gap_s
+    wide = columns[0].width
     stacks = []
-    for stage in stages:
-        nodes = [(str(a), str(b)) for a, b in stage.get("nodes", [])]
+    for number, stage in enumerate(stages, start=1):
+        nodes = [_node(node, f"flow: stage {number}, node {index}")
+                 for index, node in enumerate(stage.get("nodes", []), start=1)]
         if not nodes:
             raise PageTypeError(f"flow: stage {stage['name']!r} has no nodes")
-        stacks.append([(node, _card_height(page, [node], columns[0].width, 1, small=True))
-                       for node in nodes])
-    head_height = page.theme.line_height(page.theme.type.caption)
+        stacks.append([(node, tone, _card_height(page, [node], wide, 1, small=True))
+                       for node, tone in nodes])
+    if aligned:
+        # 行ごとに、その行で一番高いノードへ揃える (= 同じ順番のノードが同じ高さに並ぶ)
+        rows = [max(column[index][2] for column in stacks if index < len(column))
+                for index in range(max(len(column) for column in stacks))]
+        stacks = [[(node, tone, rows[index]) for index, (node, tone, _tall) in enumerate(column)]
+                  for column in stacks]
+        stack = sum(rows) + gap * (len(rows) - 1)
+    else:
+        stack = max(sum(tall for _n, _t, tall in column) + gap * (len(column) - 1)
+                    for column in stacks)
+    stage_size = page.theme.type.stage
+    head_height = max(page.theme.wrapped_height(str(stage["name"]), wide, stage_size, bold=True)
+                      for stage in stages)
     settled_height = max(
-        (page.theme.text_height(str(stage["settled"]), columns[0].width,
-                                page.theme.type.caption)
+        (page.theme.text_height(str(stage["settled"]), wide, page.theme.type.caption)
          for stage in stages if stage.get("settled")), default=0)
-    stack = max(sum(h for _n, h in column) + gap * (len(column) - 1) for column in stacks)
     wanted = head_height + gap + stack + (gap + settled_height if settled_height else 0)
     if wanted > area.height:
         raise PageFullError(
@@ -364,14 +419,16 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
     page.drew_a_diagram()  # 段とノードで組んだ流れ図そのものが、この頁の図解
     for index, (stage, column_nodes) in enumerate(zip(stages, stacks)):
         column = columns[index * 2]
-        if index:
-            page.marker(columns[index * 2 - 1], "→")
         head, rest = column.split_top(head_height, gap=gap)
-        page.caption(head, str(stage["name"]))
+        page.stage(head, str(stage["name"]))
         body, after = rest.split_top(stack, gap=gap)
-        for node, height in column_nodes:
+        if index:
+            # 向きはノードの並びの高さに置く (= 段の名前の横に浮かせない)
+            between = columns[index * 2 - 1]
+            page.marker(Rect(between.left, body.top, between.width, body.height), "→")
+        for node, tone, height in column_nodes:
             cell, body = body.split_top(height, gap=gap)
-            page.boxes(cell, [node], small=True)
+            page.boxes(cell, [node], small=True, tones=[tone])
         if stage.get("settled") and settled_height:
             page.caption(after.split_top(settled_height)[0], str(stage["settled"]),
                          align="left")
@@ -380,11 +437,6 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
 #: 余った高さを棒へ配る上限 (= 棒 1 段の高さに対する比)。配り切ると、3 本しか無い線表が
 #: 頁いっぱいの帯になる (= カードに頁の高さを配らないのと同じ理由)
 ROOMY = 0.6
-#: 名前を棒の中で 2 行に折ってよい長さ (= 棒の幅に対する比)。語の切れ目で折れるぶん、
-#: 2 行ちょうどは入らない
-TWO_LINES = 1.7
-
-
 @dataclass
 class _Piece:
     """One thing on the time axis: a bar, a mark or a date, with the room its name takes."""
@@ -406,17 +458,6 @@ class _Piece:
         start = self.left - (gap + self.wide + gap if self.side == "left" else 0)
         end = self.right + (gap + self.wide + gap if self.side == "right" else 0)
         return start, end
-
-
-def _keys(item, allowed: set, what: str, hint: str = "") -> None:
-    """Refuse a key nobody reads inside a timeline's tables, the way a page's keys are."""
-    if not isinstance(item, dict):
-        raise PageTypeError(f"timeline: {what} is {item!r} — write it as a table of keys")
-    unknown = sorted(item.keys() - allowed)
-    if unknown:
-        raise PageTypeError(
-            f"timeline: {what} does not take {', '.join(unknown)} (= it accepts "
-            f"{', '.join(sorted(allowed))}).{hint}")
 
 
 def _position(item: dict, key: str, count: int, what: str) -> float:
@@ -520,7 +561,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
     misplaced = (" `phases` and `milestones` belong to the page: in TOML, write them above the "
                  "first `[[pages.lanes]]`.")
     for index, lane in enumerate(lanes, start=1):
-        _keys(lane, {"name", "bars", "marks"}, f"lane {index}", misplaced)
+        _keys(lane, {"name", "bars", "marks"}, f"timeline: lane {index}", misplaced)
 
     # 左にレーンの名前、右に時間。名前の列は一番長い名前ぶんで、取りすぎるなら折り返させる。
     # 時間の側は印の半分だけ内へ寄せる (= 端の時点に置いた印が枠から出ない)
@@ -550,7 +591,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
     # -- 何がどれだけの高さを要るかを、置く前に全部出す ---------------------------
     spans = []
     for index, phase in enumerate(spec.get("phases") or [], start=1):
-        _keys(phase, {"from", "to", "label"}, f"phase {index}")
+        _keys(phase, {"from", "to", "label"}, f"timeline: phase {index}")
         start, end = _stretch(phase, count, f"phase {index}")
         spans.append((start, end, str(phase.get("label", ""))))
     spans.sort()
@@ -572,7 +613,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
 
     stones = []
     for index, stone in enumerate(spec.get("milestones") or [], start=1):
-        _keys(stone, {"at", "text"}, f"milestone {index}")
+        _keys(stone, {"at", "text"}, f"timeline: milestone {index}")
         where = at(_position(stone, "at", count, f"milestone {index}"))
         text = str(stone.get("text", ""))
         wide = theme.width(text, size, bold=True)
@@ -588,7 +629,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
         pieces = []
         for number, bar in enumerate(lane.get("bars") or [], start=1):
             what = f"lane {index}, bar {number}"
-            _keys(bar, {"from", "to", "text", "tentative"}, what)
+            _keys(bar, {"from", "to", "text", "tentative"}, f"timeline: {what}")
             start, end = _stretch(bar, count, what)
             left, right = at(start) + s.bar_gap, at(end) - s.bar_gap
             if right <= left:
@@ -597,17 +638,17 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
             wide, inner = theme.width(text, size), right - left - 2 * s.bar_pad_x
             if wide <= inner:
                 side, lines = "in", 1
-            elif wide <= inner * TWO_LINES:
-                side, lines = "in", 2
+            elif theme.unbreakable(text, size) <= inner and theme.wraps(text, inner, size) == 2:
+                side, lines = "in", 2      # 語の切れ目で 2 行に収まる (= 語の途中では折らない)
             elif beside(left, right, wide):
                 side, lines = beside(left, right, wide), 1
             else:
-                side, lines = "in", theme.lines(text, max(inner, 1), size)
+                side, lines = "in", theme.wraps(text, max(inner, 1), size)
             pieces.append(_Piece(left, right, text, side, lines * line + 2 * s.bar_pad_y, wide,
                                  tentative=bool(bar.get("tentative"))))
         for number, mark in enumerate(lane.get("marks") or [], start=1):
             what = f"lane {index}, mark {number}"
-            _keys(mark, {"at", "text"}, what)
+            _keys(mark, {"at", "text"}, f"timeline: {what}")
             where = at(_position(mark, "at", count, what))
             left, right = where - s.mark // 2, where - s.mark // 2 + s.mark
             text = str(mark.get("text", ""))
@@ -684,7 +725,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
             else:
                 page.bar(Rect(piece.left, top, piece.right - piece.left, tall),
                          piece.text if piece.side == "in" else "",
-                         tone=tone, tentative=piece.tentative)
+                         tone=TONES[tone % 2], tentative=piece.tentative)
             if piece.side == "right":
                 page.label(Rect(piece.right + s.gap_s, top, piece.wide, tall), piece.text)
             elif piece.side == "left":

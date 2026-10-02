@@ -20,6 +20,77 @@ from .geometry import Rect, cm, pt
 
 SLIDE_16_9 = Rect(0, 0, 12192000, 6858000)
 
+#: 1 文字が横に取る幅 (= 級数に対する比)。**字によって 3 倍違う**ので、一律の比で数えると
+#: `i` の多い語は余り、`m` の多い語は溢れる。値は書体の file が持つ送り幅を測ったもので
+#: (= `scripts/measure-advance.py` が出す。0.02 刻みで切り上げ)、書体の系統ごとに 1 枚持つ。
+#: `any` は測っていない書体が引く表で、幅の広い書体 (= Verdana / Meiryo) に合わせてある ―
+#: 知らない書体では溢れない側へ外し、狭い書体では少し余る。全角は 1。
+_ADVANCE = {
+    "any": {
+        0.28: "'il",
+        0.36: " fj",
+        0.38: ",.",
+        0.40: "!t",
+        0.44: "Ir",
+        0.46: "\"()-/:;J[]|",
+        0.54: "csz",
+        0.56: "?L",
+        0.58: "F",
+        0.60: "ekvxy",
+        0.62: "Pao",
+        0.64: "$*0123456789ETY\\_`bdghnpqu{}",
+        0.70: "ABCKRSVXZ",
+        0.74: "&U",
+        0.76: "HN",
+        0.78: "DG",
+        0.80: "OQ",
+        0.82: "#+<=>^~",
+        0.84: "w",
+        0.86: "M",
+        0.98: "m",
+        1.02: "@W",
+        1.08: "%",
+    },
+    "arial": {
+        0.20: "'",
+        0.24: "ijl",
+        0.26: "|",
+        0.28: " !,./:;I[\\]ft",
+        0.34: "()-`r{}",
+        0.36: "\"",
+        0.40: "*",
+        0.48: "^",
+        0.50: "Jcksvxyz",
+        0.56: "#$0123456789?L_abdeghnopqu",
+        0.60: "+<=>~",
+        0.62: "FTZ",
+        0.68: "&ABEKPSVXY",
+        0.74: "CDHNRUw",
+        0.78: "GOQ",
+        0.84: "Mm",
+        0.90: "%",
+        0.96: "W",
+        1.02: "@",
+    },
+}
+_ADVANCE_OF = {group: {character: wide for wide, characters in table.items() for character in characters}
+               for group, table in _ADVANCE.items()}
+#: どの書体がどの表を引くか (= 名前の頭で引く)。Helvetica は Arial と同じ字幅に作られている
+_FAMILY = {"arial": "arial", "helvetica": "arial"}
+#: 表に無い半角 (= アクセント付きの字など) はこの幅で数える
+_ADVANCE_OTHER = 0.7
+#: 太字は同じ字でもこれだけ広い (= 測った書体の、小文字の平均)
+_BOLD = {"any": 1.14, "arial": 1.10}
+
+
+def advance(character: str, bold: bool = False, family: str = "") -> float:
+    """How far one character moves the line along, as a fraction of the type size."""
+    if ord(character) > 0x2E7F:
+        return 1.0
+    name = family.strip().lower()
+    group = next((table for head, table in _FAMILY.items() if name.startswith(head)), "any")
+    return _ADVANCE_OF[group].get(character, _ADVANCE_OTHER) * (_BOLD[group] if bold else 1)
+
 
 @dataclass(frozen=True)
 class Type:
@@ -27,6 +98,9 @@ class Type:
 
     title: float = 24
     heading: float = 16
+    #: 流れ図の段の名前と、段の間の向き
+    stage: float = 14
+    marker: float = 28
     body: float = 12
     caption: float = 10
     minimum: float = 10
@@ -62,6 +136,8 @@ class Spacing:
     title_height: int = cm(1.5)
     cell_pad_y: int = cm(0.08)
     cell_pad_x: int = cm(0.18)
+    #: 文字の枠が左右に自分で取る余白 (= pptx の既定)。文字が使える幅は、枠の幅からこの 2 つぶん狭い
+    text_inset: int = cm(0.254)
     band_height: int = cm(1.1)
     footer_height: int = cm(0.7)
     #: 区切りの細い線 (= 題の下、線表の目盛り)
@@ -114,14 +190,14 @@ class Theme:
         """How wide this text runs on one line.
 
         `lines` は全角 1 文字ぶんで数えて余らせるが、**1 行に収まるかどうか**を決める場面では
-        それだと欧文が倍に出て、収まる文字まで外へ追い出す。ここは全角を 1 文字ぶん、
-        それ以外を 0.7 文字ぶんで数える ― 既定の書体は欧文の幅が広く、0.6 で数えた間は
-        4 文字の名前が枠から溢れて折れた (= 焼いて初めて出た)。太字は 1 割増す。
+        それだと欧文が倍に出て、収まる文字まで外へ追い出す。ここは字ごとの幅で数える
+        (= `advance`)。半角を一律 0.6 文字ぶんで数えた間は、`m` を含む 4 文字の名前が枠から
+        溢れて折れた (= 焼いて初めて出た)。
         """
         size = self.type.body if size is None else size
-        longest = max(str(text).split("\n"), key=len)
-        wide = sum(pt(size) if ord(c) > 0x2E7F else pt(size) * 0.7 for c in longest)
-        return round(wide * (1.1 if bold else 1))
+        family = self.type.family
+        return round(max(sum(advance(c, bold, family) for c in line)
+                         for line in str(text).split("\n")) * pt(size))
 
     def table_row_height(self) -> int:
         """One row: the line box plus the cell padding. Nothing renders shorter."""
@@ -161,6 +237,46 @@ class Theme:
         widths = [floor + round(room * w / scale) for w in want]
         widths[-1] = total - sum(widths[:-1])
         return widths
+
+    def wraps(self, text: str, width: int, size: float | None = None, *, bold: bool = False) -> int:
+        """How many lines this text takes at that width, broken the way a text box breaks it.
+
+        `lines` は全角 1 文字ぶんで数えて余らせる。地の文にはそれでよいが、**枠の高さを
+        その字数で決める場所**では余りがそのまま空白になる ― 英数字と記号の短い見出しが
+        2 行と数えられ、箱の中に 1 行ぶんの空きが残った。ここは語の切れ目で折る
+        (= 空白で区切られた語は割らない、全角は 1 文字ごとに折れる)。幅は `width` と同じ数え方。
+
+        ⚠ `width` は**文字が使える幅**で渡す (= 文字の枠は左右に `text_inset` を取る)。
+        """
+        size = self.type.body if size is None else size
+        em, family = pt(size), self.type.family
+        total = 0
+        for paragraph in str(text).split("\n"):
+            lines, used = 1, 0.0
+            for space, word in re.findall(r"(\s*)([^\s\u2E80-\uFFFF]+|[\u2E80-\uFFFF])", paragraph):
+                wide = sum(advance(c, bold, family) for c in word) * em
+                lead = sum(advance(c, bold, family) for c in space) * em
+                if used and used + lead + wide > width:
+                    lines, used, lead = lines + 1, 0.0, 0.0
+                if wide > width:                       # 1 語が 1 行より長い: 文字の途中で折れる
+                    lines += int((used + wide) // width)
+                    used = (used + wide) % width
+                else:
+                    used += lead + wide
+            total += lines
+        return max(total, 1)
+
+    def unbreakable(self, text: str, size: float | None = None, *, bold: bool = False) -> int:
+        """The width of the longest run that cannot be broken (= a word; a full-width character)."""
+        size = self.type.body if size is None else size
+        family = self.type.family
+        runs = re.findall(r"[^\s\u2E80-\uFFFF]+|[\u2E80-\uFFFF]", str(text)) or [""]
+        return round(max(sum(advance(c, bold, family) for c in run) for run in runs) * pt(size))
+
+    def wrapped_height(self, text: str, width: int, size: float | None = None, *,
+                       bold: bool = False) -> int:
+        """The height that text needs at that width, by `wraps`."""
+        return self.wraps(text, width, size, bold=bold) * self.line_height(size)
 
     def pt(self, size: float) -> int:
         """A type size in EMU, refusing anything below the floor."""
