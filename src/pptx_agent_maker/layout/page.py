@@ -57,6 +57,8 @@ class Text(Element):
 @dataclass(frozen=True)
 class Fill(Element):
     colour: str
+    #: 枠の色。空なら枠を引かない
+    outline: str = ""
 
 
 @dataclass(frozen=True)
@@ -101,6 +103,8 @@ class Diamond(Element):
 #: 色で分けられる)。`accent` は目を集めたい物、`good` / `bad` は**読み** (= 良い / 悪い) を
 #: 示す物にだけ使う
 TONES = ("box", "band", "tint", "accent", "good", "bad")
+#: 薄い地。紙とも列の地とも近いので、地を濃くした色の枠を持つ (= `Palette.edge`)
+LIGHT = TONES[:3]
 
 
 class PageFullError(RuntimeError):
@@ -189,18 +193,24 @@ class Page:
             Text("band_text", rect.inset(s.pad), text, t.heading, p.ink, bold=conclusion)
         )
 
-    def ground(self, tone: str) -> tuple[str, str]:
-        """(the fill, the colour of words on it) for a tone: dark grounds take the paper's colour."""
+    def ground(self, tone: str) -> tuple[str, str, str]:
+        """(the fill, the colour of words on it, the colour of its edge) for a tone.
+
+        Dark grounds take the paper's colour for their words and no edge; light grounds take
+        an edge, or they melt into whatever lies behind them.
+        """
         p = self.theme.palette
-        return {"box": (p.box, p.ink), "band": (p.band, p.ink), "tint": (p.tint, p.ink),
-                "accent": (p.accent, p.paper), "good": (p.good, p.paper),
-                "bad": (p.bad, p.paper)}[tone]
+        if tone in LIGHT:
+            fill = getattr(p, tone)
+            return fill, p.ink, p.edge(fill)
+        return {"accent": p.accent, "good": p.good, "bad": p.bad}[tone], p.paper, ""
 
     def boxes(self, rect: Rect, cards: list[tuple[str, str]], *, gap: int | None = None,
               tones: list[str] | None = None) -> None:
         """Cards side by side inside an area you already divided off.
 
-        `tones` は箱ごとの地の色の役 (= `TONES`。書かなければ全部 `box`)。
+        `tones` は箱ごとの地の色の役 (= `TONES`。書かなければ全部 `box`)。薄い地の箱は枠を持つ
+        (= `ground`)。
 
         ⚠ **見出しの高さは字数で決める。**比で割っていた間は、2 行に折り返した見出しが
         本文の上に乗った (= 焼いて初めて出た。枠の中に収まっているので検査は通る)。
@@ -208,8 +218,8 @@ class Page:
         t, s = self.theme.type, self.theme.spacing
         columns = rect.columns(len(cards), gap if gap is not None else s.gap_m)
         for index, (card, (heading, body)) in enumerate(zip(columns, cards)):
-            fill, ink = self.ground(tones[index] if tones else "box")
-            self.elements.append(Fill("box", card, fill))
+            fill, ink, edge = self.ground(tones[index] if tones else "box")
+            self.elements.append(Fill("box", card, fill, outline=edge))
             inner = card.inset(s.pad)
             if body:
                 needed = self.theme.wrapped_height(
@@ -323,7 +333,8 @@ class Page:
             size: float | None = None) -> None:
         """Something that takes a stretch of time, with its name on it.
 
-        `tone` は地の色の役 (= `TONES`。箱と同じ語彙)。
+        `tone` は地の色の役 (= `TONES`。箱と同じ語彙)。薄い地の棒は、地を濃くした色の枠を持つ ―
+        列の薄い地の上に置かれるので、枠が無いと端が背景に溶ける。
         `tentative` は**点線の枠** (= 在れば / 内容未定)。地は紙の色なので、決まった棒の
         隣に置いても同じ重さに見えない ― 塗らずに透かすと、後ろを通る日付の線が名前を貫く。
 
@@ -336,8 +347,8 @@ class Page:
             self.elements.append(Bar("bar", rect, text, size, p.muted,
                                      fill=p.paper, outline=p.muted, dashed=True))
         else:
-            fill, ink = self.ground(tone)
-            self.elements.append(Bar("bar", rect, text, size, ink, fill=fill))
+            fill, ink, edge = self.ground(tone)
+            self.elements.append(Bar("bar", rect, text, size, ink, fill=fill, outline=edge))
 
     def span(self, rect: Rect, text: str, *, size: float | None = None) -> None:
         """What a stretch of periods is like (= movable, fixed), laid over the columns."""

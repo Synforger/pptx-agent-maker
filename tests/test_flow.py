@@ -19,7 +19,7 @@ sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import tokens, types  # noqa: E402
-from pptx_agent_maker.layout.page import TONES, Fill, Text  # noqa: E402
+from pptx_agent_maker.layout.page import LIGHT, TONES, Fill, Text  # noqa: E402
 from pptx_agent_maker.layout.tokens import DEFAULT, Theme, Type  # noqa: E402
 from pptx_agent_maker.layout.types import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
@@ -72,6 +72,16 @@ class ATone(unittest.TestCase):
                 wanted = getattr(DEFAULT.palette, ink)
                 self.assertEqual(wanted, named(built, "Node").colour)
                 self.assertEqual(wanted, named(built, "why").colour)
+
+    def test_a_node_on_a_light_ground_has_an_edge_and_one_on_a_dark_ground_has_none(self):
+        """薄い地は紙と近い。棒と同じ枠を持つ (= 同じ色の役は、どの型でも同じ見た目)。"""
+        palette = DEFAULT.palette
+        for tone in TONES:
+            with self.subTest(tone):
+                built = page([stage("One", {"heading": "Node", "body": "why", "tone": tone}),
+                              stage("Two", {"heading": "Other", "tone": "accent"})])
+                wanted = palette.edge(getattr(palette, tone)) if tone in LIGHT else ""
+                self.assertEqual(wanted, box_of(built, "Node").outline)
 
     def test_a_tone_changes_one_node_and_leaves_its_neighbours(self):
         built = page([stage("One", ["Plain", ""], {"heading": "Marked", "tone": "bad"}),
@@ -357,6 +367,18 @@ class OnceBaked(unittest.TestCase):
     def test_words_on_a_dark_ground_are_written_in_the_papers_colour(self):
         self.assertIn(f'val="{DEFAULT.palette.paper}"', self.shape("Marked"))
         self.assertIn(f'val="{DEFAULT.palette.ink}"', self.shape("Plain"))
+
+    def box(self, colour):
+        """The shape painted in that colour (= a node's ground carries no words of its own)."""
+        return next(s for s in self.shapes
+                    if f'<a:srgbClr val="{colour}"/>' in s.split("<a:ln")[0])
+
+    def test_a_light_node_is_written_with_a_solid_edge_and_a_dark_one_with_none(self):
+        palette = DEFAULT.palette
+        self.assertRegex(self.box(palette.box),
+                         rf'<a:ln w="{DEFAULT.spacing.hairline}">\s*<a:solidFill>\s*'
+                         rf'<a:srgbClr val="{palette.edge(palette.box)}"/>')
+        self.assertRegex(self.box(palette.bad), r"<a:ln[^>]*>\s*<a:noFill/>")
 
     def test_the_checks_find_nothing(self):
         self.assertEqual([], checks.run_all(self.deck))

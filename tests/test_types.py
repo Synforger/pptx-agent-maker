@@ -12,7 +12,8 @@ import unittest
 from pathlib import Path
 
 from pptx_agent_maker.layout import types
-from pptx_agent_maker.layout.page import Figure, Table, Text
+from pptx_agent_maker.layout.page import Figure, Fill, Table, Text
+from pptx_agent_maker.layout.tokens import DEFAULT
 from pptx_agent_maker.layout.types import PageTypeError
 from pptx_agent_maker.project.manifest import Manifest, ManifestError
 from pptx_agent_maker.write import aspect
@@ -119,6 +120,17 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
                 self.assertIn("points", kinds, f"{name} dropped the points")
                 self.assertIn("note", kinds, f"{name} dropped the reading")
                 self.assertIn("box", kinds, f"{name} dropped the cards")
+
+    def test_the_cards_carry_the_same_edge_on_every_type(self):
+        """カードの地は薄い。どの型に付けても、地を濃くした色の枠を持つ (= 棒と流れ図の箱と同じ)。"""
+        palette = DEFAULT.palette
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data, "cards": EXTRAS["cards"]})
+                cards = [e for e in page.build() if isinstance(e, Fill) and e.kind == "box"
+                         and e.colour == palette.box]
+                self.assertTrue(cards)
+                self.assertEqual({palette.edge(palette.box)}, {card.outline for card in cards})
 
     def test_the_extras_stay_inside_the_frame(self):
         for name, data in MINIMAL.items():

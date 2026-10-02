@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field, fields
+from typing import ClassVar
 
 from .geometry import Rect, cm, pt
 
@@ -133,6 +134,18 @@ class Palette:
     rule: str = "D9D9D9"
     paper: str = "FFFFFF"
 
+    #: 薄い地 (= `box` / `band` / `tint`) の箱と棒が持つ枠の濃さ ― 地の色が白から離れているぶんを、
+    #: この倍だけ離す。薄い地は列の地 (`wash`) とも紙とも近く、枠が無いと端が背景に溶ける
+    #: (= 実物のデッキで「棒の境が分からない」と差し戻された)。色の役ではないので案件からは
+    #: 変えられない ― 案件が地を変えれば、枠はその地から出し直される
+    EDGE_DEPTH: ClassVar[float] = 6.0
+
+    def edge(self, ground: str) -> str:
+        """The colour of the line round a light ground: the same hue, further from white."""
+        channels = (int(ground[index:index + 2], 16) for index in (0, 2, 4))
+        return "".join(f"{max(round(255 - (255 - channel) * self.EDGE_DEPTH), 0):02X}"
+                       for channel in channels)
+
 
 @dataclass(frozen=True)
 class Spacing:
@@ -152,7 +165,7 @@ class Spacing:
     text_inset: int = cm(0.254)
     band_height: int = cm(1.1)
     footer_height: int = cm(0.7)
-    #: 区切りの細い線 (= 題の下、線表の目盛り)
+    #: 区切りの細い線 (= 題の下、線表の目盛り) と、箱と棒の枠
     hairline: int = pt(1)
     #: 線表の棒 ― 文字のまわりの余白、隣の棒との間、同じレーンの段と段の間
     bar_pad_x: int = cm(0.15)
