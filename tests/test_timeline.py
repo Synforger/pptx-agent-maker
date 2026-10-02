@@ -20,7 +20,8 @@ sys.path.insert(0, str(REPO / "src"))
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
 from pptx_agent_maker.layout.page import Bar, Diamond, PageFullError, Text  # noqa: E402
-from pptx_agent_maker.layout.tokens import DEFAULT  # noqa: E402
+from pptx_agent_maker.deck.look import SLOTS, look_of  # noqa: E402
+from pptx_agent_maker.layout.tokens import DEFAULT, theme_from  # noqa: E402
 from pptx_agent_maker.layout.types import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
@@ -170,6 +171,81 @@ class TheWordsStayWords(unittest.TestCase):
                            getattr(element, "outline", "")):
                 if colour:
                     self.assertIn(colour, palette, f"{element.kind} uses a colour of its own")
+
+
+class TheToneOfALane(unittest.TestCase):
+    """A lane may say which of the palette's roles its bars take; unsaid, two grounds alternate."""
+
+    def lanes(self, *tones):
+        return [{"name": f"Lane {n}", "bars": [bar(0, 6, f"bar {n}")], **({"tone": tone} if tone else {})}
+                for n, tone in enumerate(tones, start=1)]
+
+    def test_unsaid_the_lanes_alternate_between_two_light_grounds(self):
+        built = page(self.lanes(None, None, None, None))
+        palette = DEFAULT.palette
+        self.assertEqual([palette.box, palette.band, palette.box, palette.band],
+                         [named(built, f"bar {n}").fill for n in range(1, 5)])
+
+    def test_a_lane_takes_the_tone_it_names_and_leaves_the_others_alone(self):
+        built = page(self.lanes(None, "tint", None, "accent"))
+        palette = DEFAULT.palette
+        self.assertEqual([palette.box, palette.tint, palette.box, palette.accent],
+                         [named(built, f"bar {n}").fill for n in range(1, 5)])
+
+    def test_every_bar_of_the_lane_takes_it(self):
+        built = page([{"name": "One", "tone": "tint",
+                       "bars": [bar(0, 2, "a"), bar(2, 4, "b"), bar(1, 3, "c")]}])
+        self.assertEqual({DEFAULT.palette.tint}, {named(built, t).fill for t in "abc"})
+
+    def test_a_name_on_a_dark_ground_is_set_in_the_papers_colour(self):
+        palette = DEFAULT.palette
+        for tone, ink in (("box", palette.ink), ("band", palette.ink), ("tint", palette.ink),
+                          ("accent", palette.paper), ("good", palette.paper), ("bad", palette.paper)):
+            with self.subTest(tone):
+                drawn = named(page(self.lanes(tone)), "bar 1")
+                self.assertEqual(getattr(palette, tone), drawn.fill)
+                self.assertEqual(ink, drawn.colour)
+
+    def test_three_lanes_can_be_told_apart_by_three_light_grounds(self):
+        built = page(self.lanes("box", "band", "tint"))
+        fills = [named(built, f"bar {n}").fill for n in range(1, 4)]
+        self.assertEqual(3, len(set(fills)))
+        self.assertEqual({DEFAULT.palette.ink}, {named(built, f"bar {n}").colour for n in range(1, 4)})
+
+    def test_a_tentative_bar_stays_a_dashed_outline_whatever_the_lanes_tone(self):
+        built = page([{"name": "One", "tone": "accent",
+                       "bars": [bar(0, 2, "sure"), bar(2, 4, "maybe", tentative=True)]}])
+        maybe = named(built, "maybe")
+        self.assertTrue(maybe.dashed)
+        self.assertEqual(DEFAULT.palette.paper, maybe.fill)
+        self.assertEqual(DEFAULT.palette.muted, maybe.colour)
+
+    def test_a_name_beside_a_dark_bar_stays_dark_on_the_paper(self):
+        text = "a name far too long for a bar this short"
+        built = page([{"name": "One", "tone": "accent", "bars": [bar(1, 1.3, text)]}])
+        self.assertIsInstance(named(built, text), Text)
+        self.assertEqual(DEFAULT.palette.ink, named(built, text).colour)
+
+    def test_a_tone_that_is_not_a_role_is_refused_and_says_which_lane(self):
+        with self.assertRaises(PageTypeError) as raised:
+            page(self.lanes(None, "green"))
+        said = str(raised.exception)
+        self.assertIn("lane 2", said)
+        for tone in types.TONES:
+            self.assertIn(tone, said)
+
+    def test_the_projects_own_tint_reaches_the_bars(self):
+        theme = theme_from({"palette": {"tint": "abcdef"}})
+        built = types.build({"type": "timeline", "title": "A plan", "periods": MONTHS,
+                             "lanes": self.lanes("tint")}, lambda name: Path(name),
+                            lambda path: 1.0, theme)
+        self.assertEqual("ABCDEF", named(built, "bar 1").fill)
+
+    def test_the_tint_is_never_read_from_a_templates_theme(self):
+        """テーマの空いた枠には濃い色が入っていることが多い。薄い地をそこから読むと名前が読めなくなる。"""
+        self.assertNotIn("tint", [name for _slot, name in SLOTS])
+        template = REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx"
+        self.assertNotIn("tint", look_of(template).get("palette", {}))
 
 
 class DatesThatCutAcross(unittest.TestCase):

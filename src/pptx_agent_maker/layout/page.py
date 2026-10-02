@@ -94,9 +94,10 @@ class Diamond(Element):
     colour: str
 
 
-#: 箱と棒の地に使える色の役。`box` / `band` は地の色で意味を持たない。`accent` は目を
-#: 集めたい物、`good` / `bad` は**読み** (= 良い / 悪い) を示す物にだけ使う
-TONES = ("box", "band", "accent", "good", "bad")
+#: 箱と棒の地に使える色の役。`box` / `band` / `tint` は薄い地で意味を持たない (= 3 者までを
+#: 色で分けられる)。`accent` は目を集めたい物、`good` / `bad` は**読み** (= 良い / 悪い) を
+#: 示す物にだけ使う
+TONES = ("box", "band", "tint", "accent", "good", "bad")
 
 
 class PageFullError(RuntimeError):
@@ -188,8 +189,9 @@ class Page:
     def ground(self, tone: str) -> tuple[str, str]:
         """(the fill, the colour of words on it) for a tone: dark grounds take the paper's colour."""
         p = self.theme.palette
-        return {"box": (p.box, p.ink), "band": (p.band, p.ink), "accent": (p.accent, p.paper),
-                "good": (p.good, p.paper), "bad": (p.bad, p.paper)}[tone]
+        return {"box": (p.box, p.ink), "band": (p.band, p.ink), "tint": (p.tint, p.ink),
+                "accent": (p.accent, p.paper), "good": (p.good, p.paper),
+                "bad": (p.bad, p.paper)}[tone]
 
     def boxes(self, rect: Rect, cards: list[tuple[str, str]], *, gap: int | None = None,
               small: bool = False, tones: list[str] | None = None) -> None:

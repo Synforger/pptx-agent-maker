@@ -98,7 +98,7 @@ settled = "one queue"                                  # 任意。段の下に�
 
 - **ノードは 2 通りに書ける** ― `["見出し", "本文"]` か、`{ heading = …, body = …, tone = … }`
   (= `body` と `tone` は省ける)
-- **`tone` は色の役** ― `box` (= 既定) / `band` / `accent` / `good` / `bad`。色そのものは
+- **`tone` は色の役** ― `box` (= 既定) / `band` / `tint` / `accent` / `good` / `bad`。色そのものは
   `[theme.palette]` が持つ。⚠ **`good` / `bad` は読み (= 良い / 悪い) を示す物にだけ使う**
   (= 飾りで塗ると、色が意味を持たなくなる)
 - **`align_rows = true`** は、行が意味を持つ頁のため (= 上から 1 番目は誰、2 番目は誰)。
@@ -121,6 +121,7 @@ milestones = [ { at = 5.6, text = "Expo" } ]           # 任意。全レーン�
 
 [[pages.lanes]]                                        # レーン = 上から下
 name = "Core"
+tone = "tint"                                          # 任意。このレーンの棒の色の役
 bars = [
   { from = 0, to = 1, text = "1.0 complete" },
   { from = 2.5, to = 3, text = "event (if any)", tentative = true },   # 点線の枠
@@ -131,6 +132,9 @@ marks = [ { at = 1, text = "1.0 release" } ]           # レーンの中の菱�
 - **位置は期間の番号** ― 0 が最初の期間の頭、`periods` の数が最後の期間の終わり、半期間なら 0.5
 - ⚠ **`phases` と `milestones` は最初の `[[pages.lanes]]` より上に書く** (= TOML では、
   `[[pages.lanes]]` の下に書いたキーはそのレーンのキーになる。下に書くと拒まれる)
+- **レーンの `tone`** は `flow` のノードと同じ語彙 (= `box` / `band` / `tint` / `accent` / `good` / `bad`)。
+  書かなければ `box` と `band` の交互。薄い地は 3 つ (= `box` / `band` / `tint`) で、**3 者までを
+  色で分けられる**。濃い地 (= `accent` / `good` / `bad`) の上の名前は紙の色になる
 - 同じレーンで時期が重なる棒は、自動で段が分かれる
 - 棒の名前は棒の中。2 行でも収まらない名前は棒の隣へ出る。印の名前も隣 (= 右が先、端では左)
 - 文字は全部 pptx の文字 (= PowerPoint で直せる)。棒は名前ごと 1 つの図形
@@ -158,6 +162,7 @@ font = "Arial"
 ink = "3F3F3F"      # 本文
 accent = "0092D1"   # 読みを示す色 (= 表の見出しもここ)
 band = "EAF0F8"     # 条件の帯
+tint = "E8F3EA"     # 3 つめの薄い地 (= box / band と並べて 3 者を分ける。ここでだけ変えられる)
 ```
 
 ⚠ **ふつうは書かない** ― 見た目は `specimen.pptx` から読まれる。ここに書くのは、テンプレートの
