@@ -51,7 +51,7 @@ def named(built, text):
 
 def columns(built):
     """The left edge of each period's column, read off the period names."""
-    return [named(built, month).rect.left for month in MONTHS]
+    return [named(built, month).rect.left - DEFAULT.spacing.bar_gap for month in MONTHS]
 
 
 class WhereThingsLand(unittest.TestCase):
@@ -125,13 +125,13 @@ class TheWordsStayWords(unittest.TestCase):
         self.assertGreaterEqual(min(sizes), DEFAULT.type.minimum)
 
     def test_a_name_too_long_for_one_line_takes_two_inside_the_bar(self):
-        short = named(page([lane(bars=[bar(0, 1, "short")])]), "short").rect
+        short = named(page([lane(bars=[bar(0, 1.5, "short")])]), "short").rect
         text = "hand over the face input to the team"
-        long = named(page([lane(bars=[bar(0, 1, text)])]), text)
+        long = named(page([lane(bars=[bar(0, 1.5, text)])]), text)
         self.assertIsInstance(long, Bar)
         self.assertGreater(long.rect.height, short.height)
         fits = "hand over the input"
-        self.assertEqual(short.height, named(page([lane(bars=[bar(0, 1, fits)])]), fits).rect.height)
+        self.assertEqual(short.height, named(page([lane(bars=[bar(0, 1.5, fits)])]), fits).rect.height)
 
     def test_a_single_word_is_never_folded_in_the_middle(self):
         """1 語の名前を 2 行に折ると、語の途中で切れる (= 焼いて初めて出た)。"""
@@ -297,8 +297,10 @@ class DatesThatCutAcross(unittest.TestCase):
             tops = sorted({e.rect.top for e in built.build() if e.kind == "label" and e.bold})
             return tops.index(named(built, text).rect.top)
 
+        # 1 つめの名前は、右へ出すと後ろの線に貫かれるので左へ出る。残りは段を分ける
         built = page(self.LANES, milestones=self.CROWDED["close together"])
-        self.assertEqual([0, 1, 2], [row(built, s["text"]) for s in self.CROWDED["close together"][:3]])
+        self.assertEqual([0, 0, 1], [row(built, s["text"]) for s in self.CROWDED["close together"][:3]])
+        self.assertEqual("right", named(built, "a long review name").align)
         built = page(self.LANES, milestones=self.CROWDED["a name flying left at the edge"])
         self.assertEqual((1, 0), (row(built, "early"), row(built, "a long name near the edge")))
         built = page(self.LANES, milestones=self.CROWDED["a late line under a long name"])
@@ -384,15 +386,141 @@ class WhatDoesNotFitIsNotShrunk(unittest.TestCase):
     def test_a_few_bars_do_not_swell_to_fill_the_page(self):
         """余った高さを配り切ると、棒 1 本の線表が頁いっぱいの帯になる。"""
         built = page([lane(bars=[bar(0, 6, "only")])])
-        natural = DEFAULT.line_height(DEFAULT.type.caption) + 2 * DEFAULT.spacing.bar_pad_y
+        natural = DEFAULT.line_height(DEFAULT.type.plan[0]) + 2 * DEFAULT.spacing.bar_pad_y
         self.assertLessEqual(named(built, "only").rect.height, round(natural * (1 + types.ROOMY)))
         self.assertGreater(named(built, "only").rect.height, natural)
+        bottom = max(e.rect.bottom for e in built.build())
+        self.assertLess(bottom, built.theme.frame().bottom - natural, "one bar filled the page")
+
+    def test_spare_height_goes_to_the_bars_so_the_page_is_used_to_its_foot(self):
+        """頁の下に空きを残さない (= 実物のデッキで、下半分が空いた工程表が差し戻された)。"""
+        lanes = [lane(f"Lane {n}", [bar(0, 6, "work")]) for n in range(6)]
+        built = page(lanes)
+        natural = DEFAULT.line_height(DEFAULT.type.plan[0]) + 2 * DEFAULT.spacing.bar_pad_y
+        heights = {e.rect.height for e in built.build() if e.kind == "bar"}
+        self.assertEqual(1, len(heights))
+        self.assertGreater(heights.pop(), natural)
+        bottom = max(e.rect.bottom for e in built.build())
+        self.assertLessEqual(built.theme.frame().bottom - bottom, len(lanes))
 
     def test_a_full_page_keeps_its_bars_at_their_natural_height(self):
-        lanes = [lane(f"Lane {n}", [bar(0, 6, "work")]) for n in range(10)]
-        natural = DEFAULT.line_height(DEFAULT.type.caption) + 2 * DEFAULT.spacing.bar_pad_y
-        heights = {e.rect.height for e in page(lanes).build() if isinstance(e, Bar)}
-        self.assertLess(max(heights), round(natural * (1 + types.ROOMY)))
+        lanes = [lane(f"Lane {n}", [bar(0, 6, "work")]) for n in range(12)]
+        built = page(lanes)
+        size = named(built, "work").size
+        natural = DEFAULT.line_height(size) + 2 * DEFAULT.spacing.bar_pad_y
+        heights = {e.rect.height for e in built.build() if e.kind == "bar"}
+        self.assertLess(max(heights), round(natural * 1.2))
+
+
+class TheSizeOfTheWords(unittest.TestCase):
+    """The words are set at the largest size of `plan` the page holds, and never below the smallest."""
+
+    def sizes(self, built):
+        return {e.size for e in built.build() if e.kind in ("bar", "span", "period", "label")}
+
+    def test_a_page_with_room_takes_the_larger_size(self):
+        built = page([lane(bars=[bar(0, 6, "work")], marks=[{"at": 1, "text": "mark"}])],
+                     phases=[{"from": 0, "to": 6, "label": "phase"}],
+                     milestones=[{"at": 3, "text": "date"}])
+        self.assertEqual({DEFAULT.type.plan[0]}, self.sizes(built))
+
+    def test_a_crowded_page_takes_the_smaller_one_for_every_word_alike(self):
+        lanes = [lane(f"Lane {n}", [bar(0, 3, "work"), bar(4, 4.1, "a name beside its bar")])
+                 for n in range(12)]
+        built = page(lanes)
+        self.assertEqual({DEFAULT.type.plan[-1]}, self.sizes(built))
+        one_fewer = page(lanes[:10])
+        self.assertEqual({DEFAULT.type.plan[0]}, self.sizes(one_fewer), "ten lanes have room for the larger size")
+
+    def test_the_smallest_size_is_the_body_size_not_the_footnote_size(self):
+        self.assertEqual(DEFAULT.type.body, min(DEFAULT.type.plan))
+        self.assertGreater(min(DEFAULT.type.plan), DEFAULT.type.caption)
+        self.assertEqual(sorted(DEFAULT.type.plan, reverse=True), list(DEFAULT.type.plan))
+
+    def test_a_page_that_does_not_fit_at_the_smallest_size_stops_and_says_the_size(self):
+        with self.assertRaises(PageFullError) as raised:
+            page([lane(f"Lane {n}", [bar(0, 6, "work")]) for n in range(30)])
+        self.assertIn(f"{min(DEFAULT.type.plan):g}pt", str(raised.exception))
+
+    def test_a_lanes_name_is_set_at_its_own_size_in_bold(self):
+        built = page([lane("Operations", [bar(0, 6, "work")])])
+        name = named(built, "Operations")
+        self.assertEqual(("lane", DEFAULT.type.stage, True), (name.kind, name.size, name.bold))
+
+    def test_a_long_lane_name_folds_and_the_lane_makes_room_for_it(self):
+        long_name = "the team that looks after everything nobody else has the time to look after"
+        # 頁を詰める (= 余った高さが配られると、名前のぶんを取らなくても枠が足りてしまう)
+        others = [lane(f"Lane {n}", [bar(0, 6, f"work {n}")]) for n in range(7)]
+        built = page([lane(long_name, [bar(0, 6, "work")]), lane("Next", [bar(0, 6, "more")]), *others])
+        self.assertGreaterEqual(named(built, "Next").rect.top, named(built, long_name).rect.bottom)
+        room = named(built, long_name).rect
+        self.assertLessEqual(room.width, built.theme.frame().width // 4)
+        needed = DEFAULT.wrapped_height(long_name, room.width, DEFAULT.type.stage, bold=True)
+        self.assertGreater(needed, DEFAULT.line_height(DEFAULT.type.stage), "the name does not fold")
+        self.assertGreaterEqual(room.height, needed, "the lane is too short for its own name")
+
+
+class WhereAPeriodIs(unittest.TestCase):
+    """A reader has to see at a glance which period a bar falls in."""
+
+    def built(self, **extra):
+        return page([lane("One", [bar(0, 6, "a")]), lane("Two", [bar(1, 2, "b")])], **extra)
+
+    def test_every_period_has_a_heading_cell_like_a_tables_heading_row(self):
+        cells = of(self.built(), "period")
+        self.assertEqual(MONTHS, [cell.text for cell in cells])
+        for cell in cells:
+            self.assertIsInstance(cell, Bar)
+            self.assertTrue(cell.bold)
+            self.assertEqual((DEFAULT.palette.accent, DEFAULT.palette.paper), (cell.fill, cell.colour))
+        for one, other in zip(cells, cells[1:]):
+            self.assertEqual(one.rect.top, other.rect.top)
+            self.assertGreater(other.rect.left, one.rect.right)
+
+    def test_a_phase_sits_above_the_period_cells_with_its_ends_on_theirs(self):
+        built = self.built(phases=[{"from": 1, "to": 4, "label": "phase"}])
+        cells, phase = of(built, "period"), named(built, "phase").rect
+        self.assertEqual(phase.left, cells[1].rect.left)
+        self.assertEqual(phase.right, cells[3].rect.right)
+        self.assertLess(phase.bottom, cells[0].rect.top)
+
+    def test_every_other_column_is_washed_from_the_headings_down_to_the_last_lane(self):
+        built = self.built()
+        stripes, cells = of(built, "stripe"), of(built, "period")
+        self.assertEqual(len(MONTHS) // 2, len(stripes))
+        self.assertEqual({DEFAULT.palette.wash}, {stripe.colour for stripe in stripes})
+        edges = columns(built)
+        self.assertEqual([edges[1], edges[3], edges[5]], [stripe.rect.left for stripe in stripes])
+        for stripe in stripes:
+            self.assertEqual(cells[0].rect.bottom, stripe.rect.top)
+            self.assertEqual(named(built, "b").rect.bottom + DEFAULT.spacing.row_gap, stripe.rect.bottom)
+
+    def test_the_wash_and_the_lines_are_laid_under_the_bars(self):
+        kinds = [e.kind for e in self.built(milestones=[{"at": 3, "text": "x"}]).build()]
+        first_bar = kinds.index("bar")
+        for under in ("stripe", "edge", "rule", "line"):
+            self.assertLess(max(i for i, kind in enumerate(kinds) if kind == under), first_bar, under)
+
+    def test_a_line_stands_where_each_period_ends_darker_than_the_lines_between_lanes(self):
+        built = self.built()
+        edges = of(built, "edge")
+        self.assertEqual(len(MONTHS) + 1, len(edges))
+        self.assertEqual({DEFAULT.palette.muted}, {edge.colour for edge in edges})
+        self.assertNotEqual(DEFAULT.palette.muted, DEFAULT.palette.rule)
+        self.assertEqual({DEFAULT.palette.rule}, {e.colour for e in built.build()
+                                                  if e.kind == "rule" and e.rect.width > e.rect.height})
+        for edge, column in zip(edges, columns(built)):
+            self.assertAlmostEqual(edge.rect.left + edge.rect.width // 2, column, delta=1)
+
+    def test_the_projects_own_wash_reaches_the_columns(self):
+        theme = theme_from({"palette": {"wash": "eeeeee"}})
+        built = types.build({"type": "timeline", "title": "A plan", "periods": MONTHS,
+                             "lanes": [lane(bars=[bar(0, 6)])]}, lambda name: Path(name),
+                            lambda path: 1.0, theme)
+        self.assertEqual({"EEEEEE"}, {stripe.colour for stripe in of(built, "stripe")})
+
+    def test_the_wash_is_never_read_from_a_templates_theme(self):
+        self.assertNotIn("wash", [name for _slot, name in SLOTS])
 
 
 class OnceBaked(unittest.TestCase):
@@ -442,9 +570,18 @@ class OnceBaked(unittest.TestCase):
         self.assertIn("<a:solidFill>", self.shape("build").split("<p:txBody>")[0])
 
     def test_a_name_beside_something_is_not_wrapped(self):
-        for text in ("release", "review", "a name that goes beside it", "Jan"):
+        for text in ("release", "review", "a name that goes beside it"):
             self.assertIn('wrap="none"', self.shape(text), text)
         self.assertIn('wrap="square"', self.shape("build"))
+
+    def test_a_period_cell_is_a_filled_shape_with_its_name_in_bold(self):
+        cell = self.shape("Jan")
+        self.assertIn(f'<a:srgbClr val="{DEFAULT.palette.accent}"/>', cell.split("<p:txBody>")[0])
+        self.assertRegex(cell, r'<a:rPr[^>]*b="1"')
+
+    def test_no_word_is_written_below_the_body_size(self):
+        sizes = {int(size) for size in re.findall(r'sz="(\d+)"', self.xml)}
+        self.assertGreaterEqual(min(sizes), int(DEFAULT.type.body * 100))
 
     def test_no_run_is_empty(self):
         self.assertNotRegex(self.xml, r"<a:t\s*/>|<a:t></a:t>")

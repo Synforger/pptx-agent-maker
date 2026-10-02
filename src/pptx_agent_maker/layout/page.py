@@ -17,6 +17,8 @@
 * `marker` ― 段と段の間の向き (= 文字で置く)
 * `bar` ― 期間を占める棒 (= 文字を自分で持つ 1 つの図形)
 * `span` ― 期間の性格を示す帯
+* `period` ― 期間の名前 (= 列の見出しの枠)
+* `stripe` ― 列を 1 つおきに塗る薄い地
 * `diamond` ― 時点の印
 * `rule` ― 区切りの細い線
 * `label` ― 棒や印の隣、列の頭に付く 1 行の名前
@@ -85,6 +87,7 @@ class Bar(Element):
     outline: str = ""
     dashed: bool = False
     align: str = "center"
+    bold: bool = False
 
 
 @dataclass(frozen=True)
@@ -194,7 +197,7 @@ class Page:
                 "bad": (p.bad, p.paper)}[tone]
 
     def boxes(self, rect: Rect, cards: list[tuple[str, str]], *, gap: int | None = None,
-              small: bool = False, tones: list[str] | None = None) -> None:
+              tones: list[str] | None = None) -> None:
         """Cards side by side inside an area you already divided off.
 
         `tones` は箱ごとの地の色の役 (= `TONES`。書かなければ全部 `box`)。
@@ -208,13 +211,12 @@ class Page:
             fill, ink = self.ground(tones[index] if tones else "box")
             self.elements.append(Fill("box", card, fill))
             inner = card.inset(s.pad)
-            body_size = t.caption if small else t.body
             if body:
                 needed = self.theme.wrapped_height(
                     heading, max(inner.width - 2 * s.text_inset, 1), t.heading, bold=True)
                 head, rest = inner.split_top(
                     min(needed, max(inner.height - s.gap_s, 1)), gap=s.gap_s)
-                self.elements.append(Text("box_body", rest, body, body_size, ink))
+                self.elements.append(Text("box_body", rest, body, t.body, ink))
             else:
                 head = inner
             self.elements.append(Text("box_heading", head, heading, t.heading, ink, bold=True))
@@ -317,7 +319,8 @@ class Page:
         t, p = self.theme.type, self.theme.palette
         self.elements.append(Text("stage", rect, name, t.stage, p.ink, bold=True, align="center"))
 
-    def bar(self, rect: Rect, text: str, *, tone: str = "box", tentative: bool = False) -> None:
+    def bar(self, rect: Rect, text: str, *, tone: str = "box", tentative: bool = False,
+            size: float | None = None) -> None:
         """Something that takes a stretch of time, with its name on it.
 
         `tone` は地の色の役 (= `TONES`。箱と同じ語彙)。
@@ -327,29 +330,45 @@ class Page:
         ⚠ **文字は棒の中に持たせる** (= 別の枠にしない)。人が PowerPoint で棒を動かすとき、
         文字が置き去りにならない。
         """
-        t, p = self.theme.type, self.theme.palette
+        p = self.theme.palette
+        size = self.theme.type.body if size is None else size
         if tentative:
-            self.elements.append(Bar("bar", rect, text, t.caption, p.muted,
+            self.elements.append(Bar("bar", rect, text, size, p.muted,
                                      fill=p.paper, outline=p.muted, dashed=True))
         else:
             fill, ink = self.ground(tone)
-            self.elements.append(Bar("bar", rect, text, t.caption, ink, fill=fill))
+            self.elements.append(Bar("bar", rect, text, size, ink, fill=fill))
 
-    def span(self, rect: Rect, text: str) -> None:
+    def span(self, rect: Rect, text: str, *, size: float | None = None) -> None:
         """What a stretch of periods is like (= movable, fixed), laid over the columns."""
-        t, p = self.theme.type, self.theme.palette
-        self.elements.append(Bar("span", rect, text, t.caption, p.ink, fill=p.rule))
+        p = self.theme.palette
+        size = self.theme.type.body if size is None else size
+        self.elements.append(Bar("span", rect, text, size, p.ink, fill=p.rule))
+
+    def period(self, rect: Rect, name: str, *, size: float | None = None) -> None:
+        """What one column of a timeline is called, in a cell of its own (= a table's heading row)."""
+        p = self.theme.palette
+        size = self.theme.type.body if size is None else size
+        self.elements.append(Bar("period", rect, name, size, p.paper, fill=p.accent, bold=True))
+
+    def stripe(self, rect: Rect) -> None:
+        """The faint ground under every other column, so the eye can follow a period down the page."""
+        self.elements.append(Fill("stripe", rect, self.theme.palette.wash))
 
     def diamond(self, rect: Rect) -> None:
         """A point in time, drawn in the square given."""
         self.elements.append(Diamond("diamond", rect, self.theme.palette.accent))
 
-    def rule(self, rect: Rect, *, strong: bool = False) -> None:
-        """A thin line: a division between columns or lanes, or (`strong`) a date that cuts across them."""
+    def rule(self, rect: Rect, *, weight: str = "light") -> None:
+        """A thin line. `light` divides lanes, `firm` marks where one period ends and the next
+        begins, `strong` is a date that cuts across the page."""
         p = self.theme.palette
-        self.elements.append(Fill("line" if strong else "rule", rect, p.accent if strong else p.rule))
+        kind, colour = {"light": ("rule", p.rule), "firm": ("edge", p.muted),
+                        "strong": ("line", p.accent)}[weight]
+        self.elements.append(Fill(kind, rect, colour))
 
-    def label(self, rect: Rect, text: str, *, align: str = "left", role: str = "ink") -> None:
+    def label(self, rect: Rect, text: str, *, align: str = "left", role: str = "ink",
+              size: float | None = None) -> None:
         """A short name on one line: beside a bar or a mark, or at the head of a column.
 
         `role` は色の役 (= `ink` / `muted` / `accent`)。`accent` は頁を横切る日付の名前で、太字。
@@ -357,15 +376,16 @@ class Page:
         ⚠ **折り返さない。**隣の物に付く名前なので、長すぎれば横へ伸びる ― 2 行に折ると
         下の段に乗る。
         """
-        t, p = self.theme.type, self.theme.palette
+        p = self.theme.palette
+        size = self.theme.type.body if size is None else size
         colour = {"ink": p.ink, "muted": p.muted, "accent": p.accent}[role]
-        self.elements.append(Text("label", rect, text, t.caption, colour,
+        self.elements.append(Text("label", rect, text, size, colour,
                                   bold=role == "accent", align=align))
 
     def lane(self, rect: Rect, name: str) -> None:
         """What one lane of a timeline is (= who, or which line of work)."""
         t, p = self.theme.type, self.theme.palette
-        self.elements.append(Text("lane", rect, name, t.caption, p.ink, bold=True))
+        self.elements.append(Text("lane", rect, name, t.stage, p.ink, bold=True))
 
     def _footer(self, text: str) -> None:
         """Where the numbers came from."""

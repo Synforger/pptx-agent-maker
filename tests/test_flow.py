@@ -134,6 +134,30 @@ class WhatStandsOut(unittest.TestCase):
         self.assertGreaterEqual(arrow.top, named(built, "Intake").rect.bottom)
 
 
+class TheSizeOfTheWords(unittest.TestCase):
+    """What a flow says is the page's content, set at the body size; the footnote size is not for it."""
+
+    BUILT = staticmethod(lambda: page([stage("Intake", ["Triage", "sort by impact"], settled="one queue"),
+                                       stage("Build", ["Code", "small steps"])]))
+
+    def test_a_nodes_body_is_set_at_the_body_size(self):
+        self.assertEqual(DEFAULT.type.body, named(self.BUILT(), "sort by impact").size)
+        self.assertGreater(DEFAULT.type.body, DEFAULT.type.caption)
+
+    def test_what_is_settled_under_a_stage_is_set_at_the_body_size_too(self):
+        settled = named(self.BUILT(), "one queue")
+        self.assertEqual(("note", DEFAULT.type.body), (settled.kind, settled.size))
+
+    def test_nothing_on_the_page_is_set_at_the_footnote_size(self):
+        sizes = {e.size for e in self.BUILT().build() if isinstance(e, Text)}
+        self.assertGreaterEqual(min(sizes), DEFAULT.type.body)
+
+    def test_a_long_line_under_a_stage_takes_the_height_it_needs(self):
+        long_line = "what is settled here runs on for long enough that it cannot stay on a single line of the column"
+        built = page([stage("Intake", ["Triage", "sort"], settled=long_line), stage("Build", ["Code", "x"])])
+        self.assertGreater(named(built, long_line).rect.height, named(self.BUILT(), "one queue").rect.height)
+
+
 class RowsAcrossStages(unittest.TestCase):
     """`align_rows` lines the nth node of every stage up, for pages where a row means something."""
 
@@ -221,7 +245,7 @@ class TheHeightOfANode(unittest.TestCase):
                     named(built, "why").rect
                 self.assertGreaterEqual(body.top, head.bottom)
                 self.assertLessEqual(body.bottom, box.bottom)
-                self.assertGreaterEqual(body.height, DEFAULT.line_height(DEFAULT.type.caption),
+                self.assertGreaterEqual(body.height, DEFAULT.line_height(DEFAULT.type.body),
                                         "the heading took the room the body was counted to have")
 
 
