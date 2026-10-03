@@ -39,6 +39,8 @@ MINIMAL = {
     "figure_grid": {"figures": [SQUARE, WIDE, SQUARE, WIDE]},
     "flow": {"stages": [{"name": "にゅうりょく", "nodes": [["A", "ほそく"]], "settled": "じょうけん"},
                         {"name": "せいせい", "nodes": [["B", "ほそく"]]}]},
+    "roadmap": {"stages": [{"name": "はじめ", "nodes": [["A", "ほそく"]]},
+                           {"name": "とうたつ", "nodes": [["B", "ほそく"]], "goal": True}]},
     "timeline": {"periods": ["いま", "つぎ"],
                  "lanes": [{"name": "しごと", "bars": [{"from": 0, "to": 1, "text": "きめる"}]}]},
     # 絵を持たなくてよい型 (= デッキの骨格)

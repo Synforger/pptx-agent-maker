@@ -25,6 +25,8 @@ from ..layout.page import Bar, Diamond, Element, Figure, Fill, Table, Text
 from ..layout.tokens import DEFAULT, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
+#: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)
+PRESET = {"rect": MSO_SHAPE.RECTANGLE, "home": MSO_SHAPE.PENTAGON, "chevron": MSO_SHAPE.CHEVRON}
 
 #: 「スタイルなし・罫線なし」。PowerPoint が新しい表に付ける既定のスタイルは
 #: **テーマの accent1 で見出しを塗る**ので、色の出どころが palette と 2 つに割れる。
@@ -102,11 +104,16 @@ def _fill(slide, element: Fill, theme: Theme) -> None:
 
 
 def _bar(slide, element: Bar, theme: Theme) -> None:
-    """A rectangle with its words inside it (= one shape, so it moves as one)."""
+    """A shape with its words inside it (= one shape, so it moves as one)."""
     shape = slide.shapes.add_shape(
-        MSO_SHAPE.RECTANGLE, Emu(element.rect.left), Emu(element.rect.top),
+        PRESET[element.shape], Emu(element.rect.left), Emu(element.rect.top),
         Emu(element.rect.width), Emu(element.rect.height),
     )
+    if element.shape != "rect":
+        # 尖りの深さはプリセットの調整値 (= 短い辺に対する比) で書く。既定のままだと、段の高さで
+        # 深さが変わり、隣の段の切り欠きと噛み合わない
+        shape.adjustments[0] = theme.spacing.chevron_point / min(element.rect.width,
+                                                                 element.rect.height)
     if element.fill:
         shape.fill.solid()
         shape.fill.fore_color.rgb = _colour(element.fill)

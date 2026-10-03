@@ -14,12 +14,14 @@
 添えられる。既に組まれたデッキ群を数えると、頁の中身は「絵が 1 枚か / 並ぶか / 無いか」
 と「表と文を添えるか」でほとんど尽きていた ― 本体の形を型に、それ以外を付属にすると、
 型は 7 つで足りた。8 つめの `timeline` は、絵で描いて貼ると文字が絵に焼き込まれて人が
-直せなくなる頁 (= 期間 × レーンの計画) のために足した。
+直せなくなる頁 (= 期間 × レーンの計画) のために足した。9 つめの `roadmap` も同じ理由で、
+到達点までの道のりを矢羽根の図形のまま組む。
 
     figure          絵 1 枚が本体
     figures         絵を横に並べる (= 条件ちがいの比較)
     figure_grid     絵を格子に並べる (= 対象 × 条件のような 2 軸)
     flow            段が左から右へ流れる (= 各段にノード、段の下に分かったこと)
+    roadmap         到達点までの段が矢羽根で左から右へ (= 各段の下に、その段で渡す物)
     timeline        期間が左から右、レーンが上から下 (= レーンの中に棒と印)
     cards           カードの並びが本体 (= 今週の計画、まとめ)
     board           表 1 枚が本体 (= 毎週積み上げる早見表)
@@ -37,7 +39,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 from .geometry import Rect
-from .page import TONES, Page, PageFullError
+from .page import TONES, Card, Page, PageFullError
 from .tokens import DEFAULT, Theme
 
 #: A page type fills the area left for the body, and returns nothing.
@@ -101,8 +103,9 @@ class Spec:
     def rows(self, key: str = "table") -> list[list[str]]:
         return [[str(cell) for cell in row] for row in self.data[key]]
 
-    def cards(self) -> list[tuple[str, str]]:
-        return [(str(head), str(body)) for head, body in self.data["cards"]]
+    def cards(self) -> list[Card]:
+        return [_card(self, item, f"cards: card {number}")
+                for number, item in enumerate(self.data["cards"], start=1)]
 
 
 def register(name: str, *, needs: Iterable[str], takes: Iterable[str] = (),
@@ -279,11 +282,13 @@ def _card_height(page: Page, cards, width: int, columns: int) -> int:
     column = (width - s.gap_m * (columns - 1)) // columns
     inner = max(column - 2 * s.pad - 2 * s.text_inset, 1)   # 文字が使える幅
     tallest = 0
-    for heading, body in cards:
-        tall = page.theme.wrapped_height(heading, inner, ty.heading, bold=True)
-        if body:
-            tall += s.gap_s + page.theme.wrapped_height(body, inner, ty.body)
-        tallest = max(tallest, tall)
+    for card in cards:
+        # アイコンの在る箱は、文字がアイコンの右に寄るぶん狭く、アイコンより低くはならない
+        room = max(inner - (s.icon + s.gap_s if card.icon else 0), 1)
+        tall = page.theme.wrapped_height(card.heading, room, ty.heading, bold=True)
+        if card.body:
+            tall += s.gap_s + page.theme.wrapped_height(card.body, room, ty.body)
+        tallest = max(tallest, tall, s.icon if card.icon else 0)
     return tallest + 2 * s.pad
 
 
@@ -342,22 +347,79 @@ def _tone(item: dict, what: str, unsaid: str) -> str:
     return tone
 
 
-def _node(node, what: str) -> tuple[tuple[str, str], str]:
-    """One node of a flow as ((heading, body), tone).
+#: アイコンに読める絵 (= 図と同じ。SVG は pptx に入れるのに描き直しの道具が要るので、まだ読まない)
+ICON_FORMATS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff")
 
-    書き方は 2 つ ― `["見出し", "本文"]` か、色の役を付けるときの
-    `{ heading = "…", body = "…", tone = "accent" }`。
+
+def _card(spec: Spec, item, what: str) -> Card:
+    """One card, or one node of a flow or a roadmap (= the same box, written the same two ways).
+
+    書き方は 2 つ ― `["見出し", "本文"]` か、色の役やアイコンを付けるときの
+    `{ heading = "…", body = "…", tone = "accent", icon = "device.png" }`。
     """
-    if isinstance(node, dict):
-        _keys(node, {"heading", "body", "tone"}, what)
-        if not str(node.get("heading", "")).strip():
-            raise PageTypeError(f"{what} has no `heading` — a node says what it is")
-        return (str(node["heading"]), str(node.get("body", ""))), _tone(node, what, TONES[0])
-    if isinstance(node, (list, tuple)) and len(node) == 2:
-        return (str(node[0]), str(node[1])), TONES[0]
+    if isinstance(item, dict):
+        _keys(item, {"heading", "body", "tone", "icon"}, what)
+        if not str(item.get("heading", "")).strip():
+            raise PageTypeError(f"{what} has no `heading` — a box says what it is")
+        return Card(str(item["heading"]), str(item.get("body", "")), _tone(item, what, TONES[0]),
+                    _icon(spec, item, what))
+    if isinstance(item, (list, tuple)) and len(item) == 2:
+        return Card(str(item[0]), str(item[1]))
     raise PageTypeError(
-        f"{what} is {node!r} — write it as [\"heading\", \"body\"], or as a table "
-        "{ heading = …, body = …, tone = … }")
+        f"{what} is {item!r} — write it as [\"heading\", \"body\"], or as a table "
+        "{ heading = …, body = …, tone = …, icon = … }")
+
+
+def _icon(spec: Spec, item: dict, what: str) -> tuple[Path, float] | None:
+    """The picture a box carries beside its words, read like any figure (= from the assets)."""
+    if "icon" not in item:
+        return None
+    name = str(item["icon"])
+    if Path(name).suffix.lower() not in ICON_FORMATS:
+        raise PageTypeError(
+            f"{what} has the icon {name!r} — an icon is a picture file "
+            f"({' / '.join(ICON_FORMATS)}); export an SVG as PNG, at a few times the size it "
+            "is shown")
+    path = spec.asset(name)
+    return path, spec.aspect(path)
+
+
+def _stacks(page: Page, spec: Spec, stages: list, wide: int, aligned: bool,
+            what: str) -> tuple[list[list[tuple[Card, int]]], int]:
+    """Each stage's nodes with the height each takes, and how tall the tallest stage stands.
+
+    流れ図と道のりが同じ数え方で積む (= 段の下のノードは、どちらでも同じ箱)。
+    """
+    gap = page.theme.spacing.gap_s
+    stacks = []
+    for number, stage in enumerate(stages, start=1):
+        nodes = [_card(spec, node, f"{what}: stage {number}, node {index}")
+                 for index, node in enumerate(stage.get("nodes", []), start=1)]
+        if not nodes:
+            raise PageTypeError(f"{what}: stage {stage['name']!r} has no nodes")
+        stacks.append([(node, _card_height(page, [node], wide, 1)) for node in nodes])
+    if aligned:
+        # 行ごとに、その行で一番高いノードへ揃える (= 同じ順番のノードが同じ高さに並ぶ)
+        rows = [max(column[index][1] for column in stacks if index < len(column))
+                for index in range(max(len(column) for column in stacks))]
+        stacks = [[(node, rows[index]) for index, (node, _tall) in enumerate(column)]
+                  for column in stacks]
+        return stacks, sum(rows) + gap * (len(rows) - 1)
+    return stacks, max(sum(tall for _n, tall in column) + gap * (len(column) - 1)
+                       for column in stacks)
+
+
+def _aligned(spec: Spec, what: str) -> bool:
+    aligned = spec.get("align_rows", False)
+    if not isinstance(aligned, bool):
+        raise PageTypeError(f"{what}: `align_rows` is true or false, not {aligned!r}")
+    return aligned
+
+
+def _place_stack(page: Page, body: Rect, column: list[tuple[Card, int]]) -> None:
+    for node, height in column:
+        cell, body = body.split_top(height, gap=page.theme.spacing.gap_s)
+        page.boxes(cell, [node])
 
 
 @register("flow", needs=["stages"], takes=["align_rows"])
@@ -374,9 +436,7 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
     stages = spec.get("stages")
     if len(stages) < 2:
         raise PageTypeError("flow: a flow needs at least two stages")
-    aligned = spec.get("align_rows", False)
-    if not isinstance(aligned, bool):
-        raise PageTypeError(f"flow: `align_rows` is true or false, not {aligned!r}")
+    aligned = _aligned(spec, "flow")
 
     weights: list[float] = []
     for index in range(len(stages)):
@@ -389,24 +449,7 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
     # 揃えるので、列の下端は揃いながら、1 つしかない段が 2 つ分の空きを抱えることもない。
     gap = page.theme.spacing.gap_s
     wide = columns[0].width
-    stacks = []
-    for number, stage in enumerate(stages, start=1):
-        nodes = [_node(node, f"flow: stage {number}, node {index}")
-                 for index, node in enumerate(stage.get("nodes", []), start=1)]
-        if not nodes:
-            raise PageTypeError(f"flow: stage {stage['name']!r} has no nodes")
-        stacks.append([(node, tone, _card_height(page, [node], wide, 1))
-                       for node, tone in nodes])
-    if aligned:
-        # 行ごとに、その行で一番高いノードへ揃える (= 同じ順番のノードが同じ高さに並ぶ)
-        rows = [max(column[index][2] for column in stacks if index < len(column))
-                for index in range(max(len(column) for column in stacks))]
-        stacks = [[(node, tone, rows[index]) for index, (node, tone, _tall) in enumerate(column)]
-                  for column in stacks]
-        stack = sum(rows) + gap * (len(rows) - 1)
-    else:
-        stack = max(sum(tall for _n, _t, tall in column) + gap * (len(column) - 1)
-                    for column in stacks)
+    stacks, stack = _stacks(page, spec, stages, wide, aligned, "flow")
     stage_size = page.theme.type.stage
     head_height = max(page.theme.wrapped_height(str(stage["name"]), wide, stage_size, bold=True)
                       for stage in stages)
@@ -431,9 +474,7 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
             # 向きはノードの並びの高さに置く (= 段の名前の横に浮かせない)
             between = columns[index * 2 - 1]
             page.marker(Rect(between.left, body.top, between.width, body.height), "→")
-        for node, tone, height in column_nodes:
-            cell, body = body.split_top(height, gap=gap)
-            page.boxes(cell, [node], tones=[tone])
+        _place_stack(page, body, column_nodes)
         if stage.get("settled") and settled_height:
             page.note(after.split_top(settled_height)[0], str(stage["settled"]))
 
@@ -552,6 +593,74 @@ def _flags(pieces: list[_Piece], gap: int) -> int:
         placed.append(piece)
         rows = max(p.row for p in placed) + 1
     return rows
+
+
+@register("roadmap", needs=["stages"], takes=["align_rows"])
+def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
+    """The road to a goal: stages left to right as arrowheads, each holding what it delivers.
+
+    段は `name` (= 矢羽根の中。時期と版を「11 月上旬 | 0.4.0」のように書く) と `nodes`
+    (= flow と同じ 2 通りの書き方と `tone`、`icon`)。**最後の段だけ** `goal = true` を書ける
+    (= 到達点。濃い地で、名前を一回り大きく置く)。`align_rows` は flow と同じ。
+
+    矢羽根は最初の段が左の平らな形、2 段目からが左の切り欠いた形で、先が次の段の切り欠きに
+    噛み合う。向きは矢羽根が示すので、段の間に「→」は置かない。
+    """
+    stages = spec.get("stages") or []
+    if len(stages) < 2:
+        raise PageTypeError("roadmap: a road needs at least two stages")
+    for number, stage in enumerate(stages, start=1):
+        what = f"roadmap: stage {number}"
+        if not isinstance(stage, dict):
+            raise PageTypeError(f"{what} is {stage!r} — write it as a table "
+                                "{ name = …, nodes = […], goal = … }")
+        _keys(stage, {"name", "nodes", "goal"}, what)
+        if not str(stage.get("name", "")).strip():
+            raise PageTypeError(f"{what} has no `name` — an arrowhead says when it is")
+        goal = stage.get("goal", False)
+        if not isinstance(goal, bool):
+            raise PageTypeError(f"{what}: `goal` is true or false, not {goal!r}")
+        if goal and number != len(stages):
+            raise PageTypeError(
+                f"{what} is marked as the goal, but the goal is where the road ends — "
+                "only the last stage takes `goal = true`")
+    aligned = _aligned(spec, "roadmap")
+    goal = bool(stages[-1].get("goal"))
+
+    theme, s, ty = page.theme, page.theme.spacing, page.theme.type
+    gap = s.gap_s
+    columns = area.columns(len(stages), gap=s.gap_m)
+    stacks, stack = _stacks(page, spec, stages, columns[0].width, aligned, "roadmap")
+
+    # 矢羽根は自分の列から次の列の頭まで伸び、先が次の段の切り欠きに入る (= 最後の段は列の中で
+    # 尖る)。文字が使える幅は、プリセットが決めた文字の枠 (= 切り欠きと先を除いた幅) から余白を引く
+    point = s.chevron_point
+    arrows, sizes = [], []
+    for index, (stage, column) in enumerate(zip(stages, columns)):
+        last = index == len(stages) - 1
+        right = column.right if last else columns[index + 1].left
+        shape = "home" if index == 0 else "chevron"
+        cut = point // 2 if shape == "home" else 2 * point     # 文字の枠が左右で失う幅
+        room = max(right - column.left - cut - 2 * s.bar_pad_x, 1)
+        size = ty.heading if last and goal else ty.stage
+        tall = theme.wrapped_height(str(stage["name"]), room, size, bold=True) + 2 * s.bar_pad_y
+        arrows.append((Rect(column.left, area.top, right - column.left, 1), shape, size, tall))
+    head_height = max(tall for _r, _s, _z, tall in arrows)
+
+    wanted = head_height + gap + stack
+    if wanted > area.height:
+        raise PageFullError(
+            f"this roadmap needs {wanted} EMU of height and the body has {area.height} — "
+            "shorten the nodes or split the stages across two pages; it will not shrink")
+
+    page.drew_a_diagram()  # 矢羽根とノードで組んだ道のりそのものが、この頁の図解
+    for index, ((rect, shape, size, _tall), stage, column, column_nodes) in enumerate(
+            zip(arrows, stages, columns, stacks)):
+        last = index == len(stages) - 1
+        page.chevron(Rect(rect.left, area.top, rect.width, head_height), str(stage["name"]),
+                     shape=shape, tone="accent" if last and goal else "band", size=size)
+        _head, rest = column.split_top(head_height, gap=gap)
+        _place_stack(page, rest.split_top(stack)[0], column_nodes)
 
 
 @register("timeline", needs=["periods", "lanes"], takes=["phases", "milestones"])
@@ -927,9 +1036,9 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
             enumerate(buckets, start=1)):
         head = f"{number}. {title}"
         mark = "◀ この章" if number == here else ""
-        tall = _card_height(page, [(head, mark)], band.width, 1)
+        tall = _card_height(page, [Card(head, mark)], band.width, 1)
         cell, _rest = band.split_top(min(tall, band.height))
-        page.boxes(cell, [(head, mark)])
+        page.boxes(cell, [Card(head, mark)])
 
 
 def describe() -> str:
