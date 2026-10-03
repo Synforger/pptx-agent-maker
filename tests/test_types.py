@@ -48,10 +48,13 @@ MINIMAL = {
                "highlight": 1},
     "board": {"table": [["列", "値"], ["A", "1"]]},
     "cards": {"cards": [["\u2460", "さいしょ"], ["\u2461", "つぎ"]]},
+    # 本体を段とマスで書く型 (= カードだけの頁も組めるよう、絵を要らない)
+    "compose": {"rows": [{"cells": [{"card": ["もくひょう", "ひとつ"]}]},
+                         {"cells": [{"card": ["はしら", "ひとつめ"]}, {"card": ["はしら", "ふたつめ"]}]}]},
 }
 
-#: 絵を持たなくてよい型 (= デッキの骨格)
-SKELETON = {"agenda", "board", "cards"}
+#: 絵を持たなくてよい型 (= デッキの骨格と、本体を段とマスで書く型)
+SKELETON = {"agenda", "board", "cards", "compose"}
 
 #: 本体に添えられるもの (= どの型でも同じように効く)
 EXTRAS = {"table": [["列", "値"], ["A", "1"]],
@@ -309,8 +312,12 @@ class CoordinatesCannotBeDeclared(unittest.TestCase):
                 self.assertTrue(shows, f"{name} can be built without anything to look at")
 
     def test_the_scaffolding_stays_small(self):
-        """例外の型は増やさない (= 増えた分だけ「表だけの頁」の逃げ道になる)。"""
-        self.assertLessEqual(len(types.skeleton()), 3)
+        """例外の型は増やさない (= 増えた分だけ「表だけの頁」の逃げ道になる)。
+
+        4 つめの `compose` は、承知の上で足した逃げ道。カードだけで組む頁 (= 目標と柱) を拒むと、
+        型に合わせて指定を曲げる組み方が戻るため (= 2026-10-03 に決めた)。
+        """
+        self.assertLessEqual(len(types.skeleton()), 4)
 
 
 class ManifestCarriesTheType(unittest.TestCase):

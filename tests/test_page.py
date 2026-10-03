@@ -50,6 +50,30 @@ class PageTest(unittest.TestCase):
         second = [(e.kind, e.rect) for e in a_page().build()]
         self.assertEqual(first, second)
 
+    def test_a_pictures_name_sits_just_under_it_and_takes_only_its_lines(self) -> None:
+        """名の帯を枠の 7 分の 1 で取っていた間は、縦に長い枠ほど名が絵から離れて浮いた。"""
+        s, t = DEFAULT.spacing, DEFAULT.type
+        for aspect in (4.0, 1.0, 0.5):
+            with self.subTest(aspect):
+                page = Page("A picture")
+                page.figure(page.body, Path("a.png"), aspect, caption="what it shows")
+                picture = next(e for e in page.build() if isinstance(e, Figure)).rect
+                name = next(e for e in page.build() if e.kind == "caption").rect
+                self.assertEqual(picture.bottom + s.gap_s, name.top)
+                self.assertEqual(DEFAULT.line_height(t.caption), name.height)
+                self.assertLessEqual(name.bottom, page.body.bottom)
+                if aspect <= 1.0:
+                    # 縦で決まる絵は、名の 1 行ぶんを除いた高さを全部使う
+                    self.assertAlmostEqual(page.body.height - s.gap_s - name.height, picture.height, delta=2)
+
+    def test_a_long_name_under_a_picture_takes_the_lines_it_needs(self) -> None:
+        page = Page("A picture")
+        text = "a name under a picture long enough to break over more than one line " * 4
+        page.figure(page.body, Path("a.png"), 1.0, caption=text)
+        name = next(e for e in page.build() if e.kind == "caption").rect
+        self.assertGreater(name.height, DEFAULT.line_height(DEFAULT.type.caption))
+        self.assertLessEqual(name.bottom, page.body.bottom)
+
     def test_a_page_without_a_figure_is_refused(self) -> None:
         page = Page("Numbers only")
         page.table(page.body, [["a", "b"], ["1", "2"]])

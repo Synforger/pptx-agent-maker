@@ -74,6 +74,7 @@ pptx-agent-maker lift <案件> <テンプレートの folder> \
 | `figure_grid` | `figures` | `columns` | 絵を格子に並べる |
 | `flow` | `stages` | `align_rows` | 段を左から右へ、あいだに → |
 | `roadmap` | `stages` | `align_rows` | 到達点までの段を矢羽根で左から右へ。各段の下にノード |
+| `compose` | `rows` | ― | 本体を段とマスで書く。マスに部品を 1 つ (= 上の型も入る)。図が無くても通る |
 | `timeline` | `periods` `lanes` | `phases` `milestones` | 期間を左から右、レーンを上から下。レーンの中に棒と印 |
 | `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
 | `board` | `table` | ― | 表が主役の頁 (= 同上) |
@@ -144,6 +145,41 @@ nodes = [ ["Release", "anyone can install it"] ]
 - 段のキーは `name` / `nodes` / `goal` だけ (= flow の `settled` は読まない)。段は 2 つ以上
 - 長い名前は矢羽根の中で折れ、全部の矢羽根がいちばん高い名前に揃う
 - 収まらない頁は縮めずに止まる (= ノードを短くするか、段を 2 頁に分ける)
+
+### `compose` の書き方 (= どの型にも無い組み方)
+
+```toml
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "目標と、それを支える 2 本の柱"
+
+[[pages.rows]]                                         # 1 段目: 横幅いっぱいに 1 枚
+[[pages.rows.cells]]
+card = { heading = "目標", body = "…", tone = "accent" }
+
+[[pages.rows]]                                         # 2 段目: 2 枚を横に
+[[pages.rows.cells]]
+card = { heading = "0.4.0", body = "…", icon = "core.png" }
+[[pages.rows.cells]]
+weight = 2                                             # 任意。幅の比 (= 既定 1)
+[pages.rows.cells.timeline]                            # 型を 1 マスに丸ごと入れる (= その型の書き方のまま)
+periods = ["Nov", "Dec", "Jan"]
+[[pages.rows.cells.timeline.lanes]]
+name = "Core"
+bars = [ { from = 0, to = 2, text = "build" } ]
+```
+
+- **段は上から下、マスは左から右**。マスの幅は `weight` の比。マスには部品を 1 つだけ置く:
+  `card` (= ノードと同じ 2 通りの書き方) / `figure` (+ `caption`) / `table` / `text` (= 本文の色と大きさの文章) /
+  `points` / 型 (= `flow` `roadmap` `timeline` `figures` `figure_grid` `board` `agenda`)。マスに `rows` を書けば入れ子になる
+- **高さ** ― カード・表・文章・要点だけの段は**中身の言葉ぶんの高さ**で、同じ段のカードは一番高い物に揃う。
+  絵や型の入った段と、段に `weight` を書いた段は、**残りの高さを `weight` の比で分け合う**。分け合う段に置いた
+  カードや文章は自分の高さのまま上に寄る。マスの絵は横幅いっぱいで上に寄り、縦が足りなければ縮む
+- 座標は書けない (= 割るだけなので、はみ出しも重なりも起きない)。大きさと色は今までどおり決まっている
+- 型をマスに入れた時に読むのは、その型のキーだけ (= カード・表・文章は隣のマスに置く)
+- 収まらない頁は、どの段のどのマスかを言って止まる (= 縮めない)
+- 図が無くても通る (= カードだけの頁も組める)。⚠ だからといって文章だけの頁を作らない
 
 ### `timeline` の書き方
 

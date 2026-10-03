@@ -263,17 +263,20 @@ class Page:
 
         ⚠ **名は絵の下辺に付ける。**枠の下に固定していた間は、縦横比で縮んだぶんだけ
         絵と名が離れ、どの絵の名なのか読めなくなった。
+
+        ⚠ **名のために取るのは、名が折れる行ぶんだけ。**枠の高さの 7 分の 1 を取って真ん中に
+        置いていた間は、縦に長い枠ほど名が絵から離れて浮いた (= 段とマスで組んだ頁で焼いて出た)。
         """
         t, p, s = self.theme.type, self.theme.palette, self.theme.spacing
-        area = rect
+        area, tall = rect, 0
         if caption:
-            area, _rest = rect.rows([6, 1], gap=s.gap_s)
+            tall = self.theme.wrapped_height(caption, max(rect.width - 2 * s.text_inset, 1), t.caption)
+            area, _rest = rect.split_top(max(rect.height - tall - s.gap_s, 1))
         placed = area.fit(aspect)
         self.elements.append(Figure("figure", placed, Path(source), aspect))
         self._figures += 1
         if caption:
-            strip = Rect(rect.left, placed.bottom + s.gap_s, rect.width,
-                         max(rect.bottom - placed.bottom - s.gap_s, self.theme.line_height(t.caption)))
+            strip = Rect(rect.left, placed.bottom + s.gap_s, rect.width, tall)
             self.elements.append(Text("caption", strip, caption, t.caption, p.muted, align="center"))
 
     def table(self, rect: Rect, rows: list[list[str]], *, header: bool = True,
@@ -304,6 +307,11 @@ class Page:
                   header, highlight or {}, tuple(widths))
         )
         return placed
+
+    def text(self, rect: Rect, text: str) -> None:
+        """Words that are part of what the page says: the body's colour, at the body's size."""
+        t, p = self.theme.type, self.theme.palette
+        self.elements.append(Text("text", rect, text, t.body, p.ink))
 
     def note(self, rect: Rect, text: str) -> None:
         """One or two lines telling the reader how to read what is above."""
