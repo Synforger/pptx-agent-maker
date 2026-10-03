@@ -113,6 +113,26 @@ class Type:
     family: str = "Meiryo"
 
 
+#: 道具が持つ色の役 (= 頁の `tone` にいつでも書ける名前)。案件はこのほかに、意味の名前を付けた
+#: 地を `[theme.grounds]` で宣言できる
+ROLES = ("box", "band", "tint", "accent", "good", "bad")
+
+
+def _luminance(colour: str) -> float:
+    """How light a colour looks (= the relative luminance of WCAG 2)."""
+    def channel(value: int) -> float:
+        c = value / 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (channel(int(colour[index:index + 2], 16)) for index in (0, 2, 4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(one: str, other: str) -> float:
+    """How far apart two colours read (= the contrast ratio of WCAG 2, 1 to 21)."""
+    light, dark = sorted((_luminance(one), _luminance(other)), reverse=True)
+    return (light + 0.05) / (dark + 0.05)
+
+
 @dataclass(frozen=True)
 class Palette:
     """Colours by meaning, not by name. `good`/`bad` mark a reading, never decoration."""
@@ -139,6 +159,14 @@ class Palette:
     #: (= 実物のデッキで「棒の境が分からない」と差し戻された)。色の役ではないので案件からは
     #: 変えられない ― 案件が地を変えれば、枠はその地から出し直される
     EDGE_DEPTH: ClassVar[float] = 6.0
+
+    def words_on(self, ground: str) -> str:
+        """The colour of words on a ground a project named: the ink or the paper, whichever reads better.
+
+        ⚠ **閾値を置かない。**明るさの境目を数で決めると、境目の近くの色で読めない字が出る。
+        本文の色と紙の色の両方を地と比べ、差の大きい方を採る。
+        """
+        return self.ink if contrast(ground, self.ink) >= contrast(ground, self.paper) else self.paper
 
     def edge(self, ground: str) -> str:
         """The colour of the line round a light ground: the same hue, further from white."""
@@ -178,6 +206,8 @@ class Spacing:
     icon: int = cm(1.2)
     #: 道のりの矢羽根の、尖った先 (と次の段の切り欠き) の深さ
     chevron_point: int = cm(0.6)
+    #: 凡例の色見本の一辺
+    swatch: int = cm(0.4)
 
 
 @dataclass(frozen=True)
@@ -188,6 +218,11 @@ class Theme:
     type: Type = field(default_factory=Type)
     palette: Palette = field(default_factory=Palette)
     spacing: Spacing = field(default_factory=Spacing)
+    #: 案件が意味の名前を付けた地 (= `[theme.grounds]`)。並びは宣言の順で、凡例もこの順に並ぶ
+    grounds: tuple[tuple[str, str], ...] = ()
+
+    def ground_names(self) -> tuple[str, ...]:
+        return tuple(name for name, _colour in self.grounds)
 
     def frame(self) -> Rect:
         """The slide minus its margins — where every page starts."""
@@ -320,7 +355,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette")
+_MINE = ("font", "palette", "grounds")
 
 
 class ThemeError(ValueError):
@@ -359,7 +394,35 @@ def theme_from(settings: dict | None) -> Theme:
     return Theme(
         type=Type(family=family),
         palette=Palette(**{name: str(value).upper() for name, value in colours.items()}),
+        grounds=_grounds(settings.get("grounds")),
     )
+
+
+def _grounds(declared) -> tuple[tuple[str, str], ...]:
+    """The grounds a project names for what they mean (= `[theme.grounds]`), in the order written.
+
+    ⚠ **道具の色の役と同じ名前は拒む。**`box` を宣言で上書きできると、色の役を変える口が
+    `[theme.palette]` と 2 つに割れる。
+    """
+    if not declared:
+        return ()
+    if not isinstance(declared, dict):
+        raise ThemeError('theme.grounds is a table of names and colours, as in "内部向け" = "EAF0F8" '
+                         '(= a name in Japanese is written in quotes)')
+    found = []
+    for name, value in declared.items():
+        name = str(name).strip()
+        if not name:
+            raise ThemeError("theme.grounds has a ground with no name")
+        if name in ROLES:
+            raise ThemeError(
+                f"theme.grounds.{name} is one of the palette's own roles ({', '.join(ROLES)}) — "
+                "change its colour in [theme.palette], or give this ground a name of its own")
+        if not _HEX.match(str(value)):
+            raise ThemeError(
+                f'theme.grounds.{name} is {value!r} — a colour is six hex digits with no "#", as in "EAF0F8"')
+        found.append((name, str(value).upper()))
+    return tuple(found)
 
 
 def _refuse_unknown(unknown: list[str], where: str, known) -> None:

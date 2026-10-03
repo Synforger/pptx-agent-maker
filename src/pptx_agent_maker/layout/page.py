@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .geometry import Rect
-from .tokens import DEFAULT, Theme
+from .tokens import DEFAULT, ROLES, Theme
 
 
 @dataclass(frozen=True)
@@ -123,7 +123,7 @@ class Diamond(Element):
 #: 箱と棒の地に使える色の役。`box` / `band` / `tint` は薄い地で意味を持たない (= 3 者までを
 #: 色で分けられる)。`accent` は目を集めたい物、`good` / `bad` は**読み** (= 良い / 悪い) を
 #: 示す物にだけ使う
-TONES = ("box", "band", "tint", "accent", "good", "bad")
+TONES = ROLES
 #: 薄い地。紙とも列の地とも近いので、地を濃くした色の枠を持つ (= `Palette.edge`)
 LIGHT = TONES[:3]
 
@@ -224,7 +224,41 @@ class Page:
         if tone in LIGHT:
             fill = getattr(p, tone)
             return fill, p.ink, p.edge(fill)
-        return {"accent": p.accent, "good": p.good, "bad": p.bad}[tone], p.paper, ""
+        if tone in TONES:
+            return {"accent": p.accent, "good": p.good, "bad": p.bad}[tone], p.paper, ""
+        # 案件が意味の名前を付けた地: 字は読める方の色、本文の色の字が乗る薄い地は枠を持つ
+        fill = dict(self.theme.grounds)[tone]
+        words = p.words_on(fill)
+        return fill, words, p.edge(fill) if words == p.ink else ""
+
+    def _legend_layout(self, rect: Rect, names: list[str]):
+        """Where each entry of a legend goes: (left, top, width) per name, wrapping to a new line."""
+        s = self.theme.spacing
+        line = self.theme.line_height(self.theme.type.body)
+        x, y = rect.left, rect.top
+        for name in names:
+            wide = s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body)
+            if x > rect.left and x + wide > rect.right:
+                x, y = rect.left, y + line
+            yield name, x, y, wide
+            x += wide + s.gap_m
+
+    def legend_height(self, width: int, names: list[str]) -> int:
+        """How tall a legend of these names runs at this width."""
+        line = self.theme.line_height(self.theme.type.body)
+        tops = [top for _n, _x, top, _w in self._legend_layout(Rect(0, 0, width, line), names)]
+        return max(tops) + line
+
+    def legend(self, rect: Rect, names: list[str]) -> None:
+        """What each named ground means: a swatch and its name, left to right, in the order declared."""
+        t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
+        line = self.theme.line_height(t.body)
+        for name, x, y, wide in self._legend_layout(rect, names):
+            fill, _words, edge = self.ground(name)
+            self.elements.append(Fill("swatch", Rect(x, y + (line - s.swatch) // 2, s.swatch, s.swatch),
+                                      fill, outline=edge))
+            self.elements.append(Text("label", Rect(x + s.swatch + s.gap_s, y, wide - s.swatch - s.gap_s, line),
+                                      name, t.body, p.ink))
 
     def boxes(self, rect: Rect, cards: list[Card], *, gap: int | None = None) -> None:
         """Cards side by side inside an area you already divided off.

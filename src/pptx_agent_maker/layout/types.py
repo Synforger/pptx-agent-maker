@@ -50,7 +50,7 @@ Filler = Callable[[Page, "Spec", Rect], None]
 
 #: 枠の宣言 (= 書かなければその帯は取られない)
 FRAME_KEYS = frozenset({"type", "kind", "title", "kicker", "condition", "conclusion",
-                        "footer", "replace"})
+                        "footer", "replace", "legend"})
 #: 本体に添えられるもの (= **どの型でも**読まれる。共通の処理が拾う)
 #: ⚠ **カードの列数は `card_columns`。**絵の格子の `columns` と同じ名前だった間は、
 #: 格子を 3 列にするとカードまで 3 枚ずつに割れ、格子以外の型ではカードの列数を書けなかった。
@@ -74,6 +74,8 @@ class Spec:
     data: dict
     asset: Callable[[str], Path]
     aspect: Callable[[Path], float]
+    #: 頁の見た目 (= 案件が名前を付けた地を、`tone` として読むため)
+    theme: Theme = DEFAULT
 
     def get(self, key: str, default=None):
         return self.data.get(key, default)
@@ -160,12 +162,59 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
         footer=str(data.get("footer", "")),
         needs_figure=wants_figure,
     )
-    spec = Spec(data, asset, aspect)
-    area = _place_cards(page, spec, page.body)
+    spec = Spec(data, asset, aspect, theme)
+    whole = page.body
+    area = _place_cards(page, spec, whole)
     area, trailing = _reserve_trailing(page, spec, area)
+    area, legend = _reserve_legend(page, spec, area)
     filler(page, spec, area)
+    _place_legend(page, legend, Rect(area.left, whole.top, area.width, area.bottom - whole.top))
     _place_trailing(page, spec, trailing)
     return page
+
+
+def _named_grounds(data, names: tuple[str, ...]) -> set[str]:
+    """Every ground a project named that this page's tables ask for, however deep they sit."""
+    found: set[str] = set()
+    if isinstance(data, dict):
+        if str(data.get("tone", "")) in names:
+            found.add(str(data["tone"]))
+        for value in data.values():
+            found |= _named_grounds(value, names)
+    elif isinstance(data, list):
+        for value in data:
+            found |= _named_grounds(value, names)
+    return found
+
+
+def _reserve_legend(page: Page, spec: Spec, area: Rect) -> tuple[Rect, list[str] | None]:
+    """Keep a line under the body for the legend, when the page uses a ground a project named.
+
+    ⚠ **色に意味を持たせたら凡例を置く** (= 作法)。書く人に任せると、色だけが意味を運ぶ頁が残る。
+    消すのは `legend = false` を書いた頁だけ。並びは `[theme.grounds]` に書いた順で、どの頁でも同じ。
+    """
+    shown = spec.get("legend", True)
+    if not isinstance(shown, bool):
+        raise PageTypeError(f"`legend` is true or false, not {shown!r}")
+    used = _named_grounds(spec.data, page.theme.ground_names())
+    names = [name for name in page.theme.ground_names() if name in used]
+    if not shown or not names:
+        return area, None
+    tall = page.legend_height(area.width, names) + page.theme.spacing.gap_s
+    if tall >= area.height:
+        raise PageFullError(f"the legend alone needs {tall} EMU and the body has {area.height}")
+    body, _rest = area.split_top(area.height - tall)
+    return body, names
+
+
+def _place_legend(page: Page, names: list[str] | None, area: Rect) -> None:
+    """Put the legend just under what the body actually used (= the cards above it included)."""
+    if not names:
+        return
+    used = max((element.rect.bottom for element in page.elements
+                if area.top <= element.rect.top <= area.bottom), default=area.top)
+    height = page.legend_height(area.width, names)
+    page.legend(Rect(area.left, used + page.theme.spacing.gap_s, area.width, height), names)
 
 
 def _check_keys(name: str, data: dict, needs: frozenset,
@@ -341,12 +390,19 @@ def _keys(item, allowed: set, what: str, hint: str = "") -> None:
             f"{', '.join(sorted(allowed))}).{hint}")
 
 
-def _tone(item: dict, what: str, unsaid: str) -> str:
-    """The tone a table asks for (= one of the palette's roles), or `unsaid` when it asks for none."""
+def _tone(spec: Spec, item: dict, what: str, unsaid: str) -> str:
+    """The tone a table asks for, or `unsaid` when it asks for none.
+
+    書けるのは道具の色の役 (= `TONES`) と、案件が `[theme.grounds]` で名前を付けた地。
+    """
     tone = str(item.get("tone", unsaid))
-    if tone not in TONES:
+    named = spec.theme.ground_names()
+    if tone not in TONES and tone not in named:
+        grounds = (f"; this project names {', '.join(named)} in [theme.grounds]" if named
+                   else "; a project may name its own in [theme.grounds]")
         raise PageTypeError(
-            f"{what} has tone {tone!r} — a tone is one of the palette's roles: {', '.join(TONES)}")
+            f"{what} has tone {tone!r} — a tone is one of the palette's roles: "
+            f"{', '.join(TONES)}{grounds}")
     return tone
 
 
@@ -364,7 +420,7 @@ def _card(spec: Spec, item, what: str) -> Card:
         _keys(item, {"heading", "body", "tone", "icon"}, what)
         if not str(item.get("heading", "")).strip():
             raise PageTypeError(f"{what} has no `heading` — a box says what it is")
-        return Card(str(item["heading"]), str(item.get("body", "")), _tone(item, what, TONES[0]),
+        return Card(str(item["heading"]), str(item.get("body", "")), _tone(spec, item, what, TONES[0]),
                     _icon(spec, item, what))
     if isinstance(item, (list, tuple)) and len(item) == 2:
         return Card(str(item[0]), str(item[1]))
@@ -737,7 +793,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
             _keys(mark, {"at", "text"}, f"timeline: {what}")
             marks.append((what, _position(mark, "at", count, what), str(mark.get("text", ""))))
         # 色の役を書いたレーンはその色、書かなければ 2 つの薄い地の交互 (= 隣と見分けるだけ)
-        tone = _tone(lane, f"timeline: lane {index}", TONES[(index - 1) % 2])
+        tone = _tone(spec, lane, f"timeline: lane {index}", TONES[(index - 1) % 2])
         read.append((str(lane.get("name", "")), tone, bars, marks))
 
     # またがる棒は覆うレーンの高さを全部取る。その時期に同じレーンへ置かれた物は、段を分けて
