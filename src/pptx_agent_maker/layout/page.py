@@ -30,7 +30,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from .geometry import Rect
@@ -59,6 +59,9 @@ class Fill(Element):
     colour: str
     #: 枠の色。空なら枠を引かない
     outline: str = ""
+    dashed: bool = False
+    #: 太い枠 (= 強調)
+    heavy: bool = False
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,21 @@ class Card:
     tone: str = "box"
     #: 絵の file と、その縦横比 (= 無ければ None)
     icon: tuple[Path, float] | None = None
+    #: 点線の枠 (= 在れば / 内容未定)
+    tentative: bool = False
+    #: 太い枠 (= クリティカルパス、目を集めたい 1 つ)
+    strong: bool = False
+
+
+@dataclass(frozen=True)
+class Look:
+    """How a box, a bar or an arrowhead is painted: one answer for all three."""
+
+    fill: str
+    ink: str
+    outline: str
+    dashed: bool = False
+    heavy: bool = False
 
 
 @dataclass(frozen=True)
@@ -106,6 +124,10 @@ class Bar(Element):
     bold: bool = False
     #: 形 (= `SHAPES`)。矩形のほかは、道のりの段の矢羽根だけ
     shape: str = "rect"
+    #: 太い枠 (= 強調)
+    heavy: bool = False
+    #: 文字の左に空ける幅 (= 名前の前に置いたアイコンのぶん)
+    lead: int = 0
 
 
 #: 文字を持つ図形の形。`home` は左が平らで右が尖る矢羽根 (= 道のりの最初の段)、`chevron` は
@@ -249,6 +271,32 @@ class Page:
         tops = [top for _n, _x, top, _w in self._legend_layout(Rect(0, 0, width, line), names)]
         return max(tops) + line
 
+    def look(self, tone: str, *, tentative: bool = False, strong: bool = False) -> Look:
+        """How a box, a bar or an arrowhead is painted, from the attributes every one of them takes.
+
+        `tentative` (= 点線) は地を紙の色にし、字と枠を灰色の点線にする ― 決まった物の隣で同じ重さに
+        見えないように。`strong` (= 強調) は枠を本文の色の太い線にする (= 地の色を変えずに目を集める)。
+        """
+        p = self.theme.palette
+        if tentative:
+            fill, ink, outline = p.paper, p.muted, p.muted
+        else:
+            fill, ink, outline = self.ground(tone)
+        if strong:
+            outline = ink if tentative else p.ink
+        return Look(fill, ink, outline, dashed=tentative, heavy=strong)
+
+    def _lead_icon(self, rect: Rect, left: int, icon: tuple[Path, float] | None, size: float) -> int:
+        """Put an icon in front of a name inside a bar or an arrowhead; how much room the words give it."""
+        if not icon:
+            return 0
+        s = self.theme.spacing
+        side = self.theme.line_height(size)
+        source, aspect = icon
+        square = Rect(left, rect.top + (rect.height - side) // 2, side, side)
+        self.elements.append(Figure("icon", square.fit(aspect), Path(source), aspect))
+        return side + s.gap_s
+
     def legend(self, rect: Rect, names: list[str]) -> None:
         """What each named ground means: a swatch and its name, left to right, in the order declared."""
         t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
@@ -273,8 +321,10 @@ class Page:
         columns = rect.columns(len(cards), gap if gap is not None else s.gap_m)
         for card, said in zip(columns, cards):
             heading, body = said.heading, said.body
-            fill, ink, edge = self.ground(said.tone)
-            self.elements.append(Fill("box", card, fill, outline=edge))
+            look = self.look(said.tone, tentative=said.tentative, strong=said.strong)
+            ink = look.ink
+            self.elements.append(Fill("box", card, look.fill, outline=look.outline,
+                                      dashed=look.dashed, heavy=look.heavy))
             inner = card.inset(s.pad)
             if said.icon:
                 # ⚠ アイコンは頁の図解に数えない (= 図の要る頁が、アイコンだけで通らないように)
@@ -399,7 +449,8 @@ class Page:
         self.elements.append(Text("stage", rect, name, t.stage, p.ink, bold=True, align="center"))
 
     def bar(self, rect: Rect, text: str, *, tone: str = "box", tentative: bool = False,
-            size: float | None = None) -> None:
+            size: float | None = None, strong: bool = False,
+            icon: tuple[Path, float] | None = None) -> None:
         """Something that takes a stretch of time, with its name on it.
 
         `tone` は地の色の役 (= `TONES`。箱と同じ語彙)。薄い地の棒は、地を濃くした色の枠を持つ ―
@@ -408,25 +459,33 @@ class Page:
         隣に置いても同じ重さに見えない ― 塗らずに透かすと、後ろを通る日付の線が名前を貫く。
 
         ⚠ **文字は棒の中に持たせる** (= 別の枠にしない)。人が PowerPoint で棒を動かすとき、
-        文字が置き去りにならない。
+        文字が置き去りにならない。アイコンは名前の前に、字の高さで置く。
         """
-        p = self.theme.palette
         size = self.theme.type.body if size is None else size
-        if tentative:
-            self.elements.append(Bar("bar", rect, text, size, p.muted,
-                                     fill=p.paper, outline=p.muted, dashed=True))
-        else:
-            fill, ink, edge = self.ground(tone)
-            self.elements.append(Bar("bar", rect, text, size, ink, fill=fill, outline=edge))
+        look = self.look(tone, tentative=tentative, strong=strong)
+        bar = Bar("bar", rect, text, size, look.ink, fill=look.fill, outline=look.outline,
+                  dashed=look.dashed, heavy=look.heavy)
+        self.elements.append(bar)
+        lead = self._lead_icon(rect, rect.left + self.theme.spacing.bar_pad_x, icon, size)
+        if lead:
+            self.elements[self.elements.index(bar)] = replace(bar, lead=lead)
 
-    def chevron(self, rect: Rect, text: str, *, shape: str, tone: str, size: float) -> None:
+    def chevron(self, rect: Rect, text: str, *, shape: str, tone: str, size: float,
+                tentative: bool = False, strong: bool = False,
+                icon: tuple[Path, float] | None = None) -> None:
         """One stage of a road to a goal: an arrowhead with its name inside it.
 
         `shape` は `home` (= 最初の段、左が平ら) か `chevron` (= 2 段目から、左が切り欠き)。
+        アイコンは名前の前に、切り欠きの内側から置く。
         """
-        fill, ink, edge = self.ground(tone)
-        self.elements.append(Bar("chevron", rect, text, size, ink, fill=fill, outline=edge,
-                                 bold=True, shape=shape))
+        look = self.look(tone, tentative=tentative, strong=strong)
+        head = Bar("chevron", rect, text, size, look.ink, fill=look.fill, outline=look.outline,
+                   dashed=look.dashed, heavy=look.heavy, bold=True, shape=shape)
+        self.elements.append(head)
+        notch = self.theme.spacing.chevron_point if shape == "chevron" else 0
+        lead = self._lead_icon(rect, rect.left + notch + self.theme.spacing.bar_pad_x, icon, size)
+        if lead:
+            self.elements[self.elements.index(head)] = replace(head, lead=lead)
 
     def span(self, rect: Rect, text: str, *, size: float | None = None) -> None:
         """What a stretch of periods is like (= movable, fixed), laid over the columns."""

@@ -208,6 +208,8 @@ class Spacing:
     chevron_point: int = cm(0.6)
     #: 凡例の色見本の一辺
     swatch: int = cm(0.4)
+    #: 強調した箱と棒の枠 (= クリティカルパス、目を集めたい 1 つ)。細い線の倍より太く
+    strong_line: int = pt(2.25)
 
 
 @dataclass(frozen=True)

@@ -406,6 +406,17 @@ def _tone(spec: Spec, item: dict, what: str, unsaid: str) -> str:
     return tone
 
 
+#: 箱・棒・矢羽根のどれにも書ける見た目のキー (= 色の役・アイコン・点線・強調)。1 組を全部が読む
+LOOK_KEYS = ("tone", "icon", "tentative", "strong")
+
+
+def _flag(item: dict, key: str, what: str) -> bool:
+    value = item.get(key, False)
+    if not isinstance(value, bool):
+        raise PageTypeError(f"{what}: `{key}` is true or false, not {value!r}")
+    return value
+
+
 #: アイコンに読める絵 (= 図と同じ。SVG は pptx に入れるのに描き直しの道具が要るので、まだ読まない)
 ICON_FORMATS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff")
 
@@ -414,14 +425,16 @@ def _card(spec: Spec, item, what: str) -> Card:
     """One card, or one node of a flow or a roadmap (= the same box, written the same two ways).
 
     書き方は 2 つ ― `["見出し", "本文"]` か、色の役やアイコンを付けるときの
-    `{ heading = "…", body = "…", tone = "accent", icon = "device.png" }`。
+    `{ heading = "…", body = "…", tone = "accent", icon = "device.png", tentative = true,
+    strong = true }`。
     """
     if isinstance(item, dict):
-        _keys(item, {"heading", "body", "tone", "icon"}, what)
+        _keys(item, {"heading", "body", *LOOK_KEYS}, what)
         if not str(item.get("heading", "")).strip():
             raise PageTypeError(f"{what} has no `heading` — a box says what it is")
         return Card(str(item["heading"]), str(item.get("body", "")), _tone(spec, item, what, TONES[0]),
-                    _icon(spec, item, what))
+                    _icon(spec, item, what), tentative=_flag(item, "tentative", what),
+                    strong=_flag(item, "strong", what))
     if isinstance(item, (list, tuple)) and len(item) == 2:
         return Card(str(item[0]), str(item[1]))
     raise PageTypeError(
@@ -558,12 +571,32 @@ class _Piece:
     tentative: bool = False
     point: bool = False
     row: int = 0
+    #: 棒が自分で書いた色の役 (= 空ならレーンの色)、名前の前のアイコン、強調
+    tone: str = ""
+    icon: tuple | None = None
+    strong: bool = False
+
 
     def room(self, gap: int) -> tuple[int, int]:
         """What it keeps clear of its neighbours: itself, and its name when that sits beside it."""
         start = self.left - (gap + self.wide + gap if self.side == "left" else 0)
         end = self.right + (gap + self.wide + gap if self.side == "right" else 0)
         return start, end
+
+
+@dataclass
+class _Written:
+    """One bar as the manifest wrote it, read once (= positions do not depend on the type size)."""
+
+    what: str
+    start: float
+    end: float
+    text: str
+    tentative: bool
+    reach: int
+    tone: str
+    icon: tuple | None
+    strong: bool
 
 
 def _position(item: dict, key: str, count: int, what: str) -> float:
@@ -673,7 +706,7 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
         if not isinstance(stage, dict):
             raise PageTypeError(f"{what} is {stage!r} — write it as a table "
                                 "{ name = …, nodes = […], goal = … }")
-        _keys(stage, {"name", "nodes", "goal"}, what)
+        _keys(stage, {"name", "nodes", "goal", *LOOK_KEYS}, what)
         if not str(stage.get("name", "")).strip():
             raise PageTypeError(f"{what} has no `name` — an arrowhead says when it is")
         goal = stage.get("goal", False)
@@ -702,9 +735,16 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
         cut = point // 2 if shape == "home" else 2 * point     # 文字の枠が左右で失う幅
         room = max(right - column.left - cut - 2 * s.bar_pad_x, 1)
         size = ty.heading if last and goal else ty.stage
+        what = f"roadmap: stage {index + 1}"
+        icon = _icon(spec, stage, what)
+        # アイコンは名前の前に字の高さで置く (= 名前の使える幅がそのぶん狭い)
+        room = max(room - (theme.line_height(size) + s.gap_s if icon else 0), 1)
         tall = theme.wrapped_height(str(stage["name"]), room, size, bold=True) + 2 * s.bar_pad_y
-        arrows.append((Rect(column.left, area.top, right - column.left, 1), shape, size, tall))
-    head_height = max(tall for _r, _s, _z, tall in arrows)
+        tone = _tone(spec, stage, what, "accent" if last and goal else "band")
+        arrows.append((Rect(column.left, area.top, right - column.left, 1), shape, size, tall,
+                       {"tone": tone, "icon": icon, "tentative": _flag(stage, "tentative", what),
+                        "strong": _flag(stage, "strong", what)}))
+    head_height = max(tall for _r, _s, _z, tall, _look in arrows)
 
     wanted = head_height + gap + stack
     if wanted > area.height:
@@ -713,11 +753,10 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
             "shorten the nodes or split the stages across two pages; it will not shrink")
 
     page.drew_a_diagram()  # 矢羽根とノードで組んだ道のりそのものが、この頁の図解
-    for index, ((rect, shape, size, _tall), stage, column, column_nodes) in enumerate(
-            zip(arrows, stages, columns, stacks)):
-        last = index == len(stages) - 1
+    for (rect, shape, size, _tall, look), stage, column, column_nodes in zip(
+            arrows, stages, columns, stacks):
         page.chevron(Rect(rect.left, area.top, rect.width, head_height), str(stage["name"]),
-                     shape=shape, tone="accent" if last and goal else "band", size=size)
+                     shape=shape, size=size, **look)
         _head, rest = column.split_top(head_height, gap=gap)
         _place_stack(page, rest.split_top(stack)[0], column_nodes)
 
@@ -781,10 +820,14 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
         bars, marks = [], []
         for number, bar in enumerate(lane.get("bars") or [], start=1):
             what = f"lane {index}, bar {number}"
-            _keys(bar, {"from", "to", "text", "tentative", "spans"}, f"timeline: {what}")
+            _keys(bar, {"from", "to", "text", "spans", *LOOK_KEYS}, f"timeline: {what}")
             start, end = _stretch(bar, count, what)
             reach = _reach(bar, len(lanes) - index + 1, what)
-            bars.append((what, start, end, str(bar.get("text", "")), bool(bar.get("tentative")), reach))
+            bars.append(_Written(what, start, end, str(bar.get("text", "")),
+                                 _flag(bar, "tentative", f"timeline: {what}"), reach,
+                                 _tone(spec, bar, f"timeline: {what}", "") if "tone" in bar else "",
+                                 _icon(spec, bar, f"timeline: {what}"),
+                                 _flag(bar, "strong", f"timeline: {what}")))
             if reach > 1:
                 for under in range(index - 1, index - 1 + reach):
                     covered[under].append((start, end, what))
@@ -807,8 +850,9 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
                     raise PageTypeError(
                         f"timeline: {what} and {other} both span lane {index} over the same "
                         "periods — a lane holds one spanning bar at a time")
-            for other, other_start, other_end, _text, _tentative, reach in bars:
-                if reach == 1 and start < other_end and other_start < end:
+            for written in bars:
+                other, other_start, other_end = written.what, written.start, written.end
+                if written.reach == 1 and start < other_end and other_start < end:
                     raise PageTypeError(
                         f"timeline: {other} runs under {what}, which spans lane {index} from "
                         f"{start:g} to {end:g} — a spanning bar takes the whole lane; end one "
@@ -881,18 +925,25 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
         for lane, ((name, tone, bars, marks), covering) in enumerate(zip(read, covered)):
             walls = [(at(start) + s.bar_gap, at(end) - s.bar_gap) for start, end, _what in covering]
             pieces = []
-            for what, start, end, text, tentative, reach in bars:
-                left, right = at(start) + s.bar_gap, at(end) - s.bar_gap
+            for written in bars:
+                what, text, tentative, reach = written.what, written.text, written.tentative, written.reach
+                left, right = at(written.start) + s.bar_gap, at(written.end) - s.bar_gap
                 if right <= left:
                     raise PageFullError(f"{what} is too short a stretch to draw at this scale")
-                wide, inner = theme.width(text, size), right - left - 2 * s.bar_pad_x
+                # アイコンは名前の前に字の高さで置く (= 棒の中に、名前が隣へ出る時も)
+                lead = line + s.gap_s if written.icon else 0
+                if written.icon and right - left < line + 2 * s.bar_pad_x:
+                    raise PageFullError(
+                        f"{what} is too short for its icon at {size:g}pt — a longer stretch, or no icon")
+                wide, inner = theme.width(text, size), right - left - 2 * s.bar_pad_x - lead
+                look = {"tentative": tentative, "tone": written.tone, "icon": written.icon,
+                        "strong": written.strong}
                 if reach > 1:
                     # 名前はいつも棒の中 (= 隣へ出すと、覆うレーン全部でその場所を空けることになる)。
                     # 棒が高いので、折れる行は中に収まる
                     lines = 1 if wide <= inner else theme.wraps(text, max(inner, 1), size)
                     across.append((lane, reach, _Piece(left, right, text, "in",
-                                                       lines * line + 2 * s.bar_pad_y, wide,
-                                                       tentative=tentative)))
+                                                       lines * line + 2 * s.bar_pad_y, wide, **look)))
                     continue
                 if wide <= inner:
                     side, lines = "in", 1
@@ -902,8 +953,7 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
                     side, lines = beside(left, right, wide, walls), 1
                 else:
                     side, lines = "in", theme.wraps(text, max(inner, 1), size)
-                pieces.append(_Piece(left, right, text, side, lines * line + 2 * s.bar_pad_y, wide,
-                                     tentative=tentative))
+                pieces.append(_Piece(left, right, text, side, lines * line + 2 * s.bar_pad_y, wide, **look))
             for what, position, text in marks:
                 where = at(position)
                 left, right = where - s.mark // 2, where - s.mark // 2 + s.mark
@@ -1024,7 +1074,8 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
             else:
                 page.bar(Rect(piece.left, top, piece.right - piece.left, tall),
                          piece.text if piece.side == "in" else "",
-                         tone=tone, tentative=piece.tentative, size=size)
+                         tone=piece.tone or tone, tentative=piece.tentative, size=size,
+                         strong=piece.strong, icon=piece.icon)
             if piece.side == "right":
                 page.label(Rect(piece.right + s.gap_s, top, piece.wide, tall), piece.text, size=size)
             elif piece.side == "left":
@@ -1035,7 +1086,8 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
     for lane, reach, piece in across:
         top, bottom = reaches(packed, lane, lane + reach - 1, extra, lanes_top)
         page.bar(Rect(piece.left, top, piece.right - piece.left, bottom - top), piece.text,
-                 tone=packed[lane][4], tentative=piece.tentative, size=size)
+                 tone=piece.tone or packed[lane][4], tentative=piece.tentative, size=size,
+                 strong=piece.strong, icon=piece.icon)
 
     for stone in stones:
         top = flags_top + stone.row * line
