@@ -3,8 +3,11 @@
 宣言層は座標だけを持ち、pptx のことを何も知らない。ここが唯一 python-pptx に触る層で、
 **壊れた pptx の種を作らない**のもここの責任:
 
-* 図形のプリセットは矩形だけ (= 矢印のプリセット 1 つで PowerPoint が修復を言い出した実例がある。
-  菱形も矩形を 45 度回して描く)
+* 図形のプリセットは矩形と、道のりの矢羽根 2 つ (= `homePlate` / `chevron`) だけ。矢羽根は尖りの
+  深さの調整値ごと PowerPoint で開き、修復が出ないことを確かめてから入れた (= 修復の確認で止まる
+  わざと壊した file と並べて見分けた)。ほかのプリセットは、同じ確かめを済ませるまで使わない ―
+  前の世代で矢印のプリセット 1 つが修復を言い出した実例があり、原因は記録に残っていない。
+  菱形は矩形を 45 度回して描く
 * 空の run を書かない (= 文字の無い run は修復の種)
 * 表示から外したスライドを残さない (= 孤児のスライドも同じ)
 """
@@ -25,6 +28,8 @@ from ..layout.page import Bar, Diamond, Element, Figure, Fill, Table, Text
 from ..layout.tokens import DEFAULT, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
+#: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)
+PRESET = {"rect": MSO_SHAPE.RECTANGLE, "home": MSO_SHAPE.PENTAGON, "chevron": MSO_SHAPE.CHEVRON}
 
 #: 「スタイルなし・罫線なし」。PowerPoint が新しい表に付ける既定のスタイルは
 #: **テーマの accent1 で見出しを塗る**ので、色の出どころが palette と 2 つに割れる。
@@ -102,11 +107,16 @@ def _fill(slide, element: Fill, theme: Theme) -> None:
 
 
 def _bar(slide, element: Bar, theme: Theme) -> None:
-    """A rectangle with its words inside it (= one shape, so it moves as one)."""
+    """A shape with its words inside it (= one shape, so it moves as one)."""
     shape = slide.shapes.add_shape(
-        MSO_SHAPE.RECTANGLE, Emu(element.rect.left), Emu(element.rect.top),
+        PRESET[element.shape], Emu(element.rect.left), Emu(element.rect.top),
         Emu(element.rect.width), Emu(element.rect.height),
     )
+    if element.shape != "rect":
+        # 尖りの深さはプリセットの調整値 (= 短い辺に対する比) で書く。既定のままだと、段の高さで
+        # 深さが変わり、隣の段の切り欠きと噛み合わない
+        shape.adjustments[0] = theme.spacing.chevron_point / min(element.rect.width,
+                                                                 element.rect.height)
     if element.fill:
         shape.fill.solid()
         shape.fill.fore_color.rgb = _colour(element.fill)

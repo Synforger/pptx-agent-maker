@@ -19,7 +19,7 @@
 
 並びは 1 つしかない ― **題 → 条件の帯 → カード → 本体 → 表 → 読み方 → 結論の帯 → 出所**。
 書かなかった帯は取られないだけで、順序は動かない。型が決めるのは**本体に何を置くか**だけで、
-8 つある (`figure` / `figures` / `figure_grid` / `flow` / `timeline` / `cards` / `board` / `agenda`)。
+9 つある (`figure` / `figures` / `figure_grid` / `flow` / `roadmap` / `timeline` / `cards` / `board` / `agenda`)。
 カード・表・読み方はどの型にも添えられる。
 
 ⚠ **位置に名前を付けて「使ってください」にする形は持たない** ― 前の世代がそれで、名前のある

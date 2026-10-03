@@ -38,9 +38,9 @@ footer = "measured on the load test of the day"
 
 The order of a page is settled and never varies: **title → condition → cards → body → table →
 reading → conclusion → footer.** A band left unwritten is simply not taken. The type decides one
-thing — what goes in the body — and there are eight of them (`figure`, `figures`, `figure_grid`,
-`flow`, `timeline`, `cards`, `board`, `agenda`). Cards, a table and the reading can be added to any
-of them.
+thing — what goes in the body — and there are nine of them (`figure`, `figures`, `figure_grid`,
+`flow`, `roadmap`, `timeline`, `cards`, `board`, `agenda`). Cards, a table and the reading can be
+added to any of them.
 
 Naming a few positions and asking people to use them does not hold: the previous generation did
 exactly that, and values with no name piled up right beside the ones that had them.

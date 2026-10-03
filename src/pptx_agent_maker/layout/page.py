@@ -62,6 +62,20 @@ class Fill(Element):
 
 
 @dataclass(frozen=True)
+class Card:
+    """What one box says: a heading, a body under it, the ground it sits on and an icon beside it.
+
+    カードも、流れ図と道のりのノードも、この 1 つの形で書く (= 読み口も置き方も 1 つ)。
+    """
+
+    heading: str
+    body: str = ""
+    tone: str = "box"
+    #: 絵の file と、その縦横比 (= 無ければ None)
+    icon: tuple[Path, float] | None = None
+
+
+@dataclass(frozen=True)
 class Figure(Element):
     source: Path
     aspect: float
@@ -78,7 +92,7 @@ class Table(Element):
 
 @dataclass(frozen=True)
 class Bar(Element):
-    """A rectangle that carries its own words: one shape, so a person can drag it whole."""
+    """A shape that carries its own words: one shape, so a person can drag it whole."""
 
     text: str
     size: float
@@ -90,6 +104,13 @@ class Bar(Element):
     dashed: bool = False
     align: str = "center"
     bold: bool = False
+    #: 形 (= `SHAPES`)。矩形のほかは、道のりの段の矢羽根だけ
+    shape: str = "rect"
+
+
+#: 文字を持つ図形の形。`home` は左が平らで右が尖る矢羽根 (= 道のりの最初の段)、`chevron` は
+#: 左が切り欠かれて右が尖る矢羽根 (= 2 段目から)
+SHAPES = ("rect", "home", "chevron")
 
 
 @dataclass(frozen=True)
@@ -205,22 +226,28 @@ class Page:
             return fill, p.ink, p.edge(fill)
         return {"accent": p.accent, "good": p.good, "bad": p.bad}[tone], p.paper, ""
 
-    def boxes(self, rect: Rect, cards: list[tuple[str, str]], *, gap: int | None = None,
-              tones: list[str] | None = None) -> None:
+    def boxes(self, rect: Rect, cards: list[Card], *, gap: int | None = None) -> None:
         """Cards side by side inside an area you already divided off.
 
-        `tones` は箱ごとの地の色の役 (= `TONES`。書かなければ全部 `box`)。薄い地の箱は枠を持つ
-        (= `ground`)。
+        地の色は箱ごとの `tone` (= `TONES`)。薄い地の箱は枠を持つ (= `ground`)。アイコンの
+        在る箱は、左上にアイコン、文字はその右に置く。
 
         ⚠ **見出しの高さは字数で決める。**比で割っていた間は、2 行に折り返した見出しが
         本文の上に乗った (= 焼いて初めて出た。枠の中に収まっているので検査は通る)。
         """
         t, s = self.theme.type, self.theme.spacing
         columns = rect.columns(len(cards), gap if gap is not None else s.gap_m)
-        for index, (card, (heading, body)) in enumerate(zip(columns, cards)):
-            fill, ink, edge = self.ground(tones[index] if tones else "box")
+        for card, said in zip(columns, cards):
+            heading, body = said.heading, said.body
+            fill, ink, edge = self.ground(said.tone)
             self.elements.append(Fill("box", card, fill, outline=edge))
             inner = card.inset(s.pad)
+            if said.icon:
+                # ⚠ アイコンは頁の図解に数えない (= 図の要る頁が、アイコンだけで通らないように)
+                source, aspect = said.icon
+                square = Rect(inner.left, inner.top, s.icon, s.icon)
+                self.elements.append(Figure("icon", square.fit(aspect), Path(source), aspect))
+                inner = inner.inset(left=s.icon + s.gap_s)
             if body:
                 needed = self.theme.wrapped_height(
                     heading, max(inner.width - 2 * s.text_inset, 1), t.heading, bold=True)
@@ -349,6 +376,15 @@ class Page:
         else:
             fill, ink, edge = self.ground(tone)
             self.elements.append(Bar("bar", rect, text, size, ink, fill=fill, outline=edge))
+
+    def chevron(self, rect: Rect, text: str, *, shape: str, tone: str, size: float) -> None:
+        """One stage of a road to a goal: an arrowhead with its name inside it.
+
+        `shape` は `home` (= 最初の段、左が平ら) か `chevron` (= 2 段目から、左が切り欠き)。
+        """
+        fill, ink, edge = self.ground(tone)
+        self.elements.append(Bar("chevron", rect, text, size, ink, fill=fill, outline=edge,
+                                 bold=True, shape=shape))
 
     def span(self, rect: Rect, text: str, *, size: float | None = None) -> None:
         """What a stretch of periods is like (= movable, fixed), laid over the columns."""

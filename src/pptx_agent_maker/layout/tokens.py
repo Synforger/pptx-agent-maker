@@ -174,6 +174,10 @@ class Spacing:
     row_gap: int = cm(0.15)
     #: 時点の印 (= 菱形) の差し渡し
     mark: int = cm(0.4)
+    #: 箱の左上に置くアイコンの一辺 (= 絵はこの正方形に縦横比を保って収める)
+    icon: int = cm(1.2)
+    #: 道のりの矢羽根の、尖った先 (と次の段の切り欠き) の深さ
+    chevron_point: int = cm(0.6)
 
 
 @dataclass(frozen=True)

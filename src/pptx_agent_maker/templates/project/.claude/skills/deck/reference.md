@@ -73,6 +73,7 @@ pptx-agent-maker lift <案件> <テンプレートの folder> \
 | `figures` | `figures` | ― | 絵を横に並べる (= 説明は絵ごとに `["a.png", "説明"]`) |
 | `figure_grid` | `figures` | `columns` | 絵を格子に並べる |
 | `flow` | `stages` | `align_rows` | 段を左から右へ、あいだに → |
+| `roadmap` | `stages` | `align_rows` | 到達点までの段を矢羽根で左から右へ。各段の下にノード |
 | `timeline` | `periods` `lanes` | `phases` `milestones` | 期間を左から右、レーンを上から下。レーンの中に棒と印 |
 | `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
 | `board` | `table` | ― | 表が主役の頁 (= 同上) |
@@ -92,12 +93,17 @@ name = "Intake"                                        # 段の名前
 nodes = [
   ["Triage", "sort by impact"],                        # [見出し, 本文]
   { heading = "No owner", body = "the request waits", tone = "bad" },   # 色の役を付ける書き方
+  { heading = "Device", body = "reads the tag", icon = "device.png" },   # アイコンを置く書き方
 ]
 settled = "one queue"                                  # 任意。段の下に置く 1 行
 ```
 
-- **ノードは 2 通りに書ける** ― `["見出し", "本文"]` か、`{ heading = …, body = …, tone = … }`
-  (= `body` と `tone` は省ける)
+- **ノードは 2 通りに書ける** ― `["見出し", "本文"]` か、`{ heading = …, body = …, tone = …, icon = … }`
+  (= `body` と `tone` と `icon` は省ける)。**カードも同じ 2 通りで書ける**
+- **`icon` は箱の左上に置く絵** (= 素材は図と同じく `assets/` から。文字はその右に寄る)。縦横比は
+  保ったまま 1 辺 1.2cm の正方形に収まる。読めるのは PNG / JPEG などの絵で、⚠ **SVG は拒まれる**
+  (= 表示する大きさの数倍で PNG に書き出す)。濃い地の箱には明るい色の絵を使う。アイコンは頁の図には
+  数えない (= 図の要る頁が、アイコンだけで通ることは無い)
 - **`tone` は色の役** ― `box` (= 既定) / `band` / `tint` / `accent` / `good` / `bad`。色そのものは
   `[theme.palette]` が持つ。⚠ **`good` / `bad` は読み (= 良い / 悪い) を示す物にだけ使う**
   (= 飾りで塗ると、色が意味を持たなくなる)
@@ -108,6 +114,36 @@ settled = "one queue"                                  # 任意。段の下に�
 - ノードの高さは中の文字が実際に折れる行数で決まる (= 書体ごとに測った字幅で数える)
 - **文字の大きさ** ― 段の名前 14pt、ノードの見出し 16pt、**本文と `settled` は 12pt**。10pt は
   出所と絵の下の説明だけに使う (= 頁の中身には使わない)
+
+### `roadmap` の書き方
+
+```toml
+[[pages]]
+kind = "declare"
+type = "roadmap"
+title = "…"
+align_rows = true                                      # 任意。flow と同じ
+
+[[pages.stages]]
+name = "Early Nov | 0.4.0"                             # 矢羽根の中の名前 (= 時期と版)
+nodes = [
+  ["Core", "reads every input"],                       # flow のノードと同じ書き方
+  { heading = "Docs", body = "how to start", tone = "tint", icon = "docs.png" },
+]
+
+[[pages.stages]]
+name = "Jan | 1.0"
+goal = true                                            # 任意。最後の段だけ。到達点として強調する
+nodes = [ ["Release", "anyone can install it"] ]
+```
+
+- **段は左から右へ矢羽根で並ぶ** ― 最初の段は左が平ら、2 段目からは左が切り欠かれ、前の段の先が
+  そこへ入る。向きは矢羽根が示すので、段の間に → は置かない
+- **`goal = true` は最後の段だけ** (= ほかの段に書くと拒まれる)。到達点の矢羽根は濃い地で、名前が
+  一回り大きい (= 16pt。ほかの段は 14pt)。ほかの段の矢羽根は薄い地に枠
+- 段のキーは `name` / `nodes` / `goal` だけ (= flow の `settled` は読まない)。段は 2 つ以上
+- 長い名前は矢羽根の中で折れ、全部の矢羽根がいちばん高い名前に揃う
+- 収まらない頁は縮めずに止まる (= ノードを短くするか、段を 2 頁に分ける)
 
 ### `timeline` の書き方
 
@@ -161,6 +197,7 @@ marks = [ { at = 1, text = "1.0 release" } ]           # レーンの中の菱�
 `cards` / `card_columns` / `table` / `note` / `points`
 
 `card_columns` = カードを何枚ずつ並べるか (= 省略すると全部 1 段)。`figure_grid` の `columns` とは別の数。
+カードは flow のノードと同じ 2 通りで書ける (= `["見出し", "本文"]` か `{ heading, body, tone, icon }`)。
 
 ⚠ **その型が読まないキーは拒まれる** (= 書いたつもりで頁に無い、を作らない)。
 
