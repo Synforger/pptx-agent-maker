@@ -40,7 +40,8 @@ The order of a page is settled and never varies: **title → condition → cards
 reading → conclusion → footer.** A band left unwritten is simply not taken. The type decides one
 thing — what goes in the body — and there are nine of them (`figure`, `figures`, `figure_grid`,
 `flow`, `roadmap`, `timeline`, `cards`, `board`, `agenda`). Cards, a table and the reading can be
-added to any of them.
+added to any of them. A tenth, `compose`, writes the body as rows of cells instead, one part in each
+cell — a card, a picture, a table, words, or any of the nine — for a page none of them lays out.
 
 Naming a few positions and asking people to use them does not hold: the previous generation did
 exactly that, and values with no name piled up right beside the ones that had them.
