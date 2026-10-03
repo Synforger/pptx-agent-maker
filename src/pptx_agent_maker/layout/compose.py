@@ -155,7 +155,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             _stack(page, spec, cell["rows"], rect, what)
         elif part == "figure":
             # 絵は横幅いっぱいで上に寄る (= 同じ段の表や文章と上端が揃う)。縦が足りなければ縮む
-            source, aspect = Spec({"figure": cell["figure"]}, spec.asset, spec.aspect).figure()
+            source, aspect = Spec({"figure": cell["figure"]}, spec.asset, spec.aspect, spec.theme).figure()
             caption = str(cell.get("caption", ""))
             s, ty = page.theme.spacing, page.theme.type
             wanted = round(rect.width / aspect) + (
@@ -186,7 +186,7 @@ def _body(page: Page, spec: Spec, name: str, data: dict, rect: Rect, what: str) 
         raise PageTypeError(
             f"{name}: does not take {', '.join(unknown)} inside a cell (= it reads "
             f"{', '.join(sorted(needs | takes))}; cards, tables and words go in cells of their own)")
-    filler(page, Spec(data, spec.asset, spec.aspect), rect)
+    filler(page, Spec(data, spec.asset, spec.aspect, spec.theme), rect)
 
 
 def _the_card(spec: Spec, cell: dict, what: str) -> Card:

@@ -266,6 +266,12 @@ def main(argv: list[str] | None = None) -> int:
             from .project.recipes import load as load_recipes
 
             print(describe())
+            from .layout.page import TONES
+            from .layout.tokens import theme_from
+
+            named = theme_from(workspace.look).ground_names()
+            print(f"tone (= the ground of a box, a bar, a lane): {', '.join(TONES)}"
+                  + (f"; named in this project's [theme.grounds]: {', '.join(named)}" if named else ""))
             print(f"copy / import pages read: {', '.join(sorted(CARRIED_KEYS - {'kind'}))} "
                   "(copy has no deck)")
             print("recipe pages read: recipe, fill, why, replace, and what the recipe leaves open")
