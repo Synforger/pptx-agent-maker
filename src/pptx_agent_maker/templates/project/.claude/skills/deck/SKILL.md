@@ -10,6 +10,9 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
 
 案件の folder の中だけで完結する (= `Taskfile.yml` がツールへの口を持つ)。
 
+**頁を設計する前に `craft.md` を読む** (= 何をどの順で言うか、何を載せないか、どの頁をどの型で組むか。
+型と検査が守れるのは座標と形までで、そこから先は書く人が決める)。
+
 ## 順番
 
 0. **ツールを更新したら `task refresh`** ― この folder の task の口と手順書 (= このファイル) は `init` の
@@ -86,7 +89,7 @@ task lift -- <テンプレートの folder> --page w1.pptx:3 --keep "項目" --r
 ```
 
 型が決めるのは**本体**だけで、カード・表・読み方・要点は**どの型にも**添えられる
-(= キャプションは絵の型だけ。型ごとに読むキーは `reference.md`)。
+(= キャプションは絵の型だけ。型ごとに読むキーは `reference.md`、作りたい頁から型を引く表は `craft.md`)。
 
 ```toml
 [[pages]]

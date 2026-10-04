@@ -294,6 +294,18 @@ class TheTemplateBuildsTest(unittest.TestCase):
         self.assertTrue(skill.is_file(), "init did not lay the skill down in the project")
         self.assertIn("name: deck", skill.read_text(encoding="utf-8"))
 
+    def test_the_skill_names_only_types_the_toolkit_has_and_every_one_of_them(self) -> None:
+        """⚠ **「作りたい頁 → 型」の表は手で書いた対応。**型を足して表に書かなければ、その型は誰にも
+        選ばれず、型の名前を変えて表を直さなければ、無い型へ案内する。"""
+        from pptx_agent_maker.layout import types
+
+        craft = (self.root / ".claude" / "skills" / "deck" / "craft.md").read_text(encoding="utf-8")
+        table = craft.split("## 何の頁を、どの型で組むか")[1]
+        named = set(re.findall(r"^\| [^|]+ \| `(\w+)` \|", table, re.M))
+        self.assertEqual(set(types.names()), named)
+        skill = (self.root / ".claude" / "skills" / "deck" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("craft.md", skill)
+
     def test_the_project_is_laid_down_with_its_own_entry_point(self) -> None:
         self.assertTrue((self.root / "Taskfile.yml").is_file())
 
