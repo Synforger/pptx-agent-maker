@@ -20,7 +20,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
-from pptx_agent_maker.deck.slides import _rename_media
+from pptx_agent_maker.deck.pages.slides import _rename_media
 from pptx_agent_maker import DEFAULT, Page  # noqa: E402
 from pptx_agent_maker.deck import Deck, ReplacementMissed  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402

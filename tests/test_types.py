@@ -12,10 +12,10 @@ import unittest
 from pathlib import Path
 
 from pptx_agent_maker.layout import types
-from pptx_agent_maker.layout.page import Figure, Fill, Table, Text
-from pptx_agent_maker.layout.tokens import DEFAULT
-from pptx_agent_maker.layout.types import PageTypeError
-from pptx_agent_maker.project.manifest import Manifest, ManifestError
+from pptx_agent_maker.layout.parts.elements import Figure, Fill, Table, Text
+from pptx_agent_maker.layout.base.tokens import DEFAULT
+from pptx_agent_maker.layout.types.core.registry import PageTypeError
+from pptx_agent_maker.project.files.manifest import Manifest, ManifestError
 from pptx_agent_maker.write import aspect
 
 REPO = Path(__file__).resolve().parents[1]
@@ -315,7 +315,8 @@ class CoordinatesCannotBeDeclared(unittest.TestCase):
 
     def test_the_types_module_holds_no_coordinates(self):
         """型の中にも座標を書かせない (= 割り方は比、寸法は token が持つ)。"""
-        source = (REPO / "src/pptx_agent_maker/layout/types.py").read_text(encoding="utf-8")
+        source = "\n".join(path.read_text(encoding="utf-8") for path in
+                           sorted((REPO / "src/pptx_agent_maker/layout/types").rglob("*.py")))
         code = "\n".join(line.split("#")[0] for line in source.splitlines())
         code = re.sub(r'""".*?"""', "", code, flags=re.S)
         offenders = re.findall(r"(?<![\w.])\d{4,}(?![\w.])", code)

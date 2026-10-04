@@ -18,10 +18,11 @@ sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
-from pptx_agent_maker.layout.geometry import cm  # noqa: E402
-from pptx_agent_maker.layout.page import Bar, Card, Figure, Page, PageFullError, Text  # noqa: E402
-from pptx_agent_maker.layout.tokens import DEFAULT  # noqa: E402
-from pptx_agent_maker.layout.types import PageTypeError  # noqa: E402
+from pptx_agent_maker.layout.base.geometry import cm  # noqa: E402
+from pptx_agent_maker.layout.parts.elements import Bar, Figure, Text  # noqa: E402
+from pptx_agent_maker.layout.parts.page import Card, Page, PageFullError  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DEFAULT  # noqa: E402
+from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, aspect, new_deck, save  # noqa: E402
 
 DATA = REPO / "tests" / "data"

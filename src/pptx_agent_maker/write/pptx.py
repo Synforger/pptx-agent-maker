@@ -24,8 +24,8 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 
-from ..layout.page import Bar, Diamond, Element, Figure, Fill, Table, Text
-from ..layout.tokens import DEFAULT, Theme
+from ..layout.parts.elements import Bar, Diamond, Element, Figure, Fill, Table, Text
+from ..layout.base.tokens import DEFAULT, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
 #: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)

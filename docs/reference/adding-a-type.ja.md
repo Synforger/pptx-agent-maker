@@ -18,7 +18,8 @@ script も塞いである)。「今回だけ」の形を手で置く道が無い
 
 ## 足し方
 
-1. **`src/pptx_agent_maker/layout/types.py` に 1 つ書く。**
+1. **`src/pptx_agent_maker/layout/types/bodies/` に file を 1 つ書き、その名前を同じ folder の
+   `__init__.py` の並びに足す** (= 読まれた時に登録される)。
 
    ```python
    @register("board", needs=["table"], figure=False)
@@ -36,12 +37,15 @@ script も塞いである)。「今回だけ」の形を手で置く道が無い
 
 2. **本体は `area` を割るだけで書く。**`Page` のメソッド (= `figure` / `table` / `cards` /
    `note` / `points`) を通す。⚠ **生の寸法を書くと test が赤くなる** ― 寸法は
-   `src/pptx_agent_maker/layout/tokens.py` の 1 枚が持つ。
+   `src/pptx_agent_maker/layout/base/tokens.py` の 1 枚が持つ。
 
 3. **`tests/test_types.py` は自動で拾う。**全型を総当たりする test が在るので、書いた時点で
    「枠から出ない」「付属が全部付く」「並びが変わらない」が掛かる。
 
-4. **焼いて画像で見る。**test が緑でも、文字の折り返しで壊れる欠陥はそこでしか出ない
+4. **見本に足す。**`tests/corpus/` の manifest にその型の頁を 1 つ書き、`task snapshot` で基準を
+   書き直す (= `tests/test_corpus.py` は、見本が使うまで赤い)。
+
+5. **焼いて画像で見る。**test が緑でも、文字の折り返しで壊れる欠陥はそこでしか出ない
    (= 実物を焼いて初めて出た欠陥が続いた)。
 
 ## 足した後

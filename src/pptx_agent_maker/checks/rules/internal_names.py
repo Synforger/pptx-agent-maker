@@ -9,8 +9,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..finding import Finding
-from ..slide import read
+from ..base.finding import Finding
+from ..base.slide import read
 
 NAME = "internal_names"
 PATTERNS = (r"\bsrc/", r"\btests?/", r"\.py\b", r"\.json\b", r"\.toml\b", r"\.yaml\b", r"\.yml\b")

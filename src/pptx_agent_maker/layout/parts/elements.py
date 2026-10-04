@@ -1,0 +1,87 @@
+"""Everything that can be placed on a page, as data.
+
+頁に積まれる物は全部ここの形で、焼く層 (= `write/`) はこの形だけを読む。
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from ..base.geometry import Rect
+
+
+@dataclass(frozen=True)
+class Element:
+    """Anything placed on the page. `rect` always came from dividing the frame."""
+
+    kind: str
+    rect: Rect
+
+
+@dataclass(frozen=True)
+class Text(Element):
+    text: str
+    size: float
+    colour: str
+    bold: bool = False
+    align: str = "left"
+
+
+@dataclass(frozen=True)
+class Fill(Element):
+    colour: str
+    #: 枠の色。空なら枠を引かない
+    outline: str = ""
+    dashed: bool = False
+    #: 太い枠 (= 強調)
+    heavy: bool = False
+
+
+@dataclass(frozen=True)
+class Figure(Element):
+    source: Path
+    aspect: float
+
+
+@dataclass(frozen=True)
+class Table(Element):
+    rows: tuple[tuple[str, ...], ...]
+    header: bool = True
+    highlight: dict[tuple[int, int], str] = field(default_factory=dict)
+    #: 列ごとの幅 (= 中身の長さで配る。空なら均等)
+    widths: tuple[int, ...] = ()
+
+
+@dataclass(frozen=True)
+class Bar(Element):
+    """A shape that carries its own words: one shape, so a person can drag it whole."""
+
+    text: str
+    size: float
+    colour: str
+    #: 塗りの色。空なら塗らない
+    fill: str = ""
+    #: 枠の色。空なら枠を引かない
+    outline: str = ""
+    dashed: bool = False
+    align: str = "center"
+    bold: bool = False
+    #: 形 (= `SHAPES`)。矩形のほかは、道のりの段の矢羽根だけ
+    shape: str = "rect"
+    #: 太い枠 (= 強調)
+    heavy: bool = False
+    #: 文字の左に空ける幅 (= 名前の前に置いたアイコンのぶん)
+    lead: int = 0
+
+
+#: 文字を持つ図形の形。`home` は左が平らで右が尖る矢羽根 (= 道のりの最初の段)、`chevron` は
+#: 左が切り欠かれて右が尖る矢羽根 (= 2 段目から)
+SHAPES = ("rect", "home", "chevron")
+
+
+@dataclass(frozen=True)
+class Diamond(Element):
+    """A point in time. `rect` is the square the diamond sits in."""
+
+    colour: str

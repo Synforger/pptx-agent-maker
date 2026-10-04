@@ -21,7 +21,7 @@ sys.path.insert(0, str(REPO / "tests"))
 
 from pptx_agent_maker.deck.build import build  # noqa: E402
 from pptx_agent_maker.project import Workspace, create  # noqa: E402
-from pptx_agent_maker.project.manifest import Manifest, ManifestError  # noqa: E402
+from pptx_agent_maker.project.files.manifest import Manifest, ManifestError  # noqa: E402
 from test_deck import a_specimen, make_dot  # noqa: E402
 
 MANIFEST = """

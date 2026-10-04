@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from .project import Workspace, WorkspaceError, create
-from .project.manifest import Manifest, ManifestError
+from .project.files.manifest import Manifest, ManifestError
 
 FOLDERS = ("assets",)
 
@@ -35,7 +35,7 @@ def _preview_places(places: dict, port: int, no_open: bool) -> int:
     1 案件の起動と同じ画面を使い、上の欄で選ぶ。描くのは選んだ物だけ。一覧は画面が
     取りに来るたびに探し直す (= 常駐のまま、新しい案件が欄に出る)。
     """
-    from .project.places import discover
+    from .project.files.places import discover
 
     try:
         entry, state = _preview_package()
@@ -83,7 +83,7 @@ def _preview(workspace, port: int, no_open: bool) -> int:
 
 def _specimens(workspace) -> set[str]:
     """The files the project's manifests grow decks from (= not decks themselves)."""
-    from .project.manifest import Manifest, ManifestError
+    from .project.files.manifest import Manifest, ManifestError
 
     found = set()
     for manifest in workspace.manifests():
@@ -192,7 +192,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "preview" and (
                 args.path is None or args.places or not (Path(args.path) / "workspace.toml").is_file()):
-            from .project.places import DEFAULT, PlacesError, load
+            from .project.files.places import DEFAULT, PlacesError, load
 
             if args.path is not None and not args.places:
                 places = {"search": [{"path": str(Path(args.path).expanduser().resolve())}]}
@@ -206,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
 
         workspace = Workspace.load(args.path)
         if args.command == "show" and args.page:
-            from .deck.swap import SwapError, describe
+            from .deck.pages.swap import SwapError, describe
 
             deck, _, number = args.page.rpartition(":")
             if not deck or not number.isdigit():
@@ -227,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "promote":
-            from .project.recipes import RecipeError, promote
+            from .project.files.recipes import RecipeError, promote
 
             targets = []
             for spec in args.pages:
@@ -247,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "refresh":
-            from .project.refresh import refresh
+            from .project.commands.refresh import refresh
 
             changed, kept = refresh(workspace.root)
             if not changed:
@@ -261,13 +261,13 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "types":
             from .layout.types import describe
-            from .project.manifest import CARRIED_KEYS
-            from .project.recipes import HOLE
-            from .project.recipes import load as load_recipes
+            from .project.files.manifest import CARRIED_KEYS
+            from .project.files.recipes import HOLE
+            from .project.files.recipes import load as load_recipes
 
             print(describe())
-            from .layout.page import TONES
-            from .layout.tokens import theme_from
+            from .layout.parts.look import TONES
+            from .layout.base.tokens import theme_from
 
             named = theme_from(workspace.look).ground_names()
             print(f"tone (= the ground of a box, a bar, a lane): {', '.join(TONES)}"
@@ -287,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "round":
-            from .project.round import RoundError, start
+            from .project.commands.round import RoundError, start
 
             try:
                 written = start(workspace.root, args.name, args.previous)
@@ -300,7 +300,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "lift":
-            from .project.lift import LiftError, lift
+            from .project.commands.lift import LiftError, lift
 
             pages, replace = [], []
             for spec in args.page:
@@ -341,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
         from .checks import report, run_all
 
         if args.command == "review" and args.apply:
-            from .review.apply import ApplyError, apply
+            from .review.take.apply import ApplyError, apply
 
             try:
                 done = apply(workspace, args.deck)

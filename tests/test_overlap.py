@@ -40,7 +40,7 @@ class _Page:
     """A page and what it sits on, without going through a file."""
 
     def __init__(self, shapes, beneath=""):
-        from pptx_agent_maker.checks.slide import BuiltSlide, shapes_in
+        from pptx_agent_maker.checks.base.slide import BuiltSlide, shapes_in
 
         self.page = BuiltSlide(1, "slide1.xml", SLIDE.format(shapes="".join(shapes)),
                                tuple(shapes_in(SLIDE.format(shapes="".join(beneath)))))

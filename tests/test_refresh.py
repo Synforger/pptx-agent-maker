@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from pptx_agent_maker.__main__ import main  # noqa: E402
 from pptx_agent_maker.project import create  # noqa: E402
-from pptx_agent_maker.project.scaffold import TEMPLATE  # noqa: E402
+from pptx_agent_maker.project.commands.scaffold import TEMPLATE  # noqa: E402
 
 
 class Refreshing(unittest.TestCase):

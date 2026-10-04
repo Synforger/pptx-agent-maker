@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from pptx_agent_maker.__main__ import main  # noqa: E402
 from pptx_agent_maker.checks.rules import untyped_parts  # noqa: E402
-from pptx_agent_maker.deck.swap import Box, reading_order  # noqa: E402
+from pptx_agent_maker.deck.pages.swap import Box, reading_order  # noqa: E402
 from pptx_agent_maker.project import create  # noqa: E402
 
 DATA = Path(__file__).resolve().parent / "data"

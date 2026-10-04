@@ -1,6 +1,6 @@
 """Things that end up printed on top of each other.
 
-見るのは**描かれる物どうし** (= `ink.py`)。枠どうしで見ると、画面では離れている物が
+見るのは**描かれる物どうし** (= `base/ink.py`)。枠どうしで見ると、画面では離れている物が
 重なりとして上がる ― 前の世代はそれで上がったものがほとんど誤検出で、最後は
 「自作の頁だけ見る」という逃げ方で黙らせていた。実デッキでは**題がロゴに掛かる**と
 報告されたが、題の文字はロゴのだいぶ手前で終わっていた。
@@ -17,9 +17,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..finding import Finding
-from ..ink import draws_anything, has_body, ink_of
-from ..slide import read
+from ..base.finding import Finding
+from ..base.ink import draws_anything, has_body, ink_of
+from ..base.slide import read
 
 NAME = "overlap"
 

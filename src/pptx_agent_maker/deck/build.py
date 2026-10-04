@@ -11,13 +11,13 @@ import tempfile
 from pathlib import Path
 
 from ..layout import types
-from ..layout.page import PageFullError
-from ..layout.tokens import Theme, theme_from
-from ..project.manifest import Entry, Manifest, ManifestError
-from ..project.workspace import Workspace, WorkspaceError
-from ..review.fold import keep_safe
-from ..review.ledger import remember, touched_by_hand
-from .look import merged
+from ..layout.parts.page import PageFullError
+from ..layout.base.tokens import Theme, theme_from
+from ..project.files.manifest import Entry, Manifest, ManifestError
+from ..project.files.workspace import Workspace, WorkspaceError
+from ..review.take.fold import keep_safe
+from ..review.base.ledger import remember, touched_by_hand
+from .base.look import merged
 from ..write import add_page, aspect, new_deck, save
 from . import Deck, Slide
 
