@@ -115,8 +115,21 @@ class WhatIsDrawn(unittest.TestCase):
         chart = a_chart("stacked", series=({**NORTH, "tone": "accent"}, {**SOUTH, "tone": "box"}))
         self.assertEqual("stacked", chart.plot)
         self.assertEqual([P.paper, P.ink], [series.label_colour for series in chart.series])
-        self.assertEqual({P.paper}, {series.outline for series in chart.series})
+        # 段の境は紙の色の細い線。薄い地の段は、自分の枠がその役をする
+        self.assertEqual([P.paper, P.edge(P.box)], [series.outline for series in chart.series])
         self.assertEqual({""}, {series.label_colour + series.outline for series in a_chart().series})
+
+    def test_a_series_on_a_light_ground_has_the_edge_a_box_on_that_ground_has(self) -> None:
+        """⚠ 薄い地は紙と近い。枠が無いと、棒の端が背景に溶ける (= 箱と線表の棒で差し戻された事と同じ)。"""
+        named = theme_from({"grounds": {"Inside": "EAF0F8", "Late": "8B1E3F"}})
+        tones = ("box", "band", "tint", "Inside", "accent", "good", "bad", "Late")
+        series = tuple({"name": tone, "values": [1, 2, 3, 4], "tone": tone} for tone in tones)
+        chart = a_chart(series=series, theme=named)
+        light = {"box": P.box, "band": P.band, "tint": P.tint, "Inside": "EAF0F8"}
+        self.assertEqual([P.edge(light[tone]) if tone in light else "" for tone in tones],
+                         [drawn.outline for drawn in chart.series])
+        xml, _parts = written(a_chart(series=({**NORTH, "tone": "box"},)))
+        self.assertIn(f'<a:ln w="{DEFAULT.spacing.hairline}"><a:solidFill><a:srgbClr val="{P.edge(P.box)}"/>', xml)
 
     def test_every_kind_is_drawn_as_itself(self) -> None:
         self.assertEqual({"bar": "bar", "column": "column", "line": "line", "stacked": "stacked"},
