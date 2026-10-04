@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<p:cSld>
+<p:spTree>
+<p:nvGrpSpPr>
+<p:cNvPr id="1" name=""/>
+<p:cNvGrpSpPr/>
+<p:nvPr/>
+</p:nvGrpSpPr>
+<p:grpSpPr/>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="2" name="TextBox 1"/>
+<p:cNvSpPr txBox="1"/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="3189540"/>
+<a:ext cx="11328000" cy="441960"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:noFill/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr wrap="square" anchor="ctr">
+<a:spAutoFit/>
+</a:bodyPr>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="l"/>
+<a:r>
+<a:rPr sz="2400" b="1">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>The corpus</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="3" name="Rectangle 2"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="3631500"/>
+<a:ext cx="11328000" cy="108000"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="1F5FA9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:style>
+<a:lnRef idx="1">
+<a:schemeClr val="accent1"/>
+</a:lnRef>
+<a:fillRef idx="3">
+<a:schemeClr val="accent1"/>
+</a:fillRef>
+<a:effectRef idx="2">
+<a:schemeClr val="accent1"/>
+</a:effectRef>
+<a:fontRef idx="minor">
+<a:schemeClr val="lt1"/>
+</a:fontRef>
+</p:style>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="4" name="TextBox 3"/>
+<p:cNvSpPr txBox="1"/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="3955500"/>
+<a:ext cx="11328000" cy="294640"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:noFill/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr wrap="square" anchor="ctr">
+<a:spAutoFit/>
+</a:bodyPr>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="l"/>
+<a:r>
+<a:rPr sz="1600" b="0">
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>The frame and the extras</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+</p:spTree>
+</p:cSld>
+<p:clrMapOvr>
+<a:masterClrMapping/>
+</p:clrMapOvr>
+</p:sld>

@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image8.png"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image9.png"/>
+<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image10.png"/>
+<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image6.png"/>
+<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image7.png"/>
+</Relationships>
+<!-- image10.png sha256 586e6d019bc8798adfc751d73ca7eab4794644f64b0e517461e7e916d3dfcad2 -->
+<!-- image6.png sha256 a6bb6022d961b849e1f4025fe718a116b5514c8fd12b1eddbe4485af36bf20ee -->
+<!-- image7.png sha256 c7c6cd8c4542b1e170e72ab1e51da67cd0386f3d60297d6dc8f87a43a6ecdef7 -->
+<!-- image8.png sha256 43b393de49cf639cc8d786b7133e867e598815e0c8998e5e093ecbea7b0cd09a -->
+<!-- image9.png sha256 ae2c7ef1b37dba5c9742c06e3213c8a6f27039f2e0604f5f57e3bf0d86de7291 -->

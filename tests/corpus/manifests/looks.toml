@@ -1,0 +1,169 @@
+# The four looks (= tone, icon, tentative, strong) on everything shaped like a box:
+# cards, the nodes of a flow and a roadmap, the cards of a compose, bars, arrowheads.
+
+specimen = "specimen.pptx"
+out = "looks.pptx"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "The six roles a ground may take"
+card_columns = 3
+cards = [
+  { heading = "box", body = "the default light ground", tone = "box" },
+  { heading = "band", body = "a second light ground", tone = "band" },
+  { heading = "tint", body = "a third light ground", tone = "tint" },
+  { heading = "accent", body = "the one to look at", tone = "accent" },
+  { heading = "good", body = "a reading: good", tone = "good" },
+  { heading = "bad", body = "a reading: bad", tone = "bad" },
+]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "A card with an icon, a dashed edge, a strong edge"
+card_columns = 3
+cards = [
+  { heading = "Icon", body = "the words move to its right", icon = "circle.png" },
+  { heading = "Tentative", body = "if any", tentative = true },
+  { heading = "Strong", body = "the critical one", strong = true },
+  { heading = "Both", body = "tentative and strong", tentative = true, strong = true },
+  { heading = "Icon on a dark ground", tone = "accent", icon = "ring.png" },
+  { heading = "A named ground, strong", body = "kept in house", tone = "Inside", strong = true },
+]
+
+[[pages]]
+kind = "declare"
+type = "flow"
+title = "The nodes of a flow read the same four"
+
+[[pages.stages]]
+name = "Plan"
+nodes = [
+  { heading = "Scope", body = "what is in", tone = "tint" },
+  { heading = "Risk", body = "what may slip", tone = "bad", icon = "ring.png" },
+]
+
+[[pages.stages]]
+name = "Build"
+nodes = [
+  { heading = "Core", body = "on the critical path", strong = true },
+  { heading = "Extras", body = "if time allows", tentative = true },
+]
+
+[[pages.stages]]
+name = "Ship"
+nodes = [
+  { heading = "Release", tone = "accent" },
+  { heading = "Partners", body = "shown outside", tone = "Outside", icon = "square.png" },
+]
+
+[[pages]]
+kind = "declare"
+type = "roadmap"
+title = "So do the arrowheads of a roadmap"
+
+[[pages.stages]]
+name = "Now"
+icon = "circle.png"
+nodes = [["Draft", "a first version"]]
+
+[[pages.stages]]
+name = "Next"
+tone = "tint"
+strong = true
+nodes = [{ heading = "Review", body = "by partners", tone = "Outside" }]
+
+[[pages.stages]]
+name = "Maybe"
+tentative = true
+nodes = [{ heading = "Extras", tentative = true }]
+
+[[pages.stages]]
+name = "Goal"
+goal = true
+icon = "ring.png"
+nodes = [{ heading = "Release", strong = true, icon = "square.png" }]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "And the bars of a timeline, on lanes of their own tone"
+periods = ["Q1", "Q2", "Q3", "Q4"]
+
+[[pages.lanes]]
+name = "Default"
+bars = [
+  { from = 0, to = 1, text = "plain" },
+  { from = 1, to = 2, text = "strong", strong = true },
+  { from = 2, to = 3, text = "if any", tentative = true },
+  { from = 3, to = 4, text = "both", tentative = true, strong = true },
+]
+
+[[pages.lanes]]
+name = "Tint"
+tone = "tint"
+bars = [
+  { from = 0, to = 2, text = "the lane's tone" },
+  { from = 2, to = 3, text = "its own", tone = "accent" },
+  { from = 3, to = 4, text = "icon", icon = "circle.png" },
+]
+
+[[pages.lanes]]
+name = "Accent"
+tone = "accent"
+bars = [
+  { from = 0, to = 2, text = "a dark ground", icon = "ring.png" },
+  { from = 2, to = 4, text = "bad news", tone = "bad", strong = true },
+]
+
+[[pages.lanes]]
+name = "Across"
+bars = [
+  { from = 0, to = 1, text = "its own tone, across two lanes", spans = 2, tone = "tint" },
+  { from = 1, to = 2, text = "maybe", spans = 2, tentative = true },
+]
+
+[[pages.lanes]]
+name = "Named"
+tone = "Inside"
+bars = [
+  { from = 2, to = 4, text = "in house", spans = 2, strong = true, icon = "square.png" },
+]
+
+[[pages.lanes]]
+name = "Under"
+tone = "共通"
+bars = [
+  { from = 0, to = 1, text = "shared" },
+  { from = 1, to = 2, text = "late", tone = "Late" },
+]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "The cards of a compose, and a type laid into a cell"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = { heading = "Strong", body = "in a row of its own height", strong = true, tone = "band" }
+[[pages.rows.cells]]
+card = { heading = "Tentative", body = "beside it", tentative = true, icon = "triangle.png" }
+[[pages.rows.cells]]
+card = { heading = "Named", body = "with its legend", tone = "Late" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 2
+[pages.rows.cells.timeline]
+periods = ["Jan", "Feb", "Mar"]
+[[pages.rows.cells.timeline.lanes]]
+name = "Core"
+tone = "Outside"
+bars = [
+  { from = 0, to = 2, text = "build", strong = true },
+  { from = 2, to = 3, text = "polish", tentative = true },
+]
+[[pages.rows.cells]]
+[pages.rows.cells.board]
+table = [["Look", "Key"], ["dashed", "tentative"], ["heavy", "strong"]]
