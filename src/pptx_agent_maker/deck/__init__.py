@@ -127,10 +127,15 @@ class Deck:
         `relayout` は宣言で組んだ頁を持ち込むとき (= 白紙に描いてあるので、テンプレートの
         どのレイアウトの上に乗るかを引き継がせない)。過去デッキからの輸入では偽 ―
         その頁は元のレイアウトの上で作られている。
+
+        ⚠ **赤い注目マークを落とすのは、過去デッキから輸入した頁だけ。**宣言で組んだ頁にも掛けていた間は、
+        案件が色の役をその赤に決めると、その色の箱が全部、何も言わずに消えた ― 宣言の頁の図形は
+        全部、いま書いた人が置いた物。
         """
         page = Slide(self._archive, _slides.import_from(self._archive, Path(source), page_number,
                                                         relayout=relayout))
-        page.drop_marks()
+        if not relayout:
+            page.drop_marks()
         self._pages.append(page)
         return page
 
