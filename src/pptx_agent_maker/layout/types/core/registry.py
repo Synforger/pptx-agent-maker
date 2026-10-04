@@ -23,7 +23,7 @@ FRAME_KEYS = frozenset({"type", "kind", "title", "kicker", "condition", "conclus
 EXTRA_KEYS = frozenset({"cards", "card_columns", "table", "note", "points"})
 
 
-_TYPES: dict[str, tuple[Filler, frozenset, bool]] = {}
+TYPES: dict[str, tuple[Filler, frozenset, bool]] = {}
 
 
 class PageTypeError(ValueError):
@@ -39,12 +39,12 @@ def register(name: str, *, needs: Iterable[str], takes: Iterable[str] = (),
     焼いた頁にはそれが無い。実際に `figures` の頁で `caption` を黙って落としていた。
     """
     def decorate(filler: Filler) -> Filler:
-        _TYPES[name] = (filler, frozenset(needs), frozenset(takes), figure)
+        TYPES[name] = (filler, frozenset(needs), frozenset(takes), figure)
         return filler
     return decorate
 
 
-def _check_keys(name: str, data: dict, needs: frozenset,
+def check_keys(name: str, data: dict, needs: frozenset,
                 takes: frozenset = frozenset()) -> None:
     """Refuse a missing key and an unknown one alike.
 

@@ -6,7 +6,7 @@ from ...base.geometry import Rect
 from ...parts.page import Page, PageFullError
 from .read import Spec
 from .registry import PageTypeError
-from .stack import _card_height
+from .stack import card_height
 
 
 def _named_grounds(data, names: tuple[str, ...]) -> set[str]:
@@ -23,7 +23,7 @@ def _named_grounds(data, names: tuple[str, ...]) -> set[str]:
     return found
 
 
-def _reserve_legend(page: Page, spec: Spec, area: Rect) -> tuple[Rect, list[str] | None]:
+def reserve_legend(page: Page, spec: Spec, area: Rect) -> tuple[Rect, list[str] | None]:
     """Keep a line under the body for the legend, when the page uses a ground a project named.
 
     ⚠ **色に意味を持たせたら凡例を置く** (= 作法)。書く人に任せると、色だけが意味を運ぶ頁が残る。
@@ -43,17 +43,26 @@ def _reserve_legend(page: Page, spec: Spec, area: Rect) -> tuple[Rect, list[str]
     return body, names
 
 
-def _place_legend(page: Page, names: list[str] | None, area: Rect) -> None:
+def used_bottom(page: Page, area: Rect) -> int:
+    """How far down the things placed in an area reach (= its top, when nothing is in it).
+
+    本体は渡された枠を使い切るとは限らない。下に続く物 (= 凡例、表、読み方) は、取っておいた場所の
+    頭ではなく、本体が実際に使った所のすぐ下から置く。
+    """
+    return max((element.rect.bottom for element in page.elements
+                if area.top <= element.rect.top <= area.bottom), default=area.top)
+
+
+def place_legend(page: Page, names: list[str] | None, area: Rect) -> None:
     """Put the legend just under what the body actually used (= the cards above it included)."""
     if not names:
         return
-    used = max((element.rect.bottom for element in page.elements
-                if area.top <= element.rect.top <= area.bottom), default=area.top)
+    used = used_bottom(page, area)
     height = page.legend_height(area.width, names)
     page.legend(Rect(area.left, used + page.theme.spacing.gap_s, area.width, height), names)
 
 
-def _place_cards(page: Page, spec: Spec, area: Rect) -> Rect:
+def place_cards(page: Page, spec: Spec, area: Rect) -> Rect:
     """Cards above the body, only as tall as their own words."""
     if spec.get("cards") is None:
         return area
@@ -64,7 +73,7 @@ def _place_cards(page: Page, spec: Spec, area: Rect) -> Rect:
     if columns < 1:
         raise PageTypeError("`card_columns` must be at least 1")
     lines = -(-len(cards) // columns)
-    tall = _card_height(page, cards, area.width, columns)
+    tall = card_height(page, cards, area.width, columns)
     wanted = tall * lines + page.theme.spacing.gap_m * (lines - 1)
     if wanted >= area.height:
         raise PageFullError(
@@ -77,7 +86,7 @@ def _place_cards(page: Page, spec: Spec, area: Rect) -> Rect:
     return rest
 
 
-def _reserve_trailing(page: Page, spec: Spec, area: Rect) -> tuple[Rect, Rect | None]:
+def reserve_trailing(page: Page, spec: Spec, area: Rect) -> tuple[Rect, Rect | None]:
     """Keep room under the body for the table and the reading.
 
     ⚠ **表の高さは折り返しを勘定して測る。**行数だけで見積もっていた間は、長いラベルが
@@ -114,12 +123,11 @@ def _point_lines(spec: Spec) -> list[str]:
     return [str(point) for point in points]
 
 
-def _place_trailing(page: Page, spec: Spec, area: Rect | None) -> None:
+def place_trailing(page: Page, spec: Spec, area: Rect | None) -> None:
     """Put the table and the reading under whatever the body actually used."""
     if area is None:
         return
-    used = max((element.rect.bottom for element in page.elements
-                if area.top <= element.rect.top <= area.bottom), default=area.top)
+    used = used_bottom(page, area)
     rest = Rect(area.left, used + page.theme.spacing.gap_m, area.width,
                 max(area.bottom - used - page.theme.spacing.gap_m, 1))
     if spec.get("table") is not None:

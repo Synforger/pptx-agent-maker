@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import re
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,20 +17,15 @@ from pptx_agent_maker.layout.parts.elements import Figure, Fill, Table, Text
 from pptx_agent_maker.layout.base.tokens import DEFAULT
 from pptx_agent_maker.layout.types.core.registry import PageTypeError
 from pptx_agent_maker.project.files.manifest import Manifest, ManifestError
-from pptx_agent_maker.write import aspect
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "tests"))
+
+from support.pages import build  # noqa: E402
+
 DATA = REPO / "tests" / "data"
 SQUARE = "dot.png"      # 8 x 8
 WIDE = "wide.png"       # 16 x 4
-
-
-def asset(name: str) -> Path:
-    return DATA / name
-
-
-def build(data: dict):
-    return types.build(data, asset, aspect)
 
 
 #: 型それぞれの、本体に最小限そろった宣言

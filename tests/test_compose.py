@@ -14,6 +14,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
+sys.path.insert(0, str(REPO / "tests"))
+from support.pages import box_of, named  # noqa: E402
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
@@ -21,7 +23,7 @@ from pptx_agent_maker.layout.parts.elements import Bar, Figure, Table, Text  # n
 from pptx_agent_maker.layout.parts.page import PageFullError  # noqa: E402
 from pptx_agent_maker.layout.base.tokens import DEFAULT  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
-from pptx_agent_maker.layout.types.core.stack import _card_height  # noqa: E402
+from pptx_agent_maker.layout.types.core.stack import card_height  # noqa: E402
 from pptx_agent_maker.layout.parts.page import Card, Page  # noqa: E402
 from pptx_agent_maker.write import add_page, aspect, new_deck, save  # noqa: E402
 
@@ -43,15 +45,6 @@ def card(heading, body="", **more):
     return {"card": {"heading": heading, "body": body, **more}}
 
 
-def named(built, text):
-    return next(e for e in built.build() if getattr(e, "text", None) == text)
-
-
-def box_of(built, heading):
-    head = named(built, heading).rect
-    return next(e for e in built.build() if e.kind == "box" and e.rect.contains(head)).rect
-
-
 def body_of(**extra):
     """The area a compose page's rows are laid into."""
     return Page("A page", DEFAULT, **extra).body
@@ -65,7 +58,7 @@ class AsWritten(unittest.TestCase):
 
     def test_one_card_across_the_page_and_two_under_it(self):
         built = compose(GOAL)
-        goal, left, right = (box_of(built, h) for h in ("Goal", "Left", "Right"))
+        goal, left, right = (box_of(built, h).rect for h in ("Goal", "Left", "Right"))
         area = body_of()
         self.assertEqual((area.left, area.width), (goal.left, goal.width))
         self.assertEqual(area.left, left.left)
@@ -76,23 +69,23 @@ class AsWritten(unittest.TestCase):
 
     def test_a_weight_shares_the_width(self):
         built = compose([row(card("One"), {**card("Two"), "weight": 2})])
-        one, two = box_of(built, "One"), box_of(built, "Two")
+        one, two = box_of(built, "One").rect, box_of(built, "Two").rect
         self.assertAlmostEqual(2 * one.width, two.width, delta=2)
 
     def test_the_cards_of_a_row_stand_as_tall_as_the_tallest(self):
         built = compose([row(card("Short", "a"), card("Tall", "a body long enough to break " * 6))])
-        self.assertEqual(box_of(built, "Short").height, box_of(built, "Tall").height)
+        self.assertEqual(box_of(built, "Short").rect.height, box_of(built, "Tall").rect.height)
 
     def test_a_row_of_cards_is_as_tall_as_its_words_and_no_taller(self):
         """頁の高さを配らない (= 字のうしろに空きを残さない)。"""
         built = compose(GOAL)
-        goal = box_of(built, "Goal")
-        self.assertEqual(_card_height(built, [Card("Goal", "one thing to reach")], goal.width, 1), goal.height)
-        self.assertLess(box_of(built, "Left").bottom, body_of().bottom - DEFAULT.spacing.gap_l)
+        goal = box_of(built, "Goal").rect
+        self.assertEqual(card_height(built, [Card("Goal", "one thing to reach")], goal.width, 1), goal.height)
+        self.assertLess(box_of(built, "Left").rect.bottom, body_of().bottom - DEFAULT.spacing.gap_l)
 
     def test_rows_nest_inside_a_cell(self):
         built = compose([row(card("Beside"), {"rows": [row(card("Upper")), row(card("Lower"))]})])
-        beside, upper, lower = (box_of(built, h) for h in ("Beside", "Upper", "Lower"))
+        beside, upper, lower = (box_of(built, h).rect for h in ("Beside", "Upper", "Lower"))
         self.assertEqual(upper.left, lower.left)
         self.assertGreater(upper.left, beside.right)
         self.assertEqual(upper.bottom + GAP, lower.top)
@@ -105,8 +98,8 @@ class AsWritten(unittest.TestCase):
 
     def test_the_parts_any_page_takes_still_come_around_it(self):
         built = compose(GOAL, cards=[["Above", "a"]], table=[["a", "b"], ["1", "2"]], conclusion="So")
-        self.assertLess(box_of(built, "Above").bottom, box_of(built, "Goal").top)
-        table = next(e for e in built.build() if isinstance(e, Table) and e.rect.top > box_of(built, "Left").bottom)
+        self.assertLess(box_of(built, "Above").rect.bottom, box_of(built, "Goal").rect.top)
+        table = next(e for e in built.build() if isinstance(e, Table) and e.rect.top > box_of(built, "Left").rect.bottom)
         self.assertTrue(table)
 
 
@@ -116,7 +109,7 @@ class Heights(unittest.TestCase):
     def test_a_picture_row_takes_what_the_word_rows_leave(self):
         built = compose([row(card("Words")), row({"figure": SQUARE})])
         picture = next(e for e in built.build() if isinstance(e, Figure)).rect
-        start = box_of(built, "Words").bottom + GAP
+        start = box_of(built, "Words").rect.bottom + GAP
         self.assertLessEqual(picture.bottom, body_of().bottom)
         self.assertAlmostEqual(body_of().bottom - start, picture.height, delta=2)
 
@@ -133,17 +126,17 @@ class Heights(unittest.TestCase):
 
     def test_a_weight_on_a_row_of_cards_makes_it_share(self):
         built = compose([row(card("Grows"), weight=1), row(card("Under"))])
-        self.assertLess(box_of(built, "Grows").height, body_of().height,
+        self.assertLess(box_of(built, "Grows").rect.height, body_of().height,
                         "a card in a sharing row keeps its own height")
-        self.assertEqual(body_of().top, box_of(built, "Grows").top)
+        self.assertEqual(body_of().top, box_of(built, "Grows").rect.top)
         # 分け合う段が残りを全部取るので、その下の段は頁の下端まで押される
-        self.assertAlmostEqual(body_of().bottom, box_of(built, "Under").bottom, delta=2)
+        self.assertAlmostEqual(body_of().bottom, box_of(built, "Under").rect.bottom, delta=2)
 
     def test_a_card_beside_a_picture_keeps_its_own_height_at_the_top(self):
         built = compose([row(card("Card", "a"), {"figure": SQUARE})])
-        box = box_of(built, "Card")
+        box = box_of(built, "Card").rect
         self.assertEqual(body_of().top, box.top)
-        self.assertEqual(_card_height(built, [Card("Card", "a")], box.width, 1), box.height)
+        self.assertEqual(card_height(built, [Card("Card", "a")], box.width, 1), box.height)
 
     def test_a_picture_in_a_cell_sits_at_the_top_with_its_name_just_under_it(self):
         built = compose([row({"figure": WIDE, "caption": "what it shows"}, {"text": "beside it"})])
@@ -172,7 +165,7 @@ class TypesInACell(unittest.TestCase):
             {"name": "Lane", "bars": [{"from": 0, "to": 3, "text": "work"}]}]}}, card("Beside"))])
         work = named(built, "work").rect
         self.assertIsInstance(named(built, "work"), Bar)
-        self.assertLess(work.right, box_of(built, "Beside").left)
+        self.assertLess(work.right, box_of(built, "Beside").rect.left)
 
     def test_a_flow_and_a_roadmap_are_taken_too(self):
         for name, body in (("flow", {"stages": [{"name": "A", "nodes": [["n1", ""]]}, {"name": "B", "nodes": [["n2", ""]]}]}),
@@ -180,7 +173,7 @@ class TypesInACell(unittest.TestCase):
                                                    {"name": "B", "nodes": [["n2", ""]], "goal": True}]})):
             with self.subTest(name):
                 built = compose([row({name: body}), row(card("Under"))])
-                self.assertLess(box_of(built, "n1").bottom, box_of(built, "Under").top)
+                self.assertLess(box_of(built, "n1").rect.bottom, box_of(built, "Under").rect.top)
 
     def test_a_types_own_refusal_says_which_cell(self):
         with self.assertRaises(PageTypeError) as raised:

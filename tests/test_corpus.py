@@ -19,7 +19,7 @@ sys.path.insert(0, str(REPO / "src"))
 from pptx_agent_maker.layout import types  # noqa: E402
 from pptx_agent_maker.layout.types.bodies.compose import BODIES, PARTS  # noqa: E402
 from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
-from pptx_agent_maker.layout.types.core.registry import _TYPES, EXTRA_KEYS, FRAME_KEYS  # noqa: E402
+from pptx_agent_maker.layout.types.core.registry import TYPES, EXTRA_KEYS, FRAME_KEYS  # noqa: E402
 from pptx_agent_maker.layout.types.core.read import LOOK_KEYS  # noqa: E402
 from pptx_agent_maker.project.files.manifest import KINDS  # noqa: E402
 
@@ -74,7 +74,7 @@ class TheCorpusUsesEverything(unittest.TestCase):
         self.assertEqual(set(types.names()), {page["type"] for page in DECLARED})
 
     def test_every_key_a_type_reads(self) -> None:
-        for name, (_filler, needs, takes, _figure) in _TYPES.items():
+        for name, (_filler, needs, takes, _figure) in TYPES.items():
             with self.subTest(name):
                 used = {key for body in bodies(name) for key in body}
                 self.assertEqual(set(), (needs | takes) - used, f"{name}: keys the corpus never writes")

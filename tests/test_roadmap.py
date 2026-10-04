@@ -15,11 +15,14 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
+sys.path.insert(0, str(REPO / "tests"))
+from support.pages import box_of, build, named  # noqa: E402
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
 from pptx_agent_maker.layout.base.geometry import cm  # noqa: E402
 from pptx_agent_maker.layout.parts.elements import Bar, Figure, Text  # noqa: E402
+from pptx_agent_maker.layout.parts.look import Style  # noqa: E402
 from pptx_agent_maker.layout.parts.page import Card, Page, PageFullError  # noqa: E402
 from pptx_agent_maker.layout.base.tokens import DEFAULT  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
@@ -27,10 +30,6 @@ from pptx_agent_maker.write import add_page, aspect, new_deck, save  # noqa: E40
 
 DATA = REPO / "tests" / "data"
 SQUARE, WIDE = "dot.png", "wide.png"      # 8 x 8, 16 x 4
-
-
-def build(spec):
-    return types.build(spec, lambda name: DATA / name, aspect)
 
 
 def road(stages, **extra):
@@ -46,15 +45,6 @@ FOUR = [stage("Early | 0.4"), stage("Late | 0.5"), stage("Next | 0.6"), stage("T
 
 def arrows(built):
     return [e for e in built.build() if isinstance(e, Bar) and e.kind == "chevron"]
-
-
-def named(built, text):
-    return next(e for e in built.build() if getattr(e, "text", None) == text)
-
-
-def box_of(built, heading):
-    head = named(built, heading).rect
-    return next(e for e in built.build() if e.kind == "box" and e.rect.contains(head))
 
 
 class TheArrowheads(unittest.TestCase):
@@ -240,7 +230,7 @@ class AnIcon(unittest.TestCase):
     def test_it_is_not_the_pages_figure(self):
         """アイコンだけで、図の要る頁を通さない。"""
         page = Page("Icons only")
-        page.boxes(page.body.split_top(cm(3))[0], [Card("One", "a", icon=(DATA / SQUARE, 1.0))])
+        page.boxes(page.body.split_top(cm(3))[0], [Card("One", "a", Style(icon=(DATA / SQUARE, 1.0)))])
         with self.assertRaises(ValueError):
             page.build()
 

@@ -16,6 +16,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
+sys.path.insert(0, str(REPO / "tests"))
+from support.pages import box_of, named  # noqa: E402
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout.base import tokens  # noqa: E402
@@ -36,17 +38,6 @@ def page(stages, theme: Theme = DEFAULT, **extra):
 
 def stage(name, *nodes, **more):
     return {"name": name, "nodes": list(nodes), **more}
-
-
-def named(built, text):
-    return next(e for e in built.build() if getattr(e, "text", None) == text)
-
-
-def box_of(built, heading):
-    """The filled box a node's heading sits in."""
-    head = named(built, heading).rect
-    return next(e for e in built.build()
-                if isinstance(e, Fill) and e.kind == "box" and e.rect.contains(head))
 
 
 class ATone(unittest.TestCase):
