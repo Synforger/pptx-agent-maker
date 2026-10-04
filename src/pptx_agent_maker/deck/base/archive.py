@@ -8,6 +8,7 @@ python-pptx では頁を複製できず、別の pptx から頁を持ってく�
 
 from __future__ import annotations
 
+import posixpath
 import re
 import shutil
 import zipfile
@@ -15,6 +16,9 @@ from pathlib import Path
 
 #: rels が絵を指す書き方 (= `Target="../media/image3.png"`)
 MEDIA_TARGET = re.compile(r'Target="[^"]*?media/([^"]+)"')
+
+#: 頁が絵のほかに連れて来る部品の置き場 (= グラフ本体と、グラフが中に持つデータの表)
+CARRIED_FOLDERS = ("ppt/charts", "ppt/embeddings")
 
 SLIDE_TYPE = ("application/vnd.openxmlformats-officedocument.presentationml.slide+xml")
 SLIDE_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide"
@@ -88,7 +92,64 @@ class Archive:
                    if (m := re.match(r"image(\d+)", p.name))]
         return f"image{max(numbers, default=0) + 1}.{extension}"
 
+    def next_part_name(self, folder: str, name: str) -> str:
+        """A name nothing under `folder` has yet, for a part called `name` where it came from.
+
+        番号で終わる名前 (= `chart3.xml`) は、同じ頭と拡張子の中でいちばん大きい番号の次を取る。
+        """
+        stem, dot, extension = name.rpartition(".")
+        head = re.sub(r"\d+$", "", stem)
+        taken = [int(found.group(1) or 0) for part in (self.tree / folder).glob(f"{head}*{dot}{extension}")
+                 if (found := re.fullmatch(rf"{re.escape(head)}(\d*){re.escape(dot + extension)}", part.name))]
+        return f"{head}{max(taken, default=0) + 1}{dot}{extension}"
+
+    def drop_unreferenced_parts(self) -> list[str]:
+        """Remove the charts, and the data they keep, that nothing points at any more.
+
+        ⚠ **頁を消しても、その頁のグラフは残る** (= 絵と同じ)。グラフは中にデータの表を持つので、
+        載せないと決めた頁の数字が、納品物の中まで付いてくる。グラフを消すとそのデータを指す物が
+        無くなるので、何も消えなくなるまで繰り返す。
+        """
+        types = self.tree / "[Content_Types].xml"
+        dropped: list[str] = []
+        while True:
+            wanted: set[str] = set()
+            for rels in self.tree.rglob("*.rels"):
+                owner = rels.parent.parent.relative_to(self.tree).as_posix()
+                for target in re.findall(r'<Relationship\b(?![^>]*TargetMode="External")[^>]*Target="([^"]+)"',
+                                         rels.read_text(encoding="utf-8")):
+                    wanted.add(posixpath.normpath(posixpath.join(owner, target)))
+            gone = [part for folder in CARRIED_FOLDERS if (self.tree / folder).is_dir()
+                    for part in sorted((self.tree / folder).iterdir())
+                    if part.is_file() and part.relative_to(self.tree).as_posix() not in wanted]
+            if not gone:
+                return dropped
+            text = types.read_text(encoding="utf-8")
+            for part in gone:
+                name = part.relative_to(self.tree).as_posix()
+                part.unlink()
+                (part.parent / "_rels" / f"{part.name}.rels").unlink(missing_ok=True)
+                text = re.sub(rf'<Override PartName="/{re.escape(name)}"[^>]*/>', "", text)
+                dropped.append(name)
+            types.write_text(text, encoding="utf-8")
+
     # -- registration (= the part that, left out, produces a repair prompt) ---
+
+    def register_part(self, name: str, content_type: str) -> None:
+        """Make sure the package says what the part at `name` (= `ppt/charts/chart3.xml`) is.
+
+        拡張子ごとの登録 (= `Default`) が同じ種類を言っていればそれで足りる。違う種類を言っているか
+        (= `.xml` はふつう「ただの XML」)、その部品だけの登録が要るときは、部品の名前で登録する。
+        """
+        extension = name.rsplit(".", 1)[-1]
+        types = self.tree / "[Content_Types].xml"
+        text = types.read_text(encoding="utf-8")
+        default = re.search(rf'<Default\s+Extension="{re.escape(extension)}"\s+ContentType="([^"]+)"', text, re.I)
+        if (default and default.group(1) == content_type) or f'PartName="/{name}"' in text:
+            return
+        entry = (f'<Override PartName="/{name}" ContentType="{content_type}"/>' if default
+                 else f'<Default Extension="{extension}" ContentType="{content_type}"/>')
+        types.write_text(text.replace("</Types>", f"{entry}</Types>"), encoding="utf-8")
 
     def register_media(self, name: str, content_type: str) -> None:
         """Make sure the package says what a media file is.

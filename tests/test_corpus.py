@@ -17,6 +17,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker.layout import types  # noqa: E402
+from pptx_agent_maker.layout.types.bodies import chart as charts  # noqa: E402
 from pptx_agent_maker.layout.types.bodies.compose import BODIES, PARTS  # noqa: E402
 from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import TYPES, EXTRA_KEYS, FRAME_KEYS  # noqa: E402
@@ -110,6 +111,15 @@ class TheCorpusUsesEverything(unittest.TestCase):
         self.assertTrue(named, "the corpus names no ground of its own")
         used = {table["tone"] for table in tables(DECLARED) if "tone" in table}
         self.assertEqual(set(), (set(TONES) | named) - used)
+
+    def test_every_kind_of_chart_and_every_key_one_reads(self) -> None:
+        written = [page["chart"] for page in DECLARED if page["type"] == "chart"] + \
+                  [cell["chart"] for cell in CELLS if "chart" in cell]
+        self.assertEqual(set(charts.KINDS), {chart["kind"] for chart in written})
+        self.assertEqual(set(), set(charts.KEYS) - {key for chart in written for key in chart})
+        self.assertEqual(set(), set(charts.SERIES_KEYS) - {key for chart in written
+                                                           for series in chart.get("series", []) for key in series})
+        self.assertTrue(any("chart" in cell for cell in CELLS), "no chart is laid into a cell")
 
     def test_every_mark_a_cell_may_hold(self) -> None:
         written = [cell for table in tables(DECLARED) for key in ("harvey", "mark") if key in table

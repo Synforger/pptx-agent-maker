@@ -32,9 +32,10 @@ from ...parts.page import Card, Page, PageFullError
 from ..core.registry import TYPES, PageTypeError, register
 from ..core.read import Spec, read_card, read_table, only_keys
 from ..core.stack import card_height
+from .chart import place_chart
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
-PARTS = ("card", "figure", "table", "text", "points")
+PARTS = ("card", "figure", "table", "text", "points", "chart")
 #: マスに丸ごと入れられる型 (= その型の書き方のまま)。`cards` はマスごとの `card` で、
 #: 入れ子は `rows` で書くので、この 2 つは入れない
 BODIES = ("figures", "figure_grid", "flow", "roadmap", "timeline", "board", "agenda")
@@ -161,6 +162,8 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             page.points(fitted, _points(cell, what))
         elif part == "rows":
             _stack(page, spec, cell["rows"], rect, what)
+        elif part == "chart":
+            place_chart(page, spec, cell["chart"], rect, f"{what}, chart")
         elif part == "figure":
             # 絵は横幅いっぱいで上に寄る (= 同じ段の表や文章と上端が揃う)。縦が足りなければ縮む
             source, aspect = Spec({"figure": cell["figure"]}, spec.asset, spec.aspect, spec.theme).figure()

@@ -74,7 +74,8 @@ task lift -- <テンプレートの folder> --page w1.pptx:3 --keep "項目" --r
 
 ## 宣言で頁を組む
 
-**型を選ぶ。**`figure` / `figures` / `figure_grid` / `flow` / `roadmap` / `timeline` / `cards` / `board` / `agenda` の 9 つ。
+**型を選ぶ。**`figure` / `figures` / `figure_grid` / `flow` / `roadmap` / `timeline` / `chart` / `cards` / `board` / `agenda` の 10 個。
+**数字を見せる頁は `chart`** (= 数字から描くグラフ。絵で貼ると、渡した先で誰も数字を直せない)。
 ⚠ **どの型にも合わない組み方は `compose` で段とマスに書く** (= 型に合わせて指定を曲げない。目標を 1 枚に、
 と言われたら 1 枚で組む)。`compose` でも組めない物 (= 新しい図形の種類) だけを、道具への依頼にする。
 型ごとに読むキーと案件の recipe は `task types` が出す (= コードの登録から出るので、ここより正しい)。

@@ -149,3 +149,4 @@ class Deck:
                 self._archive.unregister_slide(name)
         self._archive.set_order(kept)
         self._archive.drop_unreferenced_media()
+        self._archive.drop_unreferenced_parts()

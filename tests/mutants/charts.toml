@@ -1,0 +1,331 @@
+# A chart drawn from its numbers: what is drawn, how it is written out, and how it travels with its page.
+
+tests = ["tests/test_chart.py"]
+
+# -- what is drawn (layout/types/bodies/chart.py) --------------------------------
+
+[[mutant]]
+name = "with a highlight, everything is grey"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "colour = palette.accent if name == one_series else palette.muted"
+new = "colour = palette.muted"
+
+[[mutant]]
+name = "the category that stands out is not painted"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "points=((one_category, palette.accent),) if one_category is not None else (),"
+new = "points=(),"
+
+[[mutant]]
+name = "series nobody coloured are all drawn in the accent"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "colour = getattr(palette, UNSAID[index])"
+new = "colour = palette.accent"
+
+[[mutant]]
+name = "a fourth series nobody coloured is drawn in the first colour again"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        elif index < len(UNSAID):\n            colour = getattr(palette, UNSAID[index])"
+new = "        elif True:\n            colour = getattr(palette, UNSAID[index % len(UNSAID)])"
+
+[[mutant]]
+name = "a series' tone is not read"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        elif tone:\n            colour = page.ground(tone)[0]\n"
+new = ""
+
+[[mutant]]
+name = "the legend is there for one series too"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    return tuple(drawn), len(drawn) > 1"
+new = "    return tuple(drawn), True"
+
+[[mutant]]
+name = "the bars carry their numbers and the axis repeats them"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "legend=legend, axis=not plan.labels))"
+new = "legend=legend, axis=True))"
+
+[[mutant]]
+name = "the numbers are printed although the page said not to"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    number_format = _format(plan) if plan.labels else \"\""
+new = "    number_format = _format(plan)"
+
+[[mutant]]
+name = "a number is printed as a whole number whatever places were written"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    number = \"#,##0\" + (\".\" + \"0\" * places if places else \"\")"
+new = "    number = \"#,##0\""
+
+[[mutant]]
+name = "the unit is left off the numbers"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    unit = f'\"{plan.unit}\"' if plan.unit else \"\""
+new = "    unit = \"\""
+
+[[mutant]]
+name = "the numbers inside stacked columns are all set in the colour of the body"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "label_colour=palette.words_on(colour) if stacked else \"\","
+new = "label_colour=\"\","
+
+[[mutant]]
+name = "the words of a chart are set at the size of a caption"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "size=theme.type.body, colour=palette.ink"
+new = "size=theme.type.caption, colour=palette.ink"
+
+[[mutant]]
+name = "a category may stand out among several series"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if in_categories and len(names) > 1:"
+new = "        if False:"
+
+[[mutant]]
+name = "a highlight and a tone are both taken"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if toned:\n            raise PageTypeError(f\"{what}: `highlight` already says"
+new = "        if False:\n            raise PageTypeError(f\"{what}: `highlight` already says"
+
+# -- reading ---------------------------------------------------------------------
+
+[[mutant]]
+name = "true is read as the number one"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):"
+new = "if not isinstance(value, (int, float)) or not math.isfinite(value):"
+
+[[mutant]]
+name = "a number that is not finite is drawn"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):"
+new = "if isinstance(value, bool) or not isinstance(value, (int, float)):"
+
+[[mutant]]
+name = "a series with too few numbers is not refused"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "if not isinstance(values, list) or len(values) != len(categories):"
+new = "if not isinstance(values, list):"
+
+[[mutant]]
+name = "a category written twice is not refused"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if len(set(categories)) != len(categories):"
+new = "    if False:"
+
+[[mutant]]
+name = "the numbers may come from a file and from the page at once"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if \"categories\" in written or \"series\" in written:"
+new = "        if False:"
+
+[[mutant]]
+name = "a whole number from a file is read as a fraction"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "value = int(cell) if cell.strip().lstrip(\"+-\").isdigit() else float(cell)"
+new = "value = float(cell)"
+
+[[mutant]]
+name = "a row of another length in a file is read as far as it goes"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if len(row) != len(rows[0]) or not row[0].strip():"
+new = "        if not row[0].strip():"
+
+# -- the waterfall ---------------------------------------------------------------
+
+[[mutant]]
+name = "a total that does not match the steps is drawn as written"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            if index and step != running:"
+new = "            if False:"
+
+[[mutant]]
+name = "the first total is held to the steps before it, of which there are none"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            if index and step != running:"
+new = "            if step != running:"
+
+[[mutant]]
+name = "the steps after a total carry on from before it"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            running = step\n"
+new = ""
+
+[[mutant]]
+name = "a step up stands on where it ends, not where it began"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "foot = max(before, running) if below else min(before, running)"
+new = "foot = min(before, running) if below else max(before, running)"
+
+[[mutant]]
+name = "a step below zero is stacked upward"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        tall = -abs(value) if below else abs(value)"
+new = "        tall = abs(value)"
+
+[[mutant]]
+name = "a step across zero is drawn"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if before * running < 0:"
+new = "        if False:"
+
+[[mutant]]
+name = "the steps are added as binary fractions"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        step = Decimal(str(value))"
+new = "        step = Decimal(value)"
+
+[[mutant]]
+name = "a step down is filed with the steps up"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "up.append(tall if value >= 0 else None), down.append(tall if value < 0 else None), total.append(None)"
+new = "up.append(tall), down.append(None), total.append(None)"
+
+[[mutant]]
+name = "the base of a waterfall is painted"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        Series(\"(base)\", tuple(base)),"
+new = "        Series(\"(base)\", tuple(base), palette.rule),"
+
+[[mutant]]
+name = "a step down is printed with a plus"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "**labelled(\"-\", palette.bad)),"
+new = "**labelled(\"+\", palette.bad)),"
+
+# -- as written out (write/pptx.py) ----------------------------------------------
+
+[[mutant]]
+name = "the chart keeps the title PowerPoint gives it"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    chart.has_title = False\n"
+new = ""
+
+[[mutant]]
+name = "the grid is left on"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    chart.value_axis.has_major_gridlines = False\n"
+new = ""
+
+[[mutant]]
+name = "the value axis is always there"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    chart.value_axis.visible = element.axis\n"
+new = "    chart.value_axis.visible = True\n"
+
+[[mutant]]
+name = "a negative bar loses its colour"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            drawn.invert_if_negative = False\n"
+new = ""
+
+[[mutant]]
+name = "the point that stands out is not painted in the file"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "                _solid(drawn.points[index].format, colour, series.outline, theme)"
+new = "                pass"
+
+[[mutant]]
+name = "the numbers of every kind sit at the outer end"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            labels.position = where\n"
+new = "            labels.position = XL_LABEL_POSITION.OUTSIDE_END\n"
+
+[[mutant]]
+name = "a bar chart reads from the bottom"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        chart.category_axis.reverse_order = True\n"
+new = "        pass\n"
+
+[[mutant]]
+name = "the legend sits where PowerPoint puts it"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        chart.legend.position = XL_LEGEND_POSITION.BOTTOM\n"
+new = ""
+
+[[mutant]]
+name = "the words of a chart are set in PowerPoint's own face"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    chart.font.name = theme.type.family\n"
+new = ""
+
+[[mutant]]
+name = "a line's marks keep the shape PowerPoint gives each series"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            drawn.marker.style = XL_MARKER_STYLE.CIRCLE\n"
+new = ""
+
+[[mutant]]
+name = "a series that is not drawn is painted all the same"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    else:\n        format.fill.background()\n    if outline and theme is not None:"
+new = "    else:\n        format.fill.solid()\n    if outline and theme is not None:"
+
+# -- travelling with its page (deck/) --------------------------------------------
+
+[[mutant]]
+name = "a page brought in leaves its chart behind"
+file = "src/pptx_agent_maker/deck/pages/slides.py"
+old = "        rels = _carry_parts(archive, rels, \"ppt/slides\", read, source_types)\n\n    if relayout:"
+new = "    if relayout:"
+
+[[mutant]]
+name = "a copy within the deck shares the chart it was copied from"
+file = "src/pptx_agent_maker/deck/pages/slides.py"
+old = "        rels = _carry_parts(archive, rels, \"ppt/slides\", read, types)\n"
+new = ""
+
+[[mutant]]
+name = "a chart is carried without the numbers it keeps"
+file = "src/pptx_agent_maker/deck/pages/slides.py"
+old = "        if own is not None:\n            (archive.tree / folder / \"_rels\").mkdir"
+new = "        if False:\n            (archive.tree / folder / \"_rels\").mkdir"
+
+[[mutant]]
+name = "a carried chart keeps the name it had where it came from"
+file = "src/pptx_agent_maker/deck/pages/slides.py"
+old = "        new = archive.next_part_name(folder, name)"
+new = "        new = name"
+
+[[mutant]]
+name = "the package is not told what a carried part is"
+file = "src/pptx_agent_maker/deck/pages/slides.py"
+old = "        archive.register_part(f\"{folder}/{new}\", _part_type(source_types, part))\n"
+new = ""
+
+[[mutant]]
+name = "a chart that keeps something else beside it is carried without it"
+file = "src/pptx_agent_maker/deck/pages/slides.py"
+old = "            if owner in CARRIED_FOLDERS:\n                raise ValueError("
+new = "            if False:\n                raise ValueError("
+
+[[mutant]]
+name = "the charts of pages nobody kept stay in the deck"
+file = "src/pptx_agent_maker/deck/__init__.py"
+old = "        self._archive.drop_unreferenced_parts()"
+new = "        pass"
+
+[[mutant]]
+name = "a dropped chart leaves the numbers it kept"
+file = "src/pptx_agent_maker/deck/base/archive.py"
+old = "            if not gone:\n                return dropped\n            text = types.read_text"
+new = "            if not gone or dropped:\n                return dropped\n            text = types.read_text"
+
+[[mutant]]
+name = "a dropped chart stays declared in the package"
+file = "src/pptx_agent_maker/deck/base/archive.py"
+old = "                text = re.sub(rf'<Override PartName=\"/{re.escape(name)}\"[^>]*/>', \"\", text)\n                dropped.append(name)"
+new = "                dropped.append(name)"
+
+[[mutant]]
+name = "a part named like any XML is left to the extension's own type"
+file = "src/pptx_agent_maker/deck/base/archive.py"
+old = "        if (default and default.group(1) == content_type) or f'PartName=\"/{name}\"' in text:"
+new = "        if default or f'PartName=\"/{name}\"' in text:"
+
+[[mutant]]
+name = "a chart in a cell of a compose is not placed"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "            place_chart(page, spec, cell[\"chart\"], rect, f\"{what}, chart\")"
+new = "            pass"

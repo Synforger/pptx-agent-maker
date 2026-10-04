@@ -15,7 +15,8 @@
 と「表と文を添えるか」でほとんど尽きていた ― 本体の形を型に、それ以外を付属にすると、
 型は 7 つで足りた。8 つめの `timeline` は、絵で描いて貼ると文字が絵に焼き込まれて人が
 直せなくなる頁 (= 期間 × レーンの計画) のために足した。9 つめの `roadmap` も同じ理由で、
-到達点までの道のりを矢羽根の図形のまま組む。
+到達点までの道のりを矢羽根の図形のまま組む。10 個めの `chart` も同じ ― 絵で貼ったグラフは、渡した
+先で誰も数字を直せない。
 
     figure          絵 1 枚が本体
     figures         絵を横に並べる (= 条件ちがいの比較)
@@ -23,6 +24,7 @@
     flow            段が左から右へ流れる (= 各段にノード、段の下に分かったこと)
     roadmap         到達点までの段が矢羽根で左から右へ (= 各段の下に、その段で渡す物)
     timeline        期間が左から右、レーンが上から下 (= レーンの中に棒と印)
+    chart           数字から描くグラフ (= 棒・縦棒・折れ線・積み上げ・滝グラフ。数字は deck の中)
     cards           カードの並びが本体 (= 今週の計画、まとめ)
     board           表 1 枚が本体 (= 毎週積み上げる早見表)
     agenda          目次 (= 左に全項目、右にバケット。今いる章を強調する)
@@ -30,8 +32,9 @@
 どの型にも無い組み方は `compose` (= `bodies/compose.py`) で書く。本体を段とマスの入れ子に割り、マスに
 部品を 1 つ置く。部品には上の型も入る ― 型は組み方の短縮形で、組み方そのものではない。
 
-⚠ **絵を持たなくてよいのは後ろの 3 つだけ。**本文の頁がここを外せるようになると、
-「表と文章だけ」の頁が戻ってくる (= 実際にそれで作った頁は全部差し戻された)。
+⚠ **絵を持たなくてよいのは後ろの 3 つだけ** (= グラフは数字を形で見せるので、絵と同じに数える)。
+本文の頁がここを外せるようになると、「表と文章だけ」の頁が戻ってくる (= 実際にそれで作った頁は
+全部差し戻された)。
 """
 
 from __future__ import annotations
@@ -46,6 +49,7 @@ from .core.frame import place_cards, place_legend, place_trailing, reserve_legen
 from .core.read import MARKS, Spec
 from .core.registry import check_keys, EXTRA_KEYS, FRAME_KEYS, PageTypeError, TYPES
 from . import bodies  # noqa: F401 (= 本体の file を読むと、その型が登録される)
+from .bodies import chart
 
 
 def names() -> list[str]:
@@ -111,6 +115,8 @@ def describe() -> str:
         lines.append(f"  {name:<12} needs: {needed:<10} also reads: {own:<10}"
                      f"{'' if figure else '  (may carry no picture)'}")
     lines.append(f"  on any type: {', '.join(sorted(EXTRA_KEYS))}")
+    lines.append(f"  a chart: kind ({' | '.join(chart.KINDS)}), categories, series = [{{ name, values, tone }}] "
+                 'or data = "x.csv", highlight, unit, labels, totals (= of a waterfall)')
     lines.append("  a table's cell: its words, or one mark — { harvey = 0 to 4 } (= quarters filled) "
                  f"or {{ mark = {' | '.join(MARKS)} }}")
     lines.append(f"  the frame:   {', '.join(sorted(FRAME_KEYS - {'type', 'kind'}))}")

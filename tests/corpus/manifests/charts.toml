@@ -1,0 +1,87 @@
+# Charts drawn from their numbers: the five kinds, and every key a chart reads.
+
+specimen = "specimen.pptx"
+out = "charts.pptx"
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "A column chart: one category stands out, the rest are grey"
+footer = "Source: the numbers written on this page"
+
+[pages.chart]
+kind = "column"
+categories = ["Q1", "Q2", "Q3", "Q4"]
+series = [{ name = "Share", values = [12.5, 15, 21.25, 18] }]
+highlight = "Q3"
+unit = "%"
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "A bar chart read from a file: one series stands out, and the legend names all three"
+footer = "Source: regions.csv"
+
+[pages.chart]
+kind = "bar"
+data = "regions.csv"
+highlight = "South"
+
+[[pages]]
+kind = "declare"
+type = "chart"
+kicker = "01 | 推移"
+title = "折れ線は移り変わりを見せる。数字を付けなければ、値の軸が出る"
+note = "系列の色を書かなければ、最初の系列が差し色で、続きは灰"
+
+[pages.chart]
+kind = "line"
+categories = ["1 月", "2 月", "3 月", "4 月", "5 月", "6 月"]
+labels = false
+series = [
+  { name = "今年", values = [120, 135, 150, 148, 170, 190] },
+  { name = "去年", values = [110, 115, 118, 130, 128, 140] },
+]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "Stacked columns: each series in a tone of its own, the numbers inside"
+
+[pages.chart]
+kind = "stacked"
+categories = ["2023", "2024", "2025"]
+series = [
+  { name = "Core", values = [40, 45, 52], tone = "accent" },
+  { name = "Demo", values = [20, 28, 30], tone = "Outside" },
+  { name = "Late", values = [5, 12, 4], tone = "Late" },
+]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "A waterfall: steps up and down between two totals"
+conclusion = "The steps add up to the total at the end"
+
+[pages.chart]
+kind = "waterfall"
+categories = ["Last year", "New customers", "Price", "Churn", "Costs", "This year"]
+series = [{ name = "Profit", values = [100, 42, 8.5, -30, -12.5, 108] }]
+totals = ["Last year", "This year"]
+unit = "M"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A chart in a cell, beside the words that read it"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 2
+[pages.rows.cells.chart]
+kind = "column"
+categories = ["A", "B", "C"]
+series = [{ name = "Score", values = [3, 7, 5] }]
+highlight = "B"
+[[pages.rows.cells]]
+card = { heading = "B leads", body = "by two points over C" }

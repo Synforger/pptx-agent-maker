@@ -9,6 +9,8 @@
   前の世代で矢印のプリセット 1 つが修復を言い出した実例があり、原因は記録に残っていない。
   菱形は矩形を 45 度回して描く
 * 空の run を書かない (= 文字の無い run は修復の種)
+* グラフは python-pptx の口 (= `add_chart`) だけで書く。グラフ本体・その関係・中のデータの表・種類の
+  登録を 1 組で書いてくれるので、どれかが欠けた file を作らない
 * 表示から外したスライドを残さない (= 孤児のスライドも同じ)
 """
 
@@ -17,14 +19,16 @@ from __future__ import annotations
 from pathlib import Path
 
 from pptx import Presentation
+from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
+from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION, XL_MARKER_STYLE, XL_TICK_MARK
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 
-from ..layout.parts.elements import Bar, Diamond, Element, Figure, Fill, Table, Text
+from ..layout.parts.elements import Bar, Chart, Diamond, Element, Figure, Fill, Table, Text
 from ..layout.base.tokens import DEFAULT, MARK_FACE, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
@@ -64,6 +68,8 @@ def add_page(deck: Presentation, elements: list[Element], theme: Theme = DEFAULT
             _figure(slide, element)
         elif isinstance(element, Table):
             _table(slide, element, theme)
+        elif isinstance(element, Chart):
+            _chart(slide, element, theme)
     return slide
 
 
@@ -198,6 +204,89 @@ def _figure(slide, element: Figure) -> None:
     # ⚠ python-pptx は素材の file 名を代替テキストに入れる。頁には見えないが、渡したデッキを
     # 開けば読める ― 案件の素材名が先方に届く経路なので置かない。
     picture._element.nvPicPr.cNvPr.attrib.pop("descr", None)
+
+
+#: 描き方 → 書き出すグラフの種類と、値の数字を置く所 (= 棒の外の端 / 点の上 / 段の真ん中)
+CHART = {
+    "bar": (XL_CHART_TYPE.BAR_CLUSTERED, XL_LABEL_POSITION.OUTSIDE_END),
+    "column": (XL_CHART_TYPE.COLUMN_CLUSTERED, XL_LABEL_POSITION.OUTSIDE_END),
+    "line": (XL_CHART_TYPE.LINE_MARKERS, XL_LABEL_POSITION.ABOVE),
+    "stacked": (XL_CHART_TYPE.COLUMN_STACKED, XL_LABEL_POSITION.CENTER),
+}
+
+
+def _chart(slide, element: Chart, theme: Theme) -> None:
+    """A chart with its numbers inside the deck (= PowerPoint's "Edit Data" opens them).
+
+    ⚠ **題を自分で消す。**系列が 1 つのグラフに、PowerPoint は系列の名前を題として出す。何のグラフかは
+    頁の題が言っている。
+
+    ⚠ **負の値で色を反転させない。**既定のままだと、負の棒は地の色が抜けて白くなる。
+    """
+    kind, where = CHART[element.plot]
+    data = CategoryChartData()
+    data.categories = list(element.categories)
+    for series in element.series:
+        data.add_series(series.name, series.values)
+    chart = slide.shapes.add_chart(kind, Emu(element.rect.left), Emu(element.rect.top),
+                                   Emu(element.rect.width), Emu(element.rect.height), data).chart
+    chart.has_title = False
+    chart.font.size = Pt(element.size)
+    chart.font.name = theme.type.family
+    chart.font.color.rgb = _colour(element.colour)
+    chart.has_legend = element.legend
+    if element.legend:
+        chart.legend.position = XL_LEGEND_POSITION.BOTTOM
+        chart.legend.include_in_layout = False
+
+    # 目盛りの線は引かない。値の数字を棒に付けたグラフは、値の軸も出さない (= 同じ数を 2 度見せない)
+    chart.value_axis.has_major_gridlines = False
+    chart.value_axis.visible = element.axis
+    chart.value_axis.major_tick_mark = XL_TICK_MARK.NONE
+    chart.value_axis.format.line.fill.background()
+    chart.category_axis.major_tick_mark = XL_TICK_MARK.NONE
+    chart.category_axis.format.line.color.rgb = _colour(element.line)
+    if element.plot == "bar":
+        # 横棒は最初の項目を上に置く (= 表と同じ読み順。既定は下から積む)
+        chart.category_axis.reverse_order = True
+
+    for drawn, series in zip(chart.plots[0].series, element.series):
+        if element.plot == "line":
+            drawn.smooth = False
+            drawn.format.line.color.rgb = _colour(series.colour)
+            drawn.format.line.width = Emu(theme.spacing.strong_line)
+            drawn.marker.style = XL_MARKER_STYLE.CIRCLE
+            _solid(drawn.marker.format, series.colour)
+            for index, colour in series.points:
+                _solid(drawn.points[index].marker.format, colour)
+        else:
+            drawn.invert_if_negative = False
+            _solid(drawn.format, series.colour, series.outline, theme)
+            for index, colour in series.points:
+                _solid(drawn.points[index].format, colour, series.outline, theme)
+        if series.number_format:
+            labels = drawn.data_labels
+            labels.show_value = True
+            labels.number_format = series.number_format
+            labels.position = where
+            if series.label_colour:
+                labels.font.color.rgb = _colour(series.label_colour)
+
+
+def _solid(format, colour: str, outline: str = "", theme: Theme | None = None) -> None:
+    """Paint a series, a point or a marker one colour (= or not at all), with or without an edge."""
+    if colour:
+        format.fill.solid()
+        format.fill.fore_color.rgb = _colour(colour)
+    else:
+        format.fill.background()
+    if outline and theme is not None:
+        format.line.color.rgb = _colour(outline)
+        format.line.width = Emu(theme.spacing.hairline)
+    elif theme is not None:
+        format.line.fill.background()
+    else:
+        format.line.color.rgb = _colour(colour)
 
 
 def _table(slide, element: Table, theme: Theme) -> None:
