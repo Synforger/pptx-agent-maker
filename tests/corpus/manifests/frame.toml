@@ -82,3 +82,21 @@ type = "board"
 title = "A declared page may have its words swapped after it is built"
 table = [["Round", "Result"], ["<round>", "passed"]]
 replace = [["<round>", "Round 3"]]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "A title that folds onto a second line takes the room of two lines, and the body starts below it"
+cards = [
+  ["One line", "the band is as tall as it always was"],
+  ["Two lines", "the band grows by a line, and so the body starts lower"],
+]
+
+[[pages]]
+kind = "declare"
+type = "figure"
+kicker = "03 | 題の帯"
+title = "題が 2 行に折れた頁は、題の帯が 1 行ぶん伸びて、本体はそのぶん下から始まる。題の上の小さい字は動かない"
+condition = "条件の帯は、伸びた題の帯のすぐ下に置かれる"
+figure = "wide.png"
+caption = "絵は残った高さに収まる"

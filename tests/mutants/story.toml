@@ -38,15 +38,15 @@ new = "count += len(_lines(pieces, usable))"
 
 [[mutant]]
 name = "a declared title is counted at the size of the body"
-file = "src/pptx_agent_maker/checks/declared/long_title.py"
-old = "theme.wraps(title, room, theme.type.title, bold=True)"
-new = "theme.wraps(title, room, theme.type.body, bold=True)"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.wraps(title, room, self.type.title, bold=True)"
+new = "return self.wraps(title, room, self.type.body, bold=True)"
 
 [[mutant]]
 name = "the check on declared pages cannot be switched off"
 file = "src/pptx_agent_maker/checks/declared/long_title.py"
-old = "    if off(config):\n        return []\n    room"
-new = "    room"
+old = "    if off(config):\n        return []\n    findings: list[Finding] = []\n    for number, entry"
+new = "    findings: list[Finding] = []\n    for number, entry"
 
 # -- data with no source (checks/declared/unsourced.py) -------------------------
 
