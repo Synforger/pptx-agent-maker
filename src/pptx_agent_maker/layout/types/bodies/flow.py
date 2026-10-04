@@ -6,7 +6,7 @@ from ...base.geometry import Rect
 from ...parts.page import Page, PageFullError
 from ..core.read import Spec
 from ..core.registry import PageTypeError, register
-from ..core.stack import _aligned, _place_stack, _stacks
+from ..core.stack import aligned_rows, place_stack, stage_stacks
 
 
 @register("flow", needs=["stages"], takes=["align_rows"])
@@ -23,7 +23,7 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
     stages = spec.get("stages")
     if len(stages) < 2:
         raise PageTypeError("flow: a flow needs at least two stages")
-    aligned = _aligned(spec, "flow")
+    aligned = aligned_rows(spec, "flow")
 
     weights: list[float] = []
     for index in range(len(stages)):
@@ -36,7 +36,7 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
     # 揃えるので、列の下端は揃いながら、1 つしかない段が 2 つ分の空きを抱えることもない。
     gap = page.theme.spacing.gap_s
     wide = columns[0].width
-    stacks, stack = _stacks(page, spec, stages, wide, aligned, "flow")
+    stacks, stack = stage_stacks(page, spec, stages, wide, aligned, "flow")
     stage_size = page.theme.type.stage
     head_height = max(page.theme.wrapped_height(str(stage["name"]), wide, stage_size, bold=True)
                       for stage in stages)
@@ -61,6 +61,6 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
             # 向きはノードの並びの高さに置く (= 段の名前の横に浮かせない)
             between = columns[index * 2 - 1]
             page.marker(Rect(between.left, body.top, between.width, body.height), "→")
-        _place_stack(page, body, column_nodes)
+        place_stack(page, body, column_nodes)
         if stage.get("settled") and settled_height:
             page.note(after.split_top(settled_height)[0], str(stage["settled"]))

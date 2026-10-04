@@ -6,7 +6,7 @@ from ...base.geometry import Rect
 from ...parts.page import Card, Page
 from ..core.read import Spec
 from ..core.registry import PageTypeError, register
-from ..core.stack import _card_height
+from ..core.stack import card_height
 
 
 @register("cards", needs=[], figure=False)
@@ -57,6 +57,6 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
             enumerate(buckets, start=1)):
         head = f"{number}. {title}"
         mark = "◀ この章" if number == here else ""
-        tall = _card_height(page, [Card(head, mark)], band.width, 1)
+        tall = card_height(page, [Card(head, mark)], band.width, 1)
         cell, _rest = band.split_top(min(tall, band.height))
         page.boxes(cell, [Card(head, mark)])

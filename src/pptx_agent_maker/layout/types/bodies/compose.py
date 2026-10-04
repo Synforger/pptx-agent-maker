@@ -29,9 +29,9 @@ from numbers import Real
 
 from ...base.geometry import Rect
 from ...parts.page import Card, Page, PageFullError
-from ..core.registry import _TYPES, PageTypeError, register
-from ..core.read import Spec, _card, _keys
-from ..core.stack import _card_height
+from ..core.registry import TYPES, PageTypeError, register
+from ..core.read import Spec, read_card, only_keys
+from ..core.stack import card_height
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
 PARTS = ("card", "figure", "table", "text", "points")
@@ -75,12 +75,12 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
     laid = []
     for number, row in enumerate(rows, start=1):
         what = f"{where}: row {number}"
-        _keys(row, {"cells", "weight"}, what)
+        only_keys(row, {"cells", "weight"}, what)
         cells = row.get("cells")
         if not isinstance(cells, list) or not cells:
             raise PageTypeError(f"{what} has no cells — write [[…cells]] under it, one per part")
         for index, cell in enumerate(cells, start=1):
-            _keys(cell, {"weight", "rows", "caption", *PARTS, *BODIES}, f"{what}, cell {index}")
+            only_keys(cell, {"weight", "rows", "caption", *PARTS, *BODIES}, f"{what}, cell {index}")
         weights = [_weight(cell, f"{what}, cell {index}") for index, cell in enumerate(cells, start=1)]
         columns = Rect(0, 0, width, 1).columns(weights, gap=gap)
         measured = [(cell, column, _natural(page, spec, cell, column.width, f"{what}, cell {index}"))
@@ -118,7 +118,7 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
     part = _part(cell, what)
     theme, s = page.theme, page.theme.spacing
     if part == "card":
-        return _card_height(page, [_the_card(spec, cell, what)], width, 1)
+        return card_height(page, [_the_card(spec, cell, what)], width, 1)
     if part == "table":
         rows = _table(cell, what)
         return theme.table_height(rows, theme.column_widths(rows, width))
@@ -179,7 +179,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
 
 def _body(page: Page, spec: Spec, name: str, data: dict, rect: Rect, what: str) -> None:
     """A whole page type, laid into one cell, read the way that type reads it."""
-    filler, needs, takes, _figure = _TYPES[name]
+    filler, needs, takes, _figure = TYPES[name]
     missing = sorted(needs - data.keys())
     if missing:
         raise PageTypeError(f"{name}: missing {', '.join(missing)} — this type is not that part without it")
@@ -192,7 +192,7 @@ def _body(page: Page, spec: Spec, name: str, data: dict, rect: Rect, what: str) 
 
 
 def _the_card(spec: Spec, cell: dict, what: str) -> Card:
-    return _card(spec, cell["card"], f"{what}, card")
+    return read_card(spec, cell["card"], f"{what}, card")
 
 
 def _table(cell: dict, what: str) -> list[list[str]]:

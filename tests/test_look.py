@@ -16,6 +16,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
+sys.path.insert(0, str(REPO / "tests"))
+from support.pages import named  # noqa: E402
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
@@ -34,10 +36,6 @@ P, S = DEFAULT.palette, DEFAULT.spacing
 
 def build(spec):
     return types.build({"title": "A page", **spec}, lambda name: DATA / name, aspect, THEME)
-
-
-def named(built, text):
-    return next(e for e in built.build() if getattr(e, "text", None) == text)
 
 
 def shape_of(built, text):

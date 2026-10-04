@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Callable
 
 from ...base.tokens import DEFAULT, Theme
-from ...parts.look import TONES
+from ...parts.look import Style, TONES
 from ...parts.page import Card
 from .registry import PageTypeError
 
@@ -61,11 +61,11 @@ class Spec:
         return [[str(cell) for cell in row] for row in self.data[key]]
 
     def cards(self) -> list[Card]:
-        return [_card(self, item, f"cards: card {number}")
+        return [read_card(self, item, f"cards: card {number}")
                 for number, item in enumerate(self.data["cards"], start=1)]
 
 
-def _keys(item, allowed: set, what: str, hint: str = "") -> None:
+def only_keys(item, allowed: set, what: str, hint: str = "") -> None:
     """Refuse a key nobody reads inside a type's own tables, the way a page's keys are."""
     if not isinstance(item, dict):
         raise PageTypeError(f"{what} is {item!r} — write it as a table of keys")
@@ -76,7 +76,7 @@ def _keys(item, allowed: set, what: str, hint: str = "") -> None:
             f"{', '.join(sorted(allowed))}).{hint}")
 
 
-def _tone(spec: Spec, item: dict, what: str, unsaid: str) -> str:
+def read_tone(spec: Spec, item: dict, what: str, unsaid: str) -> str:
     """The tone a table asks for, or `unsaid` when it asks for none.
 
     書けるのは道具の色の役 (= `TONES`) と、案件が `[theme.grounds]` で名前を付けた地。
@@ -103,11 +103,24 @@ def _flag(item: dict, key: str, what: str) -> bool:
     return value
 
 
+def read_style(spec: Spec, item: dict, what: str, unsaid: str) -> Style:
+    """The four looks a table carries, read here for every part shaped like a box.
+
+    `unsaid` は `tone` を書かなかった時の地で、部品ごとに違う (= 箱は `box`、道のりの段は薄い地か
+    到達点の濃い地、線表の棒は空 ― 空は「レーンの色」で、置く側が決める)。
+
+    ⚠ **読むのはここ 1 か所。**部品ごとに読んでいた間は、同じ 4 つを 3 か所が別の順で読み、1 つ足す
+    たびに 3 か所を直すことになった。
+    """
+    return Style(read_tone(spec, item, what, unsaid) if "tone" in item else unsaid, _icon(spec, item, what),
+                 tentative=_flag(item, "tentative", what), strong=_flag(item, "strong", what))
+
+
 #: アイコンに読める絵 (= 図と同じ。SVG は pptx に入れるのに描き直しの道具が要るので、まだ読まない)
 ICON_FORMATS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff")
 
 
-def _card(spec: Spec, item, what: str) -> Card:
+def read_card(spec: Spec, item, what: str) -> Card:
     """One card, or one node of a flow or a roadmap (= the same box, written the same two ways).
 
     書き方は 2 つ ― `["見出し", "本文"]` か、色の役やアイコンを付けるときの
@@ -115,12 +128,10 @@ def _card(spec: Spec, item, what: str) -> Card:
     strong = true }`。
     """
     if isinstance(item, dict):
-        _keys(item, {"heading", "body", *LOOK_KEYS}, what)
+        only_keys(item, {"heading", "body", *LOOK_KEYS}, what)
         if not str(item.get("heading", "")).strip():
             raise PageTypeError(f"{what} has no `heading` — a box says what it is")
-        return Card(str(item["heading"]), str(item.get("body", "")), _tone(spec, item, what, TONES[0]),
-                    _icon(spec, item, what), tentative=_flag(item, "tentative", what),
-                    strong=_flag(item, "strong", what))
+        return Card(str(item["heading"]), str(item.get("body", "")), read_style(spec, item, what, TONES[0]))
     if isinstance(item, (list, tuple)) and len(item) == 2:
         return Card(str(item[0]), str(item[1]))
     raise PageTypeError(

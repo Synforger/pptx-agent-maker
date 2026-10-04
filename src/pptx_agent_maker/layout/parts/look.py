@@ -3,8 +3,27 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from ..base.tokens import ROLES
+
+
+@dataclass(frozen=True)
+class Style:
+    """The four looks anything shaped like a box may be written with: read once, carried as one.
+
+    箱・棒・矢羽根のどれもが、この 1 組を同じ意味で持つ。部品ごとに 1 つずつ持たせていた間は、
+    1 つ足すたびに部品の数だけ書き足すことになった。
+    """
+
+    #: 地の色の役 (= `TONES` か、案件が名前を付けた地)。空は「書かれていない」で、置く側が決める
+    tone: str = "box"
+    #: 名前の前に置く絵の file と、その縦横比 (= 無ければ None)
+    icon: tuple[Path, float] | None = None
+    #: 点線の枠 (= 在れば / 内容未定)
+    tentative: bool = False
+    #: 太い枠 (= クリティカルパス、目を集めたい 1 つ)
+    strong: bool = False
 
 
 @dataclass(frozen=True)

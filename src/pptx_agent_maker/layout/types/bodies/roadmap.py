@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from ...base.geometry import Rect
 from ...parts.page import Page, PageFullError
-from ..core.read import _flag, _icon, _keys, LOOK_KEYS, Spec, _tone
+from ..core.read import LOOK_KEYS, only_keys, read_style, Spec
 from ..core.registry import PageTypeError, register
-from ..core.stack import _aligned, _place_stack, _stacks
+from ..core.stack import aligned_rows, place_stack, stage_stacks
 
 
 @register("roadmap", needs=["stages"], takes=["align_rows"])
@@ -28,7 +28,7 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
         if not isinstance(stage, dict):
             raise PageTypeError(f"{what} is {stage!r} — write it as a table "
                                 "{ name = …, nodes = […], goal = … }")
-        _keys(stage, {"name", "nodes", "goal", *LOOK_KEYS}, what)
+        only_keys(stage, {"name", "nodes", "goal", *LOOK_KEYS}, what)
         if not str(stage.get("name", "")).strip():
             raise PageTypeError(f"{what} has no `name` — an arrowhead says when it is")
         goal = stage.get("goal", False)
@@ -38,13 +38,13 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
             raise PageTypeError(
                 f"{what} is marked as the goal, but the goal is where the road ends — "
                 "only the last stage takes `goal = true`")
-    aligned = _aligned(spec, "roadmap")
+    aligned = aligned_rows(spec, "roadmap")
     goal = bool(stages[-1].get("goal"))
 
     theme, s, ty = page.theme, page.theme.spacing, page.theme.type
     gap = s.gap_s
     columns = area.columns(len(stages), gap=s.gap_m)
-    stacks, stack = _stacks(page, spec, stages, columns[0].width, aligned, "roadmap")
+    stacks, stack = stage_stacks(page, spec, stages, columns[0].width, aligned, "roadmap")
 
     # 矢羽根は自分の列から次の列の頭まで伸び、先が次の段の切り欠きに入る (= 最後の段は列の中で
     # 尖る)。文字が使える幅は、プリセットが決めた文字の枠 (= 切り欠きと先を除いた幅) から余白を引く
@@ -57,16 +57,12 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
         cut = point // 2 if shape == "home" else 2 * point     # 文字の枠が左右で失う幅
         room = max(right - column.left - cut - 2 * s.bar_pad_x, 1)
         size = ty.heading if last and goal else ty.stage
-        what = f"roadmap: stage {index + 1}"
-        icon = _icon(spec, stage, what)
+        style = read_style(spec, stage, f"roadmap: stage {index + 1}", "accent" if last and goal else "band")
         # アイコンは名前の前に字の高さで置く (= 名前の使える幅がそのぶん狭い)
-        room = max(room - (theme.line_height(size) + s.gap_s if icon else 0), 1)
+        room = max(room - (theme.line_height(size) + s.gap_s if style.icon else 0), 1)
         tall = theme.wrapped_height(str(stage["name"]), room, size, bold=True) + 2 * s.bar_pad_y
-        tone = _tone(spec, stage, what, "accent" if last and goal else "band")
-        arrows.append((Rect(column.left, area.top, right - column.left, 1), shape, size, tall,
-                       {"tone": tone, "icon": icon, "tentative": _flag(stage, "tentative", what),
-                        "strong": _flag(stage, "strong", what)}))
-    head_height = max(tall for _r, _s, _z, tall, _look in arrows)
+        arrows.append((Rect(column.left, area.top, right - column.left, 1), shape, size, tall, style))
+    head_height = max(tall for _r, _s, _z, tall, _style in arrows)
 
     wanted = head_height + gap + stack
     if wanted > area.height:
@@ -75,9 +71,9 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
             "shorten the nodes or split the stages across two pages; it will not shrink")
 
     page.drew_a_diagram()  # 矢羽根とノードで組んだ道のりそのものが、この頁の図解
-    for (rect, shape, size, _tall, look), stage, column, column_nodes in zip(
+    for (rect, shape, size, _tall, style), stage, column, column_nodes in zip(
             arrows, stages, columns, stacks):
-        page.chevron(Rect(rect.left, area.top, rect.width, head_height), str(stage["name"]),
-                     shape=shape, size=size, **look)
+        page.chevron(Rect(rect.left, area.top, rect.width, head_height), str(stage["name"]), style,
+                     shape=shape, size=size)
         _head, rest = column.split_top(head_height, gap=gap)
-        _place_stack(page, rest.split_top(stack)[0], column_nodes)
+        place_stack(page, rest.split_top(stack)[0], column_nodes)

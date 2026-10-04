@@ -42,34 +42,34 @@ from typing import Callable
 from ..base.geometry import Rect
 from ..base.tokens import DEFAULT, Theme
 from ..parts.page import Page
-from .core.frame import _place_cards, _place_legend, _place_trailing, _reserve_legend, _reserve_trailing
+from .core.frame import place_cards, place_legend, place_trailing, reserve_legend, reserve_trailing
 from .core.read import Spec
-from .core.registry import _check_keys, EXTRA_KEYS, FRAME_KEYS, PageTypeError, _TYPES
+from .core.registry import check_keys, EXTRA_KEYS, FRAME_KEYS, PageTypeError, TYPES
 from . import bodies  # noqa: F401 (= 本体の file を読むと、その型が登録される)
 
 
 def names() -> list[str]:
     """Every type a page may ask for."""
-    return sorted(_TYPES)
+    return sorted(TYPES)
 
 
 def skeleton() -> list[str]:
     """The types allowed to carry no figure (= the deck's own scaffolding)."""
-    return sorted(name for name, spec in _TYPES.items() if not spec[3])
+    return sorted(name for name, spec in TYPES.items() if not spec[3])
 
 
 def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], float],
           theme: Theme = DEFAULT) -> Page:
     """Turn one declaration into a page, refusing anything no type can hold."""
     name = str(data.get("type", "")).strip()
-    if name not in _TYPES:
+    if name not in TYPES:
         raise PageTypeError(
             f"unknown page type {name!r} — the deck may use only: {', '.join(names())}. "
             "A page that fits none of them means a type is missing; add one rather than "
             "placing shapes by hand."
         )
-    filler, needs, takes, wants_figure = _TYPES[name]
-    _check_keys(name, data, needs, takes)
+    filler, needs, takes, wants_figure = TYPES[name]
+    check_keys(name, data, needs, takes)
 
     title = data.get("title")
     if not title:
@@ -85,12 +85,12 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
     )
     spec = Spec(data, asset, aspect, theme)
     whole = page.body
-    area = _place_cards(page, spec, whole)
-    area, trailing = _reserve_trailing(page, spec, area)
-    area, legend = _reserve_legend(page, spec, area)
+    area = place_cards(page, spec, whole)
+    area, trailing = reserve_trailing(page, spec, area)
+    area, legend = reserve_legend(page, spec, area)
     filler(page, spec, area)
-    _place_legend(page, legend, Rect(area.left, whole.top, area.width, area.bottom - whole.top))
-    _place_trailing(page, spec, trailing)
+    place_legend(page, legend, Rect(area.left, whole.top, area.width, area.bottom - whole.top))
+    place_trailing(page, spec, trailing)
     return page
 
 
@@ -98,7 +98,7 @@ def describe() -> str:
     """Every type and the keys each reads, from the registry itself (= never out of date)."""
     lines = ["page types (kind = \"declare\"):"]
     for name in names():
-        _filler, needs, takes, figure = _TYPES[name]
+        _filler, needs, takes, figure = TYPES[name]
         needed = ", ".join(sorted(needs)) or "—"
         own = ", ".join(sorted(takes)) or "—"
         lines.append(f"  {name:<12} needs: {needed:<10} also reads: {own:<10}"

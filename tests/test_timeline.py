@@ -16,6 +16,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
+sys.path.insert(0, str(REPO / "tests"))
+from support.pages import named  # noqa: E402
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
@@ -46,10 +48,6 @@ def bar(start, end, text="step", **more):
 
 def of(built, kind):
     return [element for element in built.build() if element.kind == kind]
-
-
-def named(built, text):
-    return next(e for e in built.build() if getattr(e, "text", None) == text)
 
 
 def columns(built):
