@@ -100,3 +100,30 @@ title = "題が 2 行に折れた頁は、題の帯が 1 行ぶん伸びて、�
 condition = "条件の帯は、伸びた題の帯のすぐ下に置かれる"
 figure = "wide.png"
 caption = "絵は残った高さに収まる"
+
+[[pages]]
+kind = "declare"
+type = "board"
+title = "A sticker says what kind of page this is, and a cell may hold a mark"
+sticker = "Draft"
+table = [
+  ["Item", "Progress", "State", "Note"],
+  ["Not started", { harvey = 0 }, { mark = "ng" }, "nothing yet"],
+  ["A quarter in", { harvey = 1 }, { mark = "partial" }, "the first part"],
+  ["Halfway", { harvey = 2 }, { mark = "partial" }, "as planned"],
+  ["Nearly there", { harvey = 3 }, { mark = "ok" }, "one thing left"],
+  ["Done", { harvey = 4 }, { mark = "ok" }, "closed"],
+]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+kicker = "04 | 札"
+title = "札は題の帯の右端に立ち、題はそのぶん狭い幅で折れる。札の下へは回り込まない"
+sticker = "イメージ"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = ["札の中の字", "本文の大きさで、灰の細枠に灰の字"]
+[[pages.rows.cells]]
+table = [["項目", "状態"], ["設計", { mark = "ok" }], ["試作", { harvey = 2 }]]

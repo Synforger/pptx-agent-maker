@@ -25,7 +25,7 @@ from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 
 from ..layout.parts.elements import Bar, Diamond, Element, Figure, Fill, Table, Text
-from ..layout.base.tokens import DEFAULT, Theme
+from ..layout.base.tokens import DEFAULT, MARK_FACE, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
 #: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)
@@ -223,14 +223,34 @@ def _table(slide, element: Table, theme: Theme) -> None:
             cell.fill.solid()
             cell.fill.fore_color.rgb = _colour(_cell_colour(theme, heading, r))
             cell.text = value
+            mark = (r, c) in element.marks
             paragraph = cell.text_frame.paragraphs[0]
             paragraph.alignment = PP_ALIGN.LEFT
             for run in paragraph.runs:
                 run.font.size = Pt(theme.type.body)
                 run.font.bold = heading
-                run.font.name = theme.type.family
+                run.font.name = MARK_FACE if mark else theme.type.family
                 ink = theme.palette.paper if heading else theme.palette.ink
                 run.font.color.rgb = _colour(element.highlight.get((r, c)) or ink)
+                if mark:
+                    _every_script(run, MARK_FACE)
+
+
+def _every_script(run, face: str) -> None:
+    """Name the face for every script a run may be set in, not the Latin one alone.
+
+    ⚠ **印の字 (= ○ ✓ △) を、PowerPoint は欧文の書体で置くとは限らない。**東アジアの書体か記号の
+    書体に回されると、名指ししていない側はテーマの書体になり、その書体に字形が無ければ別の書体へ
+    落ちる。3 つとも名指しして、どこで開いても同じ字形にする。
+
+    並びは決まっている (= `latin` `ea` `cs` `sym`)。順を違えた file を PowerPoint は修復しようとする。
+    """
+    properties = run._r.get_or_add_rPr()
+    latin = properties.find(qn("a:latin"))
+    east = properties.makeelement(qn("a:ea"), {"typeface": face})
+    symbol = properties.makeelement(qn("a:sym"), {"typeface": face})
+    latin.addnext(east)
+    east.addnext(symbol)
 
 
 def _cell_colour(theme: Theme, heading: bool, row: int) -> str:

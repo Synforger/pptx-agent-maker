@@ -44,6 +44,14 @@ class Figure(Element):
     aspect: float
 
 
+class Mark(str):
+    """A status mark in a table cell (= a Harvey ball, or good / partly / bad): one character.
+
+    文字のまま表を通るので、幅も高さもほかのセルと同じ数え方で測られ、寄せもほかのセルと同じ。
+    印であることだけを型で持ち、置く時に、印の字形を持つ書体で書く。
+    """
+
+
 @dataclass(frozen=True)
 class Table(Element):
     rows: tuple[tuple[str, ...], ...]
@@ -51,6 +59,8 @@ class Table(Element):
     highlight: dict[tuple[int, int], str] = field(default_factory=dict)
     #: 列ごとの幅 (= 中身の長さで配る。空なら均等)
     widths: tuple[int, ...] = ()
+    #: 状態の印が入っているセル (= 行, 列)
+    marks: frozenset[tuple[int, int]] = frozenset()
 
 
 @dataclass(frozen=True)

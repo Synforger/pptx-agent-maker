@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable
 
 from ...base.tokens import DEFAULT, Theme
+from ...parts.elements import Mark
 from ...parts.look import Style, TONES
 from ...parts.page import Card
 from .registry import PageTypeError
@@ -58,11 +59,49 @@ class Spec:
         return out
 
     def rows(self, key: str = "table") -> list[list[str]]:
-        return [[str(cell) for cell in row] for row in self.data[key]]
+        return read_table(self.data[key], key)
 
     def cards(self) -> list[Card]:
         return [read_card(self, item, f"cards: card {number}")
                 for number, item in enumerate(self.data["cards"], start=1)]
+
+
+#: 表のセルに書ける状態の印。`harvey` は 4 分の幾つが済んだか (= ハーベイボール。0 は空、4 は全部)
+HARVEY = "\u25cb\u25d4\u25d1\u25d5\u25cf"
+#: `mark` は良い・半ば・悪い。⚠ **良いは ○ で書かない** ― ハーベイボールの「まだ何も」と同じ字になる
+MARKS = {"ok": "\u2713", "partial": "\u25b3", "ng": "\u00d7"}
+
+
+def read_cell(value, what: str) -> str:
+    """One cell of a table: its words, or the status mark it asks for.
+
+    印は `{ harvey = 3 }` か `{ mark = "ok" }` と書く。**印の字そのものを書かせない** ― 人ごとに
+    違う字 (= ◯ と ○、✔ と ✓) が混ざり、書体によっては字形が無い。
+    """
+    if not isinstance(value, dict):
+        return str(value)
+    if set(value) == {"harvey"}:
+        level = value["harvey"]
+        if isinstance(level, bool) or not isinstance(level, int) or not 0 <= level < len(HARVEY):
+            raise PageTypeError(
+                f"{what}: `harvey` is a whole number from 0 to {len(HARVEY) - 1} (= how many quarters "
+                f"are filled), not {level!r}")
+        return Mark(HARVEY[level])
+    if set(value) == {"mark"}:
+        if value["mark"] not in MARKS:
+            raise PageTypeError(f"{what}: `mark` is one of {', '.join(MARKS)}, not {value['mark']!r}")
+        return Mark(MARKS[value["mark"]])
+    raise PageTypeError(
+        f"{what} is {value!r} — a cell is its words, or one mark: {{ harvey = 0 to {len(HARVEY) - 1} }} "
+        f"or {{ mark = {' | '.join(repr(name) for name in MARKS)} }}")
+
+
+def read_table(rows, what: str) -> list[list[str]]:
+    """A table as written: rows of cells, each cell read by `read_cell`."""
+    if not isinstance(rows, list) or not rows or not all(isinstance(row, list) and row for row in rows):
+        raise PageTypeError(f"{what}: a table is a list of rows, each a list of cells")
+    return [[read_cell(cell, f"{what}: row {r}, column {c}") for c, cell in enumerate(row, start=1)]
+            for r, row in enumerate(rows, start=1)]
 
 
 def only_keys(item, allowed: set, what: str, hint: str = "") -> None:

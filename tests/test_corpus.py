@@ -20,7 +20,7 @@ from pptx_agent_maker.layout import types  # noqa: E402
 from pptx_agent_maker.layout.types.bodies.compose import BODIES, PARTS  # noqa: E402
 from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import TYPES, EXTRA_KEYS, FRAME_KEYS  # noqa: E402
-from pptx_agent_maker.layout.types.core.read import LOOK_KEYS  # noqa: E402
+from pptx_agent_maker.layout.types.core.read import HARVEY, LOOK_KEYS, MARKS  # noqa: E402
 from pptx_agent_maker.project.files.manifest import KINDS  # noqa: E402
 
 CORPUS = REPO / "tests" / "corpus"
@@ -110,6 +110,15 @@ class TheCorpusUsesEverything(unittest.TestCase):
         self.assertTrue(named, "the corpus names no ground of its own")
         used = {table["tone"] for table in tables(DECLARED) if "tone" in table}
         self.assertEqual(set(), (set(TONES) | named) - used)
+
+    def test_every_mark_a_cell_may_hold(self) -> None:
+        written = [cell for table in tables(DECLARED) for key in ("harvey", "mark") if key in table
+                   for cell in [(key, table[key])]]
+        self.assertEqual({("harvey", level) for level in range(len(HARVEY))} | {("mark", name) for name in MARKS},
+                         set(written))
+        in_a_cell = [value for cell in CELLS if "table" in cell for row in cell["table"] for value in row
+                     if isinstance(value, dict)]
+        self.assertTrue(in_a_cell, "no table laid into a cell holds a mark")
 
     def test_every_picture_it_carries(self) -> None:
         """⚠ 使われない絵は、見本が何を踏んでいるかを読む人を迷わせる (= 消す)。"""

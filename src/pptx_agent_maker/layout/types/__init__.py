@@ -43,7 +43,7 @@ from ..base.geometry import Rect
 from ..base.tokens import DEFAULT, Theme
 from ..parts.page import Page
 from .core.frame import place_cards, place_legend, place_trailing, reserve_legend, reserve_trailing
-from .core.read import Spec
+from .core.read import MARKS, Spec
 from .core.registry import check_keys, EXTRA_KEYS, FRAME_KEYS, PageTypeError, TYPES
 from . import bodies  # noqa: F401 (= 本体の file を読むと、その型が登録される)
 
@@ -75,12 +75,19 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
     if not title:
         raise PageTypeError(f"{name}: `title` is missing — every page says what it is")
 
+    sticker = data.get("sticker", "")
+    if not isinstance(sticker, str):
+        raise PageTypeError(
+            f"{name}: `sticker` is {sticker!r} — a page carries one sticker, written as its words "
+            '(= sticker = "Draft")')
+
     page = Page(
         str(title), theme,
         kicker=str(data.get("kicker", "")),
         condition=str(data.get("condition", "")),
         conclusion=str(data.get("conclusion", "")),
         footer=str(data.get("footer", "")),
+        sticker=sticker.strip(),
         needs_figure=wants_figure,
     )
     spec = Spec(data, asset, aspect, theme)
@@ -104,5 +111,7 @@ def describe() -> str:
         lines.append(f"  {name:<12} needs: {needed:<10} also reads: {own:<10}"
                      f"{'' if figure else '  (may carry no picture)'}")
     lines.append(f"  on any type: {', '.join(sorted(EXTRA_KEYS))}")
+    lines.append("  a table's cell: its words, or one mark — { harvey = 0 to 4 } (= quarters filled) "
+                 f"or {{ mark = {' | '.join(MARKS)} }}")
     lines.append(f"  the frame:   {', '.join(sorted(FRAME_KEYS - {'type', 'kind'}))}")
     return "\n".join(lines)

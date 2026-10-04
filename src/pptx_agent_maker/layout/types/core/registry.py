@@ -14,7 +14,7 @@ Filler = Callable[[Page, "Spec", Rect], None]
 
 #: 枠の宣言 (= 書かなければその帯は取られない)
 FRAME_KEYS = frozenset({"type", "kind", "title", "kicker", "condition", "conclusion",
-                        "footer", "replace", "legend"})
+                        "footer", "replace", "legend", "sticker"})
 
 
 #: 本体に添えられるもの (= **どの型でも**読まれる。共通の処理が拾う)
