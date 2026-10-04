@@ -6,15 +6,17 @@
 
 An entire deck's look is this file. Change a token, every page moves together.
 
-A project may swap two of them for its own — the typeface and the palette, through
-`theme_from` at the bottom. Sizes and spacing stay here: a project that can move its
-own margins is a project whose pages change shape from one round to the next.
+A project may set three things for its own through `theme_from` at the bottom: the
+typeface, the palette, and how large the type is — by saying what the deck is for
+(`use`), and, role by role, with a size of its own. Margins and spacing stay here: a
+project that can move its own margins is a project whose pages change shape from one
+round to the next.
 """
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field, fields, replace
 from typing import ClassVar
 
 from .geometry import Rect, cm, pt
@@ -103,14 +105,32 @@ class Type:
     stage: float = 14
     marker: float = 28
     body: float = 12
-    #: 線表の文字 (= 棒・印・帯・期間・日付の名前)。**頁に収まる最初の大きさ**を採る ― 余った
-    #: 高さは文字にも配り、詰まった頁は本文の大きさで組む。これより小さくはしない
-    plan: tuple[float, ...] = (14, 12)
     #: 出所と脚注、絵の下の説明だけ。頁の中身 (= 箱の本文、線表の名前) には使わない ― 席から
     #: 読める下限で、実物のデッキでは「文字が小さい」と差し戻された
     caption: float = 10
     minimum: float = 10
     family: str = "Meiryo"
+
+    @property
+    def plan(self) -> tuple[float, ...]:
+        """線表の文字 (= 棒・印・帯・期間・日付の名前) の大きさ、大きい順。
+
+        **頁に収まる最初の大きさ**を採る ― 余った高さは文字にも配り、詰まった頁は本文の大きさで
+        組む。これより小さくはしない。段の名前の大きさと本文の大きさの 2 つから出るので、どちらかを
+        案件が変えれば線表も付いて行く。
+        """
+        return tuple(sorted({self.stage, self.body}, reverse=True))
+
+
+#: 資料の使い方ごとの文字の大きさ。`read` は手元で読ませる資料 (= 既定)、`present` は映して話す
+#: 資料 ― 離れた席から読むので全部が 1.3〜1.5 倍で、載る量はそのぶん減る (= 要点だけを載せる)。
+#: 案件は `[theme] use` でどちらかを選ぶ
+USES = {
+    "read": Type(),
+    "present": Type(title=32, heading=24, stage=20, marker=36, body=18, caption=14, minimum=14),
+}
+#: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
+SIZED = ("title", "heading", "stage", "body", "caption")
 
 
 #: 道具が持つ色の役 (= 頁の `tone` にいつでも書ける名前)。案件はこのほかに、意味の名前を付けた
@@ -366,7 +386,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds")
+_MINE = ("font", "palette", "grounds", "use", "type")
 
 
 class ThemeError(ValueError):
@@ -374,11 +394,15 @@ class ThemeError(ValueError):
 
 
 def theme_from(settings: dict | None) -> Theme:
-    """The look a project sets for itself: its typeface and its colours, nothing else.
+    """The look a project sets for itself: its typeface, its colours, and how large its type is.
 
-    ⚠ **寸法と文字の大きさは受け取らない。**案件ごとに余白と級数が動くと、同じ役割の
-    頁が週をまたいで別の形になる (= 前の世代が壊れた道)。**見た目 (= どの書体で、どの色で)
-    は案件のもの、頁の割り方はツールのもの**という線をここで引く。
+    ⚠ **余白と間隔は受け取らない。**案件ごとに余白が動くと、同じ役割の頁が週をまたいで別の形に
+    なる (= 前の世代が壊れた道)。**見た目 (= どの書体で、どの色で、どの大きさで) は案件のもの、
+    頁の割り方はツールのもの**という線をここで引く。
+
+    文字の大きさは**資料の使い方**から決まる (= `use`。手元で読ませるか、映して話すか)。役ごとの
+    上書き (= `[theme.type]`) も受け取るが、決める所は案件のこの 1 か所で、頁ごと・箱ごとには
+    変えられない ― そこが動くと、同じ役の字が頁によって違う大きさになる。
 
     ⚠ **知らないキーは捨てずに拒む。**綴り違いを黙って落とすと、書いた人は見た目を変えた
     つもりで、焼いた頁は既定のまま出る。
@@ -402,10 +426,53 @@ def theme_from(settings: dict | None) -> Theme:
                 'with no "#", as in "1F5FA9"'
             )
 
+    type = replace(_sizes(settings.get("use", "read"), settings.get("type")), family=family)
     return Theme(
-        type=Type(family=family),
+        type=type,
         palette=Palette(**{name: str(value).upper() for name, value in colours.items()}),
+        spacing=_furniture(type),
         grounds=_grounds(settings.get("grounds")),
+    )
+
+
+def _sizes(use, declared) -> Type:
+    """The type sizes of a deck made for this use, with the project's own laid over them.
+
+    ⚠ **下限より小さい大きさは拒む。**下限は使い方が決める (= 映す資料は、読ませる資料より高い)。
+    小さくできる口が在ると、載り切らない頁は字を縮めて通され、席から読めない頁が戻ってくる。
+    """
+    if use not in USES:
+        raise ThemeError(
+            f"theme.use is {use!r} — a deck is made to be {' or '.join(repr(name) for name in USES)} "
+            "(= read at a desk, or shown on a screen and spoken to)")
+    declared = declared or {}
+    if not isinstance(declared, dict):
+        raise ThemeError("theme.type is a table of sizes in points, as in body = 14")
+    _refuse_unknown(sorted(set(declared) - set(SIZED)), "theme.type", SIZED)
+    floor = USES[use].minimum
+    for name, value in declared.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ThemeError(f"theme.type.{name} is {value!r} — a size is a number of points, as in 14")
+        if value < floor:
+            raise ThemeError(
+                f"theme.type.{name} is {value:g}pt, below the {floor:g}pt floor of a deck made to be "
+                f"{use} — nothing smaller is readable there; say less on the page instead")
+    return replace(USES[use], **declared)
+
+
+def _furniture(type: Type) -> Spacing:
+    """The spacing of a deck set in these sizes: the bands grow with the type that sits in them.
+
+    題の帯・条件と結論の帯・出所の帯の高さは、そこに置く字の大きさに比例する (= 読ませる資料の
+    大きさのとき、今までの高さ)。字だけ大きくして帯をそのままにすると、字が帯からはみ出す。
+    余白と、物どうしの間隔は動かない。
+    """
+    base, read = Spacing(), USES["read"]
+    return replace(
+        base,
+        title_height=round(base.title_height * type.title / read.title),
+        band_height=round(base.band_height * type.heading / read.heading),
+        footer_height=round(base.footer_height * type.caption / read.caption),
     )
 
 

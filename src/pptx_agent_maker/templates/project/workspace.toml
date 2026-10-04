@@ -25,6 +25,15 @@ assets = "assets"       # images and other material, one folder per round
 #
 # [theme.palette]
 # accent = "0092D1"     # the colour that marks a reading (= also the table header)
+#
+# How large the type is follows from what the deck is for. Left unsaid it is a deck
+# to be read at a desk; a deck shown on a screen is set larger throughout, and holds less.
+#
+# [theme]
+# use = "present"       # "read" (the default) or "present"
+#
+# [theme.type]          # a size of the project's own, role by role, in points
+# body = 20             # title / heading / stage / body / caption
 
 # Words the specimen leaves behind. A copied page that still says one of these
 # was never reworded, and the check after the build stops it.
