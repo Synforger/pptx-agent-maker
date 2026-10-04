@@ -52,6 +52,21 @@ class Mark(str):
     """
 
 
+class Shade(str):
+    """Words in a table cell that stand on a ground as deep as the cell says (= `level` quarters of the accent).
+
+    印と同じく、字のまま表を通る (= 幅も高さもほかのセルと同じに測られる)。濃さだけを持ち、置く時に
+    地の色と、その上で読める字の色が決まる。
+    """
+
+    level: int
+
+    def __new__(cls, words: str, level: int) -> "Shade":
+        cell = super().__new__(cls, words)
+        cell.level = level
+        return cell
+
+
 @dataclass(frozen=True)
 class Table(Element):
     rows: tuple[tuple[str, ...], ...]
@@ -61,6 +76,8 @@ class Table(Element):
     widths: tuple[int, ...] = ()
     #: 状態の印が入っているセル (= 行, 列)
     marks: frozenset[tuple[int, int]] = frozenset()
+    #: 地の濃さを言ったセル: (行, 列) → 4 分の幾つか (= 0 は持たない)
+    shades: dict[tuple[int, int], int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

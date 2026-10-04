@@ -263,3 +263,16 @@ highlight = 2
 highlight_tone = "accent"
 numbers = "circled"
 why = "an agenda's two looks: the chapter marked by its ground, the numbers in circles"
+
+[[pages]]
+kind = "declare"
+type = "board"
+title = "Cells that stand on a ground as deep as their value"
+table = [
+  ["Region", "Last month", "This month"],
+  ["North", { text = "12%", shade = 1 }, { text = "48%", shade = 2 }],
+  ["South", { text = "71%", shade = 3 }, { text = "96%", shade = 4 }],
+  ["West", { text = "3%", shade = 0 }, "―"],
+]
+footer = "made up for the corpus"
+why = "a table whose cells say how deep their ground is"

@@ -196,6 +196,16 @@ class Palette:
         """
         return self.ink if contrast(ground, self.ink) >= contrast(ground, self.paper) else self.paper
 
+    #: 表のセルの地の濃さの段 (= 差し色を紙の色へ、この数に割って薄める。`shade`)
+    SHADES: ClassVar[int] = 4
+
+    def shade(self, level: int) -> str:
+        """The accent thinned toward the paper: `level` parts of `SHADES` are accent (= 0 is the paper)."""
+        paper, accent = ([int(colour[index:index + 2], 16) for index in (0, 2, 4)]
+                         for colour in (self.paper, self.accent))
+        return "".join(f"{round(low + (high - low) * level / self.SHADES):02X}"
+                       for low, high in zip(paper, accent))
+
     def edge(self, ground: str) -> str:
         """The colour of the line round a light ground: the same hue, further from white."""
         channels = (int(ground[index:index + 2], 16) for index in (0, 2, 4))
