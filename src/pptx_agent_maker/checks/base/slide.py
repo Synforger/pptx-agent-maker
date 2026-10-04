@@ -94,8 +94,9 @@ class BuiltSlide:
     def title(self) -> str | None:
         """The XML of the page's title placeholder, when it has one that says something.
 
-        ⚠ **宣言で組んだ頁には無い** (= 白紙に文字の枠として置くので、どれが題かは焼いた file から
-        は分からない)。あるのは、テンプレートから複製した頁と、過去のデッキから輸入した頁。
+        あるのは、テンプレートから複製した頁と、過去のデッキから輸入した頁、そして**題の枠を持つ
+        レイアウトに乗った、宣言で組んだ頁** (= 題をその枠として書く)。題の枠の無いレイアウトに乗った
+        宣言の頁には無い (= 文字の枠として置くので、どれが題かは焼いた file からは分からない)。
         """
         for body in TEXT_SHAPE.findall(self.xml):
             if TITLE_PLACEHOLDER.search(body) and "".join(TEXT.findall(body)).strip():

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import tempfile
+from dataclasses import replace
 from pathlib import Path
 
 from ..layout import types
@@ -18,6 +19,7 @@ from ..project.files.workspace import Workspace, WorkspaceError
 from ..review.take.fold import keep_safe
 from ..review.base.ledger import remember, touched_by_hand
 from .base.look import merged
+from .base.under import under_of
 from ..write import add_page, aspect, new_deck, save
 from . import Deck, Slide
 
@@ -27,11 +29,14 @@ class HandEditedError(RuntimeError):
 
 
 def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
-    """The look this manifest's declared pages are built in: the specimen's, with the project's laid over."""
+    """The look this manifest's declared pages are built in: the specimen's, with the project's laid over.
+
+    見本からはもう 1 つ読む ― 型の頁が乗るレイアウトが持つ物 (= 題の枠と、印字される物。`base/under.py`)。
+    """
     specimen = (workspace.root / manifest.specimen).resolve()
     if not specimen.is_file():
         raise ManifestError(f"specimen not found: {specimen}")
-    return theme_from(merged(specimen, workspace.look))
+    return replace(theme_from(merged(specimen, workspace.look)), under=under_of(specimen))
 
 
 def build(workspace: Workspace, manifest: Manifest) -> Path:

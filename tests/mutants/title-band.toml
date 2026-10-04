@@ -5,47 +5,47 @@ tests = ["tests/test_page.py", "tests/test_story.py"]
 [[mutant]]
 name = "a folded title takes the band of one line"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.title)"
+old = "folded = (lines - 1) * self.theme.line_height(t.title)"
 new = "folded = 0"
 
 [[mutant]]
 name = "every folded line takes a line of the body's type, not of the title's"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.title)"
-new = "folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.body)"
+old = "folded = (lines - 1) * self.theme.line_height(t.title)"
+new = "folded = (lines - 1) * self.theme.line_height(t.body)"
 
 [[mutant]]
 name = "the small words above a title grow with the band"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "kick, main = bar.split_top(s.kicker_height)"
-new = "kick, main = bar.rows([1, 2])"
+old = "kick, main = clear.split_top(s.kicker_height)"
+new = "kick, main = clear.rows([1, 2])"
 
 [[mutant]]
 name = "under the small words, the title's box stops where a band of one line would"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "kick, main = bar.split_top(s.kicker_height)"
-new = "kick, main = Rect(bar.left, bar.top, bar.width, s.title_height).split_top(s.kicker_height)"
+old = "kick, main = clear.split_top(s.kicker_height)"
+new = "kick, main = Rect(clear.left, clear.top, clear.width, s.title_height).split_top(s.kicker_height)"
 
 [[mutant]]
 name = "the small words take a third of the band, whatever their own size"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "kick, main = bar.split_top(s.kicker_height)"
-new = "kick, main = bar.split_top(s.title_height // 3)"
+old = "kick, main = clear.split_top(s.kicker_height)"
+new = "kick, main = clear.split_top(s.title_height // 3)"
 
 [[mutant]]
 name = "a title is counted across the whole slide, margins included"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "room = self.frame().width - 2 * self.spacing.text_inset\n        if sticker:"
-new = "room = self.slide.width\n        if sticker:"
+old = "room = right - left - 2 * s.text_inset\n"
+new = "room = self.slide.width\n"
 
 [[mutant]]
 name = "a title is counted without the room its own box keeps at each side"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "room = self.frame().width - 2 * self.spacing.text_inset\n        if sticker:"
-new = "room = self.frame().width\n        if sticker:"
+old = "room = right - left - 2 * s.text_inset\n"
+new = "room = right - left\n"
 
 [[mutant]]
 name = "a title is counted in the light weight"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "return self.wraps(title, room, self.type.title, bold=True)"
-new = "return self.wraps(title, room, self.type.title, bold=False)"
+old = "needed = self.wraps(title, max(room, 1), self.type.title, bold=True)"
+new = "needed = self.wraps(title, max(room, 1), self.type.title, bold=False)"

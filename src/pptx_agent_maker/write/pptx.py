@@ -35,6 +35,9 @@ ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIG
 #: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)
 PRESET = {"rect": MSO_SHAPE.RECTANGLE, "home": MSO_SHAPE.PENTAGON, "chevron": MSO_SHAPE.CHEVRON}
 
+#: 文字の枠が上下に自分で取る余白 (= pptx の既定。左右は `Spacing.text_inset`)
+TEXT_INSET_Y = 45720
+
 #: 「スタイルなし・罫線なし」。PowerPoint が新しい表に付ける既定のスタイルは
 #: **テーマの accent1 で見出しを塗る**ので、色の出どころが palette と 2 つに割れる。
 NO_TABLE_STYLE = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"
@@ -190,15 +193,46 @@ def _text(slide, element: Text, theme: Theme) -> None:
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(0)
     frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.kind in {
         "band_text", "title", "caption", "label", "lane", "stage", "marker"} else MSO_ANCHOR.TOP
+    # 題は、乗るレイアウトに題の枠が在れば、その枠として書く (= 色・書体・太さはテンプレートのもの)
+    titled = element.kind == "title" and theme.under.title
     for index, line in enumerate(element.text.split("\n")):
         paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
         paragraph.alignment = ALIGN[element.align]
         run = paragraph.add_run()
         run.text = line
         run.font.size = Pt(element.size)
+        if titled:
+            continue
         run.font.bold = element.bold
         run.font.color.rgb = _colour(element.colour)
         run.font.name = theme.type.family
+    if titled:
+        _as_title(box, theme)
+
+
+def _as_title(box, theme: Theme) -> None:
+    """Turn a text box into the page's title placeholder, keeping the place and the size it was given.
+
+    ⚠ **継ぐのは見た目だけ** (= 色・書体・太さ・地)。位置と大きさ、折り返し、縦の寄せ、枠の余白はここが
+    書く ― 道具が行を数えて帯の高さを取った、その同じ枠に字が入るように。書かなければレイアウトの
+    題の枠の値を継ぎ、数えた行と実際の行が食い違う。
+    """
+    box.text_frame.auto_size = MSO_AUTO_SIZE.NONE
+    shape = box._element
+    # ⚠ python-pptx は既定と同じ余白を書き出さない。書かれない値はレイアウトから継ぐので、直に書く
+    body = shape.txBody.find(qn("a:bodyPr"))
+    for side, inset in (("lIns", theme.spacing.text_inset), ("tIns", TEXT_INSET_Y),
+                        ("rIns", theme.spacing.text_inset), ("bIns", TEXT_INSET_Y)):
+        body.set(side, str(inset))
+    shape.nvSpPr.cNvPr.set("name", "Title")
+    held = shape.nvSpPr.cNvSpPr
+    held.attrib.pop("txBox", None)
+    held.append(held.makeelement(qn("a:spLocks"), {"noGrp": "1"}))
+    shape.nvSpPr.nvPr.append(shape.nvSpPr.nvPr.makeelement(qn("p:ph"), {"type": "title"}))
+    for own in ("a:prstGeom", "a:noFill"):
+        found = shape.spPr.find(qn(own))
+        if found is not None:
+            shape.spPr.remove(found)
 
 
 def _figure(slide, element: Figure) -> None:

@@ -360,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(line)
             return 0
 
-        from .checks import report, run_all, run_declared
+        from .checks import report, run_all, run_built
 
         if args.command == "review" and args.apply:
             from .review.take.apply import ApplyError, apply
@@ -424,7 +424,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         # 焼いた deck を読み直す検査と、manifest を読む検査を、1 つの報告に並べる
         config = _checks(workspace)
-        findings = run_all(built_deck, config) + run_declared(manifest, theme_of(workspace, manifest), config)
+        findings = run_built(built_deck, manifest, theme_of(workspace, manifest), config)
         print(report(findings, declared=True))
         return 1 if findings else 0
     except (WorkspaceError, ManifestError, FileExistsError, FileNotFoundError,
