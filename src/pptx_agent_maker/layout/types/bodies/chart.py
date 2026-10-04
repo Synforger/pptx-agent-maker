@@ -277,10 +277,12 @@ def _plain(page: Page, plan: _Plan, what: str) -> tuple[tuple[Series, ...], bool
     number_format = _format(plan) if plan.labels else ""
     drawn = []
     for index, (name, values, tone) in enumerate(plan.series):
+        edge = ""
         if plan.highlight:
             colour = palette.accent if name == one_series else palette.muted
         elif tone:
-            colour = page.ground(tone)[0]
+            # 薄い地の系列は、箱と同じく地を濃くした色の枠を持つ (= 紙の上で棒の端が読める)
+            colour, _words, edge = page.ground(tone)
         elif index < len(UNSAID):
             colour = getattr(palette, UNSAID[index])
         else:
@@ -294,7 +296,7 @@ def _plain(page: Page, plan: _Plan, what: str) -> tuple[tuple[Series, ...], bool
             number_format=number_format,
             # 段の中に置く数字は、その段の地の上で読める方の色。段の境は紙の色の細い線で切る
             label_colour=palette.words_on(colour) if stacked else "",
-            outline=palette.paper if stacked else ""))
+            outline=edge or (palette.paper if stacked else "")))
     return tuple(drawn), len(drawn) > 1
 
 

@@ -31,8 +31,8 @@ new = "        elif True:\n            colour = getattr(palette, UNSAID[index % 
 [[mutant]]
 name = "a series' tone is not read"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "        elif tone:\n            colour = page.ground(tone)[0]\n"
-new = ""
+old = "            colour, _words, edge = page.ground(tone)"
+new = "            colour, _words, edge = palette.accent, \"\", \"\""
 
 [[mutant]]
 name = "the legend is there for one series too"
@@ -329,3 +329,9 @@ name = "a chart in a cell of a compose is not placed"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
 old = "            place_chart(page, spec, cell[\"chart\"], rect, f\"{what}, chart\")"
 new = "            pass"
+
+[[mutant]]
+name = "a series on a light ground is drawn with no edge"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            outline=edge or (palette.paper if stacked else \"\")))"
+new = "            outline=palette.paper if stacked else \"\"))"
