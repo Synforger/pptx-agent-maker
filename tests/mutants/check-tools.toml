@@ -102,3 +102,9 @@ name = "mutate: errors are not red"
 file = "scripts/check/mutate.py"
 old = 'counts["failed"] + counts["error"]'
 new = 'counts["failed"]'
+
+[[mutant]]
+name = "mutate: the tests read the tree that was not broken"
+file = "scripts/check/mutate.py"
+old = "filter(None, [str(tree / SOURCE), os.environ.get(\"PYTHONPATH\")])"
+new = "filter(None, [os.environ.get(\"PYTHONPATH\")])"

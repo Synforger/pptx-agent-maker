@@ -19,6 +19,9 @@ test が緑でも、その test が見張っているつもりの物を本当に
 ⚠ **壊すたびに新しい写しで流す。**同じ場所で書き換えて戻す形は、大きさの変わらない書き換えが
 同じ秒のうちに起きると、前の版の bytecode がそのまま読まれる (= 壊したのに緑)。
 
+⚠ **test には写しの実装を読ませる** (= 写しの `src/` を path の先頭に置く)。入れてある package を
+読む test は、放っておくと壊していない元の木を流し、どの壊し方も緑になる。
+
 ⚠ **赤の数は pytest の末尾の行から読む。**test の名前で拾うと、subTest の赤を取りこぼす。
 
 ⚠ **壊せなかった壊し方は、緑と同じく失敗に数える** (= 実装が動いて表が古くなった印。黙って
@@ -44,6 +47,9 @@ REPO = Path(__file__).resolve().parents[2]
 #: git の外に在る木を写すときに入らない folder (= 作り物の木を渡す test のため)
 NOT_SOURCE = frozenset({".git", ".venv", "venv", "__pycache__", ".pytest_cache", "build", "dist",
                         "node_modules"})
+
+#: 実装の在る folder (= 写しの中のこれを、test が読む先頭に置く)
+SOURCE = "src"
 
 _COUNT = re.compile(r"(\d+) (failed|errors?|passed)\b")
 
@@ -113,10 +119,14 @@ def _copy(root: Path, files: list[Path], to: Path) -> Path:
 
 def _run(tree: Path, tests: list[str]) -> Run:
     """Run the tests inside a copy and count from pytest's last line."""
+    # ⚠ **写しの実装を、Python が最初に見つける場所に置く。**自分で path を足さない test は、入れて
+    # ある package (= editable なら元の木) を読む。壊した写しではなく元を流すことになり、どの壊し方も
+    # 緑のまま残る
+    first = os.pathsep.join(filter(None, [str(tree / SOURCE), os.environ.get("PYTHONPATH")]))
     done = subprocess.run(
         [sys.executable, "-B", "-m", "pytest", *tests, "-q", "--no-header", "-p", "no:cacheprovider"],
         cwd=tree, capture_output=True, text=True,
-        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONPATH": first})
     said = done.stdout + done.stderr
     last = next((line for line in reversed(done.stdout.splitlines()) if line.strip()), "")
     counts = {"failed": 0, "error": 0, "passed": 0}

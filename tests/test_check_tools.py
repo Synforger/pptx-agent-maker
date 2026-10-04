@@ -10,11 +10,13 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import io
+import os
 import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[1]
 ASSETS = REPO / "tests" / "corpus" / "assets"
@@ -163,6 +165,17 @@ class Doubling(unittest.TestCase):
                 self.assertEqual(double(number), number + number)
 '''
 
+#: 自分では path を足さない test (= 入れてある package を読むつもりで書かれた test と同じ形)
+TRUSTING = '''import unittest
+
+from thing import double
+
+
+class Doubling(unittest.TestCase):
+    def test_a_number(self):
+        self.assertEqual(double(2), 4)
+'''
+
 ALWAYS_RED = '''import unittest
 
 
@@ -196,6 +209,16 @@ class Mutating(unittest.TestCase):
 
     def test_a_mutant_only_a_subtest_notices_is_red(self) -> None:
         self.assertEqual(0, self._mutate(NOTICED))
+        self.assertIn("red", self._line(NOTICED))
+
+    def test_the_tests_read_the_copy_even_when_python_finds_the_original_first(self) -> None:
+        """⚠ **自分で path を足さない test は、Python が先に見つけた実装を読む。**checkout を editable で
+        入れた環境では、それは元の木 ― 壊した写しではなく壊していない元を読むので、どの壊し方も緑の
+        まま残った (= 見張っている test を「見ていない」と言う偽の緑)。
+        """
+        (self.root / "tests" / "test_thing.py").write_text(TRUSTING, encoding="utf-8")
+        with mock.patch.dict(os.environ, {"PYTHONPATH": str(self.root / "src")}):
+            self.assertEqual(0, self._mutate(NOTICED), "\n".join(self.said))
         self.assertIn("red", self._line(NOTICED))
 
     def test_a_mutant_no_test_notices_is_reported_and_counted(self) -> None:
