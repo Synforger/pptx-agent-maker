@@ -22,9 +22,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from pptx_agent_maker.__main__ import main  # noqa: E402
 from pptx_agent_maker.project import Workspace, create  # noqa: E402
-from pptx_agent_maker.project import recipes  # noqa: E402
-from pptx_agent_maker.project.manifest import Manifest, ManifestError  # noqa: E402
-from pptx_agent_maker.project.recipes import RecipeError, expand  # noqa: E402
+from pptx_agent_maker.project.files import recipes  # noqa: E402
+from pptx_agent_maker.project.files.manifest import Manifest, ManifestError  # noqa: E402
+from pptx_agent_maker.project.files.recipes import RecipeError, expand  # noqa: E402
 
 DATA = Path(__file__).resolve().parent / "data"
 

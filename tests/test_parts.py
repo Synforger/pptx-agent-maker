@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from pptx_agent_maker.review import compare_parts, render_parts
-from pptx_agent_maker.review import parts as parts_module
+from pptx_agent_maker.review.diff import parts as parts_module
 
 SLIDE = ('<p:sld><p:cSld><p:spTree>'
          '<p:sp><p:nvSpPr><p:cNvPr id="{id}" name="titlebar{id}"/></p:nvSpPr>'

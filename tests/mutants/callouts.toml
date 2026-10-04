@@ -1,0 +1,195 @@
+# A few words pointing at one point of a chart: where the point is worked out to be, and what is written out.
+
+tests = ["tests/test_chart.py"]
+
+# -- where things go (layout/types/bodies/chart.py) ------------------------------
+
+[[mutant]]
+name = "the words are given no band of their own above the chart"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        frame = Rect(rect.left, rect.top + band, rect.width, rect.height - band)"
+new = "        frame = rect"
+
+[[mutant]]
+name = "the words start at their bar instead of standing over it"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "words = Rect(min(max(round(x - width / 2), rect.left)"
+new = "words = Rect(min(max(round(x), rect.left)"
+
+[[mutant]]
+name = "words near the edge run out of the chart"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "words = Rect(min(max(round(x - width / 2), rect.left), max(rect.right - width, rect.left)),"
+new = "words = Rect(max(round(x - width / 2), 0),"
+
+[[mutant]]
+name = "the line runs through the number on its bar"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            clear = (line if outside else 0) + s.bar_pad_y"
+new = "            clear = s.bar_pad_y"
+
+[[mutant]]
+name = "bars are placed as if the categories had no gap between them"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "return slot * category + bar * (GAP / 200 + series + 0.5)"
+new = "return slot * category + bar * (series + 0.5)"
+
+[[mutant]]
+name = "every series is pointed at in the middle of its category"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if plan.kind == \"line\" or members == 1:"
+new = "        if True:"
+
+[[mutant]]
+name = "a stacked column is pointed at the top of its tallest part"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "reach = float(sum(max(value, 0) for value in column))"
+new = "reach = float(max(column))"
+
+[[mutant]]
+name = "a step down in a waterfall is pointed at where it ends"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "top = float(running) if category in plan.totals else float(max(before, running))"
+new = "top = float(running)"
+
+[[mutant]]
+name = "a bar below zero is pointed at its far end"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "found.append([(value if plan.kind == \"line\" else max(value, 0), value) for value in column])"
+new = "found.append([(value, value) for value in column])"
+
+[[mutant]]
+name = "no room is left above the tallest bar for its number"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    share = room / reach\n"
+new = "    share = 0\n"
+
+[[mutant]]
+name = "the value axis ends wherever the numbers end"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    high, low = math.ceil(round(high / step, 9)) * step, math.floor(round(low / step, 9)) * step"
+new = "    high, low = high, low"
+
+[[mutant]]
+name = "the steps of the axis are powers of ten only"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "for step in (1, 2, 5, 10) if step * power >= rough"
+new = "for step in (1, 10) if step * power >= rough"
+
+[[mutant]]
+name = "the numbers of the axis get no room beside the plot"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        left += max(theme.width(f\"{tick:,g}\") for tick in ticks) + s.gap_s"
+new = "        left += 0"
+
+[[mutant]]
+name = "the legend gets no room under the plot"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    below = (line + s.gap_s if legend else 0)"
+new = "    below = 0"
+
+[[mutant]]
+name = "on a bar chart the words hang below their bar"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "words = Rect(frame.right + s.gap_s, round(y - line / 2), width, line)"
+new = "words = Rect(frame.right + s.gap_s, round(y), width, line)"
+
+[[mutant]]
+name = "on a bar chart the line starts at the bar and runs through its number"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            start, end = round(x + clear), words.left - s.bar_pad_y"
+new = "            start, end = round(x), words.left - s.bar_pad_y"
+
+[[mutant]]
+name = "on a bar chart the first category is taken to be at the bottom"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            y = inner.top + along(category, series, inner.height)"
+new = "            y = inner.bottom - along(category, series, inner.height)"
+
+[[mutant]]
+name = "words that print over each other are placed"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            if apart.overlaps(other.words):"
+new = "            if False:"
+
+[[mutant]]
+name = "words wider than the chart are placed"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if not rect.contains(words):"
+new = "        if False:"
+
+# -- reading ---------------------------------------------------------------------
+
+[[mutant]]
+name = "one point takes two callouts"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if point in [(category, series) for category, series, _text in found]:"
+new = "        if False:"
+
+[[mutant]]
+name = "a callout that names no series points at the first"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if \"series\" not in item and len(names) > 1 and kind not in WHOLE:"
+new = "        if False:"
+
+[[mutant]]
+name = "a stacked column takes a callout that names a series"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if kind in WHOLE and \"series\" in item:"
+new = "        if False:"
+
+[[mutant]]
+name = "words on two lines are taken"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "if not isinstance(text, str) or not text.strip() or \"\\n\" in text:"
+new = "if not isinstance(text, str) or not text.strip():"
+
+# -- as written out (write/pptx.py) ----------------------------------------------
+
+[[mutant]]
+name = "the chart and its words are separate shapes"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    holder = slide.shapes.add_group_shape() if element.callouts else slide"
+new = "    holder = slide"
+
+[[mutant]]
+name = "the chart is written over the band its words stand in"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    frame = element.frame or element.rect"
+new = "    frame = element.rect"
+
+[[mutant]]
+name = "the plot is left for PowerPoint to place"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if element.pinned:\n        _pin(chart, element)\n"
+new = ""
+
+[[mutant]]
+name = "the plot is pinned by its outer edge, labels and all"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "(\"layoutTarget\", \"inner\")"
+new = "(\"layoutTarget\", \"outer\")"
+
+[[mutant]]
+name = "the top of the value axis is left for PowerPoint to choose"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    chart.value_axis.maximum_scale = pinned.high\n"
+new = ""
+
+[[mutant]]
+name = "the gap between categories is left to the reader's default"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        chart.plots[0]._element.find(qn(\"c:gapWidth\")).set(\"val\", str(pinned.gap))\n"
+new = ""
+
+[[mutant]]
+name = "the line of a callout is not drawn"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        if callout.line is not None:\n            _fill(holder, Fill(\"callout\", callout.line, element.colour), theme)\n"
+new = ""
+
+[[mutant]]
+name = "the value axis of a bar chart runs across the top"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        chart.value_axis._element.find(qn(\"c:crosses\")).set(\"val\", \"max\")\n"
+new = ""

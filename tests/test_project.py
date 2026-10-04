@@ -171,7 +171,7 @@ class TheCommandLineReachesTheProject(unittest.TestCase):
         return code, out.getvalue()
 
     def test_show_names_every_folder_the_workspace_has(self) -> None:
-        from pptx_agent_maker.project.workspace import FOLDERS
+        from pptx_agent_maker.project.files.workspace import FOLDERS
         code, printed = self._run("show", str(self.root))
         self.assertEqual(0, code)
         for folder in FOLDERS:

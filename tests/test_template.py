@@ -3,7 +3,7 @@
 ⚠ **プロジェクトテンプレートが pptx を 1 枚も持たない間は、`init` した直後の案件で最初に出るのが
 「テンプレートが無い」だった。**プロジェクトテンプレートは「写せば動く」ところまでを持つ。
 
-⚠ **見本は `layout/tokens.py` から焼いた派生物**なので、色や書体を変えて焼き直しを
+⚠ **見本は `layout/base/tokens.py` から焼いた派生物**なので、色や書体を変えて焼き直しを
 忘れると、複製した頁 (= 見本の見た目) と型で組んだ頁 (= tokens の見た目) が割れる。
 ここがその番人で、鳴ったら `task specimen` を実行する。
 """
@@ -23,10 +23,10 @@ sys.path.insert(0, str(REPO / "src"))
 
 import pptx_agent_maker  # noqa: E402
 from pptx_agent_maker.deck.build import build  # noqa: E402
-from pptx_agent_maker.project.scaffold import TEMPLATE as INSTALLED  # noqa: E402
-from pptx_agent_maker.layout.tokens import DEFAULT  # noqa: E402
+from pptx_agent_maker.project.commands.scaffold import TEMPLATE as INSTALLED  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DEFAULT  # noqa: E402
 from pptx_agent_maker.project import Workspace, create  # noqa: E402
-from pptx_agent_maker.project.manifest import Manifest  # noqa: E402
+from pptx_agent_maker.project.files.manifest import Manifest  # noqa: E402
 
 TEMPLATE = REPO / "src" / "pptx_agent_maker" / "templates" / "project"
 SPECIMEN = TEMPLATE / "specimen.pptx"
@@ -36,7 +36,7 @@ CLI = REPO / "src" / "pptx_agent_maker" / "__main__.py"
 
 def _baker():
     """The script that bakes the template's files (= not importable as a package)."""
-    spec = importlib.util.spec_from_file_location("baker", REPO / "scripts" / "bake-template.py")
+    spec = importlib.util.spec_from_file_location("baker", REPO / "scripts" / "generate" / "bake-template.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -133,7 +133,7 @@ class TheSpecimenMatchesTheTokensTest(unittest.TestCase):
 
     def test_reading_a_look_back_uses_the_same_table_that_wrote_it(self) -> None:
         """⚠ 焼く側と読む側で対応が割れると、テンプレートを差し替えたとき色が入れ替わる。"""
-        from pptx_agent_maker.deck.look import SLOTS
+        from pptx_agent_maker.deck.base.look import SLOTS
 
         written = dict(_baker().SCHEME)
         for slot, name in SLOTS:
@@ -144,6 +144,29 @@ class TheSpecimenMatchesTheTokensTest(unittest.TestCase):
     def test_the_master_is_set_in_the_toolkits_typeface(self) -> None:
         families = set(re.findall(r'<a:latin typeface="([^"]*)"', self.theme))
         self.assertEqual(families, {DEFAULT.type.family}, "run task specimen")
+
+
+class TheSpecimenIsWhatTheBakerMakesTodayTest(unittest.TestCase):
+    """⚠ **焼く層を直しても、配る見本は焼き直すまで古いまま。**図形がテーマの図形のスタイルを引かなく
+    なった後も、見本の表紙の帯だけはそれを引き続け、表紙を複製した頁にだけ、LibreOffice で焼いた絵に
+    影が出ていた。色と書体の番人 (= 上の class) は、頁の書き方の違いを見ていない。
+    """
+
+    COVER = "ppt/slides/slide1.xml"
+
+    def test_the_cover_is_written_the_way_a_page_is_written_today(self) -> None:
+        with tempfile.TemporaryDirectory() as scratch:
+            baked = _baker().make(Path(scratch) / "specimen.pptx")
+            with zipfile.ZipFile(baked) as archive:
+                today = archive.read(self.COVER).decode("utf-8")
+        with zipfile.ZipFile(SPECIMEN) as archive:
+            shipped = archive.read(self.COVER).decode("utf-8")
+        self.assertEqual(today.replace("><", ">\n<"), shipped.replace("><", ">\n<"),
+                         "the specimen was baked before the page writer last changed — run task specimen")
+
+    def test_no_shape_of_the_cover_leans_on_the_themes_shape_style(self) -> None:
+        with zipfile.ZipFile(SPECIMEN) as archive:
+            self.assertNotIn("<p:style>", archive.read(self.COVER).decode("utf-8"), "run task specimen")
 
 
 class TheTemplateBuildsTest(unittest.TestCase):

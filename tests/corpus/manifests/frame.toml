@@ -1,0 +1,129 @@
+# What surrounds a body: the frame's keys, and the extras any type may add.
+
+specimen = "specimen.pptx"
+out = "frame.pptx"
+
+[[pages]]
+kind = "copy"
+page = 1
+replace = [["案件名", "The corpus"], ["第 N 回 進捗報告", "The frame and the extras"]]
+why = "the cover is copied from the specimen and reworded"
+
+[[pages]]
+kind = "declare"
+type = "figure"
+kicker = "01 | Frame"
+title = "Every band at once: a condition above, a conclusion below"
+condition = "Fixed for this page: one sample, one setting"
+cards = [["First", "Cards sit above the body"], ["Second", "as tall as their own words"]]
+figure = "wide.png"
+caption = "How to read the picture, in one line"
+table = [["Item", "Value"], ["A", "1"], ["B", "2"]]
+note = "How to read the table, in one line"
+conclusion = "What the reader takes away"
+footer = "Source: the sheet the numbers came from"
+
+[[pages]]
+kind = "declare"
+type = "figures"
+title = "Cards in two rows, and the points under the body"
+cards = [
+  ["One", "first of four"],
+  ["Two", "second of four"],
+  { heading = "Three", body = "written as a table", tone = "band" },
+  { heading = "Four", body = "with an icon", icon = "circle.png" },
+]
+card_columns = 2
+figures = [["square.png", "left"], ["triangle.png", "right"]]
+points = ["The first reading", "The second reading", "    a detail under it"]
+note = "The points come first, then the note"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+kicker = "02 | 日本語"
+title = "題は結論の文で書く"
+condition = "条件の帯は題のすぐ下に置かれる"
+cards = [
+  ["決まったこと", "見出しと本文は語の切れ目で折り返す。全角は 1 文字ごとに折れる"],
+  ["残っていること", "本文が長いカードに、同じ段のカードの高さが揃う"],
+  ["次にやること", "短い本文"],
+]
+points = "一つめの要点\n二つめの要点"
+conclusion = "結論の帯は出所のすぐ上に置かれる"
+footer = "出所: 見本のための作り物"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "Named grounds bring their legend"
+cards = [
+  { heading = "Core", body = "kept in house", tone = "Inside" },
+  { heading = "Demo", body = "shown to partners", tone = "Outside" },
+  { heading = "Docs", body = "used by both", tone = "共通" },
+  { heading = "Review", body = "behind", tone = "Late" },
+]
+table = [["Ground", "Means"], ["Inside", "in house"], ["Outside", "partners"]]
+note = "The legend sits under the body, above the table"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "The same grounds, with the legend switched off"
+legend = false
+cards = [
+  { heading = "Core", tone = "Inside" },
+  { heading = "Demo", tone = "Outside" },
+]
+
+[[pages]]
+kind = "declare"
+type = "board"
+title = "A declared page may have its words swapped after it is built"
+table = [["Round", "Result"], ["<round>", "passed"]]
+replace = [["<round>", "Round 3"]]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "A title that folds onto a second line takes the room of two lines, and the body starts below it"
+cards = [
+  ["One line", "the band is as tall as it always was"],
+  ["Two lines", "the band grows by a line, and so the body starts lower"],
+]
+
+[[pages]]
+kind = "declare"
+type = "figure"
+kicker = "03 | 題の帯"
+title = "題が 2 行に折れた頁は、題の帯が 1 行ぶん伸びて、本体はそのぶん下から始まる。題の上の小さい字は動かない"
+condition = "条件の帯は、伸びた題の帯のすぐ下に置かれる"
+figure = "wide.png"
+caption = "絵は残った高さに収まる"
+
+[[pages]]
+kind = "declare"
+type = "board"
+title = "A sticker says what kind of page this is, and a cell may hold a mark"
+sticker = "Draft"
+table = [
+  ["Item", "Progress", "State", "Note"],
+  ["Not started", { harvey = 0 }, { mark = "ng" }, "nothing yet"],
+  ["A quarter in", { harvey = 1 }, { mark = "partial" }, "the first part"],
+  ["Halfway", { harvey = 2 }, { mark = "partial" }, "as planned"],
+  ["Nearly there", { harvey = 3 }, { mark = "ok" }, "one thing left"],
+  ["Done", { harvey = 4 }, { mark = "ok" }, "closed"],
+]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+kicker = "04 | 札"
+title = "札は題の帯の右端に立ち、題はそのぶん狭い幅で折れる。札の下へは回り込まない"
+sticker = "イメージ"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = ["札の中の字", "本文の大きさで、灰の細枠に灰の字"]
+[[pages.rows.cells]]
+table = [["項目", "状態"], ["設計", { mark = "ok" }], ["試作", { harvey = 2 }]]

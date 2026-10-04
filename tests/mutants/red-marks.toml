@@ -1,0 +1,27 @@
+# The red marks an imported page brought with it are dropped; a declared page keeps every shape it was given.
+
+tests = ["tests/test_deck.py"]
+
+[[mutant]]
+name = "a declared page loses its red shapes too"
+file = "src/pptx_agent_maker/deck/__init__.py"
+old = "        if not relayout:\n            page.drop_marks()"
+new = "        page.drop_marks()"
+
+[[mutant]]
+name = "an imported page keeps the red marks it came with"
+file = "src/pptx_agent_maker/deck/__init__.py"
+old = "        if not relayout:\n            page.drop_marks()"
+new = "        pass"
+
+[[mutant]]
+name = "one red is not dropped"
+file = "src/pptx_agent_maker/deck/pages/text.py"
+old = "(?:FF0000|C00000)"
+new = "(?:FF0000)"
+
+[[mutant]]
+name = "every shape of a page with a red mark is dropped"
+file = "src/pptx_agent_maker/deck/pages/text.py"
+old = 'r"<p:sp>(?:(?!</p:sp>).)*?(?:FF0000|C00000)(?:(?!</p:sp>).)*?</p:sp>", re.S)'
+new = 'r"<p:sp>.*(?:FF0000|C00000).*</p:sp>", re.S)'

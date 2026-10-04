@@ -113,12 +113,27 @@ tasks:
   gen-notices:
     desc: Regenerate THIRD_PARTY_NOTICES.md from the installed dep tree (python + node)
     cmds:
-      - python3 scripts/gen-third-party-notices.py
+      - python3 scripts/generate/gen-third-party-notices.py
 
   specimen:
     desc: Re-bake the specimen and picture the project template ships with (after a token change)
     cmds:
-      - .venv/bin/python3 scripts/bake-template.py
+      - .venv/bin/python3 scripts/generate/bake-template.py
+
+  snapshot:
+    desc: Bake the corpus and rewrite the slide XML kept under tests/corpus/snapshot (= after a change meant to move a page)
+    cmds:
+      - .venv/bin/python scripts/check/snapshot.py
+
+  snapshot:check:
+    desc: Bake the corpus and compare it with the slide XML that is kept (= a refactor leaves every byte as it was)
+    cmds:
+      - .venv/bin/python scripts/check/snapshot.py --check
+
+  mutate:
+    desc: Break the code the ways a table lists and see the tests go red (= task mutate -- tests/mutants/_example.toml)
+    cmds:
+      - .venv/bin/python scripts/check/mutate.py {{.CLI_ARGS}}
 
   audit:
     desc: Aggregate security audit (anon-scan + gitleaks full history + pip-audit + npm audit)
@@ -157,7 +172,7 @@ tasks:
   setup:branch-protection:
     desc: Setup branch protection rules for the main branch
     cmds:
-      - bash scripts/setup-branch-protection.sh
+      - bash scripts/github/setup-branch-protection.sh
 
   init:github:
     desc: Apply post-template GitHub settings (= secret scanning, PVR, merge config, branch protection)
@@ -165,4 +180,4 @@ tasks:
       OWNER: '{{.OWNER | default ""}}'
       REPO: '{{.REPO | default ""}}'
     cmds:
-      - OWNER={{.OWNER}} REPO={{.REPO}} bash scripts/post-init-github-settings.sh
+      - OWNER={{.OWNER}} REPO={{.REPO}} bash scripts/github/post-init-github-settings.sh

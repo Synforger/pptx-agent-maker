@@ -1,0 +1,69 @@
+# A part that knows how tall it stands is not placed in less room: the page stops instead.
+
+tests = ["tests/test_page.py", "tests/test_types.py", "tests/test_compose.py"]
+
+[[mutant]]
+name = "a picture is placed although its name took all the room"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if rect.height <= tall + s.gap_s:\n"
+new = "            if False:\n"
+
+[[mutant]]
+name = "the gap between a picture and its name is not counted as taken"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if rect.height <= tall + s.gap_s:\n"
+new = "            if rect.height <= tall:\n"
+
+[[mutant]]
+name = "the room for a picture is rounded up to one unit, as it was"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if rect.height <= tall + s.gap_s:\n"
+new = "            if rect.height <= 0:\n"
+
+[[mutant]]
+name = "a chapter of an agenda is cut to the room it has"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        if tall > band.height:\n"
+new = "        tall = min(tall, band.height)\n        if False:\n"
+
+[[mutant]]
+name = "the list of an agenda is placed however long it runs"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "    if listed > listing.height:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "a part in a row that shares the height is cut to the row"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'if natural is not None and natural > rect.height and part in ("card", "text", "points"):'
+new = "if False:"
+
+[[mutant]]
+name = "only a card is held to its own height in a shared row"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'if natural is not None and natural > rect.height and part in ("card", "text", "points"):'
+new = 'if natural is not None and natural > rect.height and part in ("card",):'
+
+[[mutant]]
+name = "the points are measured without the dash each line begins with"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return sum(self.theme.wrapped_height(line, room) for line in self._point_lines(items))"
+new = "return sum(self.theme.wrapped_height(str(item).strip(), room) for item in items)"
+
+[[mutant]]
+name = "a picture squeezed lower than an icon is placed"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if area.height < s.icon and area.width > area.height * aspect:"
+new = "        if False:"
+
+[[mutant]]
+name = "a picture that is short only because it is wide is refused"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if area.height < s.icon and area.width > area.height * aspect:"
+new = "        if area.height < s.icon:"
+
+[[mutant]]
+name = "the floor of a picture is a line of type, not an icon"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if area.height < s.icon and area.width > area.height * aspect:"
+new = "        if area.height < self.theme.line_height() and area.width > area.height * aspect:"

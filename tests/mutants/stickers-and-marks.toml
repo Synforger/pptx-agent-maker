@@ -1,0 +1,145 @@
+# A sticker beside the title, and a status mark in a table's cell.
+
+tests = ["tests/test_stickers_and_marks.py", "tests/test_page.py"]
+
+# -- the sticker ----------------------------------------------------------------
+
+[[mutant]]
+name = "a sticker is as wide as its words alone, with no room at its sides"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.width(sticker, self.type.body) + 2 * self.spacing.pad"
+new = "return self.width(sticker, self.type.body)"
+
+[[mutant]]
+name = "a title is counted as if no sticker stood beside it"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "room -= self.sticker_width(sticker) + self.spacing.gap_m"
+new = "room -= 0"
+
+[[mutant]]
+name = "the gap between a title and its sticker is not counted as taken"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "room -= self.sticker_width(sticker) + self.spacing.gap_m"
+new = "room -= self.sticker_width(sticker)"
+
+[[mutant]]
+name = "the title's box runs on under the sticker"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)"
+new = "words = main"
+
+[[mutant]]
+name = "the sticker sits at the top of the title's box"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "main.top + max((main.height - tall) // 2, 0)"
+new = "main.top"
+
+[[mutant]]
+name = "the sticker stands at the left end"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = '"sticker", Rect(main.right - tag,'
+new = '"sticker", Rect(main.left,'
+
+[[mutant]]
+name = "the sticker is given a ground"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "sticker, t.body, p.muted, outline=p.muted))"
+new = "sticker, t.body, p.muted, fill=p.rule, outline=p.muted))"
+
+[[mutant]]
+name = "the sticker's words are set in the colour of the body"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "sticker, t.body, p.muted, outline=p.muted))"
+new = "sticker, t.body, p.ink, outline=p.muted))"
+
+[[mutant]]
+name = "a sticker that leaves the title no room is placed all the same"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if tag and self._remaining.width"
+new = "        if False and self._remaining.width"
+
+[[mutant]]
+name = "a sticker that is not words is not refused"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = "    if not isinstance(sticker, str):"
+new = "    if False:"
+
+[[mutant]]
+name = "a sticker is placed with the spaces written round it"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = "sticker=sticker.strip(),"
+new = "sticker=sticker,"
+
+[[mutant]]
+name = "the check of a long title counts as if no sticker stood beside it"
+file = "src/pptx_agent_maker/checks/declared/long_title.py"
+old = 'theme.title_lines(title, str(entry.data.get("sticker", "")).strip())'
+new = "theme.title_lines(title)"
+
+# -- the marks ------------------------------------------------------------------
+
+[[mutant]]
+name = "a quarter and a half of a Harvey ball are swapped"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'HARVEY = "\u25cb\u25d4\u25d1\u25d5\u25cf"'
+new = 'HARVEY = "\u25cb\u25d1\u25d4\u25d5\u25cf"'
+
+[[mutant]]
+name = "good is written with the character of an empty Harvey ball"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'MARKS = {"ok": "\u2713",'
+new = 'MARKS = {"ok": "\u25cb",'
+
+[[mutant]]
+name = "a Harvey ball of five quarters is not refused"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "not 0 <= level < len(HARVEY)"
+new = "not 0 <= level <= len(HARVEY)"
+
+[[mutant]]
+name = "true is read as a Harvey ball of one quarter"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "if isinstance(level, bool) or not isinstance(level, int) or"
+new = "if not isinstance(level, int) or"
+
+[[mutant]]
+name = "a cell that asks for two marks at once is read as the first"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'if set(value) == {"harvey"}:'
+new = 'if "harvey" in value:'
+
+[[mutant]]
+name = "a mark nobody knows is not refused"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = '        if value["mark"] not in MARKS:'
+new = "        if False:"
+
+[[mutant]]
+name = "a table forgets which of its cells are marks"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "                          if isinstance(cell, Mark))"
+new = "                          if False)"
+
+[[mutant]]
+name = "a table laid into a cell reads its marks as words"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'return read_table(cell["table"], f"{what}: table")'
+new = 'return [[str(value) for value in row] for row in cell["table"]]'
+
+[[mutant]]
+name = "a mark is written in the project's own face"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "run.font.name = MARK_FACE if mark else theme.type.family"
+new = "run.font.name = theme.type.family"
+
+[[mutant]]
+name = "a mark names its face for the Latin script alone"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "                if mark:\n                    _every_script(run, MARK_FACE)\n"
+new = ""
+
+[[mutant]]
+name = "the faces of a mark are written out of order"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    latin.addnext(east)\n    east.addnext(symbol)"
+new = "    latin.addnext(symbol)\n    symbol.addnext(east)"

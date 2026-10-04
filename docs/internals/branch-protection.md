@@ -2,7 +2,7 @@
 
 ## 概要
 
-このドキュメントでは、`scripts/setup-branch-protection.sh`スクリプトを使用したブランチ保護ルールの自動設定と、フォークを使用した手動検証手順について説明します。
+このドキュメントでは、`scripts/github/setup-branch-protection.sh`スクリプトを使用したブランチ保護ルールの自動設定と、フォークを使用した手動検証手順について説明します。
 
 ## 自動設定スクリプトの使用方法
 
@@ -15,10 +15,10 @@
 
 ```bash
 # リポジトリのルートディレクトリで実行
-./scripts/setup-branch-protection.sh
+./scripts/github/setup-branch-protection.sh
 
 # 環境変数で設定をカスタマイズ（オプション）
-GITHUB_OWNER="your-org" GITHUB_REPO="your-repo" ./scripts/setup-branch-protection.sh
+GITHUB_OWNER="your-org" GITHUB_REPO="your-repo" ./scripts/github/setup-branch-protection.sh
 ```
 
 ### 設定される保護ルール
@@ -55,7 +55,7 @@ GITHUB_OWNER="your-org" GITHUB_REPO="your-repo" ./scripts/setup-branch-protectio
 
 ```bash
 # スクリプトを実行してブランチ保護を設定
-./scripts/setup-branch-protection.sh
+./scripts/github/setup-branch-protection.sh
 ```
 
 ### 3. GitHub UIでの設定確認

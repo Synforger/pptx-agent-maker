@@ -1,0 +1,21 @@
+# The corpus: one made-up project that uses every page type and every look once.
+# scripts/check/snapshot.py copies it outside the repository, builds each manifest,
+# and keeps the slide XML under snapshot/ — so a refactor can be told from a change.
+
+root = "."
+
+[paths]
+assets = "assets"
+
+# Grounds named for what they mean: two light ones, one in Japanese, one dark.
+[theme.grounds]
+"Inside" = "EAF0F8"
+"Outside" = "FFF4E5"
+"共通" = "E8F3EA"
+"Late" = "8B1E3F"
+
+# The pictures here are made up to exercise the layout, so there is no source to name:
+# the corpus builds with the check for unsourced pages switched off, the way a project may.
+[checks]
+stale_words = ["案件名", "第 N 回"]
+unsourced = false

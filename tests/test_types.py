@@ -7,46 +7,53 @@
 from __future__ import annotations
 
 import re
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 from pptx_agent_maker.layout import types
-from pptx_agent_maker.layout.page import Figure, Table, Text
-from pptx_agent_maker.layout.types import PageTypeError
-from pptx_agent_maker.project.manifest import Manifest, ManifestError
-from pptx_agent_maker.write import aspect
+from pptx_agent_maker.layout.parts.elements import Figure, Fill, Table, Text
+from pptx_agent_maker.layout.base.tokens import DEFAULT
+from pptx_agent_maker.layout.parts.page import PageFullError
+from pptx_agent_maker.layout.types.core.registry import PageTypeError
+from pptx_agent_maker.project.files.manifest import Manifest, ManifestError
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "tests"))
+
+from support.pages import build  # noqa: E402
+
 DATA = REPO / "tests" / "data"
 SQUARE = "dot.png"      # 8 x 8
 WIDE = "wide.png"       # 16 x 4
 
 
-def asset(name: str) -> Path:
-    return DATA / name
-
-
-def build(data: dict):
-    return types.build(data, asset, aspect)
-
-
-#: 7 型それぞれの、本体に最小限そろった宣言
+#: 型それぞれの、本体に最小限そろった宣言
 MINIMAL = {
     "figure": {"figure": SQUARE},
     "figures": {"figures": [SQUARE, WIDE]},
     "figure_grid": {"figures": [SQUARE, WIDE, SQUARE, WIDE]},
     "flow": {"stages": [{"name": "にゅうりょく", "nodes": [["A", "ほそく"]], "settled": "じょうけん"},
                         {"name": "せいせい", "nodes": [["B", "ほそく"]]}]},
+    "roadmap": {"stages": [{"name": "はじめ", "nodes": [["A", "ほそく"]]},
+                           {"name": "とうたつ", "nodes": [["B", "ほそく"]], "goal": True}]},
+    "timeline": {"periods": ["いま", "つぎ"],
+                 "lanes": [{"name": "しごと", "bars": [{"from": 0, "to": 1, "text": "きめる"}]}]},
+    "chart": {"chart": {"kind": "column", "categories": ["いま", "つぎ"],
+                        "series": [{"name": "かず", "values": [1, 2]}]}},
     # 絵を持たなくてよい型 (= デッキの骨格)
     "agenda": {"buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]],
                "highlight": 1},
     "board": {"table": [["列", "値"], ["A", "1"]]},
     "cards": {"cards": [["\u2460", "さいしょ"], ["\u2461", "つぎ"]]},
+    # 本体を段とマスで書く型 (= カードだけの頁も組めるよう、絵を要らない)
+    "compose": {"rows": [{"cells": [{"card": ["もくひょう", "ひとつ"]}]},
+                         {"cells": [{"card": ["はしら", "ひとつめ"]}, {"card": ["はしら", "ふたつめ"]}]}]},
 }
 
-#: 絵を持たなくてよい型 (= デッキの骨格)
-SKELETON = {"agenda", "board", "cards"}
+#: 絵を持たなくてよい型 (= デッキの骨格と、本体を段とマスで書く型)
+SKELETON = {"agenda", "board", "cards", "compose"}
 
 #: 本体に添えられるもの (= どの型でも同じように効く)
 EXTRAS = {"table": [["列", "値"], ["A", "1"]],
@@ -118,6 +125,17 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
                 self.assertIn("note", kinds, f"{name} dropped the reading")
                 self.assertIn("box", kinds, f"{name} dropped the cards")
 
+    def test_the_cards_carry_the_same_edge_on_every_type(self):
+        """カードの地は薄い。どの型に付けても、地を濃くした色の枠を持つ (= 棒と流れ図の箱と同じ)。"""
+        palette = DEFAULT.palette
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data, "cards": EXTRAS["cards"]})
+                cards = [e for e in page.build() if isinstance(e, Fill) and e.kind == "box"
+                         and e.colour == palette.box]
+                self.assertTrue(cards)
+                self.assertEqual({palette.edge(palette.box)}, {card.outline for card in cards})
+
     def test_the_extras_stay_inside_the_frame(self):
         for name, data in MINIMAL.items():
             with self.subTest(name):
@@ -126,6 +144,63 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
                 for element in page.build():
                     self.assertTrue(frame.contains(element.rect),
                                     f"{name}: {element.kind} landed outside the frame")
+
+    def test_the_reading_starts_under_the_last_point(self):
+        """⚠ **要点を配列で書くと、取る高さが 1 行ぶんに数えられていた** (= 配列を文字列に直して
+        測っていた)。3 行の要点が半行ぶんの枠に置かれ、字が下の読み方に重なった ― 枠どうしは
+        重ならないので検査は通り、見本を焼いて初めて出た。
+        """
+        points = ["ひとつ", "ふたつ", "みっつ"]
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data, "points": points,
+                              "note": "読み方を 1 行"})
+                placed = {e.kind: e.rect for e in page.build()}
+                last_line = placed["points"].top + len(points) * page.theme.line_height()
+                self.assertLessEqual(last_line, placed["note"].top,
+                                     f"{name}: the points run into the reading")
+
+    def test_points_take_the_same_room_as_a_list_and_as_lines(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                spec = {"type": name, "title": "だい", **data, "note": "読み方を 1 行"}
+                listed = build({**spec, "points": ["ひとつ", "ふたつ", "みっつ"]}).build()
+                lined = build({**spec, "points": "ひとつ\nふたつ\nみっつ"}).build()
+                self.assertEqual(lined, listed)
+
+    def test_what_sits_under_a_body_has_the_room_it_is_placed_in(self):
+        """⚠ **本体のすぐ下の空きを、下の最初の物が表の時にしか数えていなかった。**要点や読み方だけの
+        頁は、取った場所が置く場所より 0.3cm 短く、短いぶんは次の物との空きに食い込んでいた。
+
+        絵が枠を使い切る頁で、下に置く物の組み合わせを全部見る ― 最初の物は本体から広い空き、続く
+        物は狭い空き、どれも自分の行ぶんの高さを持ち、最後の物が枠の下端で終わる。
+        """
+        s, theme = DEFAULT.spacing, DEFAULT
+        under = {"table": [["列", "値"], ["折り返すほど長い見出しの行" * 6, "1"]],
+                 "points": ["ひとつ", "ふたつ", "みっつ"], "note": "読み方を 1 行"}
+        width = theme.frame().width
+        tall = {"table": theme.table_height(under["table"], theme.column_widths(under["table"], width)),
+                "points": 3 * theme.line_height(), "note": theme.line_height()}
+        self.assertGreater(tall["table"], theme.table_height(2), "the long cell does not fold")
+        for wanted in (("table",), ("points",), ("note",), ("table", "points"), ("table", "note"),
+                       ("points", "note"), ("table", "points", "note")):
+            with self.subTest(wanted):
+                page = build({"type": "figure", "title": "だい", "figure": SQUARE,
+                              **{key: under[key] for key in wanted}})
+                placed = {e.kind: e.rect for e in page.build()}
+                rects = [placed[key] for key in wanted]
+                self.assertEqual(placed["figure"].bottom + s.gap_m, rects[0].top)
+                for above, below in zip(rects, rects[1:]):
+                    self.assertEqual(above.bottom + s.gap_s, below.top)
+                self.assertEqual([tall[key] for key in wanted], [rect.height for rect in rects])
+                self.assertEqual(page.body.bottom, rects[-1].bottom)
+
+    def test_the_reading_takes_what_is_left_under_a_body_that_did_not_fill_its_area(self):
+        """カードだけの頁は本体が空で、読み方の下に場所が余る。読み方の枠はそこまで伸びる。"""
+        page = build({"type": "cards", "title": "だい", "cards": EXTRAS["cards"], "note": "読み方を 1 行"})
+        note = next(e.rect for e in page.build() if e.kind == "note")
+        self.assertEqual(page.body.bottom, note.bottom)
+        self.assertGreater(note.height, DEFAULT.line_height())
 
     def test_the_order_of_the_frame_never_changes(self):
         """並びは 1 つしかない ― カードは本体の上、表と読み方は本体の下。"""
@@ -240,6 +315,31 @@ class WhatTheTypesRefuse(unittest.TestCase):
             build({"type": "agenda", "title": "だい", "highlight": 9,
                    "buckets": [["しょう", ["こうもく"]]]})
 
+    def test_an_agenda_with_more_chapters_than_fit_stops(self):
+        """⚠ **章の箱を、取れる高さに切り詰めて置いていた。**箱の中の字が箱の下の線に乗った。"""
+        chapters = [[f"しょう {number}", []] for number in range(1, 15)]
+        with self.assertRaises(PageFullError) as stopped:
+            build({"type": "agenda", "title": "だい", "buckets": chapters})
+        self.assertIn("agenda: chapter 1 needs", str(stopped.exception))
+        self.assertTrue(build({"type": "agenda", "title": "だい", "buckets": chapters[:6]}).build())
+
+    def test_an_agenda_with_more_items_than_fit_stops(self):
+        items = [f"こうもく {number}" for number in range(1, 16)]
+        with self.assertRaises(PageFullError) as stopped:
+            build({"type": "agenda", "title": "だい", "buckets": [["しょう 1", items], ["しょう 2", items]]})
+        self.assertIn("agenda: the list of items needs", str(stopped.exception))
+        self.assertTrue(build({"type": "agenda", "title": "だい",
+                               "buckets": [["しょう 1", items[:8]], ["しょう 2", items[:8]]]}).build())
+
+    def test_a_chapter_of_an_agenda_stands_as_tall_as_its_words(self):
+        page = build({"type": "agenda", "title": "だい", "highlight": 1,
+                      "buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]]})
+        boxes = sorted((e.rect for e in page.build() if e.kind == "box"), key=lambda rect: rect.top)
+        s, theme = DEFAULT.spacing, DEFAULT
+        heading = theme.line_height(theme.type.heading)
+        self.assertEqual([heading + s.gap_s + theme.line_height() + 2 * s.pad, heading + 2 * s.pad],
+                         [box.height for box in boxes])
+
     def test_figures_needs_more_than_one(self):
         with self.assertRaises(PageTypeError):
             build({"type": "figures", "title": "だい", "figures": [SQUARE]})
@@ -273,7 +373,8 @@ class CoordinatesCannotBeDeclared(unittest.TestCase):
 
     def test_the_types_module_holds_no_coordinates(self):
         """型の中にも座標を書かせない (= 割り方は比、寸法は token が持つ)。"""
-        source = (REPO / "src/pptx_agent_maker/layout/types.py").read_text(encoding="utf-8")
+        source = "\n".join(path.read_text(encoding="utf-8") for path in
+                           sorted((REPO / "src/pptx_agent_maker/layout/types").rglob("*.py")))
         code = "\n".join(line.split("#")[0] for line in source.splitlines())
         code = re.sub(r'""".*?"""', "", code, flags=re.S)
         offenders = re.findall(r"(?<![\w.])\d{4,}(?![\w.])", code)
@@ -283,18 +384,23 @@ class CoordinatesCannotBeDeclared(unittest.TestCase):
     def test_a_body_type_must_show_something(self):
         """本文の型が図解を落とせるなら、表と文章だけの頁が戻ってくる。
 
-        絵を持つか、図形で組んだ図解を持つか (= `flow`) のどちらかでなければ組めない。
+        絵を持つか、図形で組んだ図解を持つか (= `flow` / `timeline`)、数字から描くグラフを持つかの
+        どれかでなければ組めない。
         """
         for name, data in MINIMAL.items():
             if name in SKELETON:
                 continue
             with self.subTest(name):
-                shows = {"figure", "figures", "stages"} & data.keys()
+                shows = {"figure", "figures", "stages", "lanes", "chart"} & data.keys()
                 self.assertTrue(shows, f"{name} can be built without anything to look at")
 
     def test_the_scaffolding_stays_small(self):
-        """例外の型は増やさない (= 増えた分だけ「表だけの頁」の逃げ道になる)。"""
-        self.assertLessEqual(len(types.skeleton()), 3)
+        """例外の型は増やさない (= 増えた分だけ「表だけの頁」の逃げ道になる)。
+
+        4 つめの `compose` は、承知の上で足した逃げ道。カードだけで組む頁 (= 目標と柱) を拒むと、
+        型に合わせて指定を曲げる組み方が戻るため (= 2026-10-03 に決めた)。
+        """
+        self.assertLessEqual(len(types.skeleton()), 4)
 
 
 class ManifestCarriesTheType(unittest.TestCase):

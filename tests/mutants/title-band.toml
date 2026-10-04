@@ -1,0 +1,45 @@
+# The title's band: as tall as the lines the title folds to, so the body starts below every one of them.
+
+tests = ["tests/test_page.py", "tests/test_story.py"]
+
+[[mutant]]
+name = "a folded title takes the band of one line"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.title)"
+new = "folded = 0"
+
+[[mutant]]
+name = "every folded line takes a line of the body's type, not of the title's"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.title)"
+new = "folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.body)"
+
+[[mutant]]
+name = "the small words above a title grow with the band"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "kick, main = Rect(bar.left, bar.top, bar.width, s.title_height).rows([1, 2])"
+new = "kick, main = bar.rows([1, 2])"
+
+[[mutant]]
+name = "under the small words, the title's box stops where a band of one line would"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            main = Rect(main.left, main.top, main.width, bar.bottom - main.top)\n"
+new = ""
+
+[[mutant]]
+name = "a title is counted across the whole slide, margins included"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "room = self.frame().width - 2 * self.spacing.text_inset\n        if sticker:"
+new = "room = self.slide.width\n        if sticker:"
+
+[[mutant]]
+name = "a title is counted without the room its own box keeps at each side"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "room = self.frame().width - 2 * self.spacing.text_inset\n        if sticker:"
+new = "room = self.frame().width\n        if sticker:"
+
+[[mutant]]
+name = "a title is counted in the light weight"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.wraps(title, room, self.type.title, bold=True)"
+new = "return self.wraps(title, room, self.type.title, bold=False)"

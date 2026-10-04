@@ -1,9 +1,9 @@
 """Building a deck out of pages that already exist.
 
-    archive.py   部品を触る最下層 (= pptx は zip)
-    slides.py    テンプレートの複製 / 過去デッキからの輸入
-    text.py      文言の置換
-    swap.py      絵と表の中身の入れ替え (= 人が整えた頁の形はそのまま)
+    base/archive.py   部品を触る最下層 (= pptx は zip)
+    pages/slides.py   テンプレートの複製 / 過去デッキからの輸入
+    pages/text.py     文言の置換
+    pages/swap.py     絵と表の中身の入れ替え (= 人が整えた頁の形はそのまま)
 
 ⚠ **宣言しなかった頁は、閉じるときに消える。**旧世代では「表示から外す」だけで部品が
 残り、それが PowerPoint の修復ダイアログの主因だった。掃除を呼ぶ手順にすると忘れるので、
@@ -17,10 +17,10 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-from . import slides as _slides
-from . import text as _text
-from .archive import Archive
-from .text import ReplacementMissed
+from .pages import slides as _slides
+from .pages import text as _text
+from .base.archive import Archive
+from .pages.text import ReplacementMissed
 
 __all__ = ["Deck", "Slide", "ReplacementMissed", "build"]
 
@@ -49,20 +49,20 @@ class Slide:
         return self
 
     def swap_pictures(self, files: list[Path]) -> "Slide":
-        """New pictures into the page's pictures, in reading order (= `swap.py`)."""
-        from .swap import swap_pictures
+        """New pictures into the page's pictures, in reading order (= `pages/swap.py`)."""
+        from .pages.swap import swap_pictures
         swap_pictures(self._archive, self.name, files)
         return self
 
     def swap_tables(self, grids: list) -> "Slide":
         """New cells into the page's tables, in reading order, same shape only."""
-        from .swap import swap_tables
+        from .pages.swap import swap_tables
         swap_tables(self.path, grids)
         return self
 
     def blank_pictures(self, scratch: Path) -> int:
-        """Every picture becomes a plain grey one of the same proportions (= `swap.py`)."""
-        from .swap import blank_pictures
+        """Every picture becomes a plain grey one of the same proportions (= `pages/swap.py`)."""
+        from .pages.swap import blank_pictures
         return blank_pictures(self._archive, self.name, scratch)
 
     def forget_descriptions(self) -> int:
@@ -127,10 +127,15 @@ class Deck:
         `relayout` は宣言で組んだ頁を持ち込むとき (= 白紙に描いてあるので、テンプレートの
         どのレイアウトの上に乗るかを引き継がせない)。過去デッキからの輸入では偽 ―
         その頁は元のレイアウトの上で作られている。
+
+        ⚠ **赤い注目マークを落とすのは、過去デッキから輸入した頁だけ。**宣言で組んだ頁にも掛けていた間は、
+        案件が色の役をその赤に決めると、その色の箱が全部、何も言わずに消えた ― 宣言の頁の図形は
+        全部、いま書いた人が置いた物。
         """
         page = Slide(self._archive, _slides.import_from(self._archive, Path(source), page_number,
                                                         relayout=relayout))
-        page.drop_marks()
+        if not relayout:
+            page.drop_marks()
         self._pages.append(page)
         return page
 
@@ -149,3 +154,4 @@ class Deck:
                 self._archive.unregister_slide(name)
         self._archive.set_order(kept)
         self._archive.drop_unreferenced_media()
+        self._archive.drop_unreferenced_parts()

@@ -1,0 +1,137 @@
+# The four looks, from the one place that reads them to every part that paints them,
+# and the timeline's three steps (read, measure, place).
+
+tests = ["tests/test_look.py", "tests/test_timeline.py", "tests/test_roadmap.py", "tests/test_flow.py",
+         "tests/test_grounds.py", "tests/test_compose.py"]
+
+# -- the one reader (layout/types/core/read.py) --------------------------------
+
+[[mutant]]
+name = "a tone that was written is dropped for the part's default"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'read_tone(spec, item, what, unsaid) if "tone" in item else unsaid'
+new = "unsaid"
+
+[[mutant]]
+name = "an icon that was written is not read"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'else unsaid, _icon(spec, item, what),'
+new = 'else unsaid, None,'
+
+[[mutant]]
+name = "tentative is not read"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'tentative=_flag(item, "tentative", what)'
+new = "tentative=False"
+
+[[mutant]]
+name = "strong is not read"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'strong=_flag(item, "strong", what)'
+new = "strong=False"
+
+[[mutant]]
+name = "a card written as a table loses its looks"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'str(item.get("body", "")), read_style(spec, item, what, TONES[0]))'
+new = 'str(item.get("body", "")))'
+
+# -- how a look is painted (layout/parts/page.py) -------------------------------
+
+[[mutant]]
+name = "a tentative part keeps its ground"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if style.tentative:\n            fill, ink, outline = p.paper, p.muted, p.muted"
+new = "        if False:\n            fill, ink, outline = p.paper, p.muted, p.muted"
+
+[[mutant]]
+name = "a tentative part is not dashed"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "dashed=style.tentative, heavy=style.strong"
+new = "dashed=False, heavy=style.strong"
+
+[[mutant]]
+name = "a strong part is not heavy"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "dashed=style.tentative, heavy=style.strong"
+new = "dashed=style.tentative, heavy=False"
+
+[[mutant]]
+name = "a strong part keeps the edge of its ground"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if style.strong:\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "a strong tentative part takes the ink, not the grey"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "outline = ink if style.tentative else p.ink"
+new = "outline = p.ink"
+
+[[mutant]]
+name = "the words of a bar do not start after its icon"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "dashed=look.dashed, heavy=look.heavy, lead=self._lead(style.icon, size)))"
+new = "dashed=look.dashed, heavy=look.heavy))"
+
+[[mutant]]
+name = "the words of an arrowhead do not start after its icon"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "                                 lead=self._lead(style.icon, size)))"
+new = "                                 lead=0))"
+
+[[mutant]]
+name = "an arrowhead's icon ignores the notch"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "rect.left + notch + self.theme.spacing.bar_pad_x"
+new = "rect.left + self.theme.spacing.bar_pad_x"
+
+[[mutant]]
+name = "a box does not move its words past its icon"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "inner = inner.inset(left=s.icon + s.gap_s)"
+new = "inner = inner.inset(left=0)"
+
+# -- the parts that carry a look ------------------------------------------------
+
+[[mutant]]
+name = "a card's height forgets its icon"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "tallest = max(tallest, tall, s.icon if card.style.icon else 0)"
+new = "tallest = max(tallest, tall)"
+
+[[mutant]]
+name = "a stage's icon takes no room from its name"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "room = max(room - (theme.line_height(size) + s.gap_s if style.icon else 0), 1)"
+new = "room = max(room, 1)"
+
+[[mutant]]
+name = "the goal is not dark when it names no tone"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = '"accent" if last and goal else "band"'
+new = '"band"'
+
+[[mutant]]
+name = "a bar that names a tone is painted in its lane's"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "return Style(self.style.tone or lane,"
+new = "return Style(lane,"
+
+[[mutant]]
+name = "a bar across lanes loses its looks"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "                                                     style=written.style)))"
+new = "                                                     )))"
+
+[[mutant]]
+name = "a bar's icon takes no room from its name"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "lead = line + s.gap_s if icon else 0"
+new = "lead = 0"
+
+[[mutant]]
+name = "a bar across lanes is painted in the tone of the lane under it"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "piece.style_on(packed[number].tone), size=size)"
+new = "piece.style_on(packed[number + reach - 1].tone), size=size)"

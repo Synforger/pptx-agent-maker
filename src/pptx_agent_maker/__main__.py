@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from .project import Workspace, WorkspaceError, create
-from .project.manifest import Manifest, ManifestError
+from .project.files.manifest import Manifest, ManifestError
 
 FOLDERS = ("assets",)
 
@@ -35,7 +35,7 @@ def _preview_places(places: dict, port: int, no_open: bool) -> int:
     1 案件の起動と同じ画面を使い、上の欄で選ぶ。描くのは選んだ物だけ。一覧は画面が
     取りに来るたびに探し直す (= 常駐のまま、新しい案件が欄に出る)。
     """
-    from .project.places import discover
+    from .project.files.places import discover
 
     try:
         entry, state = _preview_package()
@@ -83,7 +83,7 @@ def _preview(workspace, port: int, no_open: bool) -> int:
 
 def _specimens(workspace) -> set[str]:
     """The files the project's manifests grow decks from (= not decks themselves)."""
-    from .project.manifest import Manifest, ManifestError
+    from .project.files.manifest import Manifest, ManifestError
 
     found = set()
     for manifest in workspace.manifests():
@@ -102,6 +102,17 @@ def _deck_path(workspace, name: str) -> Path:
     if not target.suffix:
         target = target.with_suffix(".pptx")
     return target
+
+
+def _checks(workspace) -> dict:
+    """What the project asks of the checks, with the type floor of its deck's use filled in.
+
+    文字の下限は資料の使い方が決める (= 映す資料は 14pt、読ませる資料は 10pt)。案件が
+    `[checks] type_floor` を書いていれば、そちらが勝つ。
+    """
+    from .layout.base.tokens import theme_from
+
+    return {"type_floor": theme_from(workspace.look).type.minimum, **workspace.settings.get("checks", {})}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -152,6 +163,10 @@ def main(argv: list[str] | None = None) -> int:
     built.add_argument("manifest", help="a manifest name, with or without .toml")
     built.add_argument("--skip-checks", action="store_true", help="build without checking")
 
+    titled = sub.add_parser("titles", help="print every page's title in order, to read the story the deck tells")
+    titled.add_argument("path", help="the project folder")
+    titled.add_argument("manifest", help="a manifest name, with or without .toml")
+
     checked = sub.add_parser("check", help="check a deck that is already built")
     checked.add_argument("path", help="the project folder")
     checked.add_argument("deck", help="a built deck in the project, or a path")
@@ -192,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "preview" and (
                 args.path is None or args.places or not (Path(args.path) / "workspace.toml").is_file()):
-            from .project.places import DEFAULT, PlacesError, load
+            from .project.files.places import DEFAULT, PlacesError, load
 
             if args.path is not None and not args.places:
                 places = {"search": [{"path": str(Path(args.path).expanduser().resolve())}]}
@@ -206,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
 
         workspace = Workspace.load(args.path)
         if args.command == "show" and args.page:
-            from .deck.swap import SwapError, describe
+            from .deck.pages.swap import SwapError, describe
 
             deck, _, number = args.page.rpartition(":")
             if not deck or not number.isdigit():
@@ -227,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "promote":
-            from .project.recipes import RecipeError, promote
+            from .project.files.recipes import RecipeError, promote
 
             targets = []
             for spec in args.pages:
@@ -247,7 +262,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "refresh":
-            from .project.refresh import refresh
+            from .project.commands.refresh import refresh
 
             changed, kept = refresh(workspace.root)
             if not changed:
@@ -261,11 +276,17 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "types":
             from .layout.types import describe
-            from .project.manifest import CARRIED_KEYS
-            from .project.recipes import HOLE
-            from .project.recipes import load as load_recipes
+            from .project.files.manifest import CARRIED_KEYS
+            from .project.files.recipes import HOLE
+            from .project.files.recipes import load as load_recipes
 
             print(describe())
+            from .layout.parts.look import TONES
+            from .layout.base.tokens import theme_from
+
+            named = theme_from(workspace.look).ground_names()
+            print(f"tone (= the ground of a box, a bar, a lane): {', '.join(TONES)}"
+                  + (f"; named in this project's [theme.grounds]: {', '.join(named)}" if named else ""))
             print(f"copy / import pages read: {', '.join(sorted(CARRIED_KEYS - {'kind'}))} "
                   "(copy has no deck)")
             print("recipe pages read: recipe, fill, why, replace, and what the recipe leaves open")
@@ -281,7 +302,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "round":
-            from .project.round import RoundError, start
+            from .project.commands.round import RoundError, start
 
             try:
                 written = start(workspace.root, args.name, args.previous)
@@ -294,7 +315,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "lift":
-            from .project.lift import LiftError, lift
+            from .project.commands.lift import LiftError, lift
 
             pages, replace = [], []
             for spec in args.page:
@@ -332,10 +353,17 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "preview":
             return _preview(workspace, args.port, args.no_open)
 
-        from .checks import report, run_all
+        if args.command == "titles":
+            from .deck.titles import titles
+
+            for line in titles(workspace, Manifest.load(workspace.manifest(args.manifest))):
+                print(line)
+            return 0
+
+        from .checks import report, run_all, run_declared
 
         if args.command == "review" and args.apply:
-            from .review.apply import ApplyError, apply
+            from .review.take.apply import ApplyError, apply
 
             try:
                 done = apply(workspace, args.deck)
@@ -383,19 +411,21 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "check":
             target = _deck_path(workspace, args.deck)
-            findings = run_all(target, workspace.settings.get("checks", {}))
+            findings = run_all(target, _checks(workspace))
             print(report(findings))
             return 1 if findings else 0
 
-        from .deck.build import build
+        from .deck.build import build, theme_of
 
         manifest = Manifest.load(workspace.manifest(args.manifest))
         built_deck = build(workspace, manifest)
         print(f"built {built_deck} ({len(manifest.entries)} pages)")
         if args.skip_checks:
             return 0
-        findings = run_all(built_deck, workspace.settings.get("checks", {}))
-        print(report(findings))
+        # 焼いた deck を読み直す検査と、manifest を読む検査を、1 つの報告に並べる
+        config = _checks(workspace)
+        findings = run_all(built_deck, config) + run_declared(manifest, theme_of(workspace, manifest), config)
+        print(report(findings, declared=True))
         return 1 if findings else 0
     except (WorkspaceError, ManifestError, FileExistsError, FileNotFoundError,
             ValueError, IndexError, RuntimeError) as error:

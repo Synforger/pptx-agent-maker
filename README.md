@@ -38,8 +38,12 @@ footer = "measured on the load test of the day"
 
 The order of a page is settled and never varies: **title → condition → cards → body → table →
 reading → conclusion → footer.** A band left unwritten is simply not taken. The type decides one
-thing — what goes in the body — and there are seven of them (`figure`, `figures`, `figure_grid`,
-`flow`, `cards`, `board`, `agenda`). Cards, a table and the reading can be added to any of them.
+thing — what goes in the body — and there are ten of them (`figure`, `figures`, `figure_grid`,
+`flow`, `roadmap`, `timeline`, `chart`, `cards`, `board`, `agenda`). Cards, a table and the reading
+can be added to any of them. One more, `compose`, writes the body as rows of cells instead, one part
+in each cell — a card, a picture, a table, words, a chart, or one of those types — for a page none
+of them lays out. A `chart` is drawn from its numbers, which travel inside the deck: a person can
+still edit them in PowerPoint.
 
 Naming a few positions and asking people to use them does not hold: the previous generation did
 exactly that, and values with no name piled up right beside the ones that had them.
@@ -55,7 +59,7 @@ And four things are refused outright, because no one managed to hold them by dis
 
 - a page with **no figure** (= prose and tables only)
 - an **empty table cell** (write a dash; a blank reads as a value nobody filled in)
-- type **below the floor** (10pt on the slide)
+- type **below the floor** (10pt on a deck to be read, 14pt on one to be shown)
 - a **table taller than the space given** — PowerPoint grows the frame instead of shrinking the
   table, so the page silently overflows. The height a table will occupy is known before it is placed.
 
@@ -66,7 +70,7 @@ points at. Data cannot enter a commit, so it cannot enter a push.
 
 ## Three layers
 
-- **the toolkit** — this repository: the vocabulary of the page (seven types) and the machinery.
+- **the toolkit** — this repository: the vocabulary of the page (eight types) and the machinery.
   Installed **once per machine**
 - **the template** — `src/pptx_agent_maker/templates/project/`: where a project starts (its look,
   an example manifest, and its entry point). It **ships with the toolkit**, so an installed
@@ -87,9 +91,11 @@ cd <project-dir> && task build -- example
 ## The look belongs to the project, the layout to the toolkit
 
 A project sets its own **typeface and colours** in `[theme]` in its `workspace.toml`, and pages
-built from a type come out in them. **Margins, type sizes and spacing cannot be set**: the same
-kind of page keeping the same shape from one round to the next is worth more, and the generation
-that left that open produced a different page every week.
+built from a type come out in them. It also says what the deck is for — `use = "read"` or
+`"present"` — and the type sizes follow from that, with a size of its own per role if it needs one.
+**Margins and spacing cannot be set**: the same kind of page keeping the same shape from one round
+to the next is worth more, and the generation that left that open produced a different page every
+week.
 
 The template ships with **one specimen, baked in the toolkit's own look**, so a project can build
 a deck the moment it is created. To use a project's own look, **replace that one file** — copied
@@ -142,7 +148,7 @@ anything. `preview/` keeps its own README, tests and Taskfile, and is updated wi
 
 Every layer is in place and covered: declaring a page, writing it to pptx, copying a specimen,
 importing a page from an earlier deck, building a deck from one manifest, reading the built file
-back through seven checks, protecting a hand edit, and watching the result in a browser.
+back through nine checks, protecting a hand edit, and watching the result in a browser.
 
 ## License
 

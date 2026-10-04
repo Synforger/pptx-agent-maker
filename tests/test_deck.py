@@ -20,8 +20,10 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
-from pptx_agent_maker.deck.slides import _rename_media
-from pptx_agent_maker import DEFAULT, Page  # noqa: E402
+from pptx_agent_maker.deck.pages.slides import _rename_media
+from pptx_agent_maker import DEFAULT, Page, Palette, Theme, cm  # noqa: E402
+from pptx_agent_maker.layout.parts.look import Style  # noqa: E402
+from pptx_agent_maker.layout.parts.page import Card  # noqa: E402
 from pptx_agent_maker.deck import Deck, ReplacementMissed  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
@@ -327,6 +329,49 @@ class PicturesNobodyKeepsAreDropped(unittest.TestCase):
                            if n.endswith(".rels"))
         self.assertTrue(set(re.findall(r'media/([\w.]+)"', rels)) <= self._media(out))
 
+
+
+class RedMarksAreDroppedOnlyFromImportedPages(unittest.TestCase):
+    """過去の deck から輸入した頁の赤い注目マークは、元の絵を指していたもの ― 別の中身の上に残ると嘘に
+    なるので落とす。
+
+    ⚠ **宣言で組んだ頁からは落とさない。**同じ処理が宣言の頁にも掛かっていた間は、案件が色の役を
+    その赤に決めると、その色の箱が全部、何も言わずに頁から消えた。
+    """
+
+    RED = "C00000"
+
+    def setUp(self) -> None:
+        make_dot()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.dir = Path(self.tmp.name)
+        self.specimen = a_specimen(self.dir / "specimen.pptx", ["表紙"])
+        theme = Theme(palette=Palette(bad=self.RED))
+        page = Page("赤い箱の頁", theme, needs_figure=False)
+        page.boxes(page.body.split_top(cm(3))[0], [Card("止まっている", "理由", Style(tone="bad")), Card("進んでいる")])
+        deck = new_deck(theme)
+        add_page(deck, page.build(), theme)
+        self.source = save(deck, self.dir / "source.pptx")
+
+    def _slide(self, relayout: bool) -> str:
+        out = self.dir / "built.pptx"
+        with Deck.open(self.specimen, out) as deck:
+            brought = deck.bring(self.source, 1, relayout=relayout)
+            name = brought.name
+        with zipfile.ZipFile(out) as archive:
+            return archive.read(f"ppt/slides/{name}").decode("utf-8")
+
+    def test_a_declared_page_keeps_a_box_whose_ground_the_project_made_red(self) -> None:
+        slide = self._slide(relayout=True)
+        self.assertIn(self.RED, slide)
+        self.assertIn("止まっている", slide)
+        self.assertIn("進んでいる", slide)
+
+    def test_a_page_imported_from_an_earlier_deck_loses_its_red_marks(self) -> None:
+        slide = self._slide(relayout=False)
+        self.assertNotIn(self.RED, slide)
+        self.assertIn("進んでいる", slide, "a shape that is not red was dropped with the red one")
 
 
 class DeclaredPagesDoNotInheritALayout(unittest.TestCase):

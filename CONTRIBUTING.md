@@ -15,21 +15,15 @@ out the branch and runs the full gate suite locally before merging, so
 expect review comments quoting concrete gate output instead of a bot
 status check. You can run the same gates yourself with `task --list`.
 
+## Telling a refactor from a change
+
+Two more checks are run by hand before a pull request, because they answer what the tests cannot:
+
+- `task snapshot:check` bakes the made-up project under `tests/corpus/` and compares every page's XML with what is kept in `tests/corpus/snapshot/`. A refactor leaves it identical, to the byte. A change that is meant to move a page is followed by `task snapshot`, and the pages it moved show in the pull request's diff.
+- `task mutate -- tests/mutants/_example.toml` breaks the code the ways a table lists and expects the tests to go red each time. A mutant that stays green is something no test is watching; write the table for what you changed next to that one.
+
+A new page type, part or look goes into the corpus in the same pull request — `tests/test_corpus.py` stays red until it does.
+
 ## Keeping private decks out of a push
 
-Trying the toolkit on a real deck is how most of its defects were found, and it is also how a
-value from that deck ends up in a test or an example. The anonymity guard checks names from a
-list; a copied measurement is on no list.
-
-`.githooks/pre-push` runs `.tooling/local-ci/private-corpus-check.py` on every commit a push is
-about to send, and stops it when an added line or a commit message holds text or a value from
-the decks named on this machine:
-
-```
-~/.config/private-corpus/sources.txt   one .pptx, or a folder of them, per line
-~/.config/private-corpus/words.txt     extra words, one per line (optional)
-~/.config/private-corpus/allow.txt     phrases that are fine (optional)
-```
-
-Nothing about those decks is written in this repository. A machine with no `sources.txt` is
-told the check did not run, and the push goes on.
+Test with made-up decks. Text copied out of a real document is stopped machine-wide at push time by the guard every repository on the maintainer's machine goes through, so this repository carries no check of its own.

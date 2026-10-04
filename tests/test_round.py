@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from pptx_agent_maker.__main__ import main  # noqa: E402
 from pptx_agent_maker.project import create  # noqa: E402
-from pptx_agent_maker.project.manifest import Manifest  # noqa: E402
+from pptx_agent_maker.project.files.manifest import Manifest  # noqa: E402
 
 W1 = """# 第 1 回
 specimen = "specimen.pptx"

@@ -1,0 +1,25 @@
+# How a table of mutants is written (= run it with `task mutate -- tests/mutants/_example.toml`).
+#
+# Each [[mutant]] breaks one thing: `old` is a string found exactly once in `file`, `new` is
+# what replaces it. The tests named in `tests` must go red for every one of them — a mutant
+# that stays green is something no test is watching.
+
+tests = ["tests/test_geometry.py"]
+
+[[mutant]]
+name = "touching edges count as overlapping"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "and other.left < self.right"
+new = "and other.left <= self.right"
+
+[[mutant]]
+name = "the last part does not take what rounding left over"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "size = extent - offset"
+new = "size = round(available * weight / total)"
+
+[[mutant]]
+name = "a picture is stretched to the area instead of fitted"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "width = round(height * aspect)"
+new = "width = self.width"
