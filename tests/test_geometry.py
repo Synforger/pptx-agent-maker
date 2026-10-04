@@ -52,6 +52,41 @@ class DivisionTest(unittest.TestCase):
         for a, b in combinations(cells, 2):
             self.assertFalse(a.overlaps(b))
 
+    def test_equal_parts_are_equal_and_stand_the_gap_apart(self) -> None:
+        """⚠ 間隔を引かずに割ると、最後の 1 つだけが間隔のぶん痩せる。外へは出ないので、枠の中に在るか
+        だけを見る test は通る。"""
+        parent = Rect(100, 20, 1000, 400)
+        columns = parent.columns(3, gap=50)
+        self.assertEqual([(100, 300), (450, 300), (800, 300)], [(part.left, part.width) for part in columns])
+        rows = parent.rows(4, gap=40)
+        self.assertEqual([(20, 70), (130, 70), (240, 70), (350, 70)], [(part.top, part.height) for part in rows])
+        self.assertEqual({(20, 400)}, {(part.top, part.height) for part in columns})
+        self.assertEqual({(100, 1000)}, {(part.left, part.width) for part in rows})
+
+    def test_weighted_parts_share_what_the_gaps_leave(self) -> None:
+        parent = Rect(0, 0, 1000, 10)
+        self.assertEqual([(0, 600), (700, 300)], [(part.left, part.width) for part in parent.columns([2, 1], gap=100)])
+        self.assertEqual([(0, 225), (275, 225), (550, 450)],
+                         [(part.left, part.width) for part in parent.columns([1, 1, 2], gap=50)])
+
+    def test_rectangles_that_only_touch_do_not_overlap_whichever_one_is_asked(self) -> None:
+        """⚠ 並びの順に 1 回ずつ訊くだけでは、判定の片側しか通らない (= 逆から訊いた時の端の扱いを誰も
+        見ていなかった)。"""
+        middle = Rect(100, 100, 50, 50)
+        beside = {"left": Rect(50, 100, 50, 50), "right": Rect(150, 100, 50, 50),
+                  "above": Rect(100, 50, 50, 50), "below": Rect(100, 150, 50, 50)}
+        for where, other in beside.items():
+            with self.subTest(where):
+                self.assertFalse(middle.overlaps(other))
+                self.assertFalse(other.overlaps(middle))
+        # 1 つ内へ寄せれば重なる (= 端の扱いが「離れている」側へ倒れすぎていない)
+        for where, (dx, dy) in {"left": (1, 0), "right": (-1, 0), "above": (0, 1), "below": (0, -1)}.items():
+            with self.subTest(nudged=where):
+                other = beside[where]
+                nudged = Rect(other.left + dx, other.top + dy, other.width, other.height)
+                self.assertTrue(middle.overlaps(nudged))
+                self.assertTrue(nudged.overlaps(middle))
+
     def test_gaps_wider_than_the_area_are_refused(self) -> None:
         with self.assertRaises(ValueError):
             Rect(0, 0, cm(2), cm(2)).columns(5, gap=cm(1))
