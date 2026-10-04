@@ -1,0 +1,45 @@
+# Dividing a rectangle: the parts are the sizes asked for, and touching is not overlapping.
+
+tests = ["tests/test_geometry.py"]
+
+[[mutant]]
+name = "a rectangle touching on the right counts as overlapping"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "            self.left < other.right"
+new = "            self.left <= other.right"
+
+[[mutant]]
+name = "a rectangle touching on the left counts as overlapping"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "and other.left < self.right"
+new = "and other.left <= self.right"
+
+[[mutant]]
+name = "a rectangle touching from below counts as overlapping"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "and self.top < other.bottom"
+new = "and self.top <= other.bottom"
+
+[[mutant]]
+name = "a rectangle touching from above counts as overlapping"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "and other.top < self.bottom"
+new = "and other.top <= self.bottom"
+
+[[mutant]]
+name = "the parts are sized as if there were no gaps between them"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "        available = extent - gap * (len(weights) - 1)"
+new = "        available = extent"
+
+[[mutant]]
+name = "the weights are not read"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "                size = round(available * weight / total)"
+new = "                size = round(available / len(weights))"
+
+[[mutant]]
+name = "a part starts where the one before it ends, with no gap"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
+old = "            offset += size + gap"
+new = "            offset += size"
