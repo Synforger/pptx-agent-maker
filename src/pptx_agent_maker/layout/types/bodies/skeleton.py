@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ...base.geometry import Rect
-from ...parts.page import Card, Page
+from ...parts.page import Card, Page, PageFullError
 from ..core.read import Spec
 from ..core.registry import PageTypeError, register
 from ..core.stack import card_height
@@ -36,6 +36,9 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
 
     進行型の目次 (= 章の頭ごとに 1 枚置き、その章だけを強調する)。⚠ **実頁の無い
     小項目を書かない** ― 目次に残すと翌週がそれを輸入して持ち越す。
+
+    ⚠ **一覧も章の箱も、自分の言葉ぶんの高さが取れなければ止まる。**取れる高さに切り詰めて置いて
+    いた間は、箱の中の字が箱の下の線に乗った (= 狭いマスに入れた目次で、焼いて出た)。
     """
     buckets = [(str(title), [str(item) for item in items])
                for title, items in spec.get("buckets")]
@@ -51,6 +54,11 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     for title, items in buckets:
         lines.append(title)
         lines.extend(f"    {item}" for item in items)
+    listed = page.points_height(listing.width, lines)
+    if listed > listing.height:
+        raise PageFullError(
+            f"agenda: the list of items needs {listed} EMU of height and has {listing.height} — "
+            "fewer items, or two pages; it will not shrink")
     page.points(listing, lines)
     for band, (number, (title, _items)) in zip(
             right.rows(len(buckets), gap=page.theme.spacing.gap_m),
@@ -58,5 +66,9 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
         head = f"{number}. {title}"
         mark = "◀ この章" if number == here else ""
         tall = card_height(page, [Card(head, mark)], band.width, 1)
-        cell, _rest = band.split_top(min(tall, band.height))
+        if tall > band.height:
+            raise PageFullError(
+                f"agenda: chapter {number} needs {tall} EMU of height and its share of the page is "
+                f"{band.height} — fewer chapters, or shorter names; it will not shrink")
+        cell, _rest = band.split_top(tall)
         page.boxes(cell, [Card(head, mark)])

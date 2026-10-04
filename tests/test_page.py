@@ -14,7 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from pptx_agent_maker import DEFAULT, Page, PageFullError  # noqa: E402
+from pptx_agent_maker import DEFAULT, Page, PageFullError, Rect, cm, pt  # noqa: E402
 from pptx_agent_maker.layout.parts.elements import Figure, Table  # noqa: E402
 
 
@@ -73,6 +73,45 @@ class PageTest(unittest.TestCase):
         name = next(e for e in page.build() if e.kind == "caption").rect
         self.assertGreater(name.height, DEFAULT.line_height(DEFAULT.type.caption))
         self.assertLessEqual(name.bottom, page.body.bottom)
+
+    def test_a_picture_left_no_room_by_its_own_name_stops_the_page(self) -> None:
+        """⚠ **名を取った残りを 1 EMU に切り上げて置いていた。**高さ 0 の絵が書き出され、頁には名だけが
+        残った。名と、絵との間の空きで枠が尽きたら、置かずに止まる。"""
+        s = DEFAULT.spacing
+        name = DEFAULT.line_height(DEFAULT.type.caption)
+        page = Page("A picture")
+        body = page.body
+
+        def room(height: int) -> Rect:
+            return Rect(body.left, body.top, body.width, height)
+
+        for height in (name, name + s.gap_s):
+            with self.subTest(height=height), self.assertRaises(PageFullError) as stopped:
+                page.figure(room(height), Path("a.png"), 1.0, caption="what it shows")
+            self.assertIn("its name alone", str(stopped.exception))
+        self.assertFalse([e for e in page.elements if isinstance(e, Figure)], "a refused picture was placed")
+        page.figure(room(name + s.gap_s + cm(1)), Path("a.png"), 1.0, caption="what it shows")
+        picture = next(e for e in page.build() if isinstance(e, Figure)).rect
+        self.assertEqual(cm(1), picture.height)
+
+    def test_a_picture_without_a_name_takes_whatever_it_is_given(self) -> None:
+        """絵は縮む物。名が無ければ、渡された高さをそのまま使う。"""
+        page = Page("A picture")
+        page.figure(Rect(page.body.left, page.body.top, page.body.width, cm(0.5)), Path("a.png"), 1.0)
+        self.assertEqual(cm(0.5), next(e for e in page.build() if isinstance(e, Figure)).rect.height)
+
+    def test_the_points_are_measured_on_the_lines_they_are_written_as(self) -> None:
+        """要点は行頭に「—」を付け、先頭の空白 (= 階層) を残して書く。測るのも同じ行で ― 書く前の文で
+        測ると、行頭のぶんで折れる 1 行を数え落とす。"""
+        page, line = Page("Points"), DEFAULT.line_height()
+        em = pt(DEFAULT.type.body)
+        width = 20 * em + 2 * DEFAULT.spacing.text_inset
+        item = "字" * 20
+        self.assertEqual(line, DEFAULT.wrapped_height(item, 20 * em), "the sentence alone is not one full line")
+        self.assertEqual(2 * line, page.points_height(width, [item]))
+        self.assertEqual(line, page.points_height(width, ["字" * 18]))
+        self.assertEqual(2 * line, page.points_height(width, ["    " + "字" * 18]), "the indent is not counted")
+        self.assertEqual(2 * line, page.points_height(width, ["a", "   ", "b"]), "a blank line is counted")
 
     def test_a_page_without_a_figure_is_refused(self) -> None:
         page = Page("Numbers only")
