@@ -8,18 +8,18 @@ tests = ["tests/test_geometry.py"]
 
 [[mutant]]
 name = "touching edges count as overlapping"
-file = "src/pptx_agent_maker/layout/geometry.py"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
 old = "and other.left < self.right"
 new = "and other.left <= self.right"
 
 [[mutant]]
 name = "the last part does not take what rounding left over"
-file = "src/pptx_agent_maker/layout/geometry.py"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
 old = "size = extent - offset"
 new = "size = round(available * weight / total)"
 
 [[mutant]]
 name = "a picture is stretched to the area instead of fitted"
-file = "src/pptx_agent_maker/layout/geometry.py"
+file = "src/pptx_agent_maker/layout/base/geometry.py"
 old = "width = round(height * aspect)"
 new = "width = self.width"

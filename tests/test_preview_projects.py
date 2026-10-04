@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from pptx_agent_maker.__main__ import _specimens  # noqa: E402
-from pptx_agent_maker.project.places import projects_under as _projects_under  # noqa: E402
+from pptx_agent_maker.project.files.places import projects_under as _projects_under  # noqa: E402
 from pptx_agent_maker.project import Workspace, create  # noqa: E402
 
 
@@ -72,7 +72,7 @@ class ReadingThePlaces(unittest.TestCase):
         return path
 
     def test_projects_and_plain_folders_are_both_offered(self) -> None:
-        from pptx_agent_maker.project.places import discover, load
+        from pptx_agent_maker.project.files.places import discover, load
         create(self.base / "cases" / "client-one")
         (self.base / "old").mkdir()
         (self.base / "old" / "w1.pptx").write_bytes(b"x")
@@ -87,7 +87,7 @@ class ReadingThePlaces(unittest.TestCase):
 
     def test_a_project_with_no_label_does_not_show_its_folder_name(self) -> None:
         """⚠ folder 名には先方の名前が入りうる ― 発表中に欄を開くと別の会社の名前が並ぶ。"""
-        from pptx_agent_maker.project.places import discover, load
+        from pptx_agent_maker.project.files.places import discover, load
         create(self.base / "cases" / "client-one")
         places = load(self._places(f'[[search]]\npath = "{self.base / "cases"}"\n'))
         first = discover(places, lambda f: set())
@@ -97,12 +97,12 @@ class ReadingThePlaces(unittest.TestCase):
         self.assertEqual(sorted(discover(places, lambda f: set())), [name], "the name moved")
 
     def test_a_folder_that_is_not_there_is_left_out_quietly(self) -> None:
-        from pptx_agent_maker.project.places import discover, load
+        from pptx_agent_maker.project.files.places import discover, load
         places = load(self._places(f'[[folder]]\nname = "gone"\npath = "{self.base / "gone"}"\n'))
         self.assertEqual(discover(places, lambda f: set()), {})
 
     def test_a_malformed_places_file_is_said(self) -> None:
-        from pptx_agent_maker.project.places import PlacesError, load
+        from pptx_agent_maker.project.files.places import PlacesError, load
         for text in ('[[folder]]\npath = "/x"\n', '[[search]]\ndepth = 2\n', '[other]\nx = 1\n'):
             with self.subTest(text):
                 with self.assertRaises(PlacesError):

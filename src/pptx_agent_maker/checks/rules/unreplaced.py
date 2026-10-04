@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..finding import Finding
-from ..slide import read
+from ..base.finding import Finding
+from ..base.slide import read
 
 NAME = "unreplaced"
 

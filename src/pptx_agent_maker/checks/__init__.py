@@ -1,8 +1,8 @@
 """Checking a deck after it is built.
 
-    slide.py    焼いたものを読み直す
-    rules/      1 検査 1 file
-    finding.py  当たりの形
+    base/slide.py    焼いたものを読み直す
+    base/finding.py  当たりの形
+    rules/           1 検査 1 file
 
 宣言層は置く前に解くので、ここが見るのは**宣言層を通っていない頁** ― テンプレートの複製と、
 過去デッキからの輸入。どちらも座標は過去の誰かが手で置いたもので、誰も保証していない。
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .finding import Finding
+from .base.finding import Finding
 from .rules import ALL as CHECKS
 
 __all__ = ["Finding", "CHECKS", "run_all", "report"]

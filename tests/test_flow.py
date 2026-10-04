@@ -18,10 +18,12 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker import checks  # noqa: E402
-from pptx_agent_maker.layout import tokens, types  # noqa: E402
-from pptx_agent_maker.layout.page import LIGHT, TONES, Fill, Text  # noqa: E402
-from pptx_agent_maker.layout.tokens import DEFAULT, Theme, Type  # noqa: E402
-from pptx_agent_maker.layout.types import PageTypeError  # noqa: E402
+from pptx_agent_maker.layout.base import tokens  # noqa: E402
+from pptx_agent_maker.layout import types  # noqa: E402
+from pptx_agent_maker.layout.parts.look import LIGHT, TONES  # noqa: E402
+from pptx_agent_maker.layout.parts.elements import Fill, Text  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DEFAULT, Theme, Type  # noqa: E402
+from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
 LONG = "a body long enough to run over several lines of a node, so this one stands taller than the rest"
@@ -296,7 +298,7 @@ class HowALineBreaks(unittest.TestCase):
 
 
 class TheWidthOfACharacter(unittest.TestCase):
-    """Widths come from the typefaces themselves (= `scripts/measure-advance.py`)."""
+    """Widths come from the typefaces themselves (= `scripts/generate/measure-advance.py`)."""
 
     ASCII = string.ascii_letters + string.digits + " " + string.punctuation
 

@@ -24,10 +24,10 @@ sys.path.insert(0, str(REPO / "src"))
 from test_deck import a_specimen, make_dot  # noqa: E402
 
 from pptx_agent_maker.deck.build import build  # noqa: E402
-from pptx_agent_maker.layout.tokens import DEFAULT, ThemeError, theme_from  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DEFAULT, ThemeError, theme_from  # noqa: E402
 from pptx_agent_maker.project import Workspace, WorkspaceError  # noqa: E402
-from pptx_agent_maker.project.manifest import Manifest  # noqa: E402
-from pptx_agent_maker.layout.tokens import Palette, Theme, Type  # noqa: E402
+from pptx_agent_maker.project.files.manifest import Manifest  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import Palette, Theme, Type  # noqa: E402
 from pptx_agent_maker.write.pptx import NO_TABLE_STYLE  # noqa: E402
 
 TEMPLATE_SPECIMEN = REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx"
@@ -35,7 +35,7 @@ TEMPLATE_SPECIMEN = REPO / "src" / "pptx_agent_maker" / "templates" / "project" 
 
 def _dress(destination, theme):
     """A specimen wearing a given look (= what a project puts down as its own)."""
-    spec = importlib.util.spec_from_file_location("baker", REPO / "scripts" / "bake-template.py")
+    spec = importlib.util.spec_from_file_location("baker", REPO / "scripts" / "generate" / "bake-template.py")
     baker = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(baker)
     shutil.copy(TEMPLATE_SPECIMEN, destination)

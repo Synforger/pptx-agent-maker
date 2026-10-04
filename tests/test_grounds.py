@@ -25,11 +25,13 @@ from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.__main__ import main  # noqa: E402
 from pptx_agent_maker.deck.build import build as build_deck  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
-from pptx_agent_maker.layout.page import TONES, Fill, PageFullError, Table, Text  # noqa: E402
-from pptx_agent_maker.layout.tokens import DEFAULT, ThemeError, contrast, theme_from  # noqa: E402
-from pptx_agent_maker.layout.types import PageTypeError  # noqa: E402
+from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
+from pptx_agent_maker.layout.parts.elements import Fill, Table, Text  # noqa: E402
+from pptx_agent_maker.layout.parts.page import PageFullError  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DEFAULT, ThemeError, contrast, theme_from  # noqa: E402
+from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.project import Workspace, create  # noqa: E402
-from pptx_agent_maker.project.manifest import Manifest  # noqa: E402
+from pptx_agent_maker.project.files.manifest import Manifest  # noqa: E402
 from pptx_agent_maker.write import add_page, aspect, new_deck, save  # noqa: E402
 
 GROUNDS = {"Inside": "eaf0f8", "Outside": "FFF4E5", "Shared": "E8F3EA", "At risk": "8B1E3F"}

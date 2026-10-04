@@ -17,10 +17,11 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker.layout import types  # noqa: E402
-from pptx_agent_maker.layout.compose import BODIES, PARTS  # noqa: E402
-from pptx_agent_maker.layout.page import TONES  # noqa: E402
-from pptx_agent_maker.layout.types import _TYPES, EXTRA_KEYS, FRAME_KEYS, LOOK_KEYS  # noqa: E402
-from pptx_agent_maker.project.manifest import KINDS  # noqa: E402
+from pptx_agent_maker.layout.types.bodies.compose import BODIES, PARTS  # noqa: E402
+from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
+from pptx_agent_maker.layout.types.core.registry import _TYPES, EXTRA_KEYS, FRAME_KEYS  # noqa: E402
+from pptx_agent_maker.layout.types.core.read import LOOK_KEYS  # noqa: E402
+from pptx_agent_maker.project.files.manifest import KINDS  # noqa: E402
 
 CORPUS = REPO / "tests" / "corpus"
 

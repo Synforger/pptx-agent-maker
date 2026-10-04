@@ -26,9 +26,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pptx_agent_maker.__main__ import main  # noqa: E402
-from pptx_agent_maker.checks.slide import read  # noqa: E402
+from pptx_agent_maker.checks.base.slide import read  # noqa: E402
 from pptx_agent_maker.project import create  # noqa: E402
-from pptx_agent_maker.review import apply as applying  # noqa: E402
+from pptx_agent_maker.review.take import apply as applying  # noqa: E402
 from test_swap import arranged_by_hand  # noqa: E402
 
 DATA = Path(__file__).resolve().parent / "data"

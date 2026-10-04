@@ -19,10 +19,13 @@ sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
-from pptx_agent_maker.layout.page import LIGHT, Bar, Diamond, PageFullError, Text  # noqa: E402
-from pptx_agent_maker.deck.look import SLOTS, look_of  # noqa: E402
-from pptx_agent_maker.layout.tokens import DEFAULT, theme_from  # noqa: E402
-from pptx_agent_maker.layout.types import PageTypeError  # noqa: E402
+from pptx_agent_maker.layout.parts.look import LIGHT, TONES  # noqa: E402
+from pptx_agent_maker.layout.parts.elements import Bar, Diamond, Text  # noqa: E402
+from pptx_agent_maker.layout.parts.page import PageFullError  # noqa: E402
+from pptx_agent_maker.deck.base.look import SLOTS, look_of  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DEFAULT, theme_from  # noqa: E402
+from pptx_agent_maker.layout.types.bodies.timeline import ROOMY  # noqa: E402
+from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
@@ -233,7 +236,7 @@ class TheToneOfALane(unittest.TestCase):
             page(self.lanes(None, "green"))
         said = str(raised.exception)
         self.assertIn("lane 2", said)
-        for tone in types.TONES:
+        for tone in TONES:
             self.assertIn(tone, said)
 
     def test_the_projects_own_tint_reaches_the_bars(self):
@@ -652,7 +655,7 @@ class WhatDoesNotFitIsNotShrunk(unittest.TestCase):
         """余った高さを配り切ると、棒 1 本の線表が頁いっぱいの帯になる。"""
         built = page([lane(bars=[bar(0, 6, "only")])])
         natural = DEFAULT.line_height(DEFAULT.type.plan[0]) + 2 * DEFAULT.spacing.bar_pad_y
-        self.assertLessEqual(named(built, "only").rect.height, round(natural * (1 + types.ROOMY)))
+        self.assertLessEqual(named(built, "only").rect.height, round(natural * (1 + ROOMY)))
         self.assertGreater(named(built, "only").rect.height, natural)
         bottom = max(e.rect.bottom for e in built.build())
         self.assertLess(bottom, built.theme.frame().bottom - natural, "one bar filled the page")
