@@ -146,6 +146,29 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
                     self.assertTrue(frame.contains(element.rect),
                                     f"{name}: {element.kind} landed outside the frame")
 
+    def test_the_reading_starts_under_the_last_point(self):
+        """⚠ **要点を配列で書くと、取る高さが 1 行ぶんに数えられていた** (= 配列を文字列に直して
+        測っていた)。3 行の要点が半行ぶんの枠に置かれ、字が下の読み方に重なった ― 枠どうしは
+        重ならないので検査は通り、見本を焼いて初めて出た。
+        """
+        points = ["ひとつ", "ふたつ", "みっつ"]
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data, "points": points,
+                              "note": "読み方を 1 行"})
+                placed = {e.kind: e.rect for e in page.build()}
+                last_line = placed["points"].top + len(points) * page.theme.line_height()
+                self.assertLessEqual(last_line, placed["note"].top,
+                                     f"{name}: the points run into the reading")
+
+    def test_points_take_the_same_room_as_a_list_and_as_lines(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                spec = {"type": name, "title": "だい", **data, "note": "読み方を 1 行"}
+                listed = build({**spec, "points": ["ひとつ", "ふたつ", "みっつ"]}).build()
+                lined = build({**spec, "points": "ひとつ\nふたつ\nみっつ"}).build()
+                self.assertEqual(lined, listed)
+
     def test_the_order_of_the_frame_never_changes(self):
         """並びは 1 つしかない ― カードは本体の上、表と読み方は本体の下。"""
         page = build({"type": "figure", "title": "だい", "figure": SQUARE, **EXTRAS})

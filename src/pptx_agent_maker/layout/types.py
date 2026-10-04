@@ -276,10 +276,11 @@ def _reserve_trailing(page: Page, spec: Spec, area: Rect) -> tuple[Rect, Rect | 
         rows = spec.rows()
         widths = page.theme.column_widths(rows, area.width)
         reserve += page.theme.table_height(rows, widths) + page.theme.spacing.gap_m
-    for key, size in (("points", None), ("note", None)):
-        if spec.text(key):
-            reserve += page.theme.text_height(spec.text(key), area.width, size) \
-                + page.theme.spacing.gap_s
+    # ⚠ **要点は、置くときと同じ行で測る。**配列を文字列に直して測っていた間は、何行あっても
+    # 1 行ぶんしか取らず、置いた要点が下の読み方に重なった
+    for text in ("\n".join(_point_lines(spec)), spec.text("note")):
+        if text:
+            reserve += page.theme.text_height(text, area.width) + page.theme.spacing.gap_s
     if not reserve:
         return area, None
     if reserve >= area.height:
@@ -289,6 +290,16 @@ def _reserve_trailing(page: Page, spec: Spec, area: Rect) -> tuple[Rect, Rect | 
         )
     body, _rest = area.split_top(area.height - reserve, gap=page.theme.spacing.gap_m)
     return body, area
+
+
+def _point_lines(spec: Spec) -> list[str]:
+    """The points a page hands over, one per line (= written as a list, or as lines of one string)."""
+    points = spec.get("points")
+    if not points:
+        return []
+    if isinstance(points, str):
+        return [line for line in points.split("\n") if line.strip()]
+    return [str(point) for point in points]
 
 
 def _place_trailing(page: Page, spec: Spec, area: Rect | None) -> None:
@@ -305,9 +316,7 @@ def _place_trailing(page: Page, spec: Spec, area: Rect | None) -> None:
                     max(rest.bottom - placed.bottom - page.theme.spacing.gap_s, 1))
     note = spec.text("note")
     if spec.get("points"):
-        lines = ([line for line in spec.text("points").split("\n") if line.strip()]
-                 if isinstance(spec.get("points"), str)
-                 else [str(x) for x in spec.get("points")])
+        lines = _point_lines(spec)
         # 読み方のぶんを先に除けてから要点を置く (= 足りないときに読み方が要点の上に
         # 重なるのを防ぐ。どちらも同じ「本体の下」を分け合う)
         kept = (page.theme.text_height(note, rest.width) + page.theme.spacing.gap_s
