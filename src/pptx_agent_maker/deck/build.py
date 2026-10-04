@@ -26,11 +26,18 @@ class HandEditedError(RuntimeError):
     """The deck on disk was edited by a person; building would erase that."""
 
 
-def build(workspace: Workspace, manifest: Manifest) -> Path:
-    """Assemble the deck the manifest describes and return where it landed."""
+def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
+    """The look this manifest's declared pages are built in: the specimen's, with the project's laid over."""
     specimen = (workspace.root / manifest.specimen).resolve()
     if not specimen.is_file():
         raise ManifestError(f"specimen not found: {specimen}")
+    return theme_from(merged(specimen, workspace.look))
+
+
+def build(workspace: Workspace, manifest: Manifest) -> Path:
+    """Assemble the deck the manifest describes and return where it landed."""
+    theme = theme_of(workspace, manifest)
+    specimen = (workspace.root / manifest.specimen).resolve()
 
     destination = workspace.out(manifest.out)
     if touched_by_hand(destination):
@@ -39,8 +46,6 @@ def build(workspace: Workspace, manifest: Manifest) -> Path:
             f"{destination.name} was edited by hand since it was built — a copy is at "
             f"{shelved}. Fold those changes in (`review`) or delete the file, then build again."
         )
-
-    theme = theme_from(merged(specimen, workspace.look))
 
     with tempfile.TemporaryDirectory() as scratch:
         declared = _bake_declared(workspace, manifest, Path(scratch), theme)

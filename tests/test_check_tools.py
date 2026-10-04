@@ -40,6 +40,7 @@ kind = "declare"
 type = "board"
 title = "{title}"
 table = [["Key", "Value"], ["a", "1"]]
+footer = "Source: made up for this test"
 """
 
 
@@ -90,7 +91,8 @@ class ASnapshot(unittest.TestCase):
         shutil.copy(ASSETS / "circle.png", self.corpus / "assets" / "shape.png")
         (self.corpus / "manifests" / "deck.toml").write_text(
             'specimen = "specimen.pptx"\nout = "deck.pptx"\n'
-            '[[pages]]\nkind = "declare"\ntype = "figure"\ntitle = "x"\nfigure = "shape.png"\n',
+            '[[pages]]\nkind = "declare"\ntype = "figure"\ntitle = "x"\nfigure = "shape.png"\n'
+            'footer = "Source: made up for this test"\n',
             encoding="utf-8")
         before = self._baked("before")
         shutil.copy(ASSETS / "square.png", self.corpus / "assets" / "shape.png")

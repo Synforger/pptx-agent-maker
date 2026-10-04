@@ -32,6 +32,7 @@ RUN = re.compile(r"<a:r>(.*?)</a:r>", re.S)
 SIZE = re.compile(r'<a:rPr[^>]*\bsz="(\d+)"')
 TEXT = re.compile(r"<a:t\b[^>]*(?<!/)>(.*?)</a:t>", re.S)
 ALIGN = re.compile(r'<a:pPr[^>]*\balgn="(\w+)"')
+BREAK = re.compile(r"<a:br\b")
 ANCHOR = re.compile(r'<a:bodyPr[^>]*\banchor="(\w+)"')
 INSETS = {name: re.compile(rf'<a:bodyPr[^>]*\b{name}="(-?\d+)"')
           for name in ("lIns", "rIns", "tIns", "bIns")}
@@ -94,6 +95,28 @@ def _paragraphs(xml: str) -> list[tuple[list[tuple[str, float]], str]]:
         align = ALIGN.search(body)
         found.append((pieces, align.group(1) if align else "l"))
     return found
+
+
+def lines_in(xml: str, usable: int, size: float | None = None) -> int:
+    """How many lines a shape's words break into at this width.
+
+    `size` は大きさを書いていない run の代わりに使う (= プレースホルダはレイアウトから継ぐので、
+    呼ぶ側がそこから読んで渡す)。重なりの見積もりと同じ数え方で、**狭い側へ外す** ― 半角は全角の
+    半分と数えるので、行は実際より少なめに出る (= 多すぎると言うのは、本当に多いときだけ)。
+    """
+    count = 0
+    for body in PARAGRAPH.findall(xml):
+        pieces: list[tuple[str, float]] = []
+        for run in RUN.findall(body):
+            text = html.unescape("".join(TEXT.findall(run)))
+            if not text:
+                continue
+            declared = SIZE.search(run)
+            pieces.append((text, int(declared.group(1)) / 100 if declared else size or ASSUMED_SIZE))
+        if "".join(text for text, _ in pieces).strip():
+            # 段落の中の改行 (= <a:br/>) は、人が入れた行の切れ目
+            count += len(_lines(pieces, usable)) + len(BREAK.findall(body))
+    return count
 
 
 def _inset(xml: str, name: str, fallback: int) -> int:

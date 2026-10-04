@@ -24,6 +24,9 @@ SIZE = re.compile(r'<a:rPr[^>]*\bsz="(\d+)"')
 # 中身として拾う (= 実物で 1 回踏んだ)。直前が / でない > だけを開始とみなす。
 TEXT = re.compile(r"<a:t\b[^>]*(?<!/)>(.*?)</a:t>", re.S)
 CELL = re.compile(r"<a:tc[ >](.*?)</a:tc>", re.S)
+#: 文字を持てる図形 (= 位置を書いていない物も含む。プレースホルダは位置をレイアウトから継ぐ)
+TEXT_SHAPE = re.compile(r"<p:sp>(.*?)</p:sp>", re.S)
+TITLE_PLACEHOLDER = re.compile(r'<p:ph\b[^>]*\btype="(?:title|ctrTitle)"')
 ROW = re.compile(r"<a:tr[ >](.*?)</a:tr>", re.S)
 
 
@@ -79,12 +82,42 @@ class BuiltSlide:
     xml: str
     #: この頁が乗るレイアウトの図形 (= ロゴ・頁番号・飾り)。読めなければ空
     beneath: tuple["Shape", ...] = ()
+    #: そのレイアウトとマスターの XML (= 題の文字の大きさのように、図形の外に書かれる物を読む)
+    under: tuple[str, ...] = ()
 
     def shapes(self) -> list[Shape]:
         return shapes_in(self.xml)
 
     def texts(self) -> list[str]:
         return [html.unescape(t) for t in TEXT.findall(self.xml)]
+
+    def title(self) -> str | None:
+        """The XML of the page's title placeholder, when it has one that says something.
+
+        ⚠ **宣言で組んだ頁には無い** (= 白紙に文字の枠として置くので、どれが題かは焼いた file から
+        は分からない)。あるのは、テンプレートから複製した頁と、過去のデッキから輸入した頁。
+        """
+        for body in TEXT_SHAPE.findall(self.xml):
+            if TITLE_PLACEHOLDER.search(body) and "".join(TEXT.findall(body)).strip():
+                return body
+        return None
+
+    def headline(self) -> str:
+        """What the page is called, for a person reading a list: its title, else its largest words.
+
+        題のプレースホルダを持たない頁 (= 道具が焼いた見本の表紙など) は、いちばん大きい文字を題と読む。
+        """
+        title = self.title()
+        if title is not None:
+            return html.unescape(" ".join(TEXT.findall(title))).strip()
+        best, size = "", 0.0
+        for body in TEXT_SHAPE.findall(self.xml):
+            for run in RUN.findall(body):
+                words = html.unescape("".join(TEXT.findall(run))).strip()
+                declared = SIZE.search(run)
+                if words and declared and int(declared.group(1)) / 100 > size:
+                    best, size = html.unescape(" ".join(TEXT.findall(body))).strip(), int(declared.group(1)) / 100
+        return best
 
 
 def shapes_in(xml: str) -> list[Shape]:
@@ -108,14 +141,16 @@ def read(deck: Path) -> list[BuiltSlide]:
         file_of = dict(re.findall(r'Id="(rId\d+)"[^>]*Target="slides/(slide\d+\.xml)"', rels))
         order = [file_of[rid] for rid in re.findall(r'<p:sldId[^>]*r:id="(rId\d+)"', presentation)
                  if rid in file_of]
-        return [BuiltSlide(number, name,
-                           archive.read(f"ppt/slides/{name}").decode("utf-8"),
-                           _beneath(archive, name))
-                for number, name in enumerate(order, start=1)]
+        pages = []
+        for number, name in enumerate(order, start=1):
+            under = _under(archive, name)
+            pages.append(BuiltSlide(number, name, archive.read(f"ppt/slides/{name}").decode("utf-8"),
+                                    tuple(shape for part in under for shape in shapes_in(part)), under))
+        return pages
 
 
-def _beneath(archive: zipfile.ZipFile, slide: str) -> tuple[Shape, ...]:
-    """What the page sits on: the shapes of its own layout, and of that layout's master.
+def _under(archive: zipfile.ZipFile, slide: str) -> tuple[str, ...]:
+    """What the page sits on, as XML: its own layout, then that layout's master.
 
     ⚠ **頁ごとに別のレイアウトに乗る。**前の世代はレイアウトを全部混ぜて 1 つの
     「ロゴの位置」を決めていたので、レイアウトごとにロゴの位置が違うテンプレートでは
@@ -142,7 +177,7 @@ def _beneath(archive: zipfile.ZipFile, slide: str) -> tuple[Shape, ...]:
                 parts.append(archive.read(f"ppt/slideMasters/{master}").decode("utf-8"))
             except KeyError:
                 continue
-    return tuple(shape for part in parts for shape in shapes_in(part))
+    return tuple(parts)
 
 
 def slide_size(deck: Path) -> tuple[int, int]:

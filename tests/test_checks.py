@@ -22,7 +22,7 @@ sys.path.insert(0, str(REPO / "tests"))
 from pptx_agent_maker import DEFAULT, Page  # noqa: E402
 from pptx_agent_maker.checks import CHECKS, run_all  # noqa: E402
 from pptx_agent_maker.checks.rules import (  # noqa: E402
-    empty_cells, internal_names, off_page, overlap, type_floor, unreplaced, untyped_parts)
+    empty_cells, internal_names, long_title, off_page, overlap, type_floor, unreplaced, untyped_parts)
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 from test_deck import make_dot  # noqa: E402
 
@@ -115,10 +115,37 @@ class ChecksFireTest(unittest.TestCase):
         self.assertFalse(untyped_parts.run(good), "a sound package was reported")
         self.assertTrue(untyped_parts.run(broken), "a part with no type went through")
 
+    def _titled(self, name: str, title: str) -> Path:
+        """A deck whose one page is the template's title slide (= a title placeholder, sized by the master)."""
+        deck = Presentation()
+        deck.slides.add_slide(deck.slide_layouts[0]).shapes.title.text = title
+        deck.save(str(self.dir / name))
+        return self.dir / name
+
+    def test_a_title_past_two_lines_is_caught(self) -> None:
+        """⚠ 題のプレースホルダは、幅も文字の大きさも頁には書いていない (= レイアウトとマスターから継ぐ)。
+        そこまで読まないと、行は数えられない。"""
+        long = self._titled("long.pptx", "題は結論の文で書くので長くなりやすい。" * 3)
+        found = long_title.run(long, {})
+        self.assertEqual(1, len(found), "a title of three lines or more went unreported")
+        self.assertIn("lines", found[0].why)
+        self.assertEqual([], long_title.run(self._titled("short.pptx", "題は結論の文で書く"), {}))
+        self.assertEqual([], long_title.run(long, {"long_title": False}), "the project could not switch it off")
+
+    def test_a_title_broken_by_hand_counts_each_line(self) -> None:
+        deck = Presentation()
+        frame = deck.slides.add_slide(deck.slide_layouts[0]).shapes.title.text_frame
+        frame.text = "一行目"
+        for line in ("二行目", "三行目"):
+            frame.paragraphs[0].add_line_break()
+            frame.paragraphs[0].add_run().text = line
+        deck.save(str(self.dir / "broken.pptx"))
+        self.assertTrue(long_title.run(self.dir / "broken.pptx", {}))
+
     def test_every_check_has_a_fixture_that_fires_it(self) -> None:
         """A check nobody proved is a check nobody can trust."""
         proven = {off_page.NAME, overlap.NAME, type_floor.NAME, empty_cells.NAME,
-                  internal_names.NAME, unreplaced.NAME, untyped_parts.NAME}
+                  internal_names.NAME, unreplaced.NAME, untyped_parts.NAME, long_title.NAME}
         self.assertEqual({check.NAME for check in CHECKS}, proven,
                          "a check exists with no fixture proving it fires")
 

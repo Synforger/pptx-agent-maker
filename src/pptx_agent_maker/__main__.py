@@ -152,6 +152,10 @@ def main(argv: list[str] | None = None) -> int:
     built.add_argument("manifest", help="a manifest name, with or without .toml")
     built.add_argument("--skip-checks", action="store_true", help="build without checking")
 
+    titled = sub.add_parser("titles", help="print every page's title in order, to read the story the deck tells")
+    titled.add_argument("path", help="the project folder")
+    titled.add_argument("manifest", help="a manifest name, with or without .toml")
+
     checked = sub.add_parser("check", help="check a deck that is already built")
     checked.add_argument("path", help="the project folder")
     checked.add_argument("deck", help="a built deck in the project, or a path")
@@ -338,7 +342,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "preview":
             return _preview(workspace, args.port, args.no_open)
 
-        from .checks import report, run_all
+        if args.command == "titles":
+            from .deck.titles import titles
+
+            for line in titles(workspace, Manifest.load(workspace.manifest(args.manifest))):
+                print(line)
+            return 0
+
+        from .checks import report, run_all, run_declared
 
         if args.command == "review" and args.apply:
             from .review.take.apply import ApplyError, apply
@@ -393,15 +404,17 @@ def main(argv: list[str] | None = None) -> int:
             print(report(findings))
             return 1 if findings else 0
 
-        from .deck.build import build
+        from .deck.build import build, theme_of
 
         manifest = Manifest.load(workspace.manifest(args.manifest))
         built_deck = build(workspace, manifest)
         print(f"built {built_deck} ({len(manifest.entries)} pages)")
         if args.skip_checks:
             return 0
-        findings = run_all(built_deck, workspace.settings.get("checks", {}))
-        print(report(findings))
+        # 焼いた deck を読み直す検査と、manifest を読む検査を、1 つの報告に並べる
+        config = workspace.settings.get("checks", {})
+        findings = run_all(built_deck, config) + run_declared(manifest, theme_of(workspace, manifest), config)
+        print(report(findings, declared=True))
         return 1 if findings else 0
     except (WorkspaceError, ManifestError, FileExistsError, FileNotFoundError,
             ValueError, IndexError, RuntimeError) as error:

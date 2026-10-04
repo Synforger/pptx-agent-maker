@@ -23,6 +23,12 @@ tasks:
     cmds:
       - '{{.MAKER}} build . {{.CLI_ARGS}}'
 
+  titles:
+    desc: Print every page's title in order, to read the story the deck tells (= task titles -- w1)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} titles . {{.CLI_ARGS}}'
+
   check:
     desc: Read a built deck back and report what it found (= task check -- w1.pptx)
     deps: [_tool]
