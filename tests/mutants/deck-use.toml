@@ -1,0 +1,87 @@
+# What a deck is for (read, or shown) decides how large its type is; a project may set a role of its own.
+
+tests = ["tests/test_theme.py"]
+
+[[mutant]]
+name = "a deck to be shown has its title at the size of a deck to be read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = '"present": Type(title=32, heading=24,'
+new = '"present": Type(title=24, heading=24,'
+
+[[mutant]]
+name = "a deck to be shown has the floor of a deck to be read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "body=18, caption=14, minimum=14),"
+new = "body=18, caption=14, minimum=10),"
+
+[[mutant]]
+name = "the sizes a project sets are not laid over the table"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    return replace(USES[use], **declared)"
+new = "    return USES[use]"
+
+[[mutant]]
+name = "a size under the floor is taken"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if value < floor:\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "the floor a size is held to is always that of a deck to be read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    floor = USES[use].minimum\n"
+new = "    floor = USES[\"read\"].minimum\n"
+
+[[mutant]]
+name = "a role that is not the project's to set is taken"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    _refuse_unknown(sorted(set(declared) - set(SIZED)), \"theme.type\", SIZED)\n"
+new = ""
+
+[[mutant]]
+name = "a use nobody knows is not refused"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    if use not in USES:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "the bands keep their height whatever the type"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        spacing=_furniture(type),\n"
+new = ""
+
+[[mutant]]
+name = "the title's band grows with the headings, not with the title"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "title_height=round(base.title_height * type.title / read.title),"
+new = "title_height=round(base.title_height * type.heading / read.heading),"
+
+[[mutant]]
+name = "the footer keeps its height whatever the type"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "footer_height=round(base.footer_height * type.caption / read.caption),"
+new = "footer_height=base.footer_height,"
+
+[[mutant]]
+name = "the timeline keeps its two sizes whatever the type"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return tuple(sorted({self.stage, self.body}, reverse=True))"
+new = "return (14, 12)"
+
+[[mutant]]
+name = "the checks hold every deck to the floor of a deck to be read"
+file = "src/pptx_agent_maker/__main__.py"
+old = 'return {"type_floor": theme_from(workspace.look).type.minimum, **workspace.settings.get("checks", {})}'
+new = 'return workspace.settings.get("checks", {})'
+
+[[mutant]]
+name = "the floor a project writes for itself loses to the one of its use"
+file = "src/pptx_agent_maker/__main__.py"
+old = 'return {"type_floor": theme_from(workspace.look).type.minimum, **workspace.settings.get("checks", {})}'
+new = 'return {**workspace.settings.get("checks", {}), "type_floor": theme_from(workspace.look).type.minimum}'
+
+[[mutant]]
+name = "the use a project declares does not reach the pages it builds"
+file = "src/pptx_agent_maker/deck/base/look.py"
+old = 'look.update({key: value for key, value in declared.items() if key != "palette"})'
+new = 'look.update({key: value for key, value in declared.items() if key == "font"})'

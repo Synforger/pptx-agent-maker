@@ -57,7 +57,7 @@ And four things are refused outright, because no one managed to hold them by dis
 
 - a page with **no figure** (= prose and tables only)
 - an **empty table cell** (write a dash; a blank reads as a value nobody filled in)
-- type **below the floor** (10pt on the slide)
+- type **below the floor** (10pt on a deck to be read, 14pt on one to be shown)
 - a **table taller than the space given** — PowerPoint grows the frame instead of shrinking the
   table, so the page silently overflows. The height a table will occupy is known before it is placed.
 
@@ -89,9 +89,11 @@ cd <project-dir> && task build -- example
 ## The look belongs to the project, the layout to the toolkit
 
 A project sets its own **typeface and colours** in `[theme]` in its `workspace.toml`, and pages
-built from a type come out in them. **Margins, type sizes and spacing cannot be set**: the same
-kind of page keeping the same shape from one round to the next is worth more, and the generation
-that left that open produced a different page every week.
+built from a type come out in them. It also says what the deck is for — `use = "read"` or
+`"present"` — and the type sizes follow from that, with a size of its own per role if it needs one.
+**Margins and spacing cannot be set**: the same kind of page keeping the same shape from one round
+to the next is worth more, and the generation that left that open produced a different page every
+week.
 
 The template ships with **one specimen, baked in the toolkit's own look**, so a project can build
 a deck the moment it is created. To use a project's own look, **replace that one file** — copied

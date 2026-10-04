@@ -104,6 +104,17 @@ def _deck_path(workspace, name: str) -> Path:
     return target
 
 
+def _checks(workspace) -> dict:
+    """What the project asks of the checks, with the type floor of its deck's use filled in.
+
+    文字の下限は資料の使い方が決める (= 映す資料は 14pt、読ませる資料は 10pt)。案件が
+    `[checks] type_floor` を書いていれば、そちらが勝つ。
+    """
+    from .layout.base.tokens import theme_from
+
+    return {"type_floor": theme_from(workspace.look).type.minimum, **workspace.settings.get("checks", {})}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pptx_agent_maker", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -400,7 +411,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "check":
             target = _deck_path(workspace, args.deck)
-            findings = run_all(target, workspace.settings.get("checks", {}))
+            findings = run_all(target, _checks(workspace))
             print(report(findings))
             return 1 if findings else 0
 
@@ -412,7 +423,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.skip_checks:
             return 0
         # 焼いた deck を読み直す検査と、manifest を読む検査を、1 つの報告に並べる
-        config = workspace.settings.get("checks", {})
+        config = _checks(workspace)
         findings = run_all(built_deck, config) + run_declared(manifest, theme_of(workspace, manifest), config)
         print(report(findings, declared=True))
         return 1 if findings else 0
