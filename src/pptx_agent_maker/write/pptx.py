@@ -390,8 +390,11 @@ def _table(slide, element: Table, theme: Theme) -> None:
             cell.margin_bottom = Emu(theme.spacing.cell_pad_y)
             cell.margin_left = Emu(theme.spacing.cell_pad_x)
             cell.margin_right = Emu(theme.spacing.cell_pad_x)
+            # 地の濃さを言ったセルは、差し色をその段まで薄めた地。字は、その地の上で読める方の色
+            ground = (theme.palette.shade(element.shades[(r, c)]) if (r, c) in element.shades
+                      else _cell_colour(theme, heading, r))
             cell.fill.solid()
-            cell.fill.fore_color.rgb = _colour(_cell_colour(theme, heading, r))
+            cell.fill.fore_color.rgb = _colour(ground)
             cell.text = value
             mark = (r, c) in element.marks
             paragraph = cell.text_frame.paragraphs[0]
@@ -400,7 +403,8 @@ def _table(slide, element: Table, theme: Theme) -> None:
                 run.font.size = Pt(theme.type.body)
                 run.font.bold = heading
                 run.font.name = MARK_FACE if mark else theme.type.family
-                ink = theme.palette.paper if heading else theme.palette.ink
+                ink = (theme.palette.words_on(ground) if (r, c) in element.shades
+                       else theme.palette.paper if heading else theme.palette.ink)
                 run.font.color.rgb = _colour(element.highlight.get((r, c)) or ink)
                 if mark:
                     _every_script(run, MARK_FACE)

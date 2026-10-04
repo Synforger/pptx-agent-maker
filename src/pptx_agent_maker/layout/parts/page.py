@@ -37,7 +37,7 @@ from pathlib import Path
 
 from ..base.geometry import Rect
 from ..base.tokens import DEFAULT, Theme
-from .elements import Bar, Chart, Diamond, Element, Figure, Fill, Mark, Table, Text
+from .elements import Bar, Chart, Diamond, Element, Figure, Fill, Mark, Shade, Table, Text
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -348,6 +348,8 @@ class Page:
               highlight: dict[tuple[int, int], str] | None = None) -> Rect:
         """A small table. Empty cells are refused: write a dash if there is no value.
 
+        セルは言葉か、状態の印 (= `Mark`) か、地の濃さを言った言葉 (= `Shade`。値の大小を地の濃さで見せる)。
+
         ⚠ **表の高さは行数が決める。**渡した枠は上限であって指示ではなく、行が
         入り切らなければ PowerPoint は枠を下へ伸ばす (= 頁から溢れる)。ここで
         必要な高さを測り、入らない宣言をその場で拒む。
@@ -369,9 +371,15 @@ class Page:
         placed = Rect(rect.left, rect.top, rect.width, needed)
         marks = frozenset((r, c) for r, row in enumerate(rows) for c, cell in enumerate(row)
                           if isinstance(cell, Mark))
+        shades = {(r, c): cell.level for r, row in enumerate(rows) for c, cell in enumerate(row)
+                  if isinstance(cell, Shade) and cell.level}
+        if header and any(r == 0 for r, _c in shades):
+            raise ValueError(
+                "a heading cell is given a shade — the heading row stands on the accent already; "
+                "a shade belongs to the cells under it")
         self.elements.append(
             Table("table", placed, tuple(tuple(str(c) for c in row) for row in rows),
-                  header, highlight or {}, tuple(widths), marks)
+                  header, highlight or {}, tuple(widths), marks, shades)
         )
         return placed
 
