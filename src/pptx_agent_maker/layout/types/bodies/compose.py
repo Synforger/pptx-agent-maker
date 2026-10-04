@@ -30,7 +30,7 @@ from numbers import Real
 from ...base.geometry import Rect
 from ...parts.page import Card, Page, PageFullError
 from ..core.registry import TYPES, PageTypeError, register
-from ..core.read import Spec, read_card, only_keys
+from ..core.read import Spec, read_card, read_table, only_keys
 from ..core.stack import card_height
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
@@ -202,10 +202,7 @@ def _the_card(spec: Spec, cell: dict, what: str) -> Card:
 
 
 def _table(cell: dict, what: str) -> list[list[str]]:
-    rows = cell["table"]
-    if not isinstance(rows, list) or not rows or not all(isinstance(row, list) and row for row in rows):
-        raise PageTypeError(f"{what}: `table` is a list of rows, each a list of cells")
-    return [[str(value) for value in row] for row in rows]
+    return read_table(cell["table"], f"{what}: table")
 
 
 def _points(cell: dict, what: str) -> list[str]:

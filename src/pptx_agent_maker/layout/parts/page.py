@@ -24,6 +24,7 @@
 * `label` ― 棒や印の隣、列の頭に付く 1 行の名前
 * `lane` ― レーンの名前
 * `footer` ― 出所
+* `sticker` ― 頁の性格を言う札 (= 暫定・イメージ。題の帯の右端に 1 つ)
 
 ⚠ **図解を 1 つも持たない頁は組めない** (= 表と文章だけの頁を人に見せない)。
 """
@@ -35,7 +36,7 @@ from pathlib import Path
 
 from ..base.geometry import Rect
 from ..base.tokens import DEFAULT, Theme
-from .elements import Bar, Diamond, Element, Figure, Fill, Table, Text
+from .elements import Bar, Diamond, Element, Figure, Fill, Mark, Table, Text
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -61,7 +62,7 @@ class Page:
 
     def __init__(self, title: str, theme: Theme = DEFAULT, *, kicker: str = "",
                  condition: str = "", conclusion: str = "", footer: str = "",
-                 needs_figure: bool = True) -> None:
+                 sticker: str = "", needs_figure: bool = True) -> None:
         """Declare the whole frame at once: title, the bands, the footer.
 
         ⚠ **帯と出所はここで全部取る。** 後から下の帯を足せる形にしていた間は、
@@ -76,7 +77,7 @@ class Page:
         # 決めるのは型で、宣言の側からは触れない ― 本文の頁がここを外せるなら、
         # 「表と文章だけ」の頁が戻ってくる。
         self._needs_figure = needs_figure
-        self._title_bar(title, kicker)
+        self._title_bar(title, kicker, sticker)
         if condition:
             self._band(condition, conclusion=False)
         if footer:
@@ -118,16 +119,25 @@ class Page:
 
     # -- the things a page may contain ---------------------------------------
 
-    def _title_bar(self, title: str, kicker: str) -> None:
-        """The title, the small words above it, and the line under both.
+    def _title_bar(self, title: str, kicker: str, sticker: str = "") -> None:
+        """The title, the small words above it, the sticker beside it, and the line under them.
 
         ⚠ **題の帯は、題が折れる行ぶんの高さを取る。**1 行ぶんで固定していた間は、2 行に折れた題が
         帯から下へはみ出し、本体の最初の物に重なった (= 枠どうしは離れているので、検査は掴まない)。
         1 行の題の帯は今までの高さのままで、折れた行ごとに 1 行ぶん伸びる。題の上の小さい字は
         伸びない (= 伸びたぶんは全部題のもの)。
+
+        札は題の帯の右端に、題の字の枠の真ん中の高さで置く (= 題は枠の真ん中に寄るので、何行に折れても
+        札と題が揃う)。**題の字の枠は、札と、札との間の空きのぶん狭い** (= 題が札の下へ回り込まない。
+        行もその幅で数える)。
         """
         t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
-        folded = (self.theme.title_lines(title) - 1) * self.theme.line_height(t.title)
+        tag = self.theme.sticker_width(sticker) if sticker else 0
+        if tag and self._remaining.width - tag - s.gap_m - 2 * s.text_inset < self.theme.unbreakable(title, t.title, bold=True):
+            raise PageFullError(
+                f"the sticker {sticker!r} leaves the title no room for its longest word — "
+                "a sticker is a word or two (= draft, illustrative), not a sentence")
+        folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.title)
         bar = self._take_top(s.title_height + folded)
         if kicker:
             kick, main = Rect(bar.left, bar.top, bar.width, s.title_height).rows([1, 2])
@@ -135,8 +145,15 @@ class Page:
             self.elements.append(Text("kicker", kick, kicker, t.caption, p.muted))
         else:
             main = bar
-        self.elements.append(Text("title", main, title, t.title, p.ink, bold=True))
+        words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)
+        self.elements.append(Text("title", words, title, t.title, p.ink, bold=True))
         self.elements.append(Fill("rule", Rect(bar.left, bar.bottom, bar.width, s.hairline), p.rule))
+        if tag:
+            # 灰の細枠に灰の字 (= 頁の中身より一段うしろに引いた見た目)。地は塗らない
+            tall = self.theme.line_height(t.body) + 2 * s.bar_pad_y
+            self.elements.append(Bar(
+                "sticker", Rect(main.right - tag, main.top + max((main.height - tall) // 2, 0), tag, tall),
+                sticker, t.body, p.muted, outline=p.muted))
 
     def _band(self, text: str, *, conclusion: bool = False) -> None:
         """A declared condition (top) or the reading to take away (bottom)."""
@@ -306,9 +323,11 @@ class Page:
                         "a blank reads as a value nobody managed to fill in"
                     )
         placed = Rect(rect.left, rect.top, rect.width, needed)
+        marks = frozenset((r, c) for r, row in enumerate(rows) for c, cell in enumerate(row)
+                          if isinstance(cell, Mark))
         self.elements.append(
             Table("table", placed, tuple(tuple(str(c) for c in row) for row in rows),
-                  header, highlight or {}, tuple(widths))
+                  header, highlight or {}, tuple(widths), marks)
         )
         return placed
 

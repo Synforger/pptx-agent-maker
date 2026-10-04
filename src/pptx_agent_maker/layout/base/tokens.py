@@ -78,6 +78,11 @@ _ADVANCE = {
 }
 _ADVANCE_OF = {group: {character: wide for wide, characters in table.items() for character in characters}
                for group, table in _ADVANCE.items()}
+#: 表のセルの状態の印 (= ○◔◑◕● と ✓△×) を置く書体。**印の字形を全部持つ書体は限られる** ―
+#: 書体の file を読んで確かめたところ、Meiryo は 8 つとも持ち、Arial・Calibri・游ゴシックは 4 分の 1 と
+#: 4 分の 3 の円、✓ を持たない。案件の書体が何であっても、印だけはこの書体で置く (= 字のまま置けるので、
+#: 人が PowerPoint で直せる)
+MARK_FACE = "Meiryo"
 #: どの書体がどの表を引くか (= 名前の頭で引く)。Helvetica は Arial と同じ字幅に作られている
 _FAMILY = {"arial": "arial", "helvetica": "arial"}
 #: 表に無い半角 (= アクセント付きの字など) はこの幅で数える
@@ -364,13 +369,20 @@ class Theme:
         """The height that text needs at that width, by `wraps`."""
         return self.wraps(text, width, size, bold=bold) * self.line_height(size)
 
-    def title_lines(self, title: str) -> int:
-        """How many lines a page's title breaks into, set across the frame.
+    def sticker_width(self, sticker: str) -> int:
+        """How wide a page's sticker stands: its words on one line, with room at each side."""
+        return self.width(sticker, self.type.body) + 2 * self.spacing.pad
+
+    def title_lines(self, title: str, sticker: str = "") -> int:
+        """How many lines a page's title breaks into, set across the frame beside its sticker.
 
         ⚠ **題の行を数えるのはここ 1 か所。**頁は題の帯の高さをこの数から取り、検査 (= `long_title`)
         は同じ数で 3 行以上を知らせる。別々に数えると、帯が 2 行ぶん取ったのに検査は 3 行と言う。
+        札を持つ頁は、札と、札との間の空きのぶんだけ題が狭い。
         """
         room = self.frame().width - 2 * self.spacing.text_inset
+        if sticker:
+            room -= self.sticker_width(sticker) + self.spacing.gap_m
         return self.wraps(title, room, self.type.title, bold=True)
 
     def pt(self, size: float) -> int:
