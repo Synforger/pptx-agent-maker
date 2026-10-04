@@ -146,6 +146,29 @@ class TheSpecimenMatchesTheTokensTest(unittest.TestCase):
         self.assertEqual(families, {DEFAULT.type.family}, "run task specimen")
 
 
+class TheSpecimenIsWhatTheBakerMakesTodayTest(unittest.TestCase):
+    """⚠ **焼く層を直しても、配る見本は焼き直すまで古いまま。**図形がテーマの図形のスタイルを引かなく
+    なった後も、見本の表紙の帯だけはそれを引き続け、表紙を複製した頁にだけ、LibreOffice で焼いた絵に
+    影が出ていた。色と書体の番人 (= 上の class) は、頁の書き方の違いを見ていない。
+    """
+
+    COVER = "ppt/slides/slide1.xml"
+
+    def test_the_cover_is_written_the_way_a_page_is_written_today(self) -> None:
+        with tempfile.TemporaryDirectory() as scratch:
+            baked = _baker().make(Path(scratch) / "specimen.pptx")
+            with zipfile.ZipFile(baked) as archive:
+                today = archive.read(self.COVER).decode("utf-8")
+        with zipfile.ZipFile(SPECIMEN) as archive:
+            shipped = archive.read(self.COVER).decode("utf-8")
+        self.assertEqual(today.replace("><", ">\n<"), shipped.replace("><", ">\n<"),
+                         "the specimen was baked before the page writer last changed — run task specimen")
+
+    def test_no_shape_of_the_cover_leans_on_the_themes_shape_style(self) -> None:
+        with zipfile.ZipFile(SPECIMEN) as archive:
+            self.assertNotIn("<p:style>", archive.read(self.COVER).decode("utf-8"), "run task specimen")
+
+
 class TheTemplateBuildsTest(unittest.TestCase):
     """⚠ **init した直後に 1 本焼けること** ― プロジェクトテンプレートが本当に完結しているかはこれで決まる。"""
 
