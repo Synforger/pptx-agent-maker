@@ -1,0 +1,21 @@
+# Lifting into a template keeps the template as it was, for the last few lifts only.
+
+tests = ["tests/test_lift.py"]
+
+[[mutant]]
+name = "every copy ever made is kept"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = "    for old in copies[:-KEPT]:"
+new = "    for old in []:"
+
+[[mutant]]
+name = "whatever sits in the archive is counted as a copy, and removed"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = "                    if path.is_dir() and _COPY.fullmatch(path.name))"
+new = "                    if path.is_dir())"
+
+[[mutant]]
+name = "the oldest copies are the ones kept"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = "    for old in copies[:-KEPT]:"
+new = "    for old in copies[KEPT:]:"

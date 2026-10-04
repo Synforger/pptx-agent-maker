@@ -202,8 +202,19 @@ def _quote(word: str) -> str:
     return '"' + word.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+#: 控えを残す世代の数。取り消したいのは直前の上げで、何十回も前の物ではない
+KEPT = 3
+#: 控えの folder の名前 (= 上げた時刻)。この形の名前だけを数え、消す
+_COPY = re.compile(r"\d{8}-\d{6}-\d{6}")
+
+
 def _keep_previous(template: Path) -> Path:
-    """Copy the template as it is now into `_archive/<time>/` (= a lift can be undone)."""
+    """Copy the template as it is now into `_archive/<time>/` (= a lift can be undone).
+
+    ⚠ **残すのは新しい方から `KEPT` 世代。**控えは上げるたびに 1 つ増え、消す所が無かった ― テンプレートの
+    folder は案件に配る物で、そこに見本の写しが際限なく貯まった。古い物から消すのは、ここが付けた名前
+    (= 時刻) の folder だけ。人が `_archive/` に置いた物には触らない。
+    """
     import shutil
     from datetime import datetime
 
@@ -212,6 +223,10 @@ def _keep_previous(template: Path) -> Path:
     for name in ("specimen.pptx", RECIPES, "workspace.toml"):
         if (template / name).is_file():
             shutil.copy2(template / name, where / name)
+    copies = sorted(path for path in where.parent.iterdir()
+                    if path.is_dir() and _COPY.fullmatch(path.name))
+    for old in copies[:-KEPT]:
+        shutil.rmtree(old)
     return where
 
 
