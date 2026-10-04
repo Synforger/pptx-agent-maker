@@ -282,6 +282,8 @@ class Page:
         ⚠ **名のために取るのは、名が折れる行ぶんだけ。**枠の高さの 7 分の 1 を取って真ん中に
         置いていた間は、縦に長い枠ほど名が絵から離れて浮いた (= 段とマスで組んだ頁で焼いて出た)。
 
+        ⚠ **絵に下限が在る** (= アイコンの一辺)。高さが足りずにそれより低くなる絵は置かずに止まる。
+
         ⚠ **名を取った残りが無ければ止まる。**残りを 1 EMU に切り上げて置いていた間は、高さ 0 の絵が
         書き出され、頁には名だけが残った (= 字を大きくして、絵の場所が名の高さを下回った頁で出た)。
         """
@@ -294,6 +296,12 @@ class Page:
                     f"a picture has {rect.height} EMU of height and its name alone takes {tall + s.gap_s} — "
                     "nothing is left for the picture; take something off the page, or drop the name")
             area, _rest = rect.split_top(rect.height - tall - s.gap_s)
+        # ⚠ **高さで詰められた絵が、アイコンより低くなるなら止まる。**縮むのは絵の性質だが、アイコンの
+        # 一辺より低い絵は、もう図として読めない。横に長い絵が幅いっぱいで低いのは、詰められたのではない
+        if area.height < s.icon and area.width > area.height * aspect:
+            raise PageFullError(
+                f"a picture is left {area.height} EMU of height, less than the {s.icon} an icon stands — "
+                "too small to read as a picture; take something off the page, or split it in two")
         placed = area.fit(aspect)
         self.elements.append(Figure("figure", placed, Path(source), aspect))
         self._figures += 1
