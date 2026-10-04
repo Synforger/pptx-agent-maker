@@ -165,6 +165,40 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
                 lined = build({**spec, "points": "ひとつ\nふたつ\nみっつ"}).build()
                 self.assertEqual(lined, listed)
 
+    def test_what_sits_under_a_body_has_the_room_it_is_placed_in(self):
+        """⚠ **本体のすぐ下の空きを、下の最初の物が表の時にしか数えていなかった。**要点や読み方だけの
+        頁は、取った場所が置く場所より 0.3cm 短く、短いぶんは次の物との空きに食い込んでいた。
+
+        絵が枠を使い切る頁で、下に置く物の組み合わせを全部見る ― 最初の物は本体から広い空き、続く
+        物は狭い空き、どれも自分の行ぶんの高さを持ち、最後の物が枠の下端で終わる。
+        """
+        s, theme = DEFAULT.spacing, DEFAULT
+        under = {"table": [["列", "値"], ["折り返すほど長い見出しの行" * 6, "1"]],
+                 "points": ["ひとつ", "ふたつ", "みっつ"], "note": "読み方を 1 行"}
+        width = theme.frame().width
+        tall = {"table": theme.table_height(under["table"], theme.column_widths(under["table"], width)),
+                "points": 3 * theme.line_height(), "note": theme.line_height()}
+        self.assertGreater(tall["table"], theme.table_height(2), "the long cell does not fold")
+        for wanted in (("table",), ("points",), ("note",), ("table", "points"), ("table", "note"),
+                       ("points", "note"), ("table", "points", "note")):
+            with self.subTest(wanted):
+                page = build({"type": "figure", "title": "だい", "figure": SQUARE,
+                              **{key: under[key] for key in wanted}})
+                placed = {e.kind: e.rect for e in page.build()}
+                rects = [placed[key] for key in wanted]
+                self.assertEqual(placed["figure"].bottom + s.gap_m, rects[0].top)
+                for above, below in zip(rects, rects[1:]):
+                    self.assertEqual(above.bottom + s.gap_s, below.top)
+                self.assertEqual([tall[key] for key in wanted], [rect.height for rect in rects])
+                self.assertEqual(page.body.bottom, rects[-1].bottom)
+
+    def test_the_reading_takes_what_is_left_under_a_body_that_did_not_fill_its_area(self):
+        """カードだけの頁は本体が空で、読み方の下に場所が余る。読み方の枠はそこまで伸びる。"""
+        page = build({"type": "cards", "title": "だい", "cards": EXTRAS["cards"], "note": "読み方を 1 行"})
+        note = next(e.rect for e in page.build() if e.kind == "note")
+        self.assertEqual(page.body.bottom, note.bottom)
+        self.assertGreater(note.height, DEFAULT.line_height())
+
     def test_the_order_of_the_frame_never_changes(self):
         """並びは 1 つしかない ― カードは本体の上、表と読み方は本体の下。"""
         page = build({"type": "figure", "title": "だい", "figure": SQUARE, **EXTRAS})

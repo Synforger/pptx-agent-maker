@@ -1,0 +1,63 @@
+# What sits under a body (= the table, the points, the reading): the room kept is the room it is placed in.
+
+tests = ["tests/test_types.py"]
+
+[[mutant]]
+name = "the room for the points is measured from the list written out as one string"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = 'found.append(("points", theme.text_height("\n".join(_point_lines(spec)), width)))'
+new = 'found.append(("points", theme.text_height(spec.text("points"), width)))'
+
+[[mutant]]
+name = "a list of points is read as one line"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "return [str(point) for point in points]"
+new = "return [str(points)]"
+
+[[mutant]]
+name = "the reading is left out from under the body"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if spec.text(\"note\"):\n        found.append"
+new = "    if False:\n        found.append"
+
+[[mutant]]
+name = "the table is measured by its rows alone, as if no cell folded"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = 'found.append(("table", theme.table_height(rows, theme.column_widths(rows, width))))'
+new = 'found.append(("table", theme.table_height(rows)))'
+
+[[mutant]]
+name = "the gap under the body is the narrow one"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "s.gap_m if index == 0 else s.gap_s"
+new = "s.gap_s"
+
+[[mutant]]
+name = "the gap between the things under the body is the wide one"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "s.gap_m if index == 0 else s.gap_s"
+new = "s.gap_m"
+
+[[mutant]]
+name = "the room kept leaves the gaps out"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "reserve = sum(gap + tall for _what, gap, tall in _below(page, spec, area.width))"
+new = "reserve = sum(tall for _what, gap, tall in _below(page, spec, area.width))"
+
+[[mutant]]
+name = "the room kept counts the wide gap for a table only"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "reserve = sum(gap + tall for _what, gap, tall in _below(page, spec, area.width))"
+new = "reserve = sum((gap if what == \"table\" else page.theme.spacing.gap_s) + tall for what, gap, tall in _below(page, spec, area.width))"
+
+[[mutant]]
+name = "the things under the body are placed from the top of its area, not from what it used"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    top = used_bottom(page, area)\n    for what, gap, tall in _below"
+new = "    top = area.top\n    for what, gap, tall in _below"
+
+[[mutant]]
+name = "the reading stops at its own lines instead of taking what is left"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "rect = Rect(rect.left, rect.top, rect.width, max(area.bottom - rect.top, tall))"
+new = "pass"

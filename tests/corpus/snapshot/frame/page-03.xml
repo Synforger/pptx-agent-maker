@@ -521,8 +521,8 @@
 </p:blipFill>
 <p:spPr>
 <a:xfrm>
-<a:off x="2270655" y="3263240"/>
-<a:ext cx="1878690" cy="1878690"/>
+<a:off x="2324655" y="3263240"/>
+<a:ext cx="1770690" cy="1770690"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -537,7 +537,7 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="5249930"/>
+<a:off x="432000" y="5141930"/>
 <a:ext cx="5556000" cy="184150"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -580,8 +580,8 @@
 </p:blipFill>
 <p:spPr>
 <a:xfrm>
-<a:off x="7729540" y="3263240"/>
-<a:ext cx="2504920" cy="1878690"/>
+<a:off x="7801540" y="3263240"/>
+<a:ext cx="2360920" cy="1770690"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -596,7 +596,7 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6204000" y="5249930"/>
+<a:off x="6204000" y="5141930"/>
 <a:ext cx="5556000" cy="184150"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -631,8 +631,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="5650080"/>
-<a:ext cx="11328000" cy="554940"/>
+<a:off x="432000" y="5542080"/>
+<a:ext cx="11328000" cy="662940"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
