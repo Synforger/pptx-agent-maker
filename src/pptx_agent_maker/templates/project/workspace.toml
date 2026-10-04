@@ -31,6 +31,7 @@ assets = "assets"       # images and other material, one folder per round
 #
 # [theme]
 # use = "present"       # "read" (the default) or "present"
+# kicker = "beside"     # the small words of a title: "above" it (the default), or "beside" it on its line
 #
 # [theme.type]          # a size of the project's own, role by role, in points
 # body = 20             # title / heading / stage / body / caption

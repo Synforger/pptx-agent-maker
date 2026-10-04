@@ -134,6 +134,9 @@ USES = {
     "read": Type(),
     "present": Type(title=32, heading=24, stage=20, marker=36, body=18, caption=14, minimum=14),
 }
+#: 題の上の小さい字 (= 章の番号と名前) の置き場。`above` は題の上に小さく (= 既定)、`beside` は題の左に
+#: 同じ行で、差し色の太字で置く。資料全体の見た目なので案件が `[theme] kicker` で決め、頁ごとには変えられない
+KICKERS = ("above", "beside")
 #: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
 SIZED = ("title", "heading", "stage", "body", "caption")
 
@@ -266,6 +269,8 @@ class Theme:
     grounds: tuple[tuple[str, str], ...] = ()
     #: 型の頁が乗るレイアウトが持つ物 (= 見本から読む。案件の `[theme]` からは書けない)
     under: Under = field(default_factory=Under)
+    #: 題の上の小さい字の置き場 (= `KICKERS`。案件が `[theme] kicker` で決める)
+    kicker: str = "above"
 
     def ground_names(self) -> tuple[str, ...]:
         return tuple(name for name, _colour in self.grounds)
@@ -411,12 +416,19 @@ class Theme:
                 left = max(left, thing.right + gap)
         return left, right
 
-    def title_band(self, title: str, sticker: str = "") -> tuple[int, int, int]:
+    def kicker_lead(self, kicker: str) -> int:
+        """How much of the title's line the small words take when they stand beside it (= none above it)."""
+        if not kicker or self.kicker != "beside":
+            return 0
+        return self.spacing.text_inset + self.width(kicker, self.type.title, bold=True)
+
+    def title_band(self, title: str, sticker: str = "", kicker: str = "") -> tuple[int, int, int]:
         """(lines, left, right) of a page's title band: how far the title folds, and where it may run.
 
         ⚠ **題の行を数えるのはここ 1 か所。**頁は題の帯の高さをこの数から取り、検査 (= `long_title`)
         は同じ数で 3 行以上を知らせる。別々に数えると、帯が 2 行ぶん取ったのに検査は 3 行と言う。
-        札を持つ頁は、札と、札との間の空きのぶんだけ題が狭い。
+        札を持つ頁は、札と、札との間の空きのぶんだけ題が狭い。題の上の小さい字を題の左に置く資料
+        (= `kicker = "beside"`) では、その字のぶんも狭い。
 
         ⚠ **帯は、レイアウトが印字する物の手前で止まる** (= `clear`)。頁の幅いっぱいに取っていた間は、
         右上のロゴに届いた題と、帯の右端に置く札が、重なりの検査で止まった。帯は題が折れるぶん下へ伸び、
@@ -431,14 +443,15 @@ class Theme:
             room = right - left - 2 * s.text_inset
             if sticker:
                 room -= self.sticker_width(sticker) + s.gap_m
+            room -= self.kicker_lead(kicker)
             needed = self.wraps(title, max(room, 1), self.type.title, bold=True)
             if needed <= lines or band.bottom >= frame.bottom:
                 return lines, left, right
             lines = needed
 
-    def title_lines(self, title: str, sticker: str = "") -> int:
+    def title_lines(self, title: str, sticker: str = "", kicker: str = "") -> int:
         """How many lines a page's title breaks into (= `title_band`)."""
-        return self.title_band(title, sticker)[0]
+        return self.title_band(title, sticker, kicker)[0]
 
     def pt(self, size: float) -> int:
         """A type size in EMU, refusing anything below the floor."""
@@ -453,7 +466,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type")
+_MINE = ("font", "palette", "grounds", "use", "type", "kicker")
 
 
 class ThemeError(ValueError):
@@ -493,12 +506,19 @@ def theme_from(settings: dict | None) -> Theme:
                 'with no "#", as in "1F5FA9"'
             )
 
+    kicker = settings.get("kicker", "above")
+    if not isinstance(kicker, str) or kicker not in KICKERS:
+        raise ThemeError(
+            f"theme.kicker is {kicker!r} — the small words above a title stand "
+            f"{' or '.join(repr(place) for place in KICKERS)} it")
+
     type = replace(_sizes(settings.get("use", "read"), settings.get("type")), family=family)
     return Theme(
         type=type,
         palette=Palette(**{name: str(value).upper() for name, value in colours.items()}),
         spacing=_furniture(type),
         grounds=_grounds(settings.get("grounds")),
+        kicker=kicker,
     )
 
 

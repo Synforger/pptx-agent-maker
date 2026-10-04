@@ -25,7 +25,7 @@ new = "room -= self.sticker_width(sticker)"
 [[mutant]]
 name = "the title's box runs on under the sticker"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)"
+old = "words = Rect(main.left + lead, main.top, main.width - lead - (tag + s.gap_m if tag else 0), main.height)"
 new = "words = main"
 
 [[mutant]]
@@ -55,8 +55,8 @@ new = "sticker, t.body, p.ink, outline=p.muted))"
 [[mutant]]
 name = "a sticker that leaves the title no room is placed all the same"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if tag and right - left - tag"
-new = "        if False and right - left - tag"
+old = "        if tag and right - left - lead - tag"
+new = "        if False and right - left - lead - tag"
 
 [[mutant]]
 name = "a sticker that is not words is not refused"
@@ -73,8 +73,8 @@ new = "sticker=sticker,"
 [[mutant]]
 name = "the check of a long title counts as if no sticker stood beside it"
 file = "src/pptx_agent_maker/checks/declared/long_title.py"
-old = 'theme.title_lines(title, str(entry.data.get("sticker", "")).strip())'
-new = "theme.title_lines(title)"
+old = 'theme.title_lines(title, str(entry.data.get("sticker", "")).strip(),'
+new = 'theme.title_lines(title, "",'
 
 # -- the marks ------------------------------------------------------------------
 
