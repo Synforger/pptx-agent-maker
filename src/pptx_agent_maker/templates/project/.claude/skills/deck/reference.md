@@ -59,8 +59,10 @@ pptx-agent-maker lift <案件> <テンプレートの folder> \
     [--keep "<そのまま残す文言>"]... [--replace "<案件の語>=<差し替え前提の語>"]...
 ```
 
-テンプレートの folder = `specimen.pptx` + `workspace.toml` (+ `recipes.toml`)。頁は `specimen.pptx` の
-末尾へ、recipe は `recipes.toml` へ。`init --specimen <folder>` が 3 つとも配る。
+テンプレートの folder = `specimen.pptx` + `workspace.toml` (+ `recipes.toml` + `example.toml`)。頁は
+`specimen.pptx` の末尾へ、recipe は `recipes.toml` へ。`init --specimen <folder>` が、在る物を全部配る。
+`example.toml` はその見本に合わせた見本の宣言 (= 表紙の置き字を全部差し替え、`stale_words` に当たる文を
+載せない)。置かなければ道具付属の物が配られ、置き字や検査の語が違う見本では、建てた直後の 1 本が検査で止まる。
 文言は `--keep` / `--replace` で扱った物のほか、全部 `<文言 N>` になる (= recipe の文言も同じ。
 型の名前は除く)。拒まれるもの = 当たらない `--replace` / グラフや埋め込み file を持つ頁 /
 テンプレートに既に在る recipe 名。
