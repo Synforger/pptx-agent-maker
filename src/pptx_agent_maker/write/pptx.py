@@ -19,7 +19,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pptx import Presentation
-from pptx.chart.data import CategoryChartData
+from pptx.chart.data import CategoryChartData, XyChartData
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION, XL_MARKER_STYLE, XL_TICK_MARK
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
@@ -245,6 +245,9 @@ def _figure(slide, element: Figure) -> None:
     picture._element.nvPicPr.cNvPr.attrib.pop("descr", None)
 
 
+#: 点のグラフの点の差し渡し (= pt。本文の字の半分ほど ― 数十個並んでも重なりが読める大きさ)
+POINT = 7
+
 #: 描き方 → 書き出すグラフの種類と、値の数字を置く所 (= 棒の外の端 / 点の上 / 段の真ん中)
 CHART = {
     "bar": (XL_CHART_TYPE.BAR_CLUSTERED, XL_LABEL_POSITION.OUTSIDE_END),
@@ -262,6 +265,9 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
 
     ⚠ **負の値で色を反転させない。**既定のままだと、負の棒は地の色が抜けて白くなる。
     """
+    if element.plot == "scatter":
+        _scatter(slide, element, theme)
+        return
     kind, where = CHART[element.plot]
     data = CategoryChartData()
     data.categories = list(element.categories)
@@ -273,14 +279,7 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
     frame = element.frame or element.rect
     chart = holder.shapes.add_chart(kind, Emu(frame.left), Emu(frame.top),
                                     Emu(frame.width), Emu(frame.height), data).chart
-    chart.has_title = False
-    chart.font.size = Pt(element.size)
-    chart.font.name = theme.type.family
-    chart.font.color.rgb = _colour(element.colour)
-    chart.has_legend = element.legend
-    if element.legend:
-        chart.legend.position = XL_LEGEND_POSITION.BOTTOM
-        chart.legend.include_in_layout = False
+    _dress(chart, element, theme)
 
     # 目盛りの線は引かない。値の数字を棒に付けたグラフは、値の軸も出さない (= 同じ数を 2 度見せない)
     chart.value_axis.has_major_gridlines = False
@@ -325,6 +324,52 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
             labels.position = where
             if series.label_colour:
                 labels.font.color.rgb = _colour(series.label_colour)
+
+
+def _dress(chart, element: Chart, theme: Theme) -> None:
+    """What every chart shares: no title of its own, the page's type, the legend under the plot."""
+    chart.has_title = False
+    chart.font.size = Pt(element.size)
+    chart.font.name = theme.type.family
+    chart.font.color.rgb = _colour(element.colour)
+    chart.has_legend = element.legend
+    if element.legend:
+        chart.legend.position = XL_LEGEND_POSITION.BOTTOM
+        chart.legend.include_in_layout = False
+
+
+def _scatter(slide, element: Chart, theme: Theme) -> None:
+    """A chart of points: each series its marks, no line between them, both axes named.
+
+    点のグラフは、軸が 2 本とも値の軸 (= 項目を持たない)。読むのは軸からなので、軸は 2 本とも出し、
+    それぞれに名前を書く。目盛りの線は引かない (= ほかのグラフと同じ)。
+    """
+    data = XyChartData()
+    for series in element.series:
+        drawn = data.add_series(series.name)
+        for x, y in zip(series.xs, series.values):
+            drawn.add_data_point(x, y)
+    frame = element.rect
+    chart = slide.shapes.add_chart(XL_CHART_TYPE.XY_SCATTER, Emu(frame.left), Emu(frame.top),
+                                   Emu(frame.width), Emu(frame.height), data).chart
+    _dress(chart, element, theme)
+    for axis, name in ((chart.category_axis, element.x_title), (chart.value_axis, element.y_title)):
+        axis.has_major_gridlines = False
+        axis.major_tick_mark = XL_TICK_MARK.NONE
+        axis.format.line.color.rgb = _colour(element.line)
+        axis.has_title = True
+        words = axis.axis_title.text_frame
+        words.text = name
+        for run in words.paragraphs[0].runs:
+            run.font.size = Pt(element.size)
+            run.font.bold = False
+            run.font.name = theme.type.family
+            run.font.color.rgb = _colour(element.colour)
+    # 点の間に線は引かれない (= この種類のグラフを、python-pptx は線なしで書き出す)
+    for drawn, series in zip(chart.plots[0].series, element.series):
+        drawn.marker.style = XL_MARKER_STYLE.CIRCLE
+        drawn.marker.size = POINT
+        _solid(drawn.marker.format, series.colour)
 
 
 def _pin(chart, element: Chart) -> None:

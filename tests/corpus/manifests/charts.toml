@@ -150,3 +150,20 @@ categories = ["Last year", "New customers", "Churn", "This year"]
 series = [{ name = "Profit", values = [100, 42, -30, 112] }]
 totals = ["Last year", "This year"]
 callouts = [{ at = "Churn", text = "two accounts left" }, { at = "This year", text = "up 12" }]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "Points: how one quantity moves with another"
+footer = "made up for the corpus"
+why = "a chart of points, with both axes named"
+
+[pages.chart]
+kind = "scatter"
+x = "Hours spent"
+y = "Score"
+highlight = "With the guide"
+series = [
+  { name = "With the guide", points = [[1, 2.5], [2, 3.5], [3.5, 5]] },
+  { name = "Without", points = [[1.5, 1], [4, 2], [5, 2.5]] },
+]

@@ -1,7 +1,7 @@
 """A chart drawn from its numbers, which a person can still edit in PowerPoint: `chart`.
 
 **伝えたいことが図を決める。**比べるなら棒、移り変わりなら折れ線、内訳なら積み上げ、増減の積み重ねなら
-滝グラフ ― 5 つで足りる。絵で貼ったグラフは、数字が 1 つ変わるたびに描き直しになり、渡した先では
+滝グラフ、2 つの量の関係なら点 (= 散布図) ― 6 つで足りる。絵で貼ったグラフは、数字が 1 つ変わるたびに描き直しになり、渡した先では
 誰も直せない。ここで書くグラフは数字を deck の中に持ち、PowerPoint の「データの編集」で直せる。
 
 見た目は決まっている (= 頁が選べるのは、どの 1 つを目立たせるかだけ):
@@ -14,6 +14,9 @@
 
 数は manifest に書くか、素材の folder の CSV から読む (= `data = "x.csv"`。1 列目が項目、2 列目からが
 系列、1 行目が系列の名前)。
+
+点のグラフ (= `scatter`) だけは数の形が違う ― 項目を持たず、系列は点 (= x と y の 1 組) の集まり。軸が何かを
+言わない散布図は読めないので、軸の名前 (= `x` と `y`) を必ず書く。CSV は 1 列目が x、2 列目からが系列の y。
 
 グラフの 1 点を指す注記は `callouts` に、**どの項目のどの系列か**で書く (= 座標は書かない)。点の位置は
 道具が計算し、言葉をグラフの外 (= 縦のグラフは上、横棒は右) に、細い線を点まで置く。そのために、
@@ -37,10 +40,15 @@ from ...parts.page import Page, PageFullError
 from ..core.read import Spec, only_keys, read_tone
 from ..core.registry import PageTypeError, register
 
-#: グラフの種類。`bar` は横棒、`column` は縦棒、`stacked` は積み上げた縦棒、`waterfall` は滝グラフ
-KINDS = ("bar", "column", "line", "stacked", "waterfall")
+#: グラフの種類。`bar` は横棒、`column` は縦棒、`stacked` は積み上げた縦棒、`waterfall` は滝グラフ、
+#: `scatter` は点 (= 2 つの量の関係)
+KINDS = ("bar", "column", "line", "stacked", "waterfall", "scatter")
 #: グラフが読むキー
-KEYS = ("kind", "categories", "series", "data", "highlight", "unit", "labels", "totals", "callouts")
+KEYS = ("kind", "categories", "series", "data", "highlight", "unit", "labels", "totals", "callouts", "x", "y")
+#: 点のグラフが読むキー (= 項目も、棒に付ける数字も、柱を指す注記も持たない)
+POINT_KEYS = ("kind", "x", "y", "series", "data", "highlight")
+#: 点のグラフの系列が読むキー
+POINT_SERIES_KEYS = ("name", "points", "tone")
 #: 注記が読むキー (= どの項目の、どの系列を指して、何と言うか)
 CALLOUT_KEYS = ("at", "series", "text")
 #: 注記が柱 1 本を丸ごと指す種類 (= 系列を名指ししない)。積み上げの中の段を上から指すと、線が上の段と
@@ -50,7 +58,7 @@ WHOLE = ("stacked", "waterfall")
 #: 書き出す ― 棒の位置を計算するのに、書いていない既定には頼らない
 GAP = 150
 #: 系列が読むキー
-SERIES_KEYS = ("name", "values", "tone")
+SERIES_KEYS = ("name", "values", "tone", "points")
 
 #: `highlight` も `tone` も書かない系列の色の役、書いた順 (= 最初の系列が主役で、続きは灰の濃淡)。
 #: 見分けられる灰はこの 2 つまでなので、4 つめからの系列は自分で `tone` を書く
@@ -81,14 +89,20 @@ def _chart(page: Page, spec: Spec, area: Rect) -> None:
 
 def place_chart(page: Page, spec: Spec, written, rect: Rect, what: str) -> None:
     """Read a chart as written and put it in `rect` (= as a page's body, or in a cell of a compose)."""
-    plan = _read(spec, written, what)
     theme, palette = page.theme, page.theme.palette
+    # どのグラフも同じ: 字は本文の大きさと色、軸の線は区切りの線の色
+    look = dict(size=theme.type.body, colour=palette.ink, line=palette.rule)
+    if isinstance(written, dict) and written.get("kind") == "scatter":
+        titles, series = _points(page, spec, written, what)
+        page.chart(Chart("chart", rect, "scatter", (), series, legend=len(series) > 1, axis=True,
+                         x_title=titles[0], y_title=titles[1], **look))
+        return
+    plan = _read(spec, written, what)
     series, legend = (_waterfall(page, plan, what) if plan.kind == "waterfall" else _plain(page, plan, what))
     frame, pinned, callouts = _pointed(page, plan, rect, legend, what) if plan.callouts else (None, None, ())
     page.chart(Chart(
         "chart", rect, "stacked" if plan.kind == "waterfall" else plan.kind, plan.categories, series,
-        size=theme.type.body, colour=palette.ink, line=palette.rule, legend=legend, axis=not plan.labels,
-        frame=frame, pinned=pinned, callouts=callouts))
+        legend=legend, axis=not plan.labels, frame=frame, pinned=pinned, callouts=callouts, **look))
 
 
 # -- reading ---------------------------------------------------------------------
@@ -99,6 +113,10 @@ def _read(spec: Spec, written, what: str) -> _Plan:
     kind = written.get("kind")
     if kind not in KINDS:
         raise PageTypeError(f"{what}: `kind` is one of {', '.join(KINDS)}, not {kind!r}")
+    named = [axis for axis in ("x", "y") if axis in written]
+    if named:
+        raise PageTypeError(f"{what}: {' and '.join(f'`{axis}`' for axis in named)} name the axes of a scatter, "
+                            f"and this is a {kind} — its categories say what it is drawn across")
     if "data" in written:
         if "categories" in written or "series" in written:
             raise PageTypeError(f"{what}: the numbers come from `data` or from `categories` and `series`, "
@@ -170,6 +188,15 @@ def _number(value, where: str) -> float:
     return value
 
 
+def _cell(cell: str, where: str):
+    """A number as a CSV holds it: a whole number stays one (= it is printed without a decimal point)."""
+    try:
+        value = int(cell) if cell.strip().lstrip("+-").isdigit() else float(cell)
+    except ValueError:
+        raise PageTypeError(f"{where} is {cell!r} — a chart is drawn from numbers") from None
+    return _number(value, where)
+
+
 def _written(spec: Spec, written: dict, what: str):
     """The categories and the series, written in the manifest itself."""
     categories = written.get("categories")
@@ -187,6 +214,9 @@ def _written(spec: Spec, written: dict, what: str):
         name = str(item.get("name", "")).strip()
         if not name:
             raise PageTypeError(f"{where} has no `name` — it heads the column of numbers a person edits")
+        if "points" in item:
+            raise PageTypeError(f"{where} ({name}): `points` belong to a scatter — a {written.get('kind')} "
+                                "has one number for each category, in `values`")
         values = item.get("values")
         if not isinstance(values, list) or len(values) != len(categories):
             raise PageTypeError(f"{where} ({name}): `values` has one number for each of the "
@@ -220,16 +250,132 @@ def _from_file(spec: Spec, name, what: str):
                                 f"{len(rows[0])} — a category, then one number for each series")
         categories.append(row[0].strip())
         for column, cell in enumerate(row[1:], start=2):
-            try:
-                value = int(cell) if cell.strip().lstrip("+-").isdigit() else float(cell)
-            except ValueError:
-                raise PageTypeError(f"{what}: {name}, row {number}, column {column} is {cell!r} — "
-                                    "a chart is drawn from numbers") from None
-            columns[column - 2].append(_number(value, f"{what}: {name}, row {number}, column {column}"))
+            columns[column - 2].append(_cell(cell, f"{what}: {name}, row {number}, column {column}"))
     return categories, [(series, tuple(values), "") for series, values in zip(names, columns)]
 
 
+# -- a chart of points -----------------------------------------------------------
+
+
+def _points(page: Page, spec: Spec, written: dict, what: str):
+    """A scatter as written, checked: (the names of its two axes), the series as they are drawn."""
+    unknown = sorted(set(written) - set(POINT_KEYS))
+    if unknown:
+        raise PageTypeError(
+            f"{what}: a scatter does not take {', '.join(unknown)} (= it takes {', '.join(POINT_KEYS)}) — "
+            "it has no categories, no number beside a bar and no column to point at")
+    titles = []
+    for axis in ("x", "y"):
+        title = written.get(axis)
+        if not isinstance(title, str) or not title.strip():
+            raise PageTypeError(f"{what}: `{axis}` is the name of the {axis} axis, with its unit — "
+                                "a scatter that does not say what its axes are cannot be read")
+        titles.append(title.strip())
+    if "data" in written:
+        if "series" in written:
+            raise PageTypeError(f"{what}: the numbers come from `data` or from `series`, not from both")
+        series = _points_from_file(spec, written["data"], what)
+    else:
+        series = _points_written(spec, written, what)
+    names = [name for name, _points_, _tone in series]
+    if len(set(names)) != len(names):
+        raise PageTypeError(f"{what}: a series is written twice — each has a name of its own")
+    highlight = written.get("highlight", "")
+    if not isinstance(highlight, str) or (highlight and highlight not in names):
+        raise PageTypeError(f"{what}: `highlight` is {highlight!r}, which is not one of the series "
+                            f"({', '.join(names)})")
+    toned = [name for name, _points_, tone in series if tone]
+    if highlight and toned:
+        raise PageTypeError(f"{what}: `highlight` already says which one stands out — "
+                            f"take the `tone` off {', '.join(toned)}")
+    drawn = []
+    for index, (name, points, tone) in enumerate(series):
+        colour, _edge = _series_colour(page, index, name, tone, (name == highlight) if highlight else None, what)
+        drawn.append(Series(name, tuple(y for _x, y in points), colour, xs=tuple(x for x, _y in points)))
+    return tuple(titles), tuple(drawn)
+
+
+def _points_written(spec: Spec, written: dict, what: str):
+    listed = written.get("series")
+    if not isinstance(listed, list) or not listed:
+        raise PageTypeError(f"{what}: `series` is a list of {{ name = …, points = [[x, y], …] }}, at least one")
+    series = []
+    for number, item in enumerate(listed, start=1):
+        where = f"{what}: series {number}"
+        if isinstance(item, dict) and "values" in item:
+            raise PageTypeError(f"{where}: a scatter is drawn from `points` (= [[x, y], …]), not from `values`")
+        only_keys(item, set(POINT_SERIES_KEYS), where)
+        name = str(item.get("name", "")).strip()
+        if not name:
+            raise PageTypeError(f"{where} has no `name` — it heads the column of numbers a person edits")
+        points = item.get("points")
+        if (not isinstance(points, list) or not points
+                or any(not isinstance(point, list) or len(point) != 2 for point in points)):
+            raise PageTypeError(f"{where} ({name}): `points` is a list of [x, y], at least one")
+        tone = read_tone(spec, item, where, "") if "tone" in item else ""
+        series.append((name, tuple(
+            (_number(x, f"{where} ({name}), `points` {index}, x"), _number(y, f"{where} ({name}), `points` {index}, y"))
+            for index, (x, y) in enumerate(points, start=1)), tone))
+    return series
+
+
+def _points_from_file(spec: Spec, name, what: str):
+    """The points of a scatter, read from a CSV among the assets.
+
+    1 列目が x、2 列目からが系列の y。1 行目は系列の名前 (= 左上のマスは読まない)。空のマスは
+    「その系列は、この x に点を持たない」。
+    """
+    if not isinstance(name, str) or Path(name).suffix.lower() != ".csv":
+        raise PageTypeError(f"{what}: `data` is the name of a CSV file among the assets, not {name!r}")
+    with Path(spec.asset(name)).open(encoding="utf-8-sig", newline="") as handle:
+        rows = [row for row in csv.reader(handle) if any(cell.strip() for cell in row)]
+    if len(rows) < 2 or len(rows[0]) < 2:
+        raise PageTypeError(f"{what}: {name} needs a first row naming the series and a first column of x, "
+                            "with each series' y beside it")
+    names = [cell.strip() for cell in rows[0][1:]]
+    if any(not cell for cell in names):
+        raise PageTypeError(f"{what}: {name}, row 1 names every series — one of the names is empty")
+
+    def number(cell: str, row: int, column: int) -> float:
+        return _cell(cell, f"{what}: {name}, row {row}, column {column}")
+
+    points: list[list[tuple[float, float]]] = [[] for _name in names]
+    for row_number, row in enumerate(rows[1:], start=2):
+        if len(row) != len(rows[0]):
+            raise PageTypeError(f"{what}: {name}, row {row_number} has {len(row)} cells and the first row has "
+                                f"{len(rows[0])} — an x, then a y (or nothing) for each series")
+        x = number(row[0], row_number, 1)
+        for column, cell in enumerate(row[1:], start=2):
+            if cell.strip():
+                points[column - 2].append((x, number(cell, row_number, column)))
+    empty = [series for series, found in zip(names, points) if not found]
+    if empty:
+        raise PageTypeError(f"{what}: {name} gives {', '.join(empty)} no point at all")
+    return [(series, tuple(found), "") for series, found in zip(names, points)]
+
+
 # -- drawing ---------------------------------------------------------------------
+
+
+def _series_colour(page: Page, index: int, name: str, tone: str, standing_out: bool | None,
+                   what: str) -> tuple[str, str]:
+    """(the colour, the edge) of one series, by the rule every chart shares.
+
+    `standing_out` は、グラフが `highlight` を持つ時だけ言う (= この系列がその 1 つか)。持たなければ、
+    書いた `tone`、書かなければ順番で決まる色 (= 最初が主役、続きは灰の濃淡)。
+    """
+    palette = page.theme.palette
+    if standing_out is not None:
+        return (palette.accent if standing_out else palette.muted), ""
+    if tone:
+        # 薄い地の系列は、箱と同じく地を濃くした色の枠を持つ (= 紙の上で棒の端が読める)
+        colour, _words, edge = page.ground(tone)
+        return colour, edge
+    if index < len(UNSAID):
+        return getattr(palette, UNSAID[index]), ""
+    raise PageTypeError(
+        f"{what}: series {index + 1} ({name}) has no colour of its own — past the first "
+        f"{len(UNSAID)}, give each series a `tone` ({', '.join(TONES)}), or `highlight` one")
 
 
 def _places(values) -> int:
@@ -277,18 +423,8 @@ def _plain(page: Page, plan: _Plan, what: str) -> tuple[tuple[Series, ...], bool
     number_format = _format(plan) if plan.labels else ""
     drawn = []
     for index, (name, values, tone) in enumerate(plan.series):
-        edge = ""
-        if plan.highlight:
-            colour = palette.accent if name == one_series else palette.muted
-        elif tone:
-            # 薄い地の系列は、箱と同じく地を濃くした色の枠を持つ (= 紙の上で棒の端が読める)
-            colour, _words, edge = page.ground(tone)
-        elif index < len(UNSAID):
-            colour = getattr(palette, UNSAID[index])
-        else:
-            raise PageTypeError(
-                f"{what}: series {index + 1} ({name}) has no colour of its own — past the first "
-                f"{len(UNSAID)}, give each series a `tone` ({', '.join(TONES)}), or `highlight` one")
+        colour, edge = _series_colour(page, index, name, tone,
+                                      (name == one_series) if plan.highlight else None, what)
         stacked = plan.kind == "stacked"
         drawn.append(Series(
             name, values, colour,
