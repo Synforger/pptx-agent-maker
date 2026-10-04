@@ -1,14 +1,14 @@
 # A chart drawn from its numbers: what is drawn, how it is written out, and how it travels with its page.
 
-tests = ["tests/test_chart.py"]
+tests = ["tests/test_chart.py", "tests/test_scatter.py"]
 
 # -- what is drawn (layout/types/bodies/chart.py) --------------------------------
 
 [[mutant]]
 name = "with a highlight, everything is grey"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "colour = palette.accent if name == one_series else palette.muted"
-new = "colour = palette.muted"
+old = "return (palette.accent if standing_out else palette.muted), \"\""
+new = "return palette.muted, \"\""
 
 [[mutant]]
 name = "the category that stands out is not painted"
@@ -19,20 +19,20 @@ new = "points=(),"
 [[mutant]]
 name = "series nobody coloured are all drawn in the accent"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "colour = getattr(palette, UNSAID[index])"
-new = "colour = palette.accent"
+old = "        return getattr(palette, UNSAID[index]), \"\""
+new = "        return palette.accent, \"\""
 
 [[mutant]]
 name = "a fourth series nobody coloured is drawn in the first colour again"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "        elif index < len(UNSAID):\n            colour = getattr(palette, UNSAID[index])"
-new = "        elif True:\n            colour = getattr(palette, UNSAID[index % len(UNSAID)])"
+old = "    if index < len(UNSAID):\n        return getattr(palette, UNSAID[index]), \"\""
+new = "    if True:\n        return getattr(palette, UNSAID[index % len(UNSAID)]), \"\""
 
 [[mutant]]
 name = "a series' tone is not read"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "            colour, _words, edge = page.ground(tone)"
-new = "            colour, _words, edge = palette.accent, \"\", \"\""
+old = "        colour, _words, edge = page.ground(tone)"
+new = "        colour, _words, edge = palette.accent, \"\", \"\""
 
 [[mutant]]
 name = "the legend is there for one series too"
@@ -335,3 +335,53 @@ name = "a series on a light ground is drawn with no edge"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
 old = "            outline=edge or (palette.paper if stacked else \"\")))"
 new = "            outline=palette.paper if stacked else \"\"))"
+
+# -- a chart of points ----------------------------------------------------------
+
+[[mutant]]
+name = "a scatter is let through with an axis nobody named"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if not isinstance(title, str) or not title.strip():"
+new = "        if False:"
+
+[[mutant]]
+name = "a scatter takes the keys of a chart of categories"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    unknown = sorted(set(written) - set(POINT_KEYS))"
+new = "    unknown = []"
+
+[[mutant]]
+name = "the x of every point is its y"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "xs=tuple(x for x, _y in points)))"
+new = "xs=tuple(y for _x, y in points)))"
+
+[[mutant]]
+name = "an empty cell of a scatter's file is read as a point at zero"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            if cell.strip():\n                points[column - 2].append((x, number(cell, row_number, column)))"
+new = "            if True:\n                points[column - 2].append((x, number(cell or \"0\", row_number, column)))"
+
+[[mutant]]
+name = "a chart of categories takes the names of a scatter's axes"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if named:\n        raise PageTypeError(f\"{what}: {' and '.join"
+new = "    if False:\n        raise PageTypeError(f\"{what}: {' and '.join"
+
+[[mutant]]
+name = "the points of a scatter are squares"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        drawn.marker.style = XL_MARKER_STYLE.CIRCLE\n        drawn.marker.size = POINT"
+new = "        drawn.marker.style = XL_MARKER_STYLE.SQUARE\n        drawn.marker.size = POINT"
+
+[[mutant]]
+name = "the axes of a scatter carry no name"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        axis.has_title = True\n        words = axis.axis_title.text_frame\n        words.text = name\n"
+new = "        words = axis.axis_title.text_frame\n        axis.has_title = False\n"
+
+[[mutant]]
+name = "a scatter is drawn as a chart of categories"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if element.plot == \"scatter\":\n        _scatter(slide, element, theme)"
+new = "    if False:\n        _scatter(slide, element, theme)"

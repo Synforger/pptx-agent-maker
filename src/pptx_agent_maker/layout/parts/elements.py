@@ -85,7 +85,7 @@ class Series:
     """One series of a chart, as it is drawn (= every colour and format already decided)."""
 
     name: str
-    #: 項目ごとの値。None は「この項目には無い」(= 棒も数字も出ない)
+    #: 項目ごとの値。None は「この項目には無い」(= 棒も数字も出ない)。点のグラフでは、点ごとの y
     values: tuple[float | None, ...]
     #: 塗りの色 (= 折れ線は線と点の色)。空なら描かない (= 滝グラフの、棒を浮かせるための台)
     colour: str = ""
@@ -97,6 +97,8 @@ class Series:
     label_colour: str = ""
     #: 棒の枠の色。空なら枠を引かない (= 積み上げた段の境)
     outline: str = ""
+    #: 点のグラフ (= `scatter`) の、点ごとの x (= `values` が y)。項目のグラフでは空
+    xs: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -149,6 +151,9 @@ class Chart(Element):
     frame: Rect | None = None
     pinned: Pinned | None = None
     callouts: tuple[Callout, ...] = ()
+    #: 点のグラフ (= `scatter`) の軸の名前。項目のグラフでは空
+    x_title: str = ""
+    y_title: str = ""
 
 
 @dataclass(frozen=True)
