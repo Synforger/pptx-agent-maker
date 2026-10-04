@@ -1,0 +1,6 @@
+# A page written the same way every round, kept once.
+
+[recipes.result]
+type = "figures"
+title = "What {method} gave"
+footer = "Source: the scoring sheet of {method}"

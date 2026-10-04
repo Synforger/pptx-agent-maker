@@ -1,0 +1,150 @@
+# What a timeline does with a crowded page: rows, names beside a bar, dates that cut
+# across, bars across lanes, and the smaller of its two type sizes.
+
+specimen = "specimen.pptx"
+out = "timeline.pptx"
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "Phases above, dates across, bars that overlap in time"
+condition = "The first quarter can slide; the second is fixed"
+periods = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+phases = [
+  { from = 0, to = 3, label = "flexible" },
+  { from = 3, to = 6, label = "fixed deadlines" },
+]
+milestones = [
+  { at = 2.5, text = "Review" },
+  { at = 2.9, text = "Freeze" },
+  { at = 5.6, text = "Expo" },
+]
+
+[[pages.lanes]]
+name = "Core"
+bars = [
+  { from = 0, to = 2, text = "build" },
+  { from = 1, to = 3, text = "test what was built" },
+  { from = 3, to = 3.5, text = "a name too long for its bar" },
+  { from = 4, to = 6, text = "harden" },
+]
+marks = [{ at = 1, text = "0.9" }, { at = 6, text = "1.0" }]
+
+[[pages.lanes]]
+name = "Docs"
+bars = [
+  { from = 0, to = 1, text = "outline of the whole guide" },
+  { from = 5.5, to = 6, text = "print" },
+  { from = 2, to = 5, text = "write" },
+]
+
+[[pages.lanes]]
+name = "Marks only"
+marks = [{ at = 0, text = "start" }, { at = 3, text = "half way" }]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "Bars across lanes"
+periods = ["Nov", "Dec", "Jan", "Feb", "Mar"]
+milestones = [{ at = 5, text = "Launch" }]
+
+[[pages.lanes]]
+name = "Core: inside"
+bars = [
+  { from = 0, to = 3, text = "build the core", spans = 2 },
+  { from = 3, to = 5, text = "manual" },
+]
+
+[[pages.lanes]]
+name = "Core: outside"
+bars = [{ from = 3, to = 5, text = "demo" }]
+
+[[pages.lanes]]
+name = "Docs"
+tone = "tint"
+bars = [
+  { from = 0, to = 1, text = "outline" },
+  { from = 1, to = 2, text = "a name that needs every lane it covers to fit inside", spans = 3, tentative = true },
+  { from = 2, to = 4, text = "write" },
+]
+marks = [{ at = 4.5, text = "print" }]
+
+[[pages.lanes]]
+name = "Covered only"
+
+[[pages.lanes]]
+name = "Site"
+bars = [{ from = 2, to = 5, text = "publish" }]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "A full page is set at the smaller size"
+periods = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+[[pages.lanes]]
+name = "Lane 1"
+bars = [{ from = 0, to = 3, text = "first" }, { from = 3, to = 6, text = "second" }]
+[[pages.lanes]]
+name = "Lane 2"
+bars = [{ from = 1, to = 4, text = "first" }, { from = 6, to = 9, text = "second" }]
+[[pages.lanes]]
+name = "Lane 3"
+bars = [{ from = 2, to = 5, text = "first" }, { from = 5, to = 12, text = "second" }]
+[[pages.lanes]]
+name = "Lane 4"
+bars = [{ from = 0, to = 6, text = "first" }]
+[[pages.lanes]]
+name = "Lane 5"
+bars = [{ from = 6, to = 12, text = "first" }]
+[[pages.lanes]]
+name = "Lane 6"
+bars = [{ from = 0, to = 2, text = "first" }, { from = 2, to = 4, text = "second" }, { from = 4, to = 6, text = "third" }]
+[[pages.lanes]]
+name = "Lane 7"
+bars = [{ from = 3, to = 9, text = "first" }]
+[[pages.lanes]]
+name = "Lane 8"
+bars = [{ from = 0, to = 12, text = "the whole year" }]
+[[pages.lanes]]
+name = "Lane 9"
+bars = [{ from = 9, to = 12, text = "last" }]
+[[pages.lanes]]
+name = "Lane 10"
+bars = [{ from = 0, to = 1, text = "a" }, { from = 11, to = 12, text = "z" }]
+[[pages.lanes]]
+name = "Lane 11"
+bars = [{ from = 4, to = 8, text = "first" }]
+[[pages.lanes]]
+name = "Lane 12"
+bars = [{ from = 0, to = 5, text = "first" }, { from = 7, to = 12, text = "second" }]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+kicker = "03 | 計画"
+title = "半期の計画を、期間とレーンで読む"
+periods = ["4月", "5月", "6月", "7月", "8月", "9月"]
+phases = [{ from = 0, to = 6, label = "上期" }]
+milestones = [{ at = 0.5, text = "開始" }, { at = 6, text = "報告会" }]
+table = [["レーン", "担当"], ["設計", "A"], ["試験", "B"]]
+note = "表は線表の下に置かれる"
+conclusion = "6 月までに試作を終える"
+footer = "出所: 見本のための作り物"
+
+[[pages.lanes]]
+name = "設計と、その後の見直しまで"
+bars = [
+  { from = 0, to = 2.5, text = "要件をまとめる" },
+  { from = 2.5, to = 3, text = "確認", tentative = true },
+  { from = 3, to = 6, text = "見直し", icon = "circle.png" },
+]
+
+[[pages.lanes]]
+name = "試験"
+bars = [
+  { from = 1.5, to = 2, text = "準備" },
+  { from = 2, to = 5.5, text = "測って、結果を表にまとめる" },
+]
+marks = [{ at = 5.75, text = "完了" }]

@@ -1,0 +1,251 @@
+# Every page type once, and the three other ways a page is made (= copy, import, recipe).
+
+specimen = "specimen.pptx"
+out = "types.pptx"
+
+[[pages]]
+kind = "copy"
+page = 1
+replace = [["案件名", "The corpus"], ["第 N 回 進捗報告", "Every page type"]]
+
+[[pages]]
+kind = "declare"
+type = "agenda"
+title = "What this deck covers"
+buckets = [
+  ["Pictures", ["one", "side by side", "on a grid"]],
+  ["Diagrams", ["flow", "roadmap", "timeline"]],
+  ["Scaffolding", ["cards", "board"]],
+]
+highlight = 2
+
+[[pages]]
+kind = "declare"
+type = "figure"
+title = "One picture holds the body"
+figure = "wide.png"
+caption = "A wide picture is as wide as the frame"
+
+[[pages]]
+kind = "declare"
+type = "figure"
+title = "A tall picture is as tall as the body"
+figure = "tall.png"
+
+[[pages]]
+kind = "declare"
+type = "figures"
+title = "Pictures side by side, each with its own name"
+figures = [["circle.png", "a circle"], "square.png", ["triangle.png", "a triangle, with a longer name under it"]]
+
+[[pages]]
+kind = "declare"
+type = "figure_grid"
+title = "Pictures on a grid"
+columns = 3
+figures = [
+  ["circle.png", "A1"], ["square.png", "A2"], ["triangle.png", "A3"],
+  ["wide.png", "B1"], ["tall.png", "B2"],
+]
+
+[[pages]]
+kind = "declare"
+type = "flow"
+title = "Stages left to right, each node as tall as its words"
+
+[[pages.stages]]
+name = "Intake"
+nodes = [
+  ["Triage", "sort by impact"],
+  ["Assign", "one owner for each request, named on the day it arrives"],
+]
+settled = "one queue"
+
+[[pages.stages]]
+name = "Work"
+nodes = [["Build", "in small steps"]]
+
+[[pages.stages]]
+name = "Hand over"
+nodes = [
+  ["Review", "by a second person"],
+  ["Release", ""],
+]
+settled = "nothing ships unreviewed"
+
+[[pages]]
+kind = "declare"
+type = "flow"
+title = "同じ順番のノードを横に揃える"
+align_rows = true
+
+[[pages.stages]]
+name = "設計"
+nodes = [
+  ["担当 A", "要件を 1 枚にまとめる"],
+  ["担当 B", "過去の事例を集め、使える物と使えない物に分ける"],
+]
+
+[[pages.stages]]
+name = "試作"
+nodes = [
+  ["担当 A", "最小の形で動かす"],
+  ["担当 B", "測る"],
+]
+
+[[pages]]
+kind = "declare"
+type = "roadmap"
+title = "The road to a goal, as arrowheads"
+align_rows = true
+
+[[pages.stages]]
+name = "Early Nov | 0.4"
+nodes = [
+  ["Core", "reads every input"],
+  ["Docs", "how to start"],
+]
+
+[[pages.stages]]
+name = "Dec | 0.5, the first version partners can try"
+nodes = [
+  ["Core", "writes every output"],
+  ["Docs", "one worked example"],
+]
+
+[[pages.stages]]
+name = "Jan | 1.0"
+goal = true
+nodes = [["Release", "anyone can install it"]]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "Periods left to right, lanes top to bottom"
+periods = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+
+[[pages.lanes]]
+name = "Core"
+bars = [
+  { from = 0, to = 2, text = "build" },
+  { from = 2, to = 5, text = "harden" },
+]
+marks = [{ at = 5, text = "1.0" }]
+
+[[pages.lanes]]
+name = "Docs"
+bars = [{ from = 1, to = 4, text = "write the guide" }]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "The cards are the page"
+cards = [["This week", "what was done"], ["Next week", "what comes next"], ["Open", "what is undecided"]]
+
+[[pages]]
+kind = "declare"
+type = "board"
+title = "One table holds the page"
+table = [
+  ["Method", "Score", "Time", "Note"],
+  ["A", "0.91", "12 s", "the baseline"],
+  ["B", "0.94", "30 s", "slower, and the label of this row is long enough to wrap"],
+  ["C", "0.88", "8 s", "-"],
+]
+note = "Higher is better for the score, lower for the time"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A goal, and the two pillars under it"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = { heading = "Goal", body = "one sentence everyone can repeat", tone = "accent" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = ["Pillar one", "what it carries"]
+[[pages.rows.cells]]
+card = { heading = "Pillar two", body = "what it carries", icon = "square.png" }
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Parts beside each other, and rows inside a cell"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "triangle.png"
+caption = "a picture in a cell"
+[[pages.rows.cells]]
+weight = 2
+[[pages.rows.cells.rows]]
+[[pages.rows.cells.rows.cells]]
+text = "Words that are part of what the page says, at the size of the body."
+[[pages.rows.cells.rows]]
+[[pages.rows.cells.rows.cells]]
+table = [["Key", "Value"], ["weight", "2"]]
+[[pages.rows.cells.rows.cells]]
+points = ["a first point", "a second point"]
+
+[[pages.rows]]
+weight = 1
+[[pages.rows.cells]]
+[pages.rows.cells.timeline]
+periods = ["Nov", "Dec", "Jan"]
+[[pages.rows.cells.timeline.lanes]]
+name = "Core"
+bars = [{ from = 0, to = 2, text = "build" }]
+[[pages.rows.cells]]
+card = ["Beside a type", "a card keeps its own height"]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Whole types laid into cells"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+[pages.rows.cells.flow]
+stages = [
+  { name = "In", nodes = [["Read", ""]] },
+  { name = "Out", nodes = [["Write", ""]] },
+]
+[[pages.rows.cells]]
+[pages.rows.cells.roadmap]
+stages = [
+  { name = "Now", nodes = [["Draft", ""]] },
+  { name = "Then", nodes = [["Final", ""]], goal = true },
+]
+[[pages.rows.cells]]
+[pages.rows.cells.board]
+table = [["Part", "Is"], ["board", "a table"]]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+[pages.rows.cells.figures]
+figures = ["circle.png", "square.png"]
+[[pages.rows.cells]]
+[pages.rows.cells.figure_grid]
+columns = 2
+figures = ["circle.png", "square.png", "triangle.png", "tall.png"]
+[[pages.rows.cells]]
+[pages.rows.cells.agenda]
+buckets = [["First", ["a"]], ["Second", ["b"]]]
+highlight = 1
+
+[[pages]]
+kind = "recipe"
+recipe = "result"
+fill = { method = "method A" }
+figures = [["circle.png", "front"], ["square.png", "back"]]
+
+[[pages]]
+kind = "import"
+deck = "frame.pptx"
+page = 2
+pictures = ["triangle.png"]
+tables = [[["Item", "Value"], ["C", "3"], ["D", "4"]]]
+replace = [["How to read the picture, in one line", "The picture and the table were swapped in"]]
+why = "a page built earlier, brought in with a new picture and new cells"

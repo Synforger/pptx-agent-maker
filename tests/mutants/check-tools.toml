@@ -1,0 +1,104 @@
+# The tools that check a refactor, broken the ways they could fail quietly.
+# A snapshot that passes what moved, or a mutate that calls a survivor red, checks nothing.
+
+tests = ["tests/test_check_tools.py"]
+
+# -- scripts/check/snapshot.py ------------------------------------------------
+
+[[mutant]]
+name = "snapshot: a file that changed is passed over"
+file = "scripts/check/snapshot.py"
+old = "if filecmp.cmp(kept / name, baked / name, shallow=False):"
+new = "if True:"
+
+[[mutant]]
+name = "snapshot: a page that is new is not reported"
+file = "scripts/check/snapshot.py"
+old = "for name in sorted(new - old)]"
+new = "for name in ()]"
+
+[[mutant]]
+name = "snapshot: a page that went missing is not reported"
+file = "scripts/check/snapshot.py"
+old = "for name in sorted(old - new)]"
+new = "for name in ()]"
+
+[[mutant]]
+name = "snapshot: the check passes whatever it found"
+file = "scripts/check/snapshot.py"
+old = "return 1 if found else 0"
+new = "return 0"
+
+[[mutant]]
+name = "snapshot: what a page points at is not kept"
+file = "scripts/check/snapshot.py"
+old = "if rels in archive.namelist():"
+new = "if False:"
+
+[[mutant]]
+name = "snapshot: a command that stopped is taken as done"
+file = "scripts/check/snapshot.py"
+old = "    if code:"
+new = "    if False:"
+
+[[mutant]]
+name = "snapshot: the line shown is not the line that differs"
+file = "scripts/check/snapshot.py"
+old = "if a != b)"
+new = "if a == b)"
+
+[[mutant]]
+name = "snapshot: which picture a page shows is not kept"
+file = "scripts/check/snapshot.py"
+old = 'xml += f"<!-- {target} sha256 {digest} -->"'
+new = "pass"
+
+# -- scripts/check/mutate.py --------------------------------------------------
+
+[[mutant]]
+name = "mutate: what was red before counts as the mutant's red"
+file = "scripts/check/mutate.py"
+old = "if run.red > baseline.red:"
+new = "if run.red > 0:"
+
+[[mutant]]
+name = "mutate: a survivor is called red"
+file = "scripts/check/mutate.py"
+old = "if run.red > baseline.red:"
+new = "if run.red >= baseline.red:"
+
+[[mutant]]
+name = "mutate: a mutant that does not apply is not counted"
+file = "scripts/check/mutate.py"
+old = "            unbroken += 1"
+new = "            unbroken += 0"
+
+[[mutant]]
+name = "mutate: a survivor is not counted"
+file = "scripts/check/mutate.py"
+old = "            survived += 1"
+new = "            survived += 0"
+
+[[mutant]]
+name = "mutate: a string found twice is broken at every place"
+file = "scripts/check/mutate.py"
+old = "if found != 1:"
+new = "if found < 1:"
+
+[[mutant]]
+name = "mutate: tests that did not run are read as green"
+file = "scripts/check/mutate.py"
+old = "if done.returncode not in (0, 1, 2) or not _COUNT.search(last):"
+new = "if False:"
+
+[[mutant]]
+name = "mutate: the tree itself is broken, not a copy"
+file = "scripts/check/mutate.py"
+old = "            target = tree / mutant.file"
+new = "            target = source"
+
+[[mutant]]
+name = "mutate: errors are not red"
+file = "scripts/check/mutate.py"
+old = 'counts["failed"] + counts["error"]'
+new = 'counts["failed"]'
