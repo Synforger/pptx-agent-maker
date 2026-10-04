@@ -6,7 +6,7 @@
 
 置ける物は意義を 1:1 で説明できる最小セットだけ:
 
-* `title_bar` ― その頁が何の頁か
+* `title_bar` ― その頁が何の頁か (= 題と、その上か左に置く小さい字)
 * `band` ― 条件の宣言 (= 上) と結論 (= 下)
 * `box` ― 並ぶカード
 * `figure` ― 実物の絵。縦横比は必ず保つ
@@ -134,14 +134,23 @@ class Page:
         ⚠ **字と札は、レイアウトが印字する物の手前で止まる** (= `Theme.title_band`)。帯を頁の幅いっぱいに
         使っていた間は、右上にロゴの在るテンプレートで、長い題と札がロゴに乗った。
 
+        ⚠ **題の上の小さい字は、資料によっては題の左に同じ行で置く** (= `[theme] kicker = "beside"`。
+        差し色の太字で、題の 1 行目の高さ)。帯の高さは上に置く時と同じで、題はそのぶん狭い幅で折れる。
+
         札は題の帯の右端に、題の字の枠の真ん中の高さで置く (= 題は枠の真ん中に寄るので、何行に折れても
         札と題が揃う)。**題の字の枠は、札と、札との間の空きのぶん狭い** (= 題が札の下へ回り込まない。
         行もその幅で数える)。
         """
         t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
         tag = self.theme.sticker_width(sticker) if sticker else 0
-        lines, left, right = self.theme.title_band(title, sticker)
-        if tag and right - left - tag - s.gap_m - 2 * s.text_inset < self.theme.unbreakable(title, t.title, bold=True):
+        lines, left, right = self.theme.title_band(title, sticker, kicker)
+        lead = self.theme.kicker_lead(kicker)
+        longest = self.theme.unbreakable(title, t.title, bold=True)
+        if lead and right - left - lead - 2 * s.text_inset < longest:
+            raise PageFullError(
+                f"the kicker {kicker!r} leaves the title no room beside it for its longest word — "
+                "beside a title it is a number and a word or two, not a sentence")
+        if tag and right - left - lead - tag - s.gap_m - 2 * s.text_inset < longest:
             raise PageFullError(
                 f"the sticker {sticker!r} leaves the title no room for its longest word — "
                 "a sticker is a word or two (= draft, illustrative), not a sentence")
@@ -149,12 +158,20 @@ class Page:
         bar = self._take_top(s.title_height + folded)
         # 字と札が使うのは、レイアウトが印字する物 (= ロゴ) の手前まで。帯そのものは頁の幅のまま
         clear = Rect(left, bar.top, right - left, bar.height)
-        if kicker:
+        if lead:
+            # 題の左に同じ行で (= 題の 1 行目の高さに、差し色の太字。枠は字の幅ちょうどで、折り返さない)
+            main = clear
+            row = self.theme.line_height(t.title)
+            first = main.top + max((main.height - lines * row) // 2, 0)
+            self.elements.append(Text(
+                "kicker_beside", Rect(main.left + s.text_inset, first, lead - s.text_inset, row),
+                kicker, t.title, p.accent, bold=True))
+        elif kicker:
             kick, main = clear.split_top(s.kicker_height)
             self.elements.append(Text("kicker", kick, kicker, t.caption, p.muted))
         else:
             main = clear
-        words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)
+        words = Rect(main.left + lead, main.top, main.width - lead - (tag + s.gap_m if tag else 0), main.height)
         self.elements.append(Text("title", words, title, t.title, p.ink, bold=True))
         line = Rect(bar.left, bar.bottom, bar.width, s.hairline)
         start, end = self.theme.clear(line)

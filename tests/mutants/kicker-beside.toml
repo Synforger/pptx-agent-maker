@@ -1,0 +1,75 @@
+# The small words above a title can stand beside it: on its line, in the accent colour, taking room from the title.
+
+tests = ["tests/test_kicker_beside.py"]
+
+[[mutant]]
+name = "the project says beside and the small words stay above"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        kicker=kicker,\n"
+new = ""
+
+[[mutant]]
+name = "a place nobody knows is read as above"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    if not isinstance(kicker, str) or kicker not in KICKERS:"
+new = "    if False:"
+
+[[mutant]]
+name = "the title is counted as if nothing stood beside it"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "            room -= self.kicker_lead(kicker)\n"
+new = ""
+
+[[mutant]]
+name = "small words above a title take room from it all the same"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = '        if not kicker or self.kicker != "beside":'
+new = "        if not kicker:"
+
+[[mutant]]
+name = "the small words are measured in the light weight"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.spacing.text_inset + self.width(kicker, self.type.title, bold=True)"
+new = "return self.spacing.text_inset + self.width(kicker, self.type.title, bold=False)"
+
+[[mutant]]
+name = "the title's box starts under the small words"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "words = Rect(main.left + lead, main.top, main.width - lead - (tag + s.gap_m if tag else 0), main.height)"
+new = "words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)"
+
+[[mutant]]
+name = "beside a folded title the small words stand in the middle of the band"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "first = main.top + max((main.height - lines * row) // 2, 0)"
+new = "first = main.top + max((main.height - row) // 2, 0)"
+
+[[mutant]]
+name = "the small words beside a title are set in the colour of the body"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "kicker, t.title, p.accent, bold=True))"
+new = "kicker, t.title, p.ink, bold=True))"
+
+[[mutant]]
+name = "small words that leave the title no room are placed all the same"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if lead and right - left - lead"
+new = "        if False and right - left - lead"
+
+[[mutant]]
+name = "the small words beside a title are anchored at the top of their box"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '"band_text", "title", "caption", "label", "lane", "stage", "marker", "kicker_beside"} else MSO_ANCHOR.TOP'
+new = '"band_text", "title", "caption", "label", "lane", "stage", "marker"} else MSO_ANCHOR.TOP'
+
+[[mutant]]
+name = "the small words beside a title keep the insets of a text box"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '    if element.kind in {"label", "lane", "marker", "kicker_beside"}:'
+new = '    if element.kind in {"label", "lane", "marker"}:'
+
+[[mutant]]
+name = "the check of a long title counts as if nothing stood beside the title"
+file = "src/pptx_agent_maker/checks/declared/long_title.py"
+old = '                                  str(entry.data.get("kicker", ""))) if title else 0'
+new = '                                  "") if title else 0'
