@@ -65,20 +65,6 @@
 </a:ln>
 <a:effectLst/>
 </p:spPr>
-<p:style>
-<a:lnRef idx="1">
-<a:schemeClr val="accent1"/>
-</a:lnRef>
-<a:fillRef idx="3">
-<a:schemeClr val="accent1"/>
-</a:fillRef>
-<a:effectRef idx="2">
-<a:schemeClr val="accent1"/>
-</a:effectRef>
-<a:fontRef idx="minor">
-<a:schemeClr val="lt1"/>
-</a:fontRef>
-</p:style>
 <p:txBody>
 <a:bodyPr rtlCol="0" anchor="ctr"/>
 <a:lstStyle/>

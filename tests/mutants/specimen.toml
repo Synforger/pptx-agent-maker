@@ -1,0 +1,27 @@
+# The specimen the project template ships with: it is what the baker makes today.
+
+tests = ["tests/test_template.py"]
+
+[[mutant]]
+name = "a filled shape keeps the theme's shape style"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    _edge(shape, element.outline, theme, dashed=element.dashed, heavy=element.heavy)\n    _plain(shape)\n    # A shape with no text"
+new = "    _edge(shape, element.outline, theme, dashed=element.dashed, heavy=element.heavy)\n    # A shape with no text"
+
+[[mutant]]
+name = "the cover's band is baked in another colour"
+file = "scripts/generate/bake-template.py"
+old = 'Fill("band", rule, theme.palette.accent)'
+new = 'Fill("band", rule, theme.palette.muted)'
+
+[[mutant]]
+name = "the words under the cover's band are baked at another size"
+file = "scripts/generate/bake-template.py"
+old = "SUBTITLE, theme.type.heading, theme.palette.muted"
+new = "SUBTITLE, theme.type.body, theme.palette.muted"
+
+[[mutant]]
+name = "the cover's title is baked in the light weight"
+file = "scripts/generate/bake-template.py"
+old = "Text(\"title\", title, TITLE, theme.type.title, theme.palette.ink, bold=True)"
+new = "Text(\"title\", title, TITLE, theme.type.title, theme.palette.ink)"
