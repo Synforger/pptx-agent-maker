@@ -14,5 +14,8 @@ assets = "assets"
 "共通" = "E8F3EA"
 "Late" = "8B1E3F"
 
+# The pictures here are made up to exercise the layout, so there is no source to name:
+# the corpus builds with the check for unsourced pages switched off, the way a project may.
 [checks]
 stale_words = ["案件名", "第 N 回"]
+unsourced = false

@@ -45,6 +45,7 @@ folder を渡すと `specimen.pptx` と、その隣の `workspace.toml` を一�
 | | |
 |---|---|
 | `task build -- w1` | `w1.toml` からデッキを組んで検査する |
+| `task titles -- w1` | 題だけを頁の順に並べて出す (= 話が通るかを読む) |
 | `task check -- w1.pptx` | 焼いたものを読み直す |
 | `task review -- w1.pptx` | 人が直した所を部品単位で出す |
 | `task preview` | 焼いたものをブラウザで追う |

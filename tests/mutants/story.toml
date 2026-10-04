@@ -1,0 +1,115 @@
+# The story checks: the titles in order, a title that runs too long, data with no source.
+
+tests = ["tests/test_story.py", "tests/test_checks.py"]
+
+# -- a title past two lines, on a built deck (checks/rules/long_title.py) --------
+
+[[mutant]]
+name = "a title of three lines is let through"
+file = "src/pptx_agent_maker/checks/rules/long_title.py"
+old = "LIMIT = 2"
+new = "LIMIT = 3"
+
+[[mutant]]
+name = "the width a title inherits from its layout is not read"
+file = "src/pptx_agent_maker/checks/rules/long_title.py"
+old = "return next((shape.width for shape in page.beneath if TITLE_PLACEHOLDER.search(shape.xml)), None)"
+new = "return None"
+
+[[mutant]]
+name = "the size a title inherits is not read"
+file = "src/pptx_agent_maker/checks/rules/long_title.py"
+old = "lines = lines_in(title, width - LEFT_INSET - RIGHT_INSET, size)"
+new = "lines = lines_in(title, width - LEFT_INSET - RIGHT_INSET, None)"
+
+[[mutant]]
+name = "the check on the built deck cannot be switched off"
+file = "src/pptx_agent_maker/checks/rules/long_title.py"
+old = "    if off(config):\n        return []\n    findings"
+new = "    findings"
+
+[[mutant]]
+name = "a line break written by hand is not a line"
+file = "src/pptx_agent_maker/checks/base/ink.py"
+old = "count += len(_lines(pieces, usable)) + len(BREAK.findall(body))"
+new = "count += len(_lines(pieces, usable))"
+
+# -- the same, on a declared page (checks/declared/long_title.py) ---------------
+
+[[mutant]]
+name = "a declared title is counted at the size of the body"
+file = "src/pptx_agent_maker/checks/declared/long_title.py"
+old = "theme.wraps(title, room, theme.type.title, bold=True)"
+new = "theme.wraps(title, room, theme.type.body, bold=True)"
+
+[[mutant]]
+name = "the check on declared pages cannot be switched off"
+file = "src/pptx_agent_maker/checks/declared/long_title.py"
+old = "    if off(config):\n        return []\n    room"
+new = "    room"
+
+# -- data with no source (checks/declared/unsourced.py) -------------------------
+
+[[mutant]]
+name = "a table is not data"
+file = "src/pptx_agent_maker/checks/declared/unsourced.py"
+old = 'SHOWS = frozenset({"figure", "figures", "table", "chart"})'
+new = 'SHOWS = frozenset({"figure", "figures", "chart"})'
+
+[[mutant]]
+name = "a page that names its source is reported all the same"
+file = "src/pptx_agent_maker/checks/declared/unsourced.py"
+old = 'if entry.kind != "declare" or str(entry.data.get("footer", "")).strip():'
+new = 'if entry.kind != "declare":'
+
+[[mutant]]
+name = "what sits inside a cell is not looked at"
+file = "src/pptx_agent_maker/checks/declared/unsourced.py"
+old = "    if isinstance(written, list):\n        return any(_shows_data(value) for value in written)"
+new = "    if isinstance(written, list):\n        return False"
+
+[[mutant]]
+name = "the source check cannot be switched off"
+file = "src/pptx_agent_maker/checks/declared/unsourced.py"
+old = "if (config or {}).get(NAME, True) is False:"
+new = "if False:"
+
+# -- the report and the build ---------------------------------------------------
+
+[[mutant]]
+name = "a check that did not run is reported as ok"
+file = "src/pptx_agent_maker/checks/__init__.py"
+old = "(*CHECKS, *(DECLARED if declared else ()))"
+new = "(*CHECKS, *DECLARED)"
+
+[[mutant]]
+name = "the build does not run the checks that read the manifest"
+file = "src/pptx_agent_maker/__main__.py"
+old = "findings = run_all(built_deck, config) + run_declared(manifest, theme_of(workspace, manifest), config)"
+new = "findings = run_all(built_deck, config)"
+
+# -- the titles in order (deck/titles.py) ---------------------------------------
+
+[[mutant]]
+name = "the words above a title are left out"
+file = "src/pptx_agent_maker/deck/titles.py"
+old = '(f"[{kicker}]  " if kicker else "")'
+new = '""'
+
+[[mutant]]
+name = "a title swapped after the build is listed as it was written"
+file = "src/pptx_agent_maker/deck/titles.py"
+old = "(new if title == old else title)"
+new = "title"
+
+[[mutant]]
+name = "a copied page's title is not read from the built deck"
+file = "src/pptx_agent_maker/deck/titles.py"
+old = "elif number <= len(pages):"
+new = "elif False:"
+
+[[mutant]]
+name = "a page with no title placeholder has no headline"
+file = "src/pptx_agent_maker/checks/base/slide.py"
+old = "if words and declared and int(declared.group(1)) / 100 > size:"
+new = "if False:"

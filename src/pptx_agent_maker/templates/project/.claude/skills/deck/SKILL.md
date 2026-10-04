@@ -22,7 +22,8 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
    素材の置き場を新しい回へ。素材は写らないので、この回の絵を `assets/<回の名前>/` に置く)
 3. **manifest を書く / 直す** ― 並びの真値はここ 1 枚。頁の作り方は 3 つ
    (`copy` / `import` / `declare`) と、案件の recipe を呼ぶ `recipe`
-4. **組む** ― `task build -- w1` (= 組んで検査まで)
+4. **組む** ― `task build -- w1` (= 組んで検査まで)。組めたら `task titles -- w1` で題だけを順に読み、
+   話が通るかを見る
 5. **焼いて見る** ― `task preview`、または pptx を画像にして 1 枚ずつ見る。
    ⚠ **検査が通っても、読みやすさは座標に出ない。**目で見るまで終わりでない
 6. **人が PowerPoint で直したら取り込む** ― `task review -- w1.pptx --apply`。**取り込みはエージェントの
