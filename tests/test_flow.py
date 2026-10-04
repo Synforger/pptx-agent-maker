@@ -350,6 +350,7 @@ class OnceBaked(unittest.TestCase):
     def test_the_arrow_is_one_unwrapped_character_centred_in_its_column(self):
         arrow = self.shape("→")
         self.assertIn('wrap="none"', arrow)
+        self.assertNotIn("spAutoFit", arrow)
         self.assertIn('anchor="ctr"', arrow)
         self.assertIn('lIns="0"', arrow)
         self.assertIn('sz="2800"', arrow)
