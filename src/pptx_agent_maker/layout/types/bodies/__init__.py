@@ -3,4 +3,4 @@
 型を足すときは、ここに file を 1 つ書き、下の並びに名前を足す (= 読まれた時に登録される)。
 """
 
-from . import figures, flow, roadmap, timeline, skeleton, compose  # noqa: F401
+from . import figures, flow, roadmap, timeline, chart, skeleton, compose  # noqa: F401

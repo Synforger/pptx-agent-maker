@@ -23,6 +23,7 @@
 * `rule` ― 区切りの細い線
 * `label` ― 棒や印の隣、列の頭に付く 1 行の名前
 * `lane` ― レーンの名前
+* `chart` ― 数字から描くグラフ (= 人が PowerPoint で数字を直せる)
 * `footer` ― 出所
 * `sticker` ― 頁の性格を言う札 (= 暫定・イメージ。題の帯の右端に 1 つ)
 
@@ -36,7 +37,7 @@ from pathlib import Path
 
 from ..base.geometry import Rect
 from ..base.tokens import DEFAULT, Theme
-from .elements import Bar, Diamond, Element, Figure, Fill, Mark, Table, Text
+from .elements import Bar, Chart, Diamond, Element, Figure, Fill, Mark, Table, Text
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -299,6 +300,14 @@ class Page:
         if caption:
             strip = Rect(rect.left, placed.bottom + s.gap_s, rect.width, tall)
             self.elements.append(Text("caption", strip, caption, t.caption, p.muted, align="center"))
+
+    def chart(self, chart: Chart) -> None:
+        """A chart, already worked out (= `types/bodies/chart.py` decides what is drawn and how).
+
+        グラフは頁の図解に数える (= 数字を形で見せている)。
+        """
+        self.elements.append(chart)
+        self._figures += 1
 
     def table(self, rect: Rect, rows: list[list[str]], *, header: bool = True,
               highlight: dict[tuple[int, int], str] | None = None) -> Rect:

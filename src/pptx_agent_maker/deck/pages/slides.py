@@ -9,17 +9,21 @@
 
 from __future__ import annotations
 
+import posixpath
 import re
 import shutil
 import zipfile
 from pathlib import Path
+from typing import Callable
 
-from ..base.archive import Archive
+from ..base.archive import CARRIED_FOLDERS, Archive
 
 NOTES_REL = re.compile(r'<Relationship [^>]*notesSlide[^>]*/>')
 MEDIA_TARGET = re.compile(r'Target="\.\./media/(image[\w.]+)"')
 #: 頁がどのレイアウトの上に乗るか
 LAYOUT_TARGET = re.compile(r'Target="\.\./slideLayouts/slideLayout\d+\.xml"')
+RELATIONSHIP = re.compile(r"<Relationship\b[^>]*/>")
+TARGET = re.compile(r'Target="([^"]+)"')
 
 
 def duplicate(archive: Archive, source_name: str) -> str:
@@ -31,6 +35,13 @@ def duplicate(archive: Archive, source_name: str) -> str:
     if source_rels.exists():
         rels = NOTES_REL.sub("", source_rels.read_text(encoding="utf-8"))
         rels = _copy_media_within(archive, rels)
+        types = (archive.tree / "[Content_Types].xml").read_text(encoding="utf-8")
+
+        def read(part: str) -> bytes | None:
+            path = archive.tree / part
+            return path.read_bytes() if path.is_file() else None
+
+        rels = _carry_parts(archive, rels, "ppt/slides", read, types)
         archive.rels_of(new_name).parent.mkdir(parents=True, exist_ok=True)
         archive.rels_of(new_name).write_text(rels, encoding="utf-8")
 
@@ -72,6 +83,14 @@ def import_from(archive: Archive, source: Path, page_number: int,
             archive.register_media(carried[name], _media_type(source_types, name))
         rels = _rename_media(rels, carried)
 
+        def read(part: str) -> bytes | None:
+            try:
+                return zipped.read(part)
+            except KeyError:
+                return None
+
+        rels = _carry_parts(archive, rels, "ppt/slides", read, source_types)
+
     if relayout:
         # ⚠ **宣言で組んだ頁は白紙に描いてある。**持ち込むときレイアウトの参照を
         # そのままにすると、番号だけが引き継がれてテンプレートの別のレイアウト (= 終わりの頁
@@ -83,6 +102,63 @@ def import_from(archive: Archive, source: Path, page_number: int,
     archive.rels_of(new_name).write_text(rels, encoding="utf-8")
     archive.register_slide(new_name)
     return new_name
+
+
+def _carry_parts(archive: Archive, rels: str, owner: str, read: Callable[[str], bytes | None],
+                 source_types: str) -> str:
+    """Give the page a copy of its own of every chart it shows, and of the data each chart keeps.
+
+    `rels` は `owner` (= その rels の持ち主が居る folder) から見た関係の一覧で、返すのは、指す先を
+    新しい名前に向け直した物。`read` は持ち込み元の部品を名前で読む口 (= 無ければ None)。
+
+    ⚠ **頁の XML を写すだけでは、グラフは付いて来ない。**頁はグラフを関係で指しているだけで、
+    本体は別の部品に在り、その本体がさらにデータの表を別の部品に持つ。写さなければ指す先が無く、
+    元の名前のまま写せば、行き先に既に在る別のグラフを指す。
+
+    ⚠ **グラフが、ここで運べない物を指していたら止める** (= 絵で塗った棒など)。黙って置いて行くと、
+    指す先の無い関係が残り、開いたときに修復を言われる。
+    """
+    def carried(found: re.Match) -> str:
+        entry = found.group(0)
+        target = TARGET.search(entry)
+        if target is None or 'TargetMode="External"' in entry:
+            return entry
+        part = posixpath.normpath(posixpath.join(owner, target.group(1)))
+        folder, name = posixpath.split(part)
+        if folder not in CARRIED_FOLDERS:
+            if owner in CARRIED_FOLDERS:
+                raise ValueError(
+                    f"a chart on this page keeps {target.group(1)} beside it, which this toolkit does not "
+                    "carry — rebuild the chart from its numbers (`chart`), or bring the page in as a picture")
+            return entry
+        content = read(part)
+        if content is None:
+            raise ValueError(f"the page points at {part}, and the deck it comes from has no such part")
+        (archive.tree / folder).mkdir(parents=True, exist_ok=True)
+        new = archive.next_part_name(folder, name)
+        (archive.tree / folder / new).write_bytes(content)
+        archive.register_part(f"{folder}/{new}", _part_type(source_types, part))
+        own = read(f"{folder}/_rels/{name}.rels")
+        if own is not None:
+            (archive.tree / folder / "_rels").mkdir(parents=True, exist_ok=True)
+            (archive.tree / folder / "_rels" / f"{new}.rels").write_text(
+                _carry_parts(archive, own.decode("utf-8"), folder, read, source_types), encoding="utf-8")
+        return entry.replace(target.group(0), f'Target="{posixpath.relpath(f"{folder}/{new}", owner)}"')
+
+    return RELATIONSHIP.sub(carried, rels)
+
+
+def _part_type(content_types: str, part: str) -> str:
+    """What the source package says a part is (= by its name, else by its extension)."""
+    named = re.search(rf'<Override\s+PartName="/{re.escape(part)}"\s+ContentType="([^"]+)"', content_types)
+    if named:
+        return named.group(1)
+    extension = part.rsplit(".", 1)[-1]
+    default = re.search(rf'<Default\s+Extension="{re.escape(extension)}"\s+ContentType="([^"]+)"',
+                        content_types, re.I)
+    if default:
+        return default.group(1)
+    raise ValueError(f"the deck being brought from does not say what {part} is")
 
 
 def _copy_media_within(archive: Archive, rels: str) -> str:

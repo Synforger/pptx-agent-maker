@@ -40,6 +40,8 @@ MINIMAL = {
                            {"name": "とうたつ", "nodes": [["B", "ほそく"]], "goal": True}]},
     "timeline": {"periods": ["いま", "つぎ"],
                  "lanes": [{"name": "しごと", "bars": [{"from": 0, "to": 1, "text": "きめる"}]}]},
+    "chart": {"chart": {"kind": "column", "categories": ["いま", "つぎ"],
+                        "series": [{"name": "かず", "values": [1, 2]}]}},
     # 絵を持たなくてよい型 (= デッキの骨格)
     "agenda": {"buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]],
                "highlight": 1},
@@ -382,13 +384,14 @@ class CoordinatesCannotBeDeclared(unittest.TestCase):
     def test_a_body_type_must_show_something(self):
         """本文の型が図解を落とせるなら、表と文章だけの頁が戻ってくる。
 
-        絵を持つか、図形で組んだ図解を持つか (= `flow` / `timeline`) のどちらかでなければ組めない。
+        絵を持つか、図形で組んだ図解を持つか (= `flow` / `timeline`)、数字から描くグラフを持つかの
+        どれかでなければ組めない。
         """
         for name, data in MINIMAL.items():
             if name in SKELETON:
                 continue
             with self.subTest(name):
-                shows = {"figure", "figures", "stages", "lanes"} & data.keys()
+                shows = {"figure", "figures", "stages", "lanes", "chart"} & data.keys()
                 self.assertTrue(shows, f"{name} can be built without anything to look at")
 
     def test_the_scaffolding_stays_small(self):
