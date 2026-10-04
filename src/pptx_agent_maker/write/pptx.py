@@ -24,7 +24,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION, XL_MARKER_STYLE, XL_TICK_MARK
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 
@@ -181,6 +181,11 @@ def _text(slide, element: Text, theme: Theme) -> None:
     # 隣の物に付く名前と、段の間の向きは折り返さない。線表の名前と向きは枠の余白も取らない
     # (= 測った幅がそのまま使える幅。向きは狭い列に 1 文字で立つ)
     frame.word_wrap = element.kind not in {"label", "marker"}
+    if not frame.word_wrap:
+        # ⚠ **折り返さない枠は、枠を字に合わせない。**python-pptx が文字の枠に付ける既定 (= 字に合わせて
+        # 枠を直す) を残していた間は、全角の短い名前が 1 文字ずつ縦に折れた ― 全角だけの名前は枠の幅が
+        # 字の幅ちょうどで、LibreOffice はその幅で折る (= 焼いた絵で出た。PowerPoint では折れない)
+        frame.auto_size = MSO_AUTO_SIZE.NONE
     if element.kind in {"label", "lane", "marker"}:
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(0)
     frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.kind in {

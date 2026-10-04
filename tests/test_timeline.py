@@ -848,6 +848,13 @@ class OnceBaked(unittest.TestCase):
             self.assertIn('wrap="none"', self.shape(text), text)
         self.assertIn('wrap="square"', self.shape("build"))
 
+    def test_a_name_beside_something_keeps_the_box_it_was_given(self):
+        """⚠ **折り返さない枠に「枠を字に合わせる」設定が残っていた間は、全角の短い名前が 1 文字ずつ縦に
+        折れた** (= LibreOffice で焼いた絵で出た。全角だけの名前は、枠の幅が字の幅ちょうどになる)。"""
+        for text in ("release", "review", "a name that goes beside it"):
+            self.assertNotIn("spAutoFit", self.shape(text), text)
+            self.assertIn("<a:noAutofit/>", self.shape(text), text)
+
     def test_a_period_cell_is_a_filled_shape_with_its_name_in_bold(self):
         cell = self.shape("Jan")
         self.assertIn(f'<a:srgbClr val="{DEFAULT.palette.accent}"/>', cell.split("<p:txBody>")[0])
