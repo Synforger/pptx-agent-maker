@@ -211,7 +211,10 @@ class Spacing:
     gap_m: int = cm(0.6)
     gap_l: int = cm(1.0)
     pad: int = cm(0.35)
+    #: 題の帯 (= 題の上の小さい字の段 + 題の段)。小さい字の在る頁も無い頁も、帯はこの高さ
     title_height: int = cm(1.5)
+    #: そのうち、題の上の小さい字の段
+    kicker_height: int = cm(0.5)
     cell_pad_y: int = cm(0.08)
     cell_pad_x: int = cm(0.18)
     #: 文字の枠が左右に自分で取る余白 (= pptx の既定)。文字が使える幅は、枠の幅からこの 2 つぶん狭い
@@ -478,11 +481,16 @@ def _furniture(type: Type) -> Spacing:
     題の帯・条件と結論の帯・出所の帯の高さは、そこに置く字の大きさに比例する (= 読ませる資料の
     大きさのとき、今までの高さ)。字だけ大きくして帯をそのままにすると、字が帯からはみ出す。
     余白と、物どうしの間隔は動かない。
+
+    ⚠ **題の帯は 2 段で、段ごとに自分の字の大きさに比例する** (= 題の上の小さい字の段と、題の段)。
+    帯を題の大きさだけで決めていた間は、小さい字だけを大きくした案件で、小さい字が題の頭に乗った。
     """
     base, read = Spacing(), USES["read"]
+    kicker = round(base.kicker_height * type.caption / read.caption)
     return replace(
         base,
-        title_height=round(base.title_height * type.title / read.title),
+        kicker_height=kicker,
+        title_height=kicker + round((base.title_height - base.kicker_height) * type.title / read.title),
         band_height=round(base.band_height * type.heading / read.heading),
         footer_height=round(base.footer_height * type.caption / read.caption),
     )
