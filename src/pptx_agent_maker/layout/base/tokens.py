@@ -432,6 +432,16 @@ class Theme:
             return 0
         return self.spacing.text_inset + self.width(kicker, self.type.title, bold=True)
 
+    def crossed(self, band: Rect) -> bool:
+        """Whether the layout prints something across the middle of a band (= what `clear` cannot keep off).
+
+        幅を詰めて避けられるのは、片側に在る物だけ。頁を横切る物 (= 罫線) に掛かるかどうかは、
+        ここが言う。
+        """
+        middle = band.left + band.width // 2
+        return any(thing.top < band.bottom and band.top < thing.bottom and thing.left < middle < thing.right
+                   for thing in self.under.prints)
+
     def title_band(self, title: str, sticker: str = "", kicker: str = "") -> tuple[int, int, int]:
         """(lines, left, right) of a page's title band: how far the title folds, and where it may run.
 

@@ -103,3 +103,53 @@ name = "a declared page's long title is said from both sides"
 file = "src/pptx_agent_maker/checks/__init__.py"
 old = "             if not (finding.check in both and finding.page in declared)]"
 new = "             ]"
+
+# -- a line the layout draws across the page -------------------------------------
+
+[[mutant]]
+name = "a title that folds onto the layout's line is placed all the same"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if self.theme.crossed(Rect(main.left, first + row, main.width, (lines - 1) * row)):"
+new = "            if False:"
+
+[[mutant]]
+name = "a title on one line is stopped by the line under it"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if lines > 1:\n            # ⚠ **折れて増えた行が"
+new = "        if True:\n            # ⚠ **折れて増えた行が"
+
+[[mutant]]
+name = "the first line of a folded title counts as a line it folded onto"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if self.theme.crossed(Rect(main.left, first + row, main.width, (lines - 1) * row)):"
+new = "            if self.theme.crossed(Rect(main.left, main.top, main.width, main.height + 4 * row)):"
+
+[[mutant]]
+name = "a short line at one side counts as a line across the page"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "thing.top < band.bottom and band.top < thing.bottom and thing.left < middle < thing.right"
+new = "thing.top < band.bottom and band.top < thing.bottom"
+
+[[mutant]]
+name = "a connector of the layout is not read as a line"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "_DRAWN = re.compile(r\"<p:(cxnSp|sp)>(.*?)</p:\\1>\", re.S)"
+new = "_DRAWN = re.compile(r\"<p:(sp)>(.*?)</p:\\1>\", re.S)"
+
+[[mutant]]
+name = "a shape with no height is not read as a line"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "        if (kind == \"sp\" and width and height) or not (width or height):"
+new = "        if kind == \"sp\" or not (width or height):"
+
+[[mutant]]
+name = "a shape that says it draws no line is read as a line"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "        if stroke is not None and NO_FILL.search(stroke.group(2) or \"\"):\n            continue\n"
+new = ""
+
+[[mutant]]
+name = "the layout's lines are left out of what it prints"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "prints=prints + tuple(line for part in parts for line in _lines(part)))"
+new = "prints=prints)"

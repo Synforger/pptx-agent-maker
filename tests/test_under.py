@@ -148,6 +148,96 @@ class TheTitleBandKeepsOffWhatTheLayoutPrints(unittest.TestCase):
         self.assertEqual(placed(Page(ONE), "rule"), placed(Page(ONE, self.over(LOGO)), "rule"))
 
 
+class ALineAcrossThePage(unittest.TestCase):
+    """⚠ **レイアウトが頁を横切って描く線** (= 題の下の罫線) **は、幅を詰めても避けられない。**題の帯は題が
+    折れるぶん下へ伸びるが、レイアウトの線は動かない。2 行に折れた題の 2 行目が、その線の上に乗った
+    (= 字の大きい、映す資料で出た。重なりの検査は細い線を数えない)。折れて増えた行が線に掛かる題は、
+    縮めずに止める ― 直せるのは題の長さだけ。"""
+
+    #: 1 行の題の下、2 行に折れた題の 2 行目が来る高さ
+    @staticmethod
+    def under_one_line(theme=DEFAULT) -> Rect:
+        frame, row = theme.frame(), theme.line_height(theme.type.title)
+        one = frame.top + (theme.spacing.title_height - row) // 2 + row
+        return Rect(0, one + row // 2, theme.slide.width, 12700)
+
+    @staticmethod
+    def over(*prints: Rect, theme=DEFAULT):
+        from pptx_agent_maker.layout.base.tokens import Under
+        return replace(theme, under=Under(prints=tuple(prints)))
+
+    FOLDED = "題" * 60
+
+    def test_a_title_on_one_line_is_built_as_it_always_was(self) -> None:
+        for kicker in ("", "01 | 背景"):
+            with self.subTest(kicker=kicker):
+                self.assertEqual(Page(ONE, kicker=kicker).elements,
+                                 Page(ONE, self.over(self.under_one_line()), kicker=kicker).elements)
+
+    def test_a_title_on_one_line_is_never_stopped_whatever_runs_under_it(self) -> None:
+        """題を短くしても直らない頁を、ここで止めない。1 行の題の字のすぐ下から太い物が頁を横切っていても、
+        止まるのは折れた題だけ。"""
+        from pptx_agent_maker import PageFullError
+
+        frame, row = DEFAULT.frame(), DEFAULT.line_height(DEFAULT.type.title)
+        end = frame.top + (DEFAULT.spacing.title_height - row) // 2 + row     # 1 行の題の字の下端
+        thick = Rect(0, end - row // 4, DEFAULT.slide.width, row)
+        self.assertTrue(Page(ONE, self.over(thick)).elements)
+        with self.assertRaises(PageFullError):
+            Page(self.FOLDED, self.over(thick))
+
+    def test_a_title_that_folds_onto_the_line_stops_and_says_what_to_do(self) -> None:
+        from pptx_agent_maker import PageFullError
+
+        with self.assertRaises(PageFullError) as stopped:
+            Page(self.FOLDED, self.over(self.under_one_line()))
+        said = str(stopped.exception)
+        self.assertIn("2 lines", said)
+        self.assertIn("shorter", said)
+
+    def test_it_stops_wherever_the_small_words_stand(self) -> None:
+        from pptx_agent_maker import PageFullError
+        from pptx_agent_maker.layout.base.tokens import theme_from
+
+        for settings in ({}, {"kicker": "beside"}, {"use": "present", "kicker": "beside", "type": {"title": 25}}):
+            theme = theme_from(settings) if settings else DEFAULT
+            with self.subTest(settings=settings):
+                page = Page(ONE, self.over(self.under_one_line(theme), theme=theme), kicker="01 | 背景")
+                self.assertTrue(page.elements)
+                if theme.kicker == "above":
+                    continue   # 上に小さい字を置く頁は、題が下の段に寄るので別の高さで確かめる
+                with self.assertRaises(PageFullError):
+                    Page(self.FOLDED, self.over(self.under_one_line(theme), theme=theme), kicker="01 | 背景")
+
+    def test_a_line_under_everything_the_title_folds_to_changes_nothing(self) -> None:
+        frame = DEFAULT.frame()
+        low = Rect(0, frame.top + DEFAULT.spacing.title_height + 3 * DEFAULT.line_height(DEFAULT.type.title),
+                   DEFAULT.slide.width, 12700)
+        self.assertEqual(Page(self.FOLDED).elements, Page(self.FOLDED, self.over(low)).elements)
+
+    def test_a_short_line_at_one_side_is_kept_off_like_a_logo_and_does_not_stop_the_page(self) -> None:
+        across = self.under_one_line()
+        short = Rect(LOGO.left, across.top, LOGO.width, across.height)
+        page = Page(self.FOLDED, self.over(short))
+        self.assertLessEqual(placed(page, "title").right, short.left)
+
+    def test_the_layouts_lines_are_read_however_they_are_written(self) -> None:
+        from pptx_agent_maker.deck.base.under import under_of
+
+        across = Rect(DEFAULT.frame().left, self.under_one_line().top, DEFAULT.frame().width, 12700)
+        with tempfile.TemporaryDirectory() as tmp:
+            for how in ("connector", "flat"):
+                with self.subTest(how=how):
+                    prints = under_of(a_template(Path(tmp) / f"{how}.pptx", line=across, line_as=how)).prints
+                    self.assertEqual(1, len(prints), prints)
+                    line = prints[0]
+                    self.assertEqual((across.left, across.width), (line.left, line.width))
+                    self.assertTrue(line.top <= across.top <= line.bottom)
+                    self.assertGreater(line.height, 0)
+            self.assertEqual((), under_of(a_template(Path(tmp) / "unseen.pptx", line=across, line_as="unseen")).prints,
+                             "a shape that draws no line prints nothing")
+
+
 class TheTitleIsTheLayoutsTitle(unittest.TestCase):
     """題は、レイアウトに題の枠が在れば、その枠として書く (= 色と書体を継ぐ。位置と大きさは道具が書く)。"""
 
@@ -249,6 +339,34 @@ class BuiltOnATemplateOfItsOwn(unittest.TestCase):
         title = next(s for s in re.findall(r"<p:sp>.*?</p:sp>", slide, re.S) if '<p:ph type="title"/>' in s)
         self.assertIn("題は結論の文で書くので長い", title)
         self.assertNotIn("<a:solidFill>", title)
+
+    def test_a_title_folded_onto_the_layouts_line_stops_the_build_and_says_which_page(self) -> None:
+        line = ALineAcrossThePage.under_one_line()
+        across = Rect(DEFAULT.frame().left, line.top, DEFAULT.frame().width, 12700)
+        def built(title: str, how: str) -> tuple[int, str]:
+            root = self.dir / f"line-{how}-{len(title)}"
+            create(root, specimen=a_template(self.dir / f"{root.name}.pptx", line=across, line_as=how))
+            (root / "deck.toml").write_text(
+                'specimen = "specimen.pptx"\nout = "deck.pptx"\n\n'
+                f'[[pages]]\nkind = "declare"\ntype = "figure"\ntitle = "{title}"\n'
+                'figure = "example.png"\nfooter = "出所 (= 見本)"\n', encoding="utf-8")
+            (root / "assets" / "deck").mkdir(parents=True)
+            (root / "assets" / "deck" / "example.png").write_bytes(
+                (root / "assets" / "example" / "example.png").read_bytes())
+            said = io.StringIO()
+            with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
+                code = main(["build", str(root), "deck"])
+            return code, said.getvalue()
+
+        for how in ("connector", "flat"):
+            with self.subTest(how=how):
+                code, said = built("題" * 60, how)
+                self.assertNotEqual(0, code)
+                self.assertIn("page 1", said)
+                self.assertIn("shorter", said)
+                code, said = built(ONE, how)
+                self.assertEqual(0, code, said)
+                self.assertNotIn("FAIL", said)
 
     def test_a_title_past_two_lines_is_said_once(self) -> None:
         """題の枠に書いた題は、焼いた deck の側の検査にも題として見える。宣言の頁の題を数えるのは宣言の
