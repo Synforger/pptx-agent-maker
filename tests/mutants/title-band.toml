@@ -17,14 +17,20 @@ new = "folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_h
 [[mutant]]
 name = "the small words above a title grow with the band"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "kick, main = Rect(bar.left, bar.top, bar.width, s.title_height).rows([1, 2])"
+old = "kick, main = bar.split_top(s.kicker_height)"
 new = "kick, main = bar.rows([1, 2])"
 
 [[mutant]]
 name = "under the small words, the title's box stops where a band of one line would"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "            main = Rect(main.left, main.top, main.width, bar.bottom - main.top)\n"
-new = ""
+old = "kick, main = bar.split_top(s.kicker_height)"
+new = "kick, main = Rect(bar.left, bar.top, bar.width, s.title_height).split_top(s.kicker_height)"
+
+[[mutant]]
+name = "the small words take a third of the band, whatever their own size"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "kick, main = bar.split_top(s.kicker_height)"
+new = "kick, main = bar.split_top(s.title_height // 3)"
 
 [[mutant]]
 name = "a title is counted across the whole slide, margins included"

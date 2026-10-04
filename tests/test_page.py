@@ -232,6 +232,34 @@ class TheTitleBand(unittest.TestCase):
             with self.subTest(lines=lines):
                 self.assertEqual(one, self._placed(Page(title, kicker="01 | 背景"), "kicker"))
 
+    def test_the_small_words_get_the_room_their_own_size_asks_for(self) -> None:
+        """⚠ **題の帯を題の大きさだけで決め、その中を 1:2 に割っていた間は、小さい字が題の頭に乗った**
+        (= 映す資料で題だけを小さくした案件で、焼いて出た)。小さい字の段はその字の大きさに、題の段は
+        題の大きさに比例する ― どちらも、読ませる資料の 1pt あたりの高さを下回らない。"""
+        from pptx_agent_maker.layout.base.tokens import theme_from
+
+        def per_point(theme) -> tuple[float, float]:
+            page = Page(self.ONE, theme, kicker="01 | 背景")
+            return (self._placed(page, "kicker").height / theme.type.caption,
+                    self._placed(page, "title").height / theme.type.title)
+
+        small, large = per_point(DEFAULT)
+        for settings in ({"use": "present"}, {"use": "present", "type": {"title": 25}},
+                         {"type": {"caption": 16}}, {"type": {"title": 40}},
+                         {"use": "present", "type": {"title": 25, "caption": 20}}):
+            with self.subTest(settings=settings):
+                kick, main = per_point(theme_from(settings))
+                self.assertAlmostEqual(small, kick, delta=1)
+                self.assertAlmostEqual(large, main, delta=1)
+
+    def test_the_band_is_as_tall_with_small_words_as_without(self) -> None:
+        from pptx_agent_maker.layout.base.tokens import theme_from
+
+        for settings in ({"use": "present"}, {"use": "present", "type": {"title": 25}}, {"type": {"caption": 16}}):
+            with self.subTest(settings=settings):
+                theme = theme_from(settings)
+                self.assertEqual(Page(self.ONE, theme).body, Page(self.ONE, theme, kicker="01 | 背景").body)
+
     def test_a_title_a_few_characters_past_the_frame_folds(self) -> None:
         """題が使える幅は枠の幅 (= 頁の余白と、文字の枠の左右の余白を除く)。頁の幅で数えると、
         端の数文字が折れるのに 1 行と数える。"""

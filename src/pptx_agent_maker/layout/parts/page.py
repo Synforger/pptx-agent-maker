@@ -128,6 +128,9 @@ class Page:
         1 行の題の帯は今までの高さのままで、折れた行ごとに 1 行ぶん伸びる。題の上の小さい字は
         伸びない (= 伸びたぶんは全部題のもの)。
 
+        ⚠ **題の上の小さい字の段は、その字の大きさで決まる** (= `kicker_height`)。帯を題と 1:2 に
+        割っていた間は、小さい字だけを大きくした案件で、小さい字が題の頭に乗った。
+
         札は題の帯の右端に、題の字の枠の真ん中の高さで置く (= 題は枠の真ん中に寄るので、何行に折れても
         札と題が揃う)。**題の字の枠は、札と、札との間の空きのぶん狭い** (= 題が札の下へ回り込まない。
         行もその幅で数える)。
@@ -141,8 +144,7 @@ class Page:
         folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.title)
         bar = self._take_top(s.title_height + folded)
         if kicker:
-            kick, main = Rect(bar.left, bar.top, bar.width, s.title_height).rows([1, 2])
-            main = Rect(main.left, main.top, main.width, bar.bottom - main.top)
+            kick, main = bar.split_top(s.kicker_height)
             self.elements.append(Text("kicker", kick, kicker, t.caption, p.muted))
         else:
             main = bar
