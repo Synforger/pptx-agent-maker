@@ -86,22 +86,35 @@ def place_cards(page: Page, spec: Spec, area: Rect) -> Rect:
     return rest
 
 
-def reserve_trailing(page: Page, spec: Spec, area: Rect) -> tuple[Rect, Rect | None]:
-    """Keep room under the body for the table and the reading.
+def _below(page: Page, spec: Spec, width: int) -> list[tuple[str, int, int]]:
+    """What sits under the body, top to bottom: (what it is, the gap above it, its own height).
+
+    ⚠ **取る側と置く側が、同じ並びを読む。**別々に勘定していた間は、本体のすぐ下の空き (= 広い方) を
+    下の最初の物が表の時にしか数えず、要点や読み方だけの頁は、取った場所が置く場所より 0.3cm
+    短かった (= 短いぶんは、次の物との空きに食い込んでいた)。
 
     ⚠ **表の高さは折り返しを勘定して測る。**行数だけで見積もっていた間は、長いラベルが
     2 段に折り返したぶん表が伸び、下に置いたはずの読み方を飲み込んだ。
+
+    ⚠ **要点は、置くときと同じ行で測る。**配列を文字列に直して測っていた間は、何行あっても
+    1 行ぶんしか取らず、置いた要点が下の読み方に重なった。
     """
-    reserve = 0
+    theme, s = page.theme, page.theme.spacing
+    found: list[tuple[str, int]] = []
     if spec.get("table") is not None:
         rows = spec.rows()
-        widths = page.theme.column_widths(rows, area.width)
-        reserve += page.theme.table_height(rows, widths) + page.theme.spacing.gap_m
-    # ⚠ **要点は、置くときと同じ行で測る。**配列を文字列に直して測っていた間は、何行あっても
-    # 1 行ぶんしか取らず、置いた要点が下の読み方に重なった
-    for text in ("\n".join(_point_lines(spec)), spec.text("note")):
-        if text:
-            reserve += page.theme.text_height(text, area.width) + page.theme.spacing.gap_s
+        found.append(("table", theme.table_height(rows, theme.column_widths(rows, width))))
+    if spec.get("points"):
+        found.append(("points", theme.text_height("\n".join(_point_lines(spec)), width)))
+    if spec.text("note"):
+        found.append(("note", theme.text_height(spec.text("note"), width)))
+    # 本体との間は広く、下に続く物どうしの間は狭く
+    return [(what, s.gap_m if index == 0 else s.gap_s, tall) for index, (what, tall) in enumerate(found)]
+
+
+def reserve_trailing(page: Page, spec: Spec, area: Rect) -> tuple[Rect, Rect | None]:
+    """Keep room under the body for the table, the points and the reading (= as much as `_below` says)."""
+    reserve = sum(gap + tall for _what, gap, tall in _below(page, spec, area.width))
     if not reserve:
         return area, None
     if reserve >= area.height:
@@ -109,7 +122,7 @@ def reserve_trailing(page: Page, spec: Spec, area: Rect) -> tuple[Rect, Rect | N
             f"the table and the reading need {reserve} EMU and the body has "
             f"{area.height} — this is two pages, not one"
         )
-    body, _rest = area.split_top(area.height - reserve, gap=page.theme.spacing.gap_m)
+    body, _rest = area.split_top(area.height - reserve)
     return body, area
 
 
@@ -124,26 +137,18 @@ def _point_lines(spec: Spec) -> list[str]:
 
 
 def place_trailing(page: Page, spec: Spec, area: Rect | None) -> None:
-    """Put the table and the reading under whatever the body actually used."""
+    """Put the table, the points and the reading under whatever the body actually used."""
     if area is None:
         return
-    used = used_bottom(page, area)
-    rest = Rect(area.left, used + page.theme.spacing.gap_m, area.width,
-                max(area.bottom - used - page.theme.spacing.gap_m, 1))
-    if spec.get("table") is not None:
-        placed = page.table(rest, spec.rows())
-        rest = Rect(rest.left, placed.bottom + page.theme.spacing.gap_s, rest.width,
-                    max(rest.bottom - placed.bottom - page.theme.spacing.gap_s, 1))
-    note = spec.text("note")
-    if spec.get("points"):
-        lines = _point_lines(spec)
-        # 読み方のぶんを先に除けてから要点を置く (= 足りないときに読み方が要点の上に
-        # 重なるのを防ぐ。どちらも同じ「本体の下」を分け合う)
-        kept = (page.theme.text_height(note, rest.width) + page.theme.spacing.gap_s
-                if note else 0)
-        tall = page.theme.text_height("\n".join(lines), rest.width)
-        block, rest = rest.split_top(min(tall, max(rest.height - kept, 1)),
-                                     gap=page.theme.spacing.gap_s)
-        page.points(block, lines)
-    if note:
-        page.note(rest, note)
+    top = used_bottom(page, area)
+    for what, gap, tall in _below(page, spec, area.width):
+        rect = Rect(area.left, top + gap, area.width, tall)
+        if what == "table":
+            page.table(rect, spec.rows())
+        elif what == "points":
+            page.points(rect, _point_lines(spec))
+        else:
+            # 読み方はいつも最後で、残りを全部使う (= 本体が枠を使い切らなかった頁では、取ったより広い)
+            rect = Rect(rect.left, rect.top, rect.width, max(area.bottom - rect.top, tall))
+            page.note(rect, spec.text("note"))
+        top = rect.bottom
