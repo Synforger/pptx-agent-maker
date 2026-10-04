@@ -123,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
     started.add_argument("path")
     started.add_argument("--name", default=None)
     started.add_argument("--specimen", default=None, metavar="PPTX",
-                         help="the .pptx this project takes its look from, or a folder\nholding specimen.pptx and a workspace.toml to go with it")
+                         help="the .pptx this project takes its look from, or a folder\nholding specimen.pptx and what goes with it (workspace.toml,\nexample.toml, recipes.toml)")
 
     promoted = sub.add_parser("promote", help="keep pages written the same way as one recipe")
     promoted.add_argument("path", help="the project folder")

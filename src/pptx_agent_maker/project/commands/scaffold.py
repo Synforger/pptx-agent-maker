@@ -27,6 +27,10 @@ def create(destination: Path | str, *, name: str | None = None,
     look, settings = _readable_look(specimen)
     # テンプレートの folder に recipe が上がっていれば、見た目と一緒に配る (= `lift.py`)
     recipes = Path(specimen).expanduser() / "recipes.toml" if specimen is not None else None
+    # ⚠ **見本の宣言も、見本と対で配る。**同梱の `example.toml` は道具付属の見本の表紙の置き字と検査の語に
+    # 合わせて書いてある。別の見本を渡された案件では、差し替えていない置き字と、検査の語を含む文が頁に残り、
+    # 建てた直後の 1 本が検査で止まった。置き字と検査の語を知っているのは見本の持ち主
+    example = Path(specimen).expanduser() / "example.toml" if specimen is not None else None
 
     if destination.exists() and any(destination.iterdir()):
         raise FileExistsError(
@@ -41,6 +45,8 @@ def create(destination: Path | str, *, name: str | None = None,
         shutil.copy2(settings, destination / "workspace.toml")
     if recipes is not None and recipes.is_file():
         shutil.copy2(recipes, destination / "recipes.toml")
+    if example is not None and example.is_file():
+        shutil.copy2(example, destination / "example.toml")
 
     settings = destination / "workspace.toml"
     settings.write_text(
@@ -59,6 +65,7 @@ def _readable_look(given: Path | str | None) -> tuple[Path | None, Path | None]:
     後者が要るのは、pptx のテーマ色が「1 番目の差し色」という枠でしかなく、ツールの側が
     「読みを示す色」「条件の帯」という**意味**で色を使うから ― その 2 つを繋ぐ表は
     テンプレートの中に書けない。対で渡せば、案件は 1 手で自分の見た目になる。
+    folder は、その見本に合わせた `example.toml` と `recipes.toml` も持てる (= `create` が配る)。
     """
     if given is None:
         return None, None

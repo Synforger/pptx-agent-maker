@@ -25,3 +25,9 @@ name = "the cover's title is baked in the light weight"
 file = "scripts/generate/bake-template.py"
 old = "Text(\"title\", title, TITLE, theme.type.title, theme.palette.ink, bold=True)"
 new = "Text(\"title\", title, TITLE, theme.type.title, theme.palette.ink)"
+
+[[mutant]]
+name = "a template's own example is left on its shelf"
+file = "src/pptx_agent_maker/project/commands/scaffold.py"
+old = "        shutil.copy2(example, destination / \"example.toml\")\n"
+new = "        pass\n"

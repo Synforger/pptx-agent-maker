@@ -62,6 +62,27 @@ class ProjectTest(unittest.TestCase):
                          (shelf / "specimen.pptx").read_bytes())
         self.assertIn('font = "Arial"', (root / "workspace.toml").read_text(encoding="utf-8"))
 
+    def test_a_folder_hands_over_the_example_written_for_its_specimen(self) -> None:
+        """表紙の置き字と検査の語は見本ごとに違う。それに合わせた見本の宣言は、見本と対で配る。"""
+        template = REPO / "src" / "pptx_agent_maker" / "templates" / "project"
+        shelf = Path(self.tmp.name) / "house-style-with-an-example"
+        shelf.mkdir()
+        shutil.copy(template / "specimen.pptx", shelf / "specimen.pptx")
+        (shelf / "example.toml").write_text('specimen = "specimen.pptx"\n# the shelf\'s own\n',
+                                            encoding="utf-8")
+        root = Path(self.tmp.name) / "from-a-shelf-with-an-example"
+        create(root, specimen=shelf)
+        self.assertEqual((shelf / "example.toml").read_bytes(), (root / "example.toml").read_bytes())
+
+    def test_a_folder_without_an_example_gets_the_toolkits(self) -> None:
+        template = REPO / "src" / "pptx_agent_maker" / "templates" / "project"
+        shelf = Path(self.tmp.name) / "house-style-without-one"
+        shelf.mkdir()
+        shutil.copy(template / "specimen.pptx", shelf / "specimen.pptx")
+        root = Path(self.tmp.name) / "from-a-shelf-without-one"
+        create(root, specimen=shelf)
+        self.assertEqual((template / "example.toml").read_bytes(), (root / "example.toml").read_bytes())
+
     def test_a_folder_without_a_specimen_is_said_plainly(self) -> None:
         shelf = Path(self.tmp.name) / "empty-shelf"
         shelf.mkdir()
