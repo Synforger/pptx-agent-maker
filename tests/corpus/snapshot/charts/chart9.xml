@@ -4,6 +4,17 @@
 <c:chart>
 <c:autoTitleDeleted val="1"/>
 <c:plotArea>
+<c:layout>
+<c:manualLayout>
+<c:layoutTarget val="inner"/>
+<c:xMode val="edge"/>
+<c:yMode val="edge"/>
+<c:x val="0.108186"/>
+<c:y val="0.023767"/>
+<c:w val="0.881250"/>
+<c:h val="0.880067"/>
+</c:manualLayout>
+</c:layout>
 <c:barChart>
 <c:barDir val="bar"/>
 <c:grouping val="clustered"/>
@@ -16,83 +27,7 @@
 <c:strCache>
 <c:ptCount val="1"/>
 <c:pt idx="0">
-<c:v>North</c:v>
-</c:pt>
-</c:strCache>
-</c:strRef>
-</c:tx>
-<c:spPr>
-<a:solidFill>
-<a:srgbClr val="6B6B6B"/>
-</a:solidFill>
-<a:ln>
-<a:noFill/>
-</a:ln>
-</c:spPr>
-<c:invertIfNegative val="0"/>
-<c:dLbls>
-<c:numFmt formatCode="#,##0" sourceLinked="0"/>
-<c:dLblPos val="outEnd"/>
-<c:showLegendKey val="0"/>
-<c:showVal val="1"/>
-<c:showCatName val="0"/>
-<c:showSerName val="0"/>
-<c:showPercent val="0"/>
-<c:showBubbleSize val="0"/>
-<c:showLeaderLines val="1"/>
-</c:dLbls>
-<c:cat>
-<c:strRef>
-<c:f>Sheet1!$A$2:$A$5</c:f>
-<c:strCache>
-<c:ptCount val="4"/>
-<c:pt idx="0">
-<c:v>Q1</c:v>
-</c:pt>
-<c:pt idx="1">
-<c:v>Q2</c:v>
-</c:pt>
-<c:pt idx="2">
-<c:v>Q3</c:v>
-</c:pt>
-<c:pt idx="3">
-<c:v>Q4</c:v>
-</c:pt>
-</c:strCache>
-</c:strRef>
-</c:cat>
-<c:val>
-<c:numRef>
-<c:f>Sheet1!$B$2:$B$5</c:f>
-<c:numCache>
-<c:formatCode>General</c:formatCode>
-<c:ptCount val="4"/>
-<c:pt idx="0">
-<c:v>12</c:v>
-</c:pt>
-<c:pt idx="1">
-<c:v>15</c:v>
-</c:pt>
-<c:pt idx="2">
-<c:v>21</c:v>
-</c:pt>
-<c:pt idx="3">
-<c:v>18</c:v>
-</c:pt>
-</c:numCache>
-</c:numRef>
-</c:val>
-</c:ser>
-<c:ser>
-<c:idx val="1"/>
-<c:order val="1"/>
-<c:tx>
-<c:strRef>
-<c:f>Sheet1!$C$1</c:f>
-<c:strCache>
-<c:ptCount val="1"/>
-<c:pt idx="0">
-<c:v>South</c:v>
+<c:v>Score</c:v>
 </c:pt>
 </c:strCache>
 </c:strRef>
@@ -107,7 +42,7 @@
 </c:spPr>
 <c:invertIfNegative val="0"/>
 <c:dLbls>
-<c:numFmt formatCode="#,##0" sourceLinked="0"/>
+<c:numFmt formatCode="#,##0&quot; pt&quot;" sourceLinked="0"/>
 <c:dLblPos val="outEnd"/>
 <c:showLegendKey val="0"/>
 <c:showVal val="1"/>
@@ -119,56 +54,50 @@
 </c:dLbls>
 <c:cat>
 <c:strRef>
-<c:f>Sheet1!$A$2:$A$5</c:f>
+<c:f>Sheet1!$A$2:$A$4</c:f>
 <c:strCache>
-<c:ptCount val="4"/>
+<c:ptCount val="3"/>
 <c:pt idx="0">
-<c:v>Q1</c:v>
+<c:v>Alpha team</c:v>
 </c:pt>
 <c:pt idx="1">
-<c:v>Q2</c:v>
+<c:v>Beta</c:v>
 </c:pt>
 <c:pt idx="2">
-<c:v>Q3</c:v>
-</c:pt>
-<c:pt idx="3">
-<c:v>Q4</c:v>
+<c:v>Gamma</c:v>
 </c:pt>
 </c:strCache>
 </c:strRef>
 </c:cat>
 <c:val>
 <c:numRef>
-<c:f>Sheet1!$C$2:$C$5</c:f>
+<c:f>Sheet1!$B$2:$B$4</c:f>
 <c:numCache>
 <c:formatCode>General</c:formatCode>
-<c:ptCount val="4"/>
+<c:ptCount val="3"/>
 <c:pt idx="0">
-<c:v>8</c:v>
+<c:v>12</c:v>
 </c:pt>
 <c:pt idx="1">
-<c:v>9</c:v>
+<c:v>30</c:v>
 </c:pt>
 <c:pt idx="2">
-<c:v>14</c:v>
-</c:pt>
-<c:pt idx="3">
-<c:v>16</c:v>
+<c:v>21</c:v>
 </c:pt>
 </c:numCache>
 </c:numRef>
 </c:val>
 </c:ser>
 <c:ser>
-<c:idx val="2"/>
-<c:order val="2"/>
+<c:idx val="1"/>
+<c:order val="1"/>
 <c:tx>
 <c:strRef>
-<c:f>Sheet1!$D$1</c:f>
+<c:f>Sheet1!$C$1</c:f>
 <c:strCache>
 <c:ptCount val="1"/>
 <c:pt idx="0">
-<c:v>West</c:v>
+<c:v>Target</c:v>
 </c:pt>
 </c:strCache>
 </c:strRef>
@@ -183,7 +112,7 @@
 </c:spPr>
 <c:invertIfNegative val="0"/>
 <c:dLbls>
-<c:numFmt formatCode="#,##0" sourceLinked="0"/>
+<c:numFmt formatCode="#,##0&quot; pt&quot;" sourceLinked="0"/>
 <c:dLblPos val="outEnd"/>
 <c:showLegendKey val="0"/>
 <c:showVal val="1"/>
@@ -195,46 +124,41 @@
 </c:dLbls>
 <c:cat>
 <c:strRef>
-<c:f>Sheet1!$A$2:$A$5</c:f>
+<c:f>Sheet1!$A$2:$A$4</c:f>
 <c:strCache>
-<c:ptCount val="4"/>
+<c:ptCount val="3"/>
 <c:pt idx="0">
-<c:v>Q1</c:v>
+<c:v>Alpha team</c:v>
 </c:pt>
 <c:pt idx="1">
-<c:v>Q2</c:v>
+<c:v>Beta</c:v>
 </c:pt>
 <c:pt idx="2">
-<c:v>Q3</c:v>
-</c:pt>
-<c:pt idx="3">
-<c:v>Q4</c:v>
+<c:v>Gamma</c:v>
 </c:pt>
 </c:strCache>
 </c:strRef>
 </c:cat>
 <c:val>
 <c:numRef>
-<c:f>Sheet1!$D$2:$D$5</c:f>
+<c:f>Sheet1!$C$2:$C$4</c:f>
 <c:numCache>
 <c:formatCode>General</c:formatCode>
-<c:ptCount val="4"/>
+<c:ptCount val="3"/>
 <c:pt idx="0">
-<c:v>5</c:v>
+<c:v>20</c:v>
 </c:pt>
 <c:pt idx="1">
-<c:v>7</c:v>
+<c:v>25</c:v>
 </c:pt>
 <c:pt idx="2">
-<c:v>6</c:v>
-</c:pt>
-<c:pt idx="3">
-<c:v>9</c:v>
+<c:v>22</c:v>
 </c:pt>
 </c:numCache>
 </c:numRef>
 </c:val>
 </c:ser>
+<c:gapWidth val="150"/>
 <c:axId val="-2068027336"/>
 <c:axId val="-2113994440"/>
 </c:barChart>
@@ -264,7 +188,10 @@
 </c:catAx>
 <c:valAx>
 <c:axId val="-2113994440"/>
-<c:scaling/>
+<c:scaling>
+<c:max val="40.0"/>
+<c:min val="0.0"/>
+</c:scaling>
 <c:delete/>
 <c:axPos val="b"/>
 <c:majorTickMark val="none"/>
@@ -277,6 +204,7 @@
 </c:spPr>
 <c:crossAx val="-2068027336"/>
 <c:crosses val="max"/>
+<c:majorUnit val="10.0"/>
 </c:valAx>
 </c:plotArea>
 <c:legend>

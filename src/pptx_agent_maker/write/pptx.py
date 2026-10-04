@@ -228,8 +228,12 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
     data.categories = list(element.categories)
     for series in element.series:
         data.add_series(series.name, series.values)
-    chart = slide.shapes.add_chart(kind, Emu(element.rect.left), Emu(element.rect.top),
-                                   Emu(element.rect.width), Emu(element.rect.height), data).chart
+    # ⚠ **注記を持つグラフは、注記と 1 つのグループにまとめる。**別々の図形のままだと、人が PowerPoint で
+    # グラフを動かしたとき、言葉と線が元の場所に置き去りになる
+    holder = slide.shapes.add_group_shape() if element.callouts else slide
+    frame = element.frame or element.rect
+    chart = holder.shapes.add_chart(kind, Emu(frame.left), Emu(frame.top),
+                                    Emu(frame.width), Emu(frame.height), data).chart
     chart.has_title = False
     chart.font.size = Pt(element.size)
     chart.font.name = theme.type.family
@@ -247,8 +251,19 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
     chart.category_axis.major_tick_mark = XL_TICK_MARK.NONE
     chart.category_axis.format.line.color.rgb = _colour(element.line)
     if element.plot == "bar":
-        # 横棒は最初の項目を上に置く (= 表と同じ読み順。既定は下から積む)
+        # 横棒は最初の項目を上に置く (= 表と同じ読み順。既定は下から積む)。項目の並びを逆にすると
+        # 値の軸が上へ回るので、いちばん下の項目の側 (= 逆にした後の端) で交わらせて下に戻す
         chart.category_axis.reverse_order = True
+        # ⚠ python-pptx の項目の軸には、この設定の口が無い (= 代入しても黙って何も起きない)。
+        # 値の軸の側に「項目の軸のいちばん端で交わる」と直に書く
+        chart.value_axis._element.find(qn("c:crosses")).set("val", "max")
+    if element.pinned:
+        _pin(chart, element)
+    for callout in element.callouts:
+        if callout.line is not None:
+            _fill(holder, Fill("callout", callout.line, element.colour), theme)
+        _text(holder, Text("label", callout.words, callout.text, element.size, element.colour, align="center"),
+              theme)
 
     for drawn, series in zip(chart.plots[0].series, element.series):
         if element.plot == "line":
@@ -271,6 +286,33 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
             labels.position = where
             if series.label_colour:
                 labels.font.color.rgb = _colour(series.label_colour)
+
+
+def _pin(chart, element: Chart) -> None:
+    """Hold the plot where the page worked it out: its area inside the frame, and the value axis.
+
+    描く範囲は `c:plotArea` の頭に、枠に対する比で書く (= `inner`: 軸の字や凡例を含まない、棒や線の入る
+    矩形そのもの)。値の軸は端から端と目盛りの間を書く。
+    """
+    pinned = element.pinned
+    area = chart._chartSpace.chart.plotArea
+    layout = area.makeelement(qn("c:layout"), {})
+    manual = layout.makeelement(qn("c:manualLayout"), {})
+    layout.append(manual)
+    for tag, value in (("layoutTarget", "inner"), ("xMode", "edge"), ("yMode", "edge"),
+                       *zip(("x", "y", "w", "h"), (f"{part:.6f}" for part in pinned.inner))):
+        manual.append(manual.makeelement(qn(f"c:{tag}"), {"val": value}))
+    for existing in area.findall(qn("c:layout")):
+        area.remove(existing)
+    area.insert(0, layout)
+    chart.value_axis.minimum_scale = pinned.low
+    chart.value_axis.maximum_scale = pinned.high
+    chart.value_axis.major_unit = pinned.step
+    if element.plot != "line":
+        # ⚠ python-pptx は、既定と同じ値 (= 150) を数字を省いて書く。棒の位置はこの値から計算したので、
+        # 読む側の既定に任せず数字で書く
+        chart.plots[0].gap_width = pinned.gap
+        chart.plots[0]._element.find(qn("c:gapWidth")).set("val", str(pinned.gap))
 
 
 def _solid(format, colour: str, outline: str = "", theme: Theme | None = None) -> None:

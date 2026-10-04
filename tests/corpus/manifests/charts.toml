@@ -85,3 +85,68 @@ series = [{ name = "Score", values = [3, 7, 5] }]
 highlight = "B"
 [[pages.rows.cells]]
 card = { heading = "B leads", body = "by two points over C" }
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "Callouts: a few words above the point they mean, and a thin line down to it"
+footer = "Source: the numbers written on this page"
+
+[pages.chart]
+kind = "column"
+categories = ["Q1", "Q2", "Q3", "Q4"]
+series = [
+  { name = "North", values = [12, 15, 21, 18] },
+  { name = "South", values = [8, 9, 14, 16] },
+]
+highlight = "North"
+callouts = [
+  { at = "Q3", series = "North", text = "the new product" },
+  { at = "Q1", series = "South", text = "a slow start" },
+]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+kicker = "02 | 注記"
+title = "数字を付けない折れ線にも注記は付く。値の軸の字のぶん、描く範囲が右へ寄る"
+note = "注記を持つグラフは、描く範囲と値の軸を道具が決めて書き出す"
+
+[pages.chart]
+kind = "line"
+categories = ["1 月", "2 月", "3 月", "4 月", "5 月", "6 月"]
+labels = false
+series = [
+  { name = "今年", values = [120, 135, 150, 148, 170, 190] },
+  { name = "去年", values = [110, 115, 118, 130, 128, 140] },
+]
+callouts = [{ at = "4 月", series = "今年", text = "一度下がった" }]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "On a bar chart the words stand to the right, level with their bar"
+footer = "Source: the numbers written on this page"
+
+[pages.chart]
+kind = "bar"
+categories = ["Alpha team", "Beta", "Gamma"]
+series = [{ name = "Score", values = [12, 30, 21] }, { name = "Target", values = [20, 25, 22] }]
+unit = " pt"
+callouts = [
+  { at = "Beta", series = "Score", text = "above target" },
+  { at = "Alpha team", series = "Target", text = "missed" },
+]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "A stacked column and a waterfall are pointed at one column at a time"
+conclusion = "Which part is meant is said in the words"
+
+[pages.chart]
+kind = "waterfall"
+categories = ["Last year", "New customers", "Churn", "This year"]
+series = [{ name = "Profit", values = [100, 42, -30, 112] }]
+totals = ["Last year", "This year"]
+callouts = [{ at = "Churn", text = "two accounts left" }, { at = "This year", text = "up 12" }]

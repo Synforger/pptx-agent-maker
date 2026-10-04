@@ -116,7 +116,8 @@ def describe() -> str:
                      f"{'' if figure else '  (may carry no picture)'}")
     lines.append(f"  on any type: {', '.join(sorted(EXTRA_KEYS))}")
     lines.append(f"  a chart: kind ({' | '.join(chart.KINDS)}), categories, series = [{{ name, values, tone }}] "
-                 'or data = "x.csv", highlight, unit, labels, totals (= of a waterfall)')
+                 'or data = "x.csv", highlight, unit, labels, totals (= of a waterfall), '
+                 "callouts = [{ at, series, text }]")
     lines.append("  a table's cell: its words, or one mark — { harvey = 0 to 4 } (= quarters filled) "
                  f"or {{ mark = {' | '.join(MARKS)} }}")
     lines.append(f"  the frame:   {', '.join(sorted(FRAME_KEYS - {'type', 'kind'}))}")

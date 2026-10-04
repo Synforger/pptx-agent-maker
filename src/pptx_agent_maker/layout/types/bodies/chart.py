@@ -15,6 +15,10 @@
 数は manifest に書くか、素材の folder の CSV から読む (= `data = "x.csv"`。1 列目が項目、2 列目からが
 系列、1 行目が系列の名前)。
 
+グラフの 1 点を指す注記は `callouts` に、**どの項目のどの系列か**で書く (= 座標は書かない)。点の位置は
+道具が計算し、言葉をグラフの外 (= 縦のグラフは上、横棒は右) に、細い線を点まで置く。そのために、
+注記を持つグラフだけは、描く範囲と値の軸を道具が決めて書き出す。
+
 ⚠ **組み合わせのグラフ (= 棒と折れ線) は無い。**書き出す口が無く、2 つの読みを 1 枚に載せることにもなる。
 """
 
@@ -27,16 +31,24 @@ from decimal import Decimal
 from pathlib import Path
 
 from ...base.geometry import Rect
-from ...parts.elements import Chart, Series
+from ...parts.elements import Callout, Chart, Pinned, Series
 from ...parts.look import TONES
-from ...parts.page import Page
+from ...parts.page import Page, PageFullError
 from ..core.read import Spec, only_keys, read_tone
 from ..core.registry import PageTypeError, register
 
 #: グラフの種類。`bar` は横棒、`column` は縦棒、`stacked` は積み上げた縦棒、`waterfall` は滝グラフ
 KINDS = ("bar", "column", "line", "stacked", "waterfall")
 #: グラフが読むキー
-KEYS = ("kind", "categories", "series", "data", "highlight", "unit", "labels", "totals")
+KEYS = ("kind", "categories", "series", "data", "highlight", "unit", "labels", "totals", "callouts")
+#: 注記が読むキー (= どの項目の、どの系列を指して、何と言うか)
+CALLOUT_KEYS = ("at", "series", "text")
+#: 注記が柱 1 本を丸ごと指す種類 (= 系列を名指ししない)。積み上げの中の段を上から指すと、線が上の段と
+#: その数字を突き抜ける
+WHOLE = ("stacked", "waterfall")
+#: 項目どうしの間 (= 棒 1 本の幅に対する百分率)。PowerPoint の既定と同じ値を、注記を持つグラフには
+#: 書き出す ― 棒の位置を計算するのに、書いていない既定には頼らない
+GAP = 150
 #: 系列が読むキー
 SERIES_KEYS = ("name", "values", "tone")
 
@@ -57,6 +69,8 @@ class _Plan:
     unit: str
     labels: bool
     totals: tuple[str, ...]
+    #: (項目の番号, 系列の番号, 言葉)
+    callouts: tuple[tuple[int, int, str], ...] = ()
 
 
 @register("chart", needs=["chart"])
@@ -70,9 +84,11 @@ def place_chart(page: Page, spec: Spec, written, rect: Rect, what: str) -> None:
     plan = _read(spec, written, what)
     theme, palette = page.theme, page.theme.palette
     series, legend = (_waterfall(page, plan, what) if plan.kind == "waterfall" else _plain(page, plan, what))
+    frame, pinned, callouts = _pointed(page, plan, rect, legend, what) if plan.callouts else (None, None, ())
     page.chart(Chart(
         "chart", rect, "stacked" if plan.kind == "waterfall" else plan.kind, plan.categories, series,
-        size=theme.type.body, colour=palette.ink, line=palette.rule, legend=legend, axis=not plan.labels))
+        size=theme.type.body, colour=palette.ink, line=palette.rule, legend=legend, axis=not plan.labels,
+        frame=frame, pinned=pinned, callouts=callouts))
 
 
 # -- reading ---------------------------------------------------------------------
@@ -113,7 +129,39 @@ def _read(spec: Spec, written, what: str) -> _Plan:
         raise PageTypeError(f"{what}: `totals` lists the categories that are totals (= bars that stand on "
                             f"the ground), each by its name; the categories are {', '.join(categories)}")
     return _Plan(kind, tuple(categories), tuple(series), highlight, unit, labels,
-                 tuple(str(name) for name in totals))
+                 tuple(str(name) for name in totals),
+                 _callouts(written.get("callouts"), kind, categories, names, what))
+
+
+def _callouts(listed, kind: str, categories: list[str], names: list[str], what: str):
+    """The callouts as written: each names a category, the series when there are several, and its words."""
+    if listed is None:
+        return ()
+    if not isinstance(listed, list) or not listed:
+        raise PageTypeError(f"{what}: `callouts` is a list of {{ at = …, text = … }}, at least one")
+    found = []
+    for number, item in enumerate(listed, start=1):
+        where = f"{what}: callout {number}"
+        only_keys(item, set(CALLOUT_KEYS), where)
+        at, text = item.get("at"), item.get("text")
+        if str(at) not in categories:
+            raise PageTypeError(f"{where}: `at` is {at!r} — it names the category the words point at "
+                                f"({', '.join(categories)})")
+        if not isinstance(text, str) or not text.strip() or "\n" in text:
+            raise PageTypeError(f"{where}: `text` is the few words to say, on one line")
+        if kind in WHOLE and "series" in item:
+            raise PageTypeError(f"{where}: a {kind} chart is pointed at one column at a time — `at` alone "
+                                "says which; say which part of it in the words")
+        if "series" not in item and len(names) > 1 and kind not in WHOLE:
+            raise PageTypeError(f"{where}: with {len(names)} series, say which one with `series` "
+                                f"({', '.join(names)})")
+        if "series" in item and str(item["series"]) not in names:
+            raise PageTypeError(f"{where}: `series` is {item['series']!r} — the series are {', '.join(names)}")
+        point = (categories.index(str(at)), names.index(str(item["series"])) if "series" in item else 0)
+        if point in [(category, series) for category, series, _text in found]:
+            raise PageTypeError(f"{where}: {at!r} already has a callout — one point takes one")
+        found.append((*point, text.strip()))
+    return tuple(found)
 
 
 def _number(value, where: str) -> float:
@@ -301,3 +349,155 @@ def _waterfall(page: Page, plan: _Plan, what: str) -> tuple[tuple[Series, ...], 
         Series(f"{name} -", tuple(down), palette.bad, **labelled("-", palette.bad)),
         Series(f"{name} =", tuple(total), palette.accent, **labelled("", palette.accent)),
     ), False
+
+
+# -- pointing at a point ---------------------------------------------------------
+
+
+def _printed(plan: _Plan, value: float) -> str:
+    """A value as it is printed beside its bar (= the same places and unit as `_format`)."""
+    places = _places(value for _name, values, _tone in plan.series for value in values)
+    return f"{value:,.{places}f}{plan.unit}"
+
+
+def _tops(plan: _Plan) -> list[list[tuple[float, float]]]:
+    """For every category and series: where its bar (or point) ends, and how far the stack reaches there.
+
+    返すのは項目ごと・系列ごとの (その棒の先の値, その項目でいちばん遠くまで届く値)。
+    """
+    found = []
+    if plan.kind == "waterfall":
+        running = Decimal(0)
+        for category, value in zip(plan.categories, plan.series[0][1]):
+            before = running
+            running = Decimal(str(value)) if category in plan.totals else running + Decimal(str(value))
+            top = float(running) if category in plan.totals else float(max(before, running))
+            found.append([(max(top, 0.0), max(top, 0.0))])
+        return found
+    for index in range(len(plan.categories)):
+        column = [values[index] for _name, values, _tone in plan.series]
+        if plan.kind == "stacked":
+            reach = float(sum(max(value, 0) for value in column))      # 柱の頭 (= 正の値を積んだ先)
+            found.append([(reach, reach)] * len(column))
+        else:
+            found.append([(value if plan.kind == "line" else max(value, 0), value) for value in column])
+    return found
+
+
+def _nice(span: float) -> float:
+    """A step of 1, 2 or 5 times a power of ten, about five to the span."""
+    rough = span / 5
+    power = 10 ** math.floor(math.log10(rough))
+    return next(step * power for step in (1, 2, 5, 10) if step * power >= rough)
+
+
+def _pointed(page: Page, plan: _Plan, rect: Rect, legend: bool, what: str):
+    """Where the plot is held, and where each callout's words and line go.
+
+    言葉はグラフの外に置く ― 縦のグラフは上の帯に、点の真上へ。横棒は右の帯に、棒の高さへ。線は言葉から
+    点の手前 (= 棒に付いた数字の外) まで。**言葉どうしが重なるなら止まる** (= 縮めない、ずらさない)。
+
+    点の位置は、描く範囲 (= `inner`) と値の軸の端を道具が決めるので計算できる:
+    項目は描く範囲を等分し、棒は項目の幅を「系列の数 + 項目どうしの間」で割った幅で並ぶ。
+    """
+    theme, s = page.theme, page.theme.spacing
+    line, pad = theme.line_height(), s.gap_s
+    across = plan.kind == "bar"                      # 値が横に伸びるグラフ
+    outside = plan.labels and plan.kind in ("bar", "column", "line")   # 数字が棒の外に付く
+    tops = _tops(plan)
+    names = [text for _category, _series, text in plan.callouts]
+    wide = [theme.width(text) for text in names]
+
+    # 1. 言葉の帯を除いた残りがグラフの枠
+    if across:
+        band = max(wide) + s.gap_s
+        frame = Rect(rect.left, rect.top, rect.width - band, rect.height)
+    else:
+        band = line + s.gap_s
+        frame = Rect(rect.left, rect.top + band, rect.width, rect.height - band)
+
+    # 2. 枠の中の描く範囲 (= 軸の字と凡例の場所を除く)
+    below = (line + s.gap_s if legend else 0)
+    low, high = min(0.0, *(value for column in tops for _top, value in column)), \
+        max(0.0, *(reach for column in tops for _top, reach in column))
+    longest = max((theme.width(name) for name in plan.categories), default=0)
+    if across:
+        left = frame.left + pad + longest + s.gap_s
+        top, bottom = frame.top + pad, frame.bottom - pad - below - (0 if plan.labels else line + s.gap_s)
+        right = frame.right - pad
+    else:
+        left = frame.left + pad                       # 値の軸の字の幅は、目盛りが決まってから足す
+        top, bottom = frame.top + max(pad, line // 2), frame.bottom - (line + s.gap_s) - below
+        right = frame.right - pad
+    if right - left <= 0 or bottom - top <= 0:
+        raise PageFullError(f"{what}: the chart has no room left for its plot beside its callouts and its "
+                            "labels — give it more room, or say less")
+
+    # 3. 値の軸の端 ― 棒の外に付く数字のぶんを、いちばん遠い棒の先に空ける
+    reach = (right - left) if across else (bottom - top)
+    room = (max(theme.width(_printed(plan, value)) for _n, values, _t in plan.series for value in values)
+            + s.gap_s if across else line + s.bar_pad_y) if outside else 0
+    share = room / reach
+    if share >= 0.5:
+        raise PageFullError(f"{what}: the numbers on the bars would take half the plot — more room, or "
+                            "`labels = false`")
+    span = (high - low) or 1.0
+    high = high + span * share / (1 - share * (2 if low < 0 else 1)) if high > 0 else high
+    low = low - span * share / (1 - 2 * share) if low < 0 else low
+    step = _nice(high - low)
+    high, low = math.ceil(round(high / step, 9)) * step, math.floor(round(low / step, 9)) * step
+    if not across and not plan.labels:
+        ticks = [low + step * index for index in range(round((high - low) / step) + 1)]
+        left += max(theme.width(f"{tick:,g}") for tick in ticks) + s.gap_s
+        if right - left <= 0:
+            raise PageFullError(f"{what}: the chart has no room left for its plot")
+    inner = Rect(left, top, right - left, bottom - top)
+
+    # 4. 点の位置
+    count, members = len(plan.categories), (1 if plan.kind in (*WHOLE, "line") else len(plan.series))
+
+    def along(category: int, series: int, extent: int) -> float:
+        """How far along the category axis a bar's middle sits (= 0 at its start, `extent` at its end)."""
+        slot = extent / count
+        if plan.kind == "line" or members == 1:
+            return slot * (category + 0.5)
+        bar = slot / (members + GAP / 100)
+        return slot * category + bar * (GAP / 200 + series + 0.5)
+
+    def toward(value: float, extent: int) -> float:
+        return extent * (value - low) / (high - low)
+
+    placed = []
+    for (category, series, text), width in zip(plan.callouts, wide):
+        tip = tops[category][series][0]
+        if across:
+            x = inner.left + toward(tip, inner.width)
+            y = inner.top + along(category, series, inner.height)
+            clear = (theme.width(_printed(plan, plan.series[series][1][category])) + s.gap_s if outside
+                     else 0) + s.bar_pad_y
+            words = Rect(frame.right + s.gap_s, round(y - line / 2), width, line)
+            start, end = round(x + clear), words.left - s.bar_pad_y
+            ruler = Rect(start, round(y - s.hairline / 2), end - start, s.hairline) if end > start else None
+        else:
+            x = inner.left + along(category, series, inner.width)
+            y = inner.bottom - toward(tip, inner.height)
+            clear = (line if outside else 0) + s.bar_pad_y
+            words = Rect(min(max(round(x - width / 2), rect.left), max(rect.right - width, rect.left)),
+                         rect.top, width, line)
+            start, end = words.bottom, round(y - clear)
+            ruler = Rect(round(x - s.hairline / 2), start, s.hairline, end - start) if end > start else None
+        if not rect.contains(words):
+            raise PageFullError(f"{what}: the callout {text!r} does not fit beside the chart — fewer words")
+        placed.append(Callout(text, words, ruler))
+
+    for index, one in enumerate(placed):
+        for other in placed[index + 1:]:
+            apart = Rect(one.words.left - s.gap_s // 2, one.words.top, one.words.width + s.gap_s, one.words.height)
+            if apart.overlaps(other.words):
+                raise PageFullError(
+                    f"{what}: the callouts {one.text!r} and {other.text!r} would print over each other — "
+                    "fewer words, or one callout fewer; they are not moved apart")
+
+    fractions = ((inner.left - frame.left) / frame.width, (inner.top - frame.top) / frame.height,
+                 inner.width / frame.width, inner.height / frame.height)
+    return frame, Pinned(fractions, low, high, step, GAP), tuple(placed)

@@ -43,8 +43,8 @@ new = "    return tuple(drawn), True"
 [[mutant]]
 name = "the bars carry their numbers and the axis repeats them"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "legend=legend, axis=not plan.labels))"
-new = "legend=legend, axis=True))"
+old = "legend=legend, axis=not plan.labels,"
+new = "legend=legend, axis=True,"
 
 [[mutant]]
 name = "the numbers are printed although the page said not to"
