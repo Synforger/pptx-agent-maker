@@ -509,10 +509,11 @@ class Page:
         self.elements.append(Fill(kind, rect, colour))
 
     def label(self, rect: Rect, text: str, *, align: str = "left", role: str = "ink",
-              size: float | None = None) -> None:
+              size: float | None = None, bold: bool | None = None) -> None:
         """A short name on one line: beside a bar or a mark, or at the head of a column.
 
         `role` は色の役 (= `ink` / `muted` / `accent`)。`accent` は頁を横切る日付の名前で、太字。
+        `bold` を言えば、役に依らずその太さ (= 下へ流れる流れ図の、段の名前)。
 
         ⚠ **折り返さない。**隣の物に付く名前なので、長すぎれば横へ伸びる ― 2 行に折ると
         下の段に乗る。
@@ -521,7 +522,7 @@ class Page:
         size = self.theme.type.body if size is None else size
         colour = {"ink": p.ink, "muted": p.muted, "accent": p.accent}[role]
         self.elements.append(Text("label", rect, text, size, colour,
-                                  bold=role == "accent", align=align))
+                                  bold=role == "accent" if bold is None else bold, align=align))
 
     def lane(self, rect: Rect, name: str) -> None:
         """What one lane of a timeline is (= who, or which line of work)."""
