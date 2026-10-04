@@ -119,10 +119,19 @@ class Page:
     # -- the things a page may contain ---------------------------------------
 
     def _title_bar(self, title: str, kicker: str) -> None:
+        """The title, the small words above it, and the line under both.
+
+        ⚠ **題の帯は、題が折れる行ぶんの高さを取る。**1 行ぶんで固定していた間は、2 行に折れた題が
+        帯から下へはみ出し、本体の最初の物に重なった (= 枠どうしは離れているので、検査は掴まない)。
+        1 行の題の帯は今までの高さのままで、折れた行ごとに 1 行ぶん伸びる。題の上の小さい字は
+        伸びない (= 伸びたぶんは全部題のもの)。
+        """
         t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
-        bar = self._take_top(s.title_height)
+        folded = (self.theme.title_lines(title) - 1) * self.theme.line_height(t.title)
+        bar = self._take_top(s.title_height + folded)
         if kicker:
-            kick, main = bar.rows([1, 2])
+            kick, main = Rect(bar.left, bar.top, bar.width, s.title_height).rows([1, 2])
+            main = Rect(main.left, main.top, main.width, bar.bottom - main.top)
             self.elements.append(Text("kicker", kick, kicker, t.caption, p.muted))
         else:
             main = bar

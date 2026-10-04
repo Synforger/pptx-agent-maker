@@ -344,6 +344,15 @@ class Theme:
         """The height that text needs at that width, by `wraps`."""
         return self.wraps(text, width, size, bold=bold) * self.line_height(size)
 
+    def title_lines(self, title: str) -> int:
+        """How many lines a page's title breaks into, set across the frame.
+
+        ⚠ **題の行を数えるのはここ 1 か所。**頁は題の帯の高さをこの数から取り、検査 (= `long_title`)
+        は同じ数で 3 行以上を知らせる。別々に数えると、帯が 2 行ぶん取ったのに検査は 3 行と言う。
+        """
+        room = self.frame().width - 2 * self.spacing.text_inset
+        return self.wraps(title, room, self.type.title, bold=True)
+
     def pt(self, size: float) -> int:
         """A type size in EMU, refusing anything below the floor."""
         if size < self.type.minimum:
