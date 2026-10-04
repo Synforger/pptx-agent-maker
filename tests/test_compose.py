@@ -245,8 +245,8 @@ class WhatItRefuses(unittest.TestCase):
         parts = {"card": card("Tall", long), "text": {"text": long}, "points": {"points": [long, long]}}
         for name, part in parts.items():
             with self.subTest(name):
-                # 1 段目は高さの 21 分の 1 しか取れない (= 絵は縮むが、言葉は縮まない)
-                rows = [row({"figure": SQUARE}, part, weight=1), row({"figure": WIDE}, weight=20)]
+                # 1 段目は高さの 9 分の 1 しか取れない (= 絵は縮むが、言葉は縮まない)
+                rows = [row({"figure": SQUARE}, part, weight=1), row({"figure": WIDE}, weight=8)]
                 self.refused(rows, f"compose: row 1, cell 2: this {name} needs", "nothing will shrink",
                              error=PageFullError)
                 self.assertTrue(compose([row({"figure": SQUARE}, part, weight=1),

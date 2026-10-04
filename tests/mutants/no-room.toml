@@ -49,3 +49,21 @@ name = "the points are measured without the dash each line begins with"
 file = "src/pptx_agent_maker/layout/parts/page.py"
 old = "return sum(self.theme.wrapped_height(line, room) for line in self._point_lines(items))"
 new = "return sum(self.theme.wrapped_height(str(item).strip(), room) for item in items)"
+
+[[mutant]]
+name = "a picture squeezed lower than an icon is placed"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if area.height < s.icon and area.width > area.height * aspect:"
+new = "        if False:"
+
+[[mutant]]
+name = "a picture that is short only because it is wide is refused"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if area.height < s.icon and area.width > area.height * aspect:"
+new = "        if area.height < s.icon:"
+
+[[mutant]]
+name = "the floor of a picture is a line of type, not an icon"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if area.height < s.icon and area.width > area.height * aspect:"
+new = "        if area.height < self.theme.line_height() and area.width > area.height * aspect:"

@@ -90,15 +90,35 @@ class PageTest(unittest.TestCase):
                 page.figure(room(height), Path("a.png"), 1.0, caption="what it shows")
             self.assertIn("its name alone", str(stopped.exception))
         self.assertFalse([e for e in page.elements if isinstance(e, Figure)], "a refused picture was placed")
-        page.figure(room(name + s.gap_s + cm(1)), Path("a.png"), 1.0, caption="what it shows")
+        page.figure(room(name + s.gap_s + cm(2)), Path("a.png"), 1.0, caption="what it shows")
         picture = next(e for e in page.build() if isinstance(e, Figure)).rect
-        self.assertEqual(cm(1), picture.height)
+        self.assertEqual(cm(2), picture.height)
 
-    def test_a_picture_without_a_name_takes_whatever_it_is_given(self) -> None:
-        """絵は縮む物。名が無ければ、渡された高さをそのまま使う。"""
+    def test_a_picture_squeezed_lower_than_an_icon_stops_the_page(self) -> None:
+        """絵は縮む物だが、アイコンの一辺より低くなった絵は、もう図として読めない。"""
+        s = DEFAULT.spacing
+        name = DEFAULT.line_height(DEFAULT.type.caption)
         page = Page("A picture")
-        page.figure(Rect(page.body.left, page.body.top, page.body.width, cm(0.5)), Path("a.png"), 1.0)
-        self.assertEqual(cm(0.5), next(e for e in page.build() if isinstance(e, Figure)).rect.height)
+        body = page.body
+
+        def room(height: int) -> Rect:
+            return Rect(body.left, body.top, body.width, height)
+
+        for height, caption in ((s.icon - 1, ""), (cm(0.5), ""), (name + s.gap_s + s.icon - 1, "what it shows")):
+            with self.subTest(height=height, caption=caption), self.assertRaises(PageFullError) as stopped:
+                page.figure(room(height), Path("a.png"), 1.0, caption=caption)
+            self.assertIn("less than", str(stopped.exception))
+        self.assertFalse([e for e in page.elements if isinstance(e, Figure)])
+        page.figure(room(s.icon), Path("a.png"), 1.0)
+        self.assertEqual(s.icon, next(e for e in page.build() if isinstance(e, Figure)).rect.height)
+
+    def test_a_picture_that_is_short_because_it_is_wide_is_placed(self) -> None:
+        """横に長い絵が幅いっぱいで低いのは、詰められたのではない (= 高さが余っていても同じ低さ)。"""
+        page = Page("A picture")
+        strip = Rect(page.body.left, page.body.top, cm(4), cm(1))
+        page.figure(strip, Path("a.png"), 8.0)
+        placed = next(e for e in page.build() if isinstance(e, Figure)).rect
+        self.assertEqual((cm(4), cm(0.5)), (placed.width, placed.height))
 
     def test_the_points_are_measured_on_the_lines_they_are_written_as(self) -> None:
         """要点は行頭に「—」を付け、先頭の空白 (= 階層) を残して書く。測るのも同じ行で ― 書く前の文で
