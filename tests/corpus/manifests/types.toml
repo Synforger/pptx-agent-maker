@@ -249,3 +249,17 @@ pictures = ["triangle.png"]
 tables = [[["Item", "Value"], ["C", "3"], ["D", "4"]]]
 replace = [["How to read the picture, in one line", "The picture and the table were swapped in"]]
 why = "a page built earlier, brought in with a new picture and new cells"
+
+[[pages]]
+kind = "declare"
+type = "agenda"
+title = "The same chapters, the one in hand on a ground and the numbers in circles"
+buckets = [
+  ["Pictures", ["one", "side by side", "on a grid"]],
+  ["Diagrams", ["flow", "roadmap", "timeline"]],
+  ["Scaffolding", ["cards", "board"]],
+]
+highlight = 2
+highlight_tone = "accent"
+numbers = "circled"
+why = "an agenda's two looks: the chapter marked by its ground, the numbers in circles"

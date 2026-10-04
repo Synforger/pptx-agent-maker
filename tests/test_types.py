@@ -340,6 +340,67 @@ class WhatTheTypesRefuse(unittest.TestCase):
         self.assertEqual([heading + s.gap_s + theme.line_height() + 2 * s.pad, heading + 2 * s.pad],
                          [box.height for box in boxes])
 
+    AGENDA = {"type": "agenda", "title": "だい", "highlight": 2,
+              "buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]], ["しょう 3", []]]}
+
+    @staticmethod
+    def _chapters(page):
+        """(the box, the heading in it, the words under the heading or None) per chapter, top to bottom."""
+        built = page.build()
+        boxes = sorted((e for e in built if e.kind == "box"), key=lambda e: e.rect.top)
+        found = []
+        for box in boxes:
+            head = next(e for e in built if e.kind == "box_heading" and box.rect.contains(e.rect))
+            body = next((e for e in built if e.kind == "box_body" and box.rect.contains(e.rect)), None)
+            found.append((box, head, body))
+        return found
+
+    def test_an_agenda_marks_its_chapter_in_words_unless_told_a_ground(self):
+        chapters = self._chapters(build(self.AGENDA))
+        self.assertEqual(["1. しょう 1", "2. しょう 2", "3. しょう 3"], [head.text for _b, head, _w in chapters])
+        self.assertEqual([None, "◀ この章", None], [body.text if body else None for _b, _h, body in chapters])
+        self.assertEqual({DEFAULT.palette.box}, {box.colour for box, _h, _w in chapters})
+
+    def test_the_chapter_of_an_agenda_can_take_a_ground_instead_of_the_words(self):
+        """地が「この章」を言うので、言葉は置かない (= 同じことを 2 度言わない)。濃い地の字は紙の色。"""
+        chapters = self._chapters(build({**self.AGENDA, "highlight_tone": "accent"}))
+        self.assertEqual([DEFAULT.palette.box, DEFAULT.palette.accent, DEFAULT.palette.box],
+                         [box.colour for box, _h, _w in chapters])
+        self.assertEqual([DEFAULT.palette.ink, DEFAULT.palette.paper, DEFAULT.palette.ink],
+                         [head.colour for _b, head, _w in chapters])
+        self.assertEqual([None, None, None], [body for _b, _h, body in chapters])
+        tall = {box.rect.height for box, _h, _w in chapters}
+        self.assertEqual(1, len(tall), "a chapter with no words under its name stands as tall as the others")
+
+    def test_the_ground_is_one_of_the_tones_a_page_may_name(self):
+        with self.assertRaises(PageTypeError) as refused:
+            build({**self.AGENDA, "highlight_tone": "blue"})
+        self.assertIn("highlight_tone", str(refused.exception))
+        self.assertIn("accent", str(refused.exception))
+
+    def test_a_ground_with_no_chapter_to_put_it_on_is_refused(self):
+        spec = {key: value for key, value in self.AGENDA.items() if key != "highlight"}
+        with self.assertRaises(PageTypeError) as refused:
+            build({**spec, "highlight_tone": "accent"})
+        self.assertIn("highlight", str(refused.exception))
+
+    def test_the_chapters_of_an_agenda_can_be_numbered_in_circles(self):
+        chapters = self._chapters(build({**self.AGENDA, "numbers": "circled"}))
+        self.assertEqual(["\u2460 しょう 1", "\u2461 しょう 2", "\u2462 しょう 3"],
+                         [head.text for _b, head, _w in chapters])
+
+    def test_a_way_of_numbering_nobody_knows_is_refused(self):
+        for numbers in ("roman", "", 1, True):
+            with self.subTest(numbers=numbers), self.assertRaises(PageTypeError) as refused:
+                build({**self.AGENDA, "numbers": numbers})
+            self.assertIn("numbers", str(refused.exception))
+
+    def test_only_the_agenda_takes_its_looks(self):
+        for key, value in (("highlight_tone", "accent"), ("numbers", "circled")):
+            with self.subTest(key=key), self.assertRaises(PageTypeError) as refused:
+                build({"type": "figure", "title": "だい", "figure": SQUARE, key: value})
+            self.assertIn(f"does not take {key}", str(refused.exception))
+
     def test_figures_needs_more_than_one(self):
         with self.assertRaises(PageTypeError):
             build({"type": "figures", "title": "だい", "figures": [SQUARE]})

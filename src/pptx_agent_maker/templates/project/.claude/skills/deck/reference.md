@@ -81,7 +81,7 @@ pptx-agent-maker lift <案件> <テンプレートの folder> \
 | `chart` | `chart` | ― | 数字から描くグラフを 1 つ (= 棒・縦棒・折れ線・積み上げ・滝グラフ。PowerPoint で数字を直せる) |
 | `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
 | `board` | `table` | ― | 表が主役の頁 (= 同上) |
-| `agenda` | `buckets` | `highlight` | 章立て (= 同上。`highlight` = 強調する章の番号) |
+| `agenda` | `buckets` | `highlight` `highlight_tone` `numbers` | 章立て (= 同上。`highlight` = 強調する章の番号。`highlight_tone = "accent"` でその章の箱を地の色で強調し (= 書かなければ `◀ この章` の言葉)、`numbers = "circled"` で番号を丸の数字にする) |
 
 ### 箱・棒・矢羽根の見た目 (= どれも同じ 4 つのキー)
 
