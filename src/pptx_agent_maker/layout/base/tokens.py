@@ -241,6 +241,20 @@ class Spacing:
 
 
 @dataclass(frozen=True)
+class Under:
+    """What the layout a declared page will sit on already has (= read from the specimen).
+
+    型で組む頁は白紙に描いてから、テンプレートの 1 枚目のレイアウトへ向け直す。描く側が知るのは
+    2 つだけ ― **題の枠が在るか** (= 在れば題はその枠として書かれ、色と書体をテンプレートから継ぐ) と、
+    **そこに何が印字されるか** (= ロゴや飾り。題の帯はその手前で止まる)。余白と割り方は道具のまま。
+    """
+
+    title: bool = False
+    #: レイアウトとマスターが印字する物の場所 (= 重なりの検査が「下敷き」と数える物と同じ)
+    prints: tuple[Rect, ...] = ()
+
+
+@dataclass(frozen=True)
 class Theme:
     """Everything a page is allowed to know about how the deck looks."""
 
@@ -250,6 +264,8 @@ class Theme:
     spacing: Spacing = field(default_factory=Spacing)
     #: 案件が意味の名前を付けた地 (= `[theme.grounds]`)。並びは宣言の順で、凡例もこの順に並ぶ
     grounds: tuple[tuple[str, str], ...] = ()
+    #: 型の頁が乗るレイアウトが持つ物 (= 見本から読む。案件の `[theme]` からは書けない)
+    under: Under = field(default_factory=Under)
 
     def ground_names(self) -> tuple[str, ...]:
         return tuple(name for name, _colour in self.grounds)
@@ -376,17 +392,53 @@ class Theme:
         """How wide a page's sticker stands: its words on one line, with room at each side."""
         return self.width(sticker, self.type.body) + 2 * self.spacing.pad
 
-    def title_lines(self, title: str, sticker: str = "") -> int:
-        """How many lines a page's title breaks into, set across the frame beside its sticker.
+    def clear(self, band: Rect) -> tuple[int, int]:
+        """(left, right) of the stretch of a band that stays off what the layout prints there.
+
+        帯に縦で掛かる物のうち、帯の右半分に在る物は右端を、左半分に在る物は左端を、その手前まで
+        詰める。真ん中をまたぐ物 (= 頁を横切る飾り) は幅では避けられないので、そのまま ― 重なりの検査が
+        言う。
+        """
+        left, right, gap = band.left, band.right, self.spacing.gap_s
+        middle = band.left + band.width // 2
+        for thing in self.under.prints:
+            if (thing.bottom <= band.top or band.bottom <= thing.top
+                    or thing.right <= band.left or band.right <= thing.left):
+                continue
+            if thing.left >= middle:
+                right = min(right, thing.left - gap)
+            elif thing.right <= middle:
+                left = max(left, thing.right + gap)
+        return left, right
+
+    def title_band(self, title: str, sticker: str = "") -> tuple[int, int, int]:
+        """(lines, left, right) of a page's title band: how far the title folds, and where it may run.
 
         ⚠ **題の行を数えるのはここ 1 か所。**頁は題の帯の高さをこの数から取り、検査 (= `long_title`)
         は同じ数で 3 行以上を知らせる。別々に数えると、帯が 2 行ぶん取ったのに検査は 3 行と言う。
         札を持つ頁は、札と、札との間の空きのぶんだけ題が狭い。
+
+        ⚠ **帯は、レイアウトが印字する物の手前で止まる** (= `clear`)。頁の幅いっぱいに取っていた間は、
+        右上のロゴに届いた題と、帯の右端に置く札が、重なりの検査で止まった。帯は題が折れるぶん下へ伸び、
+        伸びた先に在る物も避けるので、行と幅は一緒に決める (= 避けて狭くなると、もう 1 行折れることがある)。
         """
-        room = self.frame().width - 2 * self.spacing.text_inset
-        if sticker:
-            room -= self.sticker_width(sticker) + self.spacing.gap_m
-        return self.wraps(title, room, self.type.title, bold=True)
+        frame, s = self.frame(), self.spacing
+        lines = 1
+        while True:
+            band = Rect(frame.left, frame.top, frame.width,
+                        s.title_height + (lines - 1) * self.line_height(self.type.title))
+            left, right = self.clear(band)
+            room = right - left - 2 * s.text_inset
+            if sticker:
+                room -= self.sticker_width(sticker) + s.gap_m
+            needed = self.wraps(title, max(room, 1), self.type.title, bold=True)
+            if needed <= lines or band.bottom >= frame.bottom:
+                return lines, left, right
+            lines = needed
+
+    def title_lines(self, title: str, sticker: str = "") -> int:
+        """How many lines a page's title breaks into (= `title_band`)."""
+        return self.title_band(title, sticker)[0]
 
     def pt(self, size: float) -> int:
         """A type size in EMU, refusing anything below the floor."""

@@ -39,8 +39,8 @@ new = "count += len(_lines(pieces, usable))"
 [[mutant]]
 name = "a declared title is counted at the size of the body"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "return self.wraps(title, room, self.type.title, bold=True)"
-new = "return self.wraps(title, room, self.type.body, bold=True)"
+old = "needed = self.wraps(title, max(room, 1), self.type.title, bold=True)"
+new = "needed = self.wraps(title, max(room, 1), self.type.body, bold=True)"
 
 [[mutant]]
 name = "the check on declared pages cannot be switched off"
@@ -85,7 +85,7 @@ new = "(*CHECKS, *DECLARED)"
 [[mutant]]
 name = "the build does not run the checks that read the manifest"
 file = "src/pptx_agent_maker/__main__.py"
-old = "findings = run_all(built_deck, config) + run_declared(manifest, theme_of(workspace, manifest), config)"
+old = "findings = run_built(built_deck, manifest, theme_of(workspace, manifest), config)"
 new = "findings = run_all(built_deck, config)"
 
 # -- the titles in order (deck/titles.py) ---------------------------------------

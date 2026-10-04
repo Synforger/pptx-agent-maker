@@ -131,26 +131,34 @@ class Page:
         ⚠ **題の上の小さい字の段は、その字の大きさで決まる** (= `kicker_height`)。帯を題と 1:2 に
         割っていた間は、小さい字だけを大きくした案件で、小さい字が題の頭に乗った。
 
+        ⚠ **字と札は、レイアウトが印字する物の手前で止まる** (= `Theme.title_band`)。帯を頁の幅いっぱいに
+        使っていた間は、右上にロゴの在るテンプレートで、長い題と札がロゴに乗った。
+
         札は題の帯の右端に、題の字の枠の真ん中の高さで置く (= 題は枠の真ん中に寄るので、何行に折れても
         札と題が揃う)。**題の字の枠は、札と、札との間の空きのぶん狭い** (= 題が札の下へ回り込まない。
         行もその幅で数える)。
         """
         t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
         tag = self.theme.sticker_width(sticker) if sticker else 0
-        if tag and self._remaining.width - tag - s.gap_m - 2 * s.text_inset < self.theme.unbreakable(title, t.title, bold=True):
+        lines, left, right = self.theme.title_band(title, sticker)
+        if tag and right - left - tag - s.gap_m - 2 * s.text_inset < self.theme.unbreakable(title, t.title, bold=True):
             raise PageFullError(
                 f"the sticker {sticker!r} leaves the title no room for its longest word — "
                 "a sticker is a word or two (= draft, illustrative), not a sentence")
-        folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.title)
+        folded = (lines - 1) * self.theme.line_height(t.title)
         bar = self._take_top(s.title_height + folded)
+        # 字と札が使うのは、レイアウトが印字する物 (= ロゴ) の手前まで。帯そのものは頁の幅のまま
+        clear = Rect(left, bar.top, right - left, bar.height)
         if kicker:
-            kick, main = bar.split_top(s.kicker_height)
+            kick, main = clear.split_top(s.kicker_height)
             self.elements.append(Text("kicker", kick, kicker, t.caption, p.muted))
         else:
-            main = bar
+            main = clear
         words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)
         self.elements.append(Text("title", words, title, t.title, p.ink, bold=True))
-        self.elements.append(Fill("rule", Rect(bar.left, bar.bottom, bar.width, s.hairline), p.rule))
+        line = Rect(bar.left, bar.bottom, bar.width, s.hairline)
+        start, end = self.theme.clear(line)
+        self.elements.append(Fill("rule", Rect(start, line.top, end - start, line.height), p.rule))
         if tag:
             # 灰の細枠に灰の字 (= 頁の中身より一段うしろに引いた見た目)。地は塗らない
             tall = self.theme.line_height(t.body) + 2 * s.bar_pad_y

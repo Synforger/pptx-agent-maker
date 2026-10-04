@@ -13,13 +13,13 @@ new = "return self.width(sticker, self.type.body)"
 [[mutant]]
 name = "a title is counted as if no sticker stood beside it"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "room -= self.sticker_width(sticker) + self.spacing.gap_m"
+old = "room -= self.sticker_width(sticker) + s.gap_m"
 new = "room -= 0"
 
 [[mutant]]
 name = "the gap between a title and its sticker is not counted as taken"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "room -= self.sticker_width(sticker) + self.spacing.gap_m"
+old = "room -= self.sticker_width(sticker) + s.gap_m"
 new = "room -= self.sticker_width(sticker)"
 
 [[mutant]]
@@ -55,8 +55,8 @@ new = "sticker, t.body, p.ink, outline=p.muted))"
 [[mutant]]
 name = "a sticker that leaves the title no room is placed all the same"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if tag and self._remaining.width"
-new = "        if False and self._remaining.width"
+old = "        if tag and right - left - tag"
+new = "        if False and right - left - tag"
 
 [[mutant]]
 name = "a sticker that is not words is not refused"
