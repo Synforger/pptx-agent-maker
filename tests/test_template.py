@@ -190,6 +190,38 @@ class TheTemplateBuildsTest(unittest.TestCase):
                      if n.startswith("ppt/slides/slide") and n.endswith(".xml")]
         self.assertEqual(len(pages), len(manifest.entries))
 
+    def test_the_example_builds_whatever_the_deck_is_for(self) -> None:
+        """⚠ **見本は、読ませる資料の大きさでしか焼けなかった。**映す資料 (= `use = "present"`) を宣言した
+        案件では、1 頁に全部の帯と付属を載せた見本の頁が収まらず、「init した直後に 1 本焼ける」 が
+        そこでだけ成り立たなかった。題だけを上書きした案件 (= 帯は低く、字は大きい) でも同じ。
+        """
+        import contextlib
+        import io
+        from pptx_agent_maker.__main__ import main
+
+        settings = self.root / "workspace.toml"
+        plain = settings.read_text(encoding="utf-8")
+        looks = {"read": '[theme]\nuse = "read"\n',
+                 "present": '[theme]\nuse = "present"\n',
+                 "present, the title at the reading size": '[theme]\nuse = "present"\n\n[theme.type]\ntitle = 24\n',
+                 "read, everything a size up": "[theme.type]\nheading = 18\nbody = 14\ncaption = 12\n"}
+        for name, look in looks.items():
+            with self.subTest(name):
+                settings.write_text(plain + "\n" + look, encoding="utf-8")
+                (self.root / "example.pptx").unlink(missing_ok=True)
+                said = io.StringIO()
+                with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
+                    code = main(["build", str(self.root), "example"])
+                self.assertEqual(0, code, said.getvalue())
+                self.assertNotIn("FAIL", said.getvalue())
+
+    def test_the_example_shows_every_band_and_every_extra_somewhere(self) -> None:
+        """見本は書き方の見本でもある。頁を分けても、枠の帯と付属は全部どこかの頁に出ている。"""
+        workspace = Workspace.load(self.root)
+        written = {key for entry in Manifest.load(workspace.manifest("example")).entries for key in entry.data}
+        for key in ("kicker", "title", "condition", "conclusion", "footer", "cards", "table", "note", "caption"):
+            self.assertIn(key, written)
+
     def test_the_example_opens_in_a_strict_reader(self) -> None:
         """⚠ **頁の数が合っても、開けるとは限らない。**テンプレートは絵を 1 枚も持たないので
         png の種類の登録が無く、見本の絵を持ち込んだデッキが開けなかった (= 頁は数えていたが、
