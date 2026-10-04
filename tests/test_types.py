@@ -15,6 +15,7 @@ from pathlib import Path
 from pptx_agent_maker.layout import types
 from pptx_agent_maker.layout.parts.elements import Figure, Fill, Table, Text
 from pptx_agent_maker.layout.base.tokens import DEFAULT
+from pptx_agent_maker.layout.parts.page import PageFullError
 from pptx_agent_maker.layout.types.core.registry import PageTypeError
 from pptx_agent_maker.project.files.manifest import Manifest, ManifestError
 
@@ -311,6 +312,31 @@ class WhatTheTypesRefuse(unittest.TestCase):
         with self.assertRaises(PageTypeError):
             build({"type": "agenda", "title": "だい", "highlight": 9,
                    "buckets": [["しょう", ["こうもく"]]]})
+
+    def test_an_agenda_with_more_chapters_than_fit_stops(self):
+        """⚠ **章の箱を、取れる高さに切り詰めて置いていた。**箱の中の字が箱の下の線に乗った。"""
+        chapters = [[f"しょう {number}", []] for number in range(1, 15)]
+        with self.assertRaises(PageFullError) as stopped:
+            build({"type": "agenda", "title": "だい", "buckets": chapters})
+        self.assertIn("agenda: chapter 1 needs", str(stopped.exception))
+        self.assertTrue(build({"type": "agenda", "title": "だい", "buckets": chapters[:6]}).build())
+
+    def test_an_agenda_with_more_items_than_fit_stops(self):
+        items = [f"こうもく {number}" for number in range(1, 16)]
+        with self.assertRaises(PageFullError) as stopped:
+            build({"type": "agenda", "title": "だい", "buckets": [["しょう 1", items], ["しょう 2", items]]})
+        self.assertIn("agenda: the list of items needs", str(stopped.exception))
+        self.assertTrue(build({"type": "agenda", "title": "だい",
+                               "buckets": [["しょう 1", items[:8]], ["しょう 2", items[:8]]]}).build())
+
+    def test_a_chapter_of_an_agenda_stands_as_tall_as_its_words(self):
+        page = build({"type": "agenda", "title": "だい", "highlight": 1,
+                      "buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]]})
+        boxes = sorted((e.rect for e in page.build() if e.kind == "box"), key=lambda rect: rect.top)
+        s, theme = DEFAULT.spacing, DEFAULT
+        heading = theme.line_height(theme.type.heading)
+        self.assertEqual([heading + s.gap_s + theme.line_height() + 2 * s.pad, heading + 2 * s.pad],
+                         [box.height for box in boxes])
 
     def test_figures_needs_more_than_one(self):
         with self.assertRaises(PageTypeError):

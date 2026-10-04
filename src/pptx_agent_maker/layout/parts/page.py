@@ -263,12 +263,19 @@ class Page:
 
         ⚠ **名のために取るのは、名が折れる行ぶんだけ。**枠の高さの 7 分の 1 を取って真ん中に
         置いていた間は、縦に長い枠ほど名が絵から離れて浮いた (= 段とマスで組んだ頁で焼いて出た)。
+
+        ⚠ **名を取った残りが無ければ止まる。**残りを 1 EMU に切り上げて置いていた間は、高さ 0 の絵が
+        書き出され、頁には名だけが残った (= 字を大きくして、絵の場所が名の高さを下回った頁で出た)。
         """
         t, p, s = self.theme.type, self.theme.palette, self.theme.spacing
         area, tall = rect, 0
         if caption:
             tall = self.theme.wrapped_height(caption, max(rect.width - 2 * s.text_inset, 1), t.caption)
-            area, _rest = rect.split_top(max(rect.height - tall - s.gap_s, 1))
+            if rect.height <= tall + s.gap_s:
+                raise PageFullError(
+                    f"a picture has {rect.height} EMU of height and its name alone takes {tall + s.gap_s} — "
+                    "nothing is left for the picture; take something off the page, or drop the name")
+            area, _rest = rect.split_top(rect.height - tall - s.gap_s)
         placed = area.fit(aspect)
         self.elements.append(Figure("figure", placed, Path(source), aspect))
         self._figures += 1
@@ -322,15 +329,25 @@ class Page:
         行が増えれば頁が持てる量を超える。空の行は落とす (= 文字の無い run を書かない)。
         """
         t, p = self.theme.type, self.theme.palette
-        # 先頭の空白は階層なので残す (= 落とすと章と小項目が同じ並びに潰れる)
-        lines = [f"{' ' * (len(str(item)) - len(str(item).lstrip()))}\u2014 {str(item).strip()}"
-                 for item in items if str(item).strip()]
+        lines = self._point_lines(items)
         if not lines:
             raise ValueError(
                 "points was given nothing to say — drop the block rather than "
                 "leaving an empty one"
             )
         self.elements.append(Text("points", rect, "\n".join(lines), t.body, p.ink))
+
+    @staticmethod
+    def _point_lines(items: list[str]) -> list[str]:
+        """The lines `points` writes: a dash before each, its leading spaces kept, blank ones dropped."""
+        # 先頭の空白は階層なので残す (= 落とすと章と小項目が同じ並びに潰れる)
+        return [f"{' ' * (len(str(item)) - len(str(item).lstrip()))}\u2014 {str(item).strip()}"
+                for item in items if str(item).strip()]
+
+    def points_height(self, width: int, items: list[str]) -> int:
+        """How tall `points` stands at this width, counted on the lines it writes."""
+        room = max(width - 2 * self.theme.spacing.text_inset, 1)
+        return sum(self.theme.wrapped_height(line, room) for line in self._point_lines(items))
 
     def caption(self, rect: Rect, text: str, *, align: str = "center") -> None:
         """A label under something the type has already placed."""

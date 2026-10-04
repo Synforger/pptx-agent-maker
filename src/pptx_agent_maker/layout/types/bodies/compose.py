@@ -125,8 +125,7 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
     if part == "text":
         return theme.wrapped_height(str(cell["text"]), max(width - 2 * s.text_inset, 1))
     if part == "points":
-        return sum(theme.wrapped_height(f"— {line.strip()}", max(width - 2 * s.text_inset, 1))
-                   for line in _points(cell, what))
+        return page.points_height(width, _points(cell, what))
     if part == "rows":
         laid = _measure(page, spec, cell["rows"], width, what)
         if any(height is None for _row, _cells, height, _weight in laid):
@@ -141,8 +140,15 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
 
     `own_row` は、段が中身の言葉ぶんの高さの段か (= その段のカードは段の高さに揃える)。
     残りを分け合う段では、自分の高さを持つ部品は自分の高さのまま上に寄る (= 頁の高さを配らない)。
+
+    ⚠ **分け合う段が、自分の高さを持つ部品より低ければ止まる。**段の高さに切り詰めて置いていた間は、
+    カードの字が箱からはみ出し、文章の枠は字より短かった。入れ子の段と表は、自分で同じことを言う。
     """
     part = _part(cell, what)
+    if natural is not None and natural > rect.height and part in ("card", "text", "points"):
+        raise PageFullError(
+            f"{what}: this {part} needs {natural} EMU of height and its row has {rect.height} — "
+            "give the row a larger `weight`, or take something off the page; nothing will shrink")
     fitted = rect if natural is None else Rect(rect.left, rect.top, rect.width, min(natural, rect.height))
     try:
         if part == "card":

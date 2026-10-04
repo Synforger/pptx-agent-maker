@@ -238,6 +238,29 @@ class WhatItRefuses(unittest.TestCase):
         rows = [row(card(f"Card {n}", "a body long enough to break over a line or two " * 3)) for n in range(12)]
         self.refused(rows, "compose", "nothing will shrink", error=PageFullError)
 
+    def test_a_part_taller_than_the_row_it_shares_stops_the_page(self):
+        """⚠ **分け合う段に置いた部品を、段の高さに切り詰めて置いていた。**カードの字は箱からはみ出し、
+        文章の枠は字より短かった。"""
+        long = "words enough to take several lines in a narrow cell " * 6
+        parts = {"card": card("Tall", long), "text": {"text": long}, "points": {"points": [long, long]}}
+        for name, part in parts.items():
+            with self.subTest(name):
+                # 1 段目は高さの 21 分の 1 しか取れない (= 絵は縮むが、言葉は縮まない)
+                rows = [row({"figure": SQUARE}, part, weight=1), row({"figure": WIDE}, weight=20)]
+                self.refused(rows, f"compose: row 1, cell 2: this {name} needs", "nothing will shrink",
+                             error=PageFullError)
+                self.assertTrue(compose([row({"figure": SQUARE}, part, weight=1),
+                                         row({"figure": WIDE}, weight=1)]).build())
+
+    def test_an_agenda_too_tall_for_its_cell_says_which_cell(self):
+        # 一覧 (= 2 行) は収まり、章の箱 2 つが段の高さに収まらない
+        rows = [row({"figure": SQUARE}, {"agenda": {"buckets": [["One", []], ["Two", []]]}}, weight=1),
+                row({"figure": WIDE}, weight=6)]
+        self.refused(rows, "compose: row 1, cell 2: agenda: chapter 1 needs", error=PageFullError)
+        listed = [row({"figure": SQUARE}, {"agenda": {"buckets": [["One", ["a", "b", "c"]]]}}, weight=1),
+                  row({"figure": WIDE}, weight=6)]
+        self.refused(listed, "compose: row 1, cell 2: agenda: the list of items needs", error=PageFullError)
+
     def test_a_nested_cell_names_its_whole_path(self):
         self.refused([row({"rows": [row(card("A")), row({"weight": 1})]})],
                      "compose: row 1, cell 1: row 2, cell 1 holds nothing")
