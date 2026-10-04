@@ -82,6 +82,34 @@ class Series:
     outline: str = ""
 
 
+@dataclass(frozen=True)
+class Callout:
+    """A few words pointing at one point of a chart: where they sit, and the thin line to the point."""
+
+    text: str
+    words: Rect
+    #: 言葉から点へ引く細い線。言葉が点のすぐそばに在れば要らない (= None)
+    line: Rect | None = None
+
+
+@dataclass(frozen=True)
+class Pinned:
+    """The plot of a chart held in one place, so where a point falls can be worked out beforehand.
+
+    ふつうのグラフは、描く範囲も値の軸の目盛りも PowerPoint が決める (= 数字を直せば付いて動く)。
+    注記を持つグラフだけは、言葉と線を点に合わせて置くので、両方を道具が決めて書き出す。
+    """
+
+    #: 描く範囲 (= 軸と凡例を除いた、棒や線の入る矩形)。グラフの枠に対する比で x, y, 幅, 高さ
+    inner: tuple[float, float, float, float]
+    #: 値の軸の端から端と、目盛りの間
+    low: float
+    high: float
+    step: float
+    #: 項目どうしの間 (= 棒 1 本の幅に対する百分率)
+    gap: int = 150
+
+
 #: グラフの描き方 (= 書き出すグラフの種類)。滝グラフは `stacked` で描く
 PLOTS = ("bar", "column", "line", "stacked")
 
@@ -100,6 +128,10 @@ class Chart(Element):
     #: 凡例を出すか、値の軸 (= 目盛りの数字) を出すか
     legend: bool = False
     axis: bool = False
+    #: グラフそのものの枠。注記を持つグラフは、`rect` のうち注記の言葉の場所を除いた残り (= 無ければ `rect`)
+    frame: Rect | None = None
+    pinned: Pinned | None = None
+    callouts: tuple[Callout, ...] = ()
 
 
 @dataclass(frozen=True)

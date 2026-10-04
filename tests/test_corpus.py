@@ -120,6 +120,11 @@ class TheCorpusUsesEverything(unittest.TestCase):
         self.assertEqual(set(), set(charts.SERIES_KEYS) - {key for chart in written
                                                            for series in chart.get("series", []) for key in series})
         self.assertTrue(any("chart" in cell for cell in CELLS), "no chart is laid into a cell")
+        pointed = [chart for chart in written if "callouts" in chart]
+        self.assertEqual(set(), set(charts.CALLOUT_KEYS) - {key for chart in pointed
+                                                            for callout in chart["callouts"] for key in callout})
+        # 注記は、言葉を上に置く種類と右に置く種類、柱を丸ごと指す種類で置き方が違う
+        self.assertLessEqual({"column", "line", "bar", "waterfall"}, {chart["kind"] for chart in pointed})
 
     def test_every_mark_a_cell_may_hold(self) -> None:
         written = [cell for table in tables(DECLARED) for key in ("harvey", "mark") if key in table

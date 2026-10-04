@@ -25,7 +25,7 @@ sys.path.insert(0, str(REPO / "tests"))
 
 from pptx import Presentation  # noqa: E402
 
-from pptx_agent_maker import DEFAULT, PageTypeError, checks  # noqa: E402
+from pptx_agent_maker import DEFAULT, PageFullError, PageTypeError, checks  # noqa: E402
 from pptx_agent_maker.checks.base.slide import read as read_pages  # noqa: E402
 from pptx_agent_maker.deck import Deck  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
@@ -139,6 +139,7 @@ class TheListingOfTypes(unittest.TestCase):
         self.assertRegex(said, r"chart\s+needs: chart")
         self.assertIn("kind (bar | column | line | stacked | waterfall)", said)
         self.assertIn('data = "x.csv"', said)
+        self.assertIn("callouts = [{ at, series, text }]", said)
 
 
 class AWaterfall(unittest.TestCase):
@@ -398,6 +399,15 @@ class AsWrittenOut(unittest.TestCase):
         self.assertIn('<c:orientation val="maxMin"/>', written(a_chart("bar"))[0])
         self.assertNotIn('<c:orientation val="maxMin"/>', written(a_chart("column"))[0])
 
+    def test_the_value_axis_of_a_bar_chart_stays_under_the_plot(self) -> None:
+        """⚠ 項目の並びを逆にすると、値の軸は上へ回る。いちばん下の項目の側で交わらせて下に戻す。"""
+        def crossing(chart: Chart) -> str:
+            axis = re.search(r"<c:valAx>.*?</c:valAx>", written(chart)[0], re.S).group(0)
+            return re.search(r'<c:crosses val="(\w+)"/>', axis).group(1)
+
+        self.assertEqual("max", crossing(a_chart("bar", labels=False)))
+        self.assertEqual("autoZero", crossing(a_chart("column", labels=False)))
+
     def test_the_words_are_set_in_the_decks_face_at_the_size_of_the_body(self) -> None:
         theme = theme_from({"font": "Arial", "use": "present"})
         xml, _parts = written(a_chart(theme=theme), theme)
@@ -448,6 +458,254 @@ class AsWrittenOut(unittest.TestCase):
         for value in (*NORTH["values"], *SOUTH["values"]):
             self.assertIn(value, numbers)
         self.assertIn("Sheet1!$B$2:$B$5", xml)
+
+
+class WordsPointingAtAPoint(unittest.TestCase):
+    """⚠ **注記の位置を座標で書かせない。**書くのは「どの項目の、どの系列」で、点の位置は道具が計算する。
+    計算できるのは、描く範囲と値の軸を道具が決めて書き出すから ― 言葉と線が指す先と、PowerPoint が
+    棒を描く先が、同じ数から出る。"""
+
+    S, LINE = DEFAULT.spacing, DEFAULT.line_height()
+
+    def pointed(self, kind="column", series=(NORTH,), callouts=({"at": "Q3", "text": "the new product"},),
+                **keys) -> Chart:
+        return a_chart(kind, series=series, callouts=list(callouts), **keys)
+
+    @staticmethod
+    def inner(chart: Chart):
+        """The plot's area in EMU, from the fractions the chart is pinned to."""
+        x, y, w, h = chart.pinned.inner
+        frame = chart.frame
+        return (frame.left + x * frame.width, frame.top + y * frame.height, w * frame.width, h * frame.height)
+
+    def height_of(self, chart: Chart, value: float) -> float:
+        _left, top, _wide, tall = self.inner(chart)
+        return top + tall - tall * (value - chart.pinned.low) / (chart.pinned.high - chart.pinned.low)
+
+    def test_a_chart_with_no_callout_is_left_to_powerpoint(self) -> None:
+        chart = a_chart()
+        self.assertEqual((None, None, ()), (chart.frame, chart.pinned, chart.callouts))
+        xml, parts = written(chart)
+        for mark in ("manualLayout", "<c:max ", "<c:min ", "<c:majorUnit", "<c:gapWidth"):
+            self.assertNotIn(mark, xml)
+        self.assertNotIn("<p:grpSp>", parts["ppt/slides/slide1.xml"].decode("utf-8"))
+
+    def test_the_words_take_a_band_above_the_chart_and_the_chart_takes_the_rest(self) -> None:
+        chart = self.pointed()
+        self.assertEqual((chart.rect.left, chart.rect.top + self.LINE + self.S.gap_s, chart.rect.width,
+                          chart.rect.height - self.LINE - self.S.gap_s),
+                         (chart.frame.left, chart.frame.top, chart.frame.width, chart.frame.height))
+        words = chart.callouts[0].words
+        self.assertEqual((chart.rect.top, self.LINE, DEFAULT.width("the new product")),
+                         (words.top, words.height, words.width))
+        self.assertLessEqual(words.bottom, chart.frame.top)
+
+    def test_the_words_stand_over_their_bar_and_the_line_runs_down_to_its_number(self) -> None:
+        chart = self.pointed()
+        left, _top, wide, _tall = self.inner(chart)
+        middle = left + wide * (2 + 0.5) / 4                       # Q3 は 4 つのうちの 3 つめ
+        callout = chart.callouts[0]
+        self.assertAlmostEqual(middle, callout.words.left + callout.words.width / 2, delta=1)
+        self.assertAlmostEqual(middle, callout.line.left + callout.line.width / 2, delta=1)
+        self.assertEqual(self.S.hairline, callout.line.width)
+        self.assertEqual(callout.words.bottom, callout.line.top)
+        # 棒の頭の上には数字が 1 行ぶん在る。線はその上で止まる
+        self.assertAlmostEqual(self.height_of(chart, 21) - self.LINE - self.S.bar_pad_y, callout.line.bottom, delta=1)
+
+    def test_among_several_series_the_line_lands_on_the_bar_of_the_series_named(self) -> None:
+        chart = self.pointed(series=(NORTH, SOUTH), callouts=(
+            {"at": "Q1", "series": "North", "text": "a"}, {"at": "Q1", "series": "South", "text": "b"},
+            {"at": "Q4", "series": "South", "text": "c"}))
+        left, _top, wide, _tall = self.inner(chart)
+        slot = wide / 4
+        bar = slot / (2 + 1.5)                                     # 棒 2 本と、項目どうしの間 (= 棒 1.5 本ぶん)
+        wanted = [left + bar * (0.75 + 0.5), left + bar * (0.75 + 1.5), left + 3 * slot + bar * (0.75 + 1.5)]
+        found = [callout.line.left + callout.line.width / 2 for callout in chart.callouts]
+        for want, got in zip(wanted, found):
+            self.assertAlmostEqual(want, got, delta=1)
+        heights = [callout.line.bottom for callout in chart.callouts]
+        for value, got in zip((12, 8, 16), heights):
+            self.assertAlmostEqual(self.height_of(chart, value) - self.LINE - self.S.bar_pad_y, got, delta=1)
+
+    def test_on_a_line_the_point_is_the_value_itself_at_the_middle_of_its_category(self) -> None:
+        chart = self.pointed("line", series=(NORTH, SOUTH), labels=False,
+                             callouts=({"at": "Q2", "series": "South", "text": "flat"},))
+        left, _top, wide, _tall = self.inner(chart)
+        callout = chart.callouts[0]
+        self.assertAlmostEqual(left + wide * 1.5 / 4, callout.line.left + callout.line.width / 2, delta=1)
+        self.assertAlmostEqual(self.height_of(chart, 9) - self.S.bar_pad_y, callout.line.bottom, delta=1)
+
+    def test_a_stacked_column_and_a_waterfall_are_pointed_at_the_top_of_one_column(self) -> None:
+        stacked = self.pointed("stacked", series=(NORTH, SOUTH), callouts=({"at": "Q3", "text": "the peak"},))
+        self.assertAlmostEqual(self.height_of(stacked, 21 + 14) - self.S.bar_pad_y, stacked.callouts[0].line.bottom,
+                               delta=1)
+        fall = a_chart("waterfall", series=({"name": "Profit", "values": [100, 20, -15, 105]},),
+                       categories=["Start", "Up", "Down", "End"], totals=["Start", "End"],
+                       callouts=[{"at": "Down", "text": "a"}, {"at": "End", "text": "b"}, {"at": "Up", "text": "c"}])
+        tops = [callout.line.bottom + self.S.bar_pad_y for callout in fall.callouts]
+        for value, got in zip((120, 105, 120), tops):                # 減った段は、減る前の高さが頭
+            self.assertAlmostEqual(self.height_of(fall, value), got, delta=1)
+        for kind, chart in (("stacked", {"series": [NORTH, SOUTH]}), ("waterfall", {"series": [NORTH]})):
+            with self.subTest(kind), self.assertRaises(PageTypeError) as refused:
+                build({"type": "chart", "title": "t", "chart": {
+                    "kind": kind, "categories": QUARTERS, **chart,
+                    "callouts": [{"at": "Q1", "series": "North", "text": "a"}]}})
+            self.assertIn("one column at a time", str(refused.exception))
+
+    def test_on_a_bar_chart_the_words_stand_to_the_right_level_with_their_bar(self) -> None:
+        chart = self.pointed("bar", series=(NORTH, SOUTH), unit=" pt", callouts=(
+            {"at": "Q2", "series": "South", "text": "behind"}, {"at": "Q4", "series": "North", "text": "ahead of it"}))
+        band = DEFAULT.width("ahead of it") + self.S.gap_s
+        self.assertEqual((chart.rect.width - band, chart.rect.height, chart.rect.top),
+                         (chart.frame.width, chart.frame.height, chart.frame.top))
+        left, top, wide, tall = self.inner(chart)
+        slot = tall / 4
+        bar = slot / (2 + 1.5)
+        for callout, (category, member, value) in zip(chart.callouts, ((1, 1, 9), (3, 0, 18))):
+            level = top + slot * category + bar * (0.75 + member + 0.5)       # 最初の項目が上
+            self.assertEqual(chart.frame.right + self.S.gap_s, callout.words.left)
+            self.assertAlmostEqual(level, callout.words.top + callout.words.height / 2, delta=1)
+            self.assertAlmostEqual(level, callout.line.top + callout.line.height / 2, delta=1)
+            self.assertEqual(self.S.hairline, callout.line.height)
+            tip = left + wide * (value - chart.pinned.low) / (chart.pinned.high - chart.pinned.low)
+            number = DEFAULT.width(f"{value} pt") + self.S.gap_s            # 棒の先に付く数字のぶんを空ける
+            self.assertAlmostEqual(tip + number + self.S.bar_pad_y, callout.line.left, delta=1)
+            self.assertEqual(callout.words.left - self.S.bar_pad_y, callout.line.right)
+
+    def test_the_value_axis_starts_at_nothing_and_leaves_room_for_the_number_on_the_tallest_bar(self) -> None:
+        chart = self.pointed()
+        _left, top, _wide, _tall = self.inner(chart)
+        self.assertEqual(0, chart.pinned.low)
+        self.assertGreaterEqual(self.height_of(chart, 21) - top, self.LINE + self.S.bar_pad_y - 1)
+        self.assertEqual(0, chart.pinned.high % chart.pinned.step)
+        self.assertEqual((0.0, 25.0, 5.0, 150), (chart.pinned.low, chart.pinned.high, chart.pinned.step,
+                                                 chart.pinned.gap))
+
+    def test_the_steps_of_the_axis_are_ones_twos_and_fives(self) -> None:
+        for values, step in (([1, 2, 3, 4.2], 1), ([120, 135, 150, 190], 50), ([0.2, 0.5, 0.9, 0.7], 0.2),
+                             ([1200, 3400, 8100, 7000], 2000)):
+            with self.subTest(values=values):
+                chart = self.pointed(series=({"name": "n", "values": values},), labels=False)
+                self.assertAlmostEqual(step, chart.pinned.step)
+                self.assertGreaterEqual(chart.pinned.high, max(values))
+
+    def test_values_below_zero_get_their_room_under_the_ground(self) -> None:
+        chart = self.pointed(series=({"name": "n", "values": [10, -20, 5, 8]},),
+                             callouts=({"at": "Q2", "text": "a loss"}, {"at": "Q1", "text": "a gain"}))
+        self.assertLess(chart.pinned.low, -20)
+        self.assertGreater(chart.pinned.high, 10)
+        loss, gain = chart.callouts
+        # 負の棒は地面から下がる。指すのは地面の高さ (= 棒の根元)
+        self.assertAlmostEqual(self.height_of(chart, 0) - self.LINE - self.S.bar_pad_y, loss.line.bottom, delta=1)
+        self.assertAlmostEqual(self.height_of(chart, 10) - self.LINE - self.S.bar_pad_y, gain.line.bottom, delta=1)
+
+    def test_with_the_numbers_on_the_axis_the_plot_makes_room_for_them(self) -> None:
+        on_the_bars, on_the_axis = self.pointed(), self.pointed(labels=False)
+        widest = DEFAULT.width("25")
+        self.assertAlmostEqual(self.inner(on_the_bars)[0] + widest + self.S.gap_s, self.inner(on_the_axis)[0], delta=1)
+
+    def test_the_legend_and_the_names_of_the_categories_keep_their_room_under_the_plot(self) -> None:
+        one, two = self.pointed(), self.pointed(series=(NORTH, SOUTH),
+                                                callouts=({"at": "Q3", "series": "North", "text": "a"},))
+        bottom = [self.inner(chart)[1] + self.inner(chart)[3] for chart in (one, two)]
+        self.assertAlmostEqual(one.frame.bottom - self.LINE - self.S.gap_s, bottom[0], delta=1)
+        self.assertAlmostEqual(two.frame.bottom - 2 * (self.LINE + self.S.gap_s), bottom[1], delta=1)
+
+    def test_words_that_would_print_over_each_other_stop_the_page(self) -> None:
+        with self.assertRaises(PageFullError) as stopped:
+            self.pointed(callouts=({"at": "Q2", "text": "a sentence long enough to reach its neighbour " * 2},
+                                   {"at": "Q3", "text": "another one just as long as the first one " * 2}))
+        self.assertIn("would print over each other", str(stopped.exception))
+        self.assertEqual(2, len(self.pointed(callouts=({"at": "Q1", "text": "short"},
+                                                       {"at": "Q4", "text": "short too"})).callouts))
+
+    def test_words_wider_than_the_chart_stop_the_page(self) -> None:
+        with self.assertRaises(PageFullError) as stopped:
+            self.pointed(callouts=({"at": "Q2", "text": "word " * 80},))
+        self.assertIn("does not fit beside the chart", str(stopped.exception))
+
+    def test_words_near_an_edge_stay_inside_and_the_line_still_stands_over_the_bar(self) -> None:
+        chart = self.pointed(callouts=({"at": "Q1", "text": "a sentence that is wider than the first bar by far"},))
+        callout = chart.callouts[0]
+        self.assertEqual(chart.rect.left, callout.words.left)
+        left, _top, wide, _tall = self.inner(chart)
+        self.assertAlmostEqual(left + wide * 0.5 / 4, callout.line.left + callout.line.width / 2, delta=1)
+
+    def test_what_a_callout_may_not_be(self) -> None:
+        base = {"kind": "column", "categories": QUARTERS, "series": [NORTH, SOUTH]}
+        for callouts, word in (
+                ("Q3", "`callouts` is a list"), ([], "`callouts` is a list"),
+                ([{"at": "Q9", "series": "North", "text": "a"}], "`at` is 'Q9'"),
+                ([{"at": "Q1", "text": "a"}], "say which one with `series`"),
+                ([{"at": "Q1", "series": "East", "text": "a"}], "`series` is 'East'"),
+                ([{"at": "Q1", "series": "North", "text": "  "}], "`text` is the few words"),
+                ([{"at": "Q1", "series": "North", "text": "two\nlines"}], "`text` is the few words"),
+                ([{"at": "Q1", "series": "North", "text": 3}], "`text` is the few words"),
+                ([{"at": "Q1", "series": "North", "text": "a", "x": 3}], "callout 1 does not take x"),
+                ([{"at": "Q1", "series": "North", "text": "a"}, {"at": "Q1", "series": "North", "text": "b"}],
+                 "already has a callout")):
+            with self.subTest(word), self.assertRaises(PageTypeError) as refused:
+                build({"type": "chart", "title": "t", "chart": {**base, "callouts": callouts}})
+            self.assertIn(word, str(refused.exception))
+
+    def test_written_out_the_chart_and_its_words_are_one_group_and_the_plot_is_pinned(self) -> None:
+        chart = self.pointed(series=(NORTH, SOUTH), callouts=({"at": "Q3", "series": "North", "text": "the peak"},
+                                                              {"at": "Q1", "series": "South", "text": "slow"}))
+        xml, parts = written(chart)
+        slide = parts["ppt/slides/slide1.xml"].decode("utf-8")
+        group = re.search(r"<p:grpSp>.*</p:grpSp>", slide, re.S).group(0)
+        self.assertEqual(1, slide.count("<p:grpSp>"))
+        self.assertEqual(1, group.count("<p:graphicFrame>"))
+        self.assertEqual(["the peak", "slow"], re.findall(r"<a:t>([^<]+)</a:t>", group))
+        self.assertEqual(4, group.count("<p:sp>"), "two callouts are two lines and two boxes of words")
+        self.assertNotIn("<p:graphicFrame>", slide.replace(group, ""), "the chart was left outside the group")
+        frame = re.search(r'<p:xfrm><a:off x="(\d+)" y="(\d+)"/><a:ext cx="(\d+)" cy="(\d+)"/>', group).groups()
+        self.assertEqual((chart.frame.left, chart.frame.top, chart.frame.width, chart.frame.height),
+                         tuple(int(value) for value in frame))
+        layout = re.search(r"<c:plotArea><c:layout><c:manualLayout>(.*?)</c:manualLayout>", xml, re.S).group(1)
+        self.assertIn('<c:layoutTarget val="inner"/><c:xMode val="edge"/><c:yMode val="edge"/>', layout)
+        self.assertEqual([f"{part:.6f}" for part in chart.pinned.inner],
+                         re.findall(r'<c:[xywh] val="([\d.]+)"/>', layout))
+        self.assertIn('<c:max val="25.0"/>', xml)
+        self.assertIn('<c:min val="0.0"/>', xml)
+        self.assertIn('<c:majorUnit val="5.0"/>', xml)
+        self.assertIn('<c:gapWidth val="150"/>', xml)
+
+    def test_a_group_puts_its_pieces_where_the_page_put_them(self) -> None:
+        """グループの中の座標が頁の座標と同じでなければ、検査は別の場所を見ることになる。"""
+        chart = self.pointed()
+        _xml, parts = written(chart)
+        group = re.search(r"<p:grpSpPr>(.*?)</p:grpSpPr>", parts["ppt/slides/slide1.xml"].decode("utf-8")).group(1)
+        outer = re.search(r'<a:off x="(\d+)" y="(\d+)"/><a:ext cx="(\d+)" cy="(\d+)"/>', group).groups()
+        inside = re.search(r'<a:chOff x="(\d+)" y="(\d+)"/><a:chExt cx="(\d+)" cy="(\d+)"/>', group).groups()
+        self.assertEqual(outer, inside)
+
+    def test_once_baked_the_checks_find_nothing_and_the_deck_opens(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            deck = new_deck()
+            for kind, series, callouts in (
+                    ("column", (NORTH, SOUTH), [{"at": "Q3", "series": "North", "text": "the peak"}]),
+                    ("bar", (NORTH,), [{"at": "Q2", "text": "behind"}]),
+                    ("line", (NORTH,), [{"at": "Q4", "text": "a dip"}]),
+                    ("stacked", (NORTH, SOUTH), [{"at": "Q1", "text": "low"}])):
+                page = build({"type": "chart", "title": f"A {kind}", "footer": "Source: made up",
+                              "chart": {"kind": kind, "categories": QUARTERS, "series": list(series),
+                                        "callouts": callouts}})
+                frame = page.theme.frame()
+                for element in page.build():
+                    self.assertTrue(frame.contains(element.rect), element.kind)
+                add_page(deck, page.build())
+            saved = save(deck, Path(tmp) / "pointed.pptx")
+            self.assertEqual([], checks.run_all(saved))
+            self.assertEqual(4, len(Presentation(str(saved)).slides))
+
+    def test_a_chart_in_a_cell_takes_callouts_too(self) -> None:
+        cell = {"chart": {"kind": "column", "categories": ["a", "b"], "series": [{"name": "n", "values": [1, 2]}],
+                          "callouts": [{"at": "b", "text": "up"}]}}
+        page = build({"type": "compose", "title": "In a cell", "rows": [{"cells": [cell, {"card": ["Beside", "x"]}]}]})
+        chart = next(e for e in page.build() if isinstance(e, Chart))
+        self.assertTrue(chart.rect.contains(chart.callouts[0].words))
+        self.assertTrue(chart.rect.contains(chart.frame))
 
 
 CHART = {"kind": "column", "categories": QUARTERS, "series": [NORTH]}
@@ -575,6 +833,22 @@ class TheChartTravelsWithItsPage(unittest.TestCase):
             with Deck.open(self.specimen, self.dir / "built.pptx") as deck:
                 deck.bring(broken, 1)
         self.assertIn("does not carry", str(stopped.exception))
+
+    def test_a_chart_inside_a_group_is_carried_like_any_other(self) -> None:
+        """注記を持つグラフはグループの中に在る。頁がグラフを指す関係は同じなので、同じに運ばれる。"""
+        deck = new_deck()
+        page = build({"type": "chart", "title": "Pointed", "chart": {**CHART, "callouts": [{"at": "Q3", "text": "up"}]}})
+        add_page(deck, page.build())
+        source = save(deck, self.dir / "pointed.pptx")
+        out = self.dir / "built.pptx"
+        with Deck.open(self.specimen, out) as built:
+            built.copy(1)
+            built.bring(source, 1, relayout=True)
+        self.assertEqual([["12", "15", "21", "18"]], [values for _c, values, _b in self.charts_of(out)])
+        slide = self.parts(out)["ppt/slides/" + read_pages(out)[1].name].decode("utf-8")
+        self.assertIn("<p:grpSp>", slide)
+        self.assertIn("<a:t>up</a:t>", slide)
+        self.assertEqual([], checks.run_all(out))
 
     def test_a_deck_with_charts_converts(self) -> None:
         """LibreOffice reading it end to end is the closest check to opening it."""
