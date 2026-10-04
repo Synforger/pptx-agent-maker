@@ -22,8 +22,27 @@ LAYOUT = "ppt/slideLayouts/slideLayout1.xml"
 TITLE_COLOUR = "0070C0"
 
 
-def a_template(destination: Path, *, title: bool = True, logo: Rect | None = None) -> Path:
-    """The shipped specimen, with its first layout made a page of content."""
+def _line(across: Rect, how: str) -> str:
+    """A line a layout draws, the two ways PowerPoint writes one: a connector, or a shape with no height."""
+    place = (f'<a:xfrm><a:off x="{across.left}" y="{across.top}"/><a:ext cx="{across.width}" cy="0"/></a:xfrm>'
+             '<a:prstGeom prst="line"><a:avLst/></a:prstGeom>')
+    stroke = {"connector": '<a:ln w="12700"><a:solidFill><a:srgbClr val="7F7F7F"/></a:solidFill></a:ln>',
+              "flat": '<a:ln w="12700"><a:solidFill><a:srgbClr val="7F7F7F"/></a:solidFill></a:ln>',
+              "unseen": "<a:ln><a:noFill/></a:ln>"}[how]
+    if how == "connector":
+        return ('<p:cxnSp><p:nvCxnSpPr><p:cNvPr id="91" name="Line"/><p:cNvCxnSpPr/><p:nvPr/></p:nvCxnSpPr>'
+                f"<p:spPr>{place}{stroke}</p:spPr></p:cxnSp>")
+    return ('<p:sp><p:nvSpPr><p:cNvPr id="91" name="Line"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>'
+            f"<p:spPr>{place}{stroke}</p:spPr></p:sp>")
+
+
+def a_template(destination: Path, *, title: bool = True, logo: Rect | None = None,
+               line: Rect | None = None, line_as: str = "connector") -> Path:
+    """The shipped specimen, with its first layout made a page of content.
+
+    `line` は、レイアウトが頁に描く線 (= 題の下の罫線など。高さは読まない)。`line_as` はその書かれ方 ―
+    `connector` (= コネクタ) / `flat` (= 高さの無い図形) / `unseen` (= 線を引かない図形)。
+    """
     with zipfile.ZipFile(SHIPPED) as source, zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as out:
         for item in source.infolist():
             data = source.read(item.filename)
@@ -42,6 +61,8 @@ def a_template(destination: Path, *, title: bool = True, logo: Rect | None = Non
                         f'<a:xfrm><a:off x="{logo.left}" y="{logo.top}"/><a:ext cx="{logo.width}" cy="{logo.height}"/>'
                         '</a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill>'
                         '<a:srgbClr val="7F7F7F"/></a:solidFill></p:spPr></p:sp></p:spTree>'))
+                if line is not None:
+                    xml = xml.replace("</p:spTree>", _line(line, line_as) + "</p:spTree>")
                 data = xml.encode("utf-8")
             out.writestr(item, data)
     return destination
