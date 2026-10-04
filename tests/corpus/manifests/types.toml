@@ -276,3 +276,23 @@ table = [
 ]
 footer = "made up for the corpus"
 why = "a table whose cells say how deep their ground is"
+
+[[pages]]
+kind = "declare"
+type = "flow"
+title = "Stages top to bottom, branching sideways where a stage holds two nodes"
+direction = "down"
+why = "a flow that runs down the page"
+
+[[pages.stages]]
+name = "Intake"
+nodes = [["Request", "comes in at the desk"]]
+
+[[pages.stages]]
+name = "Review"
+nodes = [["Papers", "read against the rules"], { heading = "Site", body = "seen in person", tone = "tint" }]
+settled = "both must pass"
+
+[[pages.stages]]
+name = "Decision"
+nodes = [["Notice", "the answer goes back"]]

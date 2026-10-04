@@ -1,0 +1,69 @@
+# A flow that runs down the page: stages top to bottom, the nodes of a stage side by side.
+
+tests = ["tests/test_flow_down.py"]
+
+[[mutant]]
+name = "a flow told to run down runs right all the same"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "    if direction == \"down\":\n        _down(page, spec, stages, area)"
+new = "    if False:\n        _down(page, spec, stages, area)"
+
+[[mutant]]
+name = "a direction nobody knows is read as right"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "    if not isinstance(direction, str) or direction not in DIRECTIONS:"
+new = "    if False:"
+
+[[mutant]]
+name = "rows aligned across stages are taken by a flow that runs down"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = '    if "align_rows" in spec.data:'
+new = "    if False:"
+
+[[mutant]]
+name = "the nodes of a stage are measured as if each had the whole width"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "        tall = card_height(page, nodes, nodes_area.width, len(nodes))"
+new = "        tall = card_height(page, nodes, nodes_area.width, 1)"
+
+[[mutant]]
+name = "the column of names is as wide as the first name"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "    named = max(theme.width(str(stage[\"name\"]), theme.type.stage, bold=True) for stage in stages)"
+new = "    named = theme.width(str(stages[0][\"name\"]), theme.type.stage, bold=True)"
+
+[[mutant]]
+name = "a flow too tall for the page is placed all the same"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "    if wanted > area.height:\n        raise PageFullError(\n            f\"this flow needs {wanted} EMU of height and the body has {area.height} — \"\n            \"fewer stages"
+new = "    if False:\n        raise PageFullError(\n            f\"this flow needs {wanted} EMU of height and the body has {area.height} — \"\n            \"fewer stages"
+
+[[mutant]]
+name = "the arrow between two stages points right"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = 'page.marker(Rect(nodes_area.left, top + gap, nodes_area.width, arrow), "↓")'
+new = 'page.marker(Rect(nodes_area.left, top + gap, nodes_area.width, arrow), "→")'
+
+[[mutant]]
+name = "the arrow stands on top of the stage under it"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "            top += arrow + 2 * gap\n"
+new = ""
+
+[[mutant]]
+name = "what is settled is dropped from a flow that runs down"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "        if under:\n            page.note("
+new = "        if False:\n            page.note("
+
+[[mutant]]
+name = "the name of a stage is as tall as one line, not as its stage"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "page.label(Rect(names.left, top, names.width, tall), name, size=theme.type.stage, bold=True)"
+new = "page.label(Rect(names.left, top, names.width, theme.line_height(theme.type.stage)), name, size=theme.type.stage, bold=True)"
+
+[[mutant]]
+name = "the name of a stage is put in a box that folds"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "page.label(Rect(names.left, top, names.width, tall), name, size=theme.type.stage, bold=True)"
+new = "page.lane(Rect(names.left, top, names.width, tall), name)"

@@ -1,17 +1,23 @@
-"""Stages left to right, each holding its nodes."""
+"""Stages left to right, each holding its nodes — or, turned, stages top to bottom."""
 
 from __future__ import annotations
 
 from ...base.geometry import Rect
 from ...parts.page import Page, PageFullError
-from ..core.read import Spec
+from ..core.read import Spec, read_card
 from ..core.registry import PageTypeError, register
-from ..core.stack import aligned_rows, place_stack, stage_stacks
+from ..core.stack import aligned_rows, card_height, place_stack, stage_stacks
+
+#: 流れの向き。`right` は段を左から右 (= 既定)、`down` は段を上から下
+DIRECTIONS = ("right", "down")
 
 
-@register("flow", needs=["stages"], takes=["align_rows"])
+@register("flow", needs=["stages"], takes=["align_rows", "direction"])
 def _flow(page: Page, spec: Spec, area: Rect) -> None:
     """Stages left to right, each holding its nodes, each with what is settled below.
+
+    `direction = "down"` は、段を上から下へ並べる (= `_down`。段の中のノードは横に並び、2 つ以上なら
+    そこが分岐になる)。
 
     `align_rows = true` は、同じ順番のノードを段をまたいで横に揃える (= 行が「誰の仕事か」の
     ような意味を持つ頁のため。行の高さはその行で一番高いノードに合わせる)。書かなければ、
@@ -23,6 +29,13 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
     stages = spec.get("stages")
     if len(stages) < 2:
         raise PageTypeError("flow: a flow needs at least two stages")
+    direction = spec.get("direction", "right")
+    if not isinstance(direction, str) or direction not in DIRECTIONS:
+        raise PageTypeError(
+            f"flow: `direction` is {direction!r} — a flow runs {' or '.join(repr(way) for way in DIRECTIONS)}")
+    if direction == "down":
+        _down(page, spec, stages, area)
+        return
     aligned = aligned_rows(spec, "flow")
 
     weights: list[float] = []
@@ -64,3 +77,62 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
         place_stack(page, body, column_nodes)
         if stage.get("settled") and settled_height:
             page.note(after.split_top(settled_height)[0], str(stage["settled"]))
+
+
+def _down(page: Page, spec: Spec, stages: list, area: Rect) -> None:
+    """Stages top to bottom: the nodes of a stage side by side, its name at its left, an arrow between two.
+
+    左から右の流れ図を転置した形。**段の中のノードは横に並ぶ** ― 1 つなら段の幅いっぱい、2 つ以上なら
+    等分で、そこが横への分岐になる (= 分岐と合流は、段ごとのノードの数で書く)。
+
+    * 段の名前は左の列に、1 行で立つ。列の幅は、いちばん長い名前の幅 (= 比では決めない)
+    * 段の高さは、その段でいちばん高いノードの高さ (= 横に並ぶノードは同じ高さに揃う)
+    * 段の下の 1 行 (= `settled`) は、その段のノードの下に置く
+    * 段と段の間に、向きの字を 1 つ (= 高さは、その字 1 行ぶん)
+
+    ⚠ **収まらない流れは止まる** (= 縮めない)。段を減らすか、2 頁に分ける。
+    """
+    theme, s = page.theme, page.theme.spacing
+    if "align_rows" in spec.data:
+        raise PageTypeError(
+            "flow: `align_rows` lines up the nodes of a flow that runs right — in one that runs down, "
+            "the nodes of a stage already share its height")
+    gap = s.gap_s
+    named = max(theme.width(str(stage["name"]), theme.type.stage, bold=True) for stage in stages)
+    if named + s.gap_m >= area.width:
+        raise PageFullError("flow: the names of the stages leave their nodes no room — shorter names")
+    names, nodes_area = area.columns([named, area.width - named - s.gap_m], gap=s.gap_m)
+
+    rows = []
+    for number, stage in enumerate(stages, start=1):
+        nodes = [read_card(spec, node, f"flow: stage {number}, node {index}")
+                 for index, node in enumerate(stage.get("nodes", []), start=1)]
+        if not nodes:
+            raise PageTypeError(f"flow: stage {stage['name']!r} has no nodes")
+        tall = card_height(page, nodes, nodes_area.width, len(nodes))
+        settled = str(stage["settled"]) if stage.get("settled") else ""
+        under = theme.wrapped_height(settled, nodes_area.width - 2 * s.text_inset) if settled else 0
+        rows.append((str(stage["name"]), nodes, tall, settled, under))
+
+    arrow = theme.line_height(theme.type.marker)
+    wanted = (sum(tall + (gap + under if under else 0) for _n, _c, tall, _s, under in rows)
+              + (len(rows) - 1) * (arrow + 2 * gap))
+    if wanted > area.height:
+        raise PageFullError(
+            f"this flow needs {wanted} EMU of height and the body has {area.height} — "
+            "fewer stages, shorter nodes, or two pages; it will not shrink")
+
+    page.drew_a_diagram()  # 段とノードで組んだ流れ図そのものが、この頁の図解
+    top = area.top
+    for index, (name, nodes, tall, settled, under) in enumerate(rows):
+        if index:
+            page.marker(Rect(nodes_area.left, top + gap, nodes_area.width, arrow), "↓")
+            top += arrow + 2 * gap
+        # ⚠ 段の名前は折り返さない 1 行の名前として置く。列の幅は字の幅ちょうどなので、折り返す枠に
+        # 入れると、焼いた絵で 1 文字ずつ縦に折れた
+        page.label(Rect(names.left, top, names.width, tall), name, size=theme.type.stage, bold=True)
+        page.boxes(Rect(nodes_area.left, top, nodes_area.width, tall), nodes)
+        top += tall
+        if under:
+            page.note(Rect(nodes_area.left, top + gap, nodes_area.width, under), settled)
+            top += gap + under
