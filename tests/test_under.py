@@ -172,11 +172,13 @@ class ALineAcrossThePage(unittest.TestCase):
 
     FOLDED = "題" * 60
 
-    def test_a_title_on_one_line_is_built_as_it_always_was(self) -> None:
+    def test_a_title_on_one_line_is_placed_as_it_always_was(self) -> None:
+        """題と、題の上の小さい字は、線が在っても同じ所に置く。変わるのは線から下 (= `TheRestGoesOnUnderTheLine`)。"""
         for kicker in ("", "01 | 背景"):
             with self.subTest(kicker=kicker):
-                self.assertEqual(Page(ONE, kicker=kicker).elements,
-                                 Page(ONE, self.over(self.under_one_line()), kicker=kicker).elements)
+                plain, ruled = Page(ONE, kicker=kicker), Page(ONE, self.over(self.under_one_line()), kicker=kicker)
+                for kind in ("title", "kicker") if kicker else ("title",):
+                    self.assertEqual(placed(plain, kind), placed(ruled, kind), kind)
 
     def test_a_title_on_one_line_is_never_stopped_whatever_runs_under_it(self) -> None:
         """題を短くしても直らない頁を、ここで止めない。1 行の題の字のすぐ下から太い物が頁を横切っていても、
@@ -213,11 +215,11 @@ class ALineAcrossThePage(unittest.TestCase):
                 with self.assertRaises(PageFullError):
                     Page(self.FOLDED, self.over(self.under_one_line(theme), theme=theme), kicker="01 | 背景")
 
-    def test_a_line_under_everything_the_title_folds_to_changes_nothing(self) -> None:
+    def test_a_line_under_everything_the_title_folds_to_stops_nothing(self) -> None:
         frame = DEFAULT.frame()
         low = Rect(0, frame.top + DEFAULT.spacing.title_height + 3 * DEFAULT.line_height(DEFAULT.type.title),
                    DEFAULT.slide.width, 12700)
-        self.assertEqual(Page(self.FOLDED).elements, Page(self.FOLDED, self.over(low)).elements)
+        self.assertEqual(placed(Page(self.FOLDED), "title"), placed(Page(self.FOLDED, self.over(low)), "title"))
 
     def test_a_short_line_at_one_side_is_kept_off_like_a_logo_and_does_not_stop_the_page(self) -> None:
         across = self.under_one_line()
@@ -240,6 +242,78 @@ class ALineAcrossThePage(unittest.TestCase):
                     self.assertGreater(line.height, 0)
             self.assertEqual((), under_of(a_template(Path(tmp) / "unseen.pptx", line=across, line_as="unseen")).prints,
                              "a shape that draws no line prints nothing")
+
+
+class TheRestGoesOnUnderTheLine(unittest.TestCase):
+    """題の帯の下に、レイアウトが頁を横切って描く線が残っていれば、頁はその下から続く。
+
+    題の帯の高さは使い方で変わるが、レイアウトの線は動かない。字の小さい使い方の頁 (= 紙 1 枚の頁) は帯が低く、
+    本文がテンプレートの罫線より上から始まって、箱が罫線に乗った (= 検査は細い線を数えない)。
+    """
+
+    @staticmethod
+    def over(*prints: Rect, theme=DEFAULT):
+        from pptx_agent_maker.layout.base.tokens import Under
+        return replace(theme, under=Under(prints=tuple(prints)))
+
+    @staticmethod
+    def line(below_the_frame_top: int, theme=DEFAULT) -> Rect:
+        return Rect(0, theme.frame().top + below_the_frame_top, theme.slide.width, 12700)
+
+    def test_the_body_starts_under_a_line_left_below_the_band(self) -> None:
+        line = self.line(DEFAULT.spacing.title_height + cm(0.4))
+        page = Page(ONE, self.over(line))
+        self.assertEqual(line.bottom + DEFAULT.spacing.gap_s, page.body.top)
+        self.assertEqual(Page(ONE).body.bottom, page.body.bottom, "only the top of what is left moves")
+        self.assertFalse(any(e.kind == "rule" for e in page.elements), "the line under the title is the layout's")
+
+    def test_a_page_set_in_smaller_type_clears_a_line_drawn_for_a_larger_title(self) -> None:
+        """実際に出た形: 映す資料のテンプレートの罫線は、映す大きさの題の帯のすぐ下に在る。そこへ紙 1 枚の
+        頁を挟むと帯が低く、本文が罫線の上から始まった。"""
+        shown = DEFAULT.using("present")
+        line = self.line(shown.spacing.title_height)          # 映す資料の題の帯の下端に引かれた線
+        for use in ("read", "sheet"):
+            with self.subTest(use=use):
+                page = Page(ONE, self.over(line, theme=shown.using(use)))
+                self.assertGreaterEqual(page.body.top, line.bottom)
+                self.assertFalse(any(e.rect.overlaps(line) for e in page.elements if e.kind != "title"))
+        in_its_own_use = Page(ONE, self.over(line, theme=shown))
+        self.assertEqual(Page(ONE, shown).elements, in_its_own_use.elements, "a line at the foot of the band moves nothing")
+
+    def test_a_line_inside_the_band_or_above_it_changes_nothing(self) -> None:
+        for name, line in (("inside the band", self.line(DEFAULT.spacing.title_height - cm(0.2))),
+                           ("at the foot of the band", self.line(DEFAULT.spacing.title_height)),
+                           ("in the gap under the band, with room to spare", self.line(DEFAULT.spacing.title_height + cm(0.1))),
+                           ("at the top of the page", Rect(0, cm(0.3), DEFAULT.slide.width, 12700))):
+            with self.subTest(name):
+                self.assertEqual(Page(ONE).elements, Page(ONE, self.over(line)).elements)
+
+    def test_what_reaches_the_lower_half_of_the_page_changes_nothing(self) -> None:
+        low = Rect(0, DEFAULT.slide.height - cm(1.2), DEFAULT.slide.width, 12700)          # 出所の上の罫線
+        ground = Rect(0, 0, DEFAULT.slide.width, DEFAULT.slide.height)                     # 頁を丸ごと覆う地
+        tall = Rect(0, DEFAULT.frame().top + DEFAULT.spacing.title_height + cm(0.2), DEFAULT.slide.width,
+                    DEFAULT.slide.height // 2)                                             # 上半分から下半分へ届く物
+        for name, thing in (("a rule above the source", low), ("a ground over the page", ground), ("tall", tall)):
+            with self.subTest(name):
+                self.assertEqual(Page(ONE).body, Page(ONE, self.over(thing)).body)
+
+    def test_a_short_line_at_one_side_changes_nothing_below(self) -> None:
+        short = Rect(LOGO.left, DEFAULT.frame().top + DEFAULT.spacing.title_height + cm(0.4), LOGO.width, 12700)
+        self.assertEqual(Page(ONE).body, Page(ONE, self.over(short)).body)
+
+    def test_a_block_over_the_title_that_ends_under_the_band_is_cleared_too(self) -> None:
+        block = Rect(0, 0, DEFAULT.slide.width, DEFAULT.frame().top + DEFAULT.spacing.title_height + cm(0.8))
+        self.assertEqual(block.bottom + DEFAULT.spacing.gap_s, Page(ONE, self.over(block)).body.top)
+
+    def test_the_lowest_of_several_lines_decides(self) -> None:
+        first, second = self.line(DEFAULT.spacing.title_height + cm(0.3)), self.line(DEFAULT.spacing.title_height + cm(0.8))
+        self.assertEqual(second.bottom + DEFAULT.spacing.gap_s, Page(ONE, self.over(first, second)).body.top)
+
+    def test_a_folded_title_that_clears_the_line_goes_on_under_it(self) -> None:
+        folded = "題" * 60
+        band = DEFAULT.spacing.title_height + DEFAULT.line_height(DEFAULT.type.title)
+        line = self.line(band + cm(0.3))
+        self.assertEqual(line.bottom + DEFAULT.spacing.gap_s, Page(folded, self.over(line)).body.top)
 
 
 class TheTitleIsTheLayoutsTitle(unittest.TestCase):
