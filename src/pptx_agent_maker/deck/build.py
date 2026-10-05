@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ..layout import types
 from ..layout.parts.page import PageFullError
-from ..layout.base.tokens import Theme, theme_from
+from ..layout.base.tokens import Theme, ThemeError, theme_from
 from ..project.files.manifest import Entry, Manifest, ManifestError
 from ..project.files.workspace import Workspace, WorkspaceError
 from ..review.take.fold import keep_safe
@@ -32,11 +32,19 @@ def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
     """The look this manifest's declared pages are built in: the specimen's, with the project's laid over.
 
     見本からはもう 1 つ読む ― 型の頁が乗るレイアウトが持つ物 (= 題の枠と、印字される物。`base/under.py`)。
+
+    字の大きさは、この資料が `use` で名指した使い方のもの (= 書いていなければ案件のもの)。頁が自分の
+    使い方を名指す時は、ここで返した見た目から選び直す (= `Theme.using`)。
     """
     specimen = (workspace.root / manifest.specimen).resolve()
     if not specimen.is_file():
         raise ManifestError(f"specimen not found: {specimen}")
-    return replace(theme_from(merged(specimen, workspace.look)), under=under_of(specimen))
+    look = replace(theme_from(merged(specimen, workspace.look)), under=under_of(specimen))
+    try:
+        return look.using(manifest.use or None)
+    except ThemeError as reason:
+        where = manifest.source.name if manifest.source else "the manifest"
+        raise ManifestError(f"{where}: {reason}") from reason
 
 
 def build(workspace: Workspace, manifest: Manifest) -> Path:
@@ -104,7 +112,8 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
     where: dict = {}
     for position, (index, entry) in enumerate(declared, start=1):
         page = _declared_page(workspace, manifest, entry, index, theme)
-        add_page(deck, page.build(), theme)
+        # 頁は自分の使い方の見た目で書く (= 表の行の高さや箱の余白も、組んだ時と同じ大きさから出る)
+        add_page(deck, page.build(), page.theme)
         where[index] = position
     where["path"] = save(deck, scratch / "declared.pptx")
     return where

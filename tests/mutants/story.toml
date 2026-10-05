@@ -85,11 +85,11 @@ new = "(*CHECKS, *DECLARED)"
 [[mutant]]
 name = "the build does not run the checks that read the manifest"
 file = "src/pptx_agent_maker/__main__.py"
-old = "findings = run_built(built_deck, manifest, theme_of(workspace, manifest), config)"
-new = "findings = run_all(built_deck, config)"
+old = "findings = run_built(built_deck, manifest, theme, _checks(workspace, manifest, theme))"
+new = "findings = run_all(built_deck, _checks(workspace, manifest, theme))"
+
 
 # -- the titles in order (deck/titles.py) ---------------------------------------
-
 [[mutant]]
 name = "the words above a title are left out"
 file = "src/pptx_agent_maker/deck/titles.py"

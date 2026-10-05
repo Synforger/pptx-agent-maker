@@ -17,8 +17,8 @@ new = "body=18, caption=14, minimum=10),"
 [[mutant]]
 name = "the sizes a project sets are not laid over the table"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    return replace(USES[use], **declared)"
-new = "    return USES[use]"
+old = "    return replace(base, **declared)"
+new = "    return base"
 
 [[mutant]]
 name = "a size under the floor is taken"
@@ -29,19 +29,19 @@ new = "        if False:\n"
 [[mutant]]
 name = "the floor a size is held to is always that of a deck to be read"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    floor = USES[use].minimum\n"
+old = "    floor = base.minimum\n"
 new = "    floor = USES[\"read\"].minimum\n"
 
 [[mutant]]
 name = "a role that is not the project's to set is taken"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    _refuse_unknown(sorted(set(declared) - set(SIZED)), \"theme.type\", SIZED)\n"
+old = "    _refuse_unknown(sorted(set(declared) - set(SIZED)), where, SIZED)\n"
 new = ""
 
 [[mutant]]
 name = "a use nobody knows is not refused"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    if use not in USES:\n"
+old = "    if not isinstance(use, str) or use not in scales:\n"
 new = "    if False:\n"
 
 [[mutant]]
@@ -83,14 +83,14 @@ new = "return (14, 12)"
 [[mutant]]
 name = "the checks hold every deck to the floor of a deck to be read"
 file = "src/pptx_agent_maker/__main__.py"
-old = 'return {"type_floor": theme_from(workspace.look).type.minimum, **workspace.settings.get("checks", {})}'
-new = 'return workspace.settings.get("checks", {})'
+old = "    config = {\"type_floor\": (theme or theme_from(workspace.look)).type.minimum, **asked}"
+new = "    config = dict(asked)"
 
 [[mutant]]
 name = "the floor a project writes for itself loses to the one of its use"
 file = "src/pptx_agent_maker/__main__.py"
-old = 'return {"type_floor": theme_from(workspace.look).type.minimum, **workspace.settings.get("checks", {})}'
-new = 'return {**workspace.settings.get("checks", {}), "type_floor": theme_from(workspace.look).type.minimum}'
+old = "    config = {\"type_floor\": (theme or theme_from(workspace.look)).type.minimum, **asked}"
+new = "    config = {**asked, \"type_floor\": (theme or theme_from(workspace.look)).type.minimum}"
 
 [[mutant]]
 name = "the use a project declares does not reach the pages it builds"
