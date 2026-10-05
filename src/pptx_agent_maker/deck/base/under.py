@@ -4,7 +4,12 @@
 描く側がそのレイアウトを知らなかった間は、レイアウトに題の枠が在っても題は自前の文字の枠で書かれ
 (= テンプレートから複製した頁の題と色が揃わない)、題の帯は頁の幅いっぱいに取られて右上のロゴに乗った。
 
-ここが読むのは 2 つだけ ― **題の枠が在るか**と、**何が印字されるか**。
+ここが読むのは 3 つだけ ― **題の枠が在るか**、**何が印字されるか**、**頁に番号を振る資料か**。
+
+⚠ **頁番号は、レイアウトに枠が在るだけでは振らない。**PowerPoint のレイアウトはほとんどが頁番号の枠を
+持つが、番号が出るのは、頁の側がその枠を持つ時だけ (= 「スライド番号」を入れた資料)。見本の頁が 1 枚も
+持たない資料で型の頁にだけ置くと、複製した頁には番号が無く、型の頁にだけ番号が出る ― 型の頁にだけ
+番号が出なかった元の食い違いを、裏返しただけになる。見本の頁のどれかが持つ時に、型の頁も持つ。
 
 ⚠ **印字される物の数え方は、重なりの検査と同じ関数を使う** (= `checks/base/ink.py`)。別々に数えると、
 描く側が避けた物と、検査が「乗っている」と言う物が食い違う。
@@ -31,6 +36,11 @@ _MASTER = re.compile(r'Target="\.\./slideMasters/(slideMaster\d+\.xml)"')
 #: 本文の頁の題の枠。表紙の題 (= `ctrTitle`) は数えない ― 真ん中に大きく置く題の見た目を、本文の頁の
 #: 題が継ぐことになる
 _TITLE = re.compile(r'<p:ph\b[^>]*\btype="title"')
+#: 頁番号の枠 (= 番号は開いた側が入れる)。レイアウトでは「この上の頁が持てる枠」、頁では「この頁は
+#: 番号を出す」
+_NUMBER = re.compile(r'<p:ph\b([^>]*\btype="sldNum"[^>]*?)/?>')
+_SAID = re.compile(r'([\w:]+)="([^"]*)"')
+_PAGE = re.compile(r"ppt/slides/slide\d+\.xml")
 #: 線になり得る図形 (= コネクタと、ふつうの図形)
 _DRAWN = re.compile(r"<p:(cxnSp|sp)>(.*?)</p:\1>", re.S)
 _STROKE = re.compile(r"<a:ln\b([^>]*)>(.*?)</a:ln>|<a:ln\b([^>]*)/>", re.S)
@@ -73,9 +83,12 @@ def under_of(specimen: Path | str) -> Under:
     読めない見本は「何も無い」と読む (= 題は今までどおり自前で書かれ、帯は頁の幅のまま)。
     """
     parts: list[str] = []
+    numbered = False
     try:
         with zipfile.ZipFile(Path(specimen)) as archive:
             parts.append(archive.read(LAYOUT).decode("utf-8"))
+            numbered = any(_NUMBER.search(archive.read(name).decode("utf-8"))
+                           for name in archive.namelist() if _PAGE.fullmatch(name))
             rels = archive.read(LAYOUT.replace("slideLayouts/", "slideLayouts/_rels/") + ".rels").decode("utf-8")
             for master in _MASTER.findall(rels):
                 parts.append(archive.read(f"ppt/slideMasters/{master}").decode("utf-8"))
@@ -88,4 +101,6 @@ def under_of(specimen: Path | str) -> Under:
         Rect(left, top, right - left, bottom - top)
         for part in parts for shape in shapes_in(part) if draws_anything(shape)
         for left, top, right, bottom in ink_of(shape) if right > left and bottom > top)
-    return Under(title=title, prints=prints + tuple(line for part in parts for line in _lines(part)))
+    frame = _NUMBER.search(parts[0]) if numbered else None
+    return Under(title=title, prints=prints + tuple(line for part in parts for line in _lines(part)),
+                 number=tuple(_SAID.findall(frame.group(1))) if frame else ())

@@ -151,5 +151,61 @@ new = ""
 [[mutant]]
 name = "the layout's lines are left out of what it prints"
 file = "src/pptx_agent_maker/deck/base/under.py"
-old = "prints=prints + tuple(line for part in parts for line in _lines(part)))"
-new = "prints=prints)"
+old = "prints=prints + tuple(line for part in parts for line in _lines(part)),"
+new = "prints=prints,"
+
+# -- the page's number -------------------------------------------------------------
+
+[[mutant]]
+name = "a layout that offers the frame is enough to number every declared page"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "    frame = _NUMBER.search(parts[0]) if numbered else None"
+new = "    frame = _NUMBER.search(parts[0])"
+
+[[mutant]]
+name = "the pages of the specimen are not looked at"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "for name in archive.namelist() if _PAGE.fullmatch(name))"
+new = "for name in archive.namelist() if False)"
+
+[[mutant]]
+name = "any placeholder on a page of the specimen counts as its number"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = """_NUMBER = re.compile(r'<p:ph\\b([^>]*\\btype="sldNum"[^>]*?)/?>')"""
+new = """_NUMBER = re.compile(r'<p:ph\\b([^>]*?)/?>')"""
+
+[[mutant]]
+name = "the frame's name is cut down to its kind"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "number=tuple(_SAID.findall(frame.group(1))) if frame else ())"
+new = "number=tuple(_SAID.findall(frame.group(1)))[:1] if frame else ())"
+
+[[mutant]]
+name = "the number is never written"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if theme.under.number:\n        _number(slide, theme)"
+new = "    if False:\n        _number(slide, theme)"
+
+[[mutant]]
+name = "every declared page gets a number whatever the deck does"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if theme.under.number:\n        _number(slide, theme)"
+new = "    if True:\n        _number(slide, theme)"
+
+[[mutant]]
+name = "the frame is always called by the shipped specimen's number"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        held.set(name, value)"
+new = "        held.set(name, \"12\" if name == \"idx\" else value)"
+
+[[mutant]]
+name = "the number takes the id of the first shape on the page"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = """id="{slide.shapes._next_shape_id}" name="Slide Number\""""
+new = """id="2" name="Slide Number\""""
+
+[[mutant]]
+name = "the number is written without the field the reader fills"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = """<a:fld id="{NUMBER_FIELD}" type="slidenum">"""
+new = """<a:fld id="{NUMBER_FIELD}" type="datetime1">"""

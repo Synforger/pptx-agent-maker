@@ -12,6 +12,8 @@
 * グラフは python-pptx の口 (= `add_chart`) だけで書く。グラフ本体・その関係・中のデータの表・種類の
   登録を 1 組で書いてくれるので、どれかが欠けた file を作らない
 * 表示から外したスライドを残さない (= 孤児のスライドも同じ)
+* 頁番号は、レイアウトの頁番号の枠を頁が持つ形で書く (= PowerPoint が「スライド番号」を入れた頁に
+  書く形そのまま)。番号の字を自前の文字の枠で書かない
 """
 
 from __future__ import annotations
@@ -25,7 +27,8 @@ from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
-from pptx.oxml.ns import qn
+from pptx.oxml import parse_xml
+from pptx.oxml.ns import nsdecls, qn
 from pptx.util import Emu, Pt
 
 from ..layout.parts.elements import Bar, Chart, Diamond, Element, Figure, Fill, Table, Text
@@ -41,6 +44,9 @@ TEXT_INSET_Y = 45720
 #: 「スタイルなし・罫線なし」。PowerPoint が新しい表に付ける既定のスタイルは
 #: **テーマの accent1 で見出しを塗る**ので、色の出どころが palette と 2 つに割れる。
 NO_TABLE_STYLE = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"
+
+#: 頁番号の欄の id。何の欄かは `type` が言い、id は欄を見分けるだけ (= どの頁も同じ値でよい)
+NUMBER_FIELD = "{B6F15528-21DE-4FAA-801E-634DDDAF4B2B}"
 
 
 def _colour(value: str) -> RGBColor:
@@ -73,7 +79,32 @@ def add_page(deck: Presentation, elements: list[Element], theme: Theme = DEFAULT
             _table(slide, element, theme)
         elif isinstance(element, Chart):
             _chart(slide, element, theme)
+    if theme.under.number:
+        _number(slide, theme)
     return slide
+
+
+def _number(slide, theme: Theme) -> None:
+    """The page's number, as the placeholder the layout keeps for it.
+
+    書くのは「レイアウトのこの枠を、この頁も持つ」ということだけ。位置・大きさ・字の見た目は何も書かず、
+    レイアウトから継ぐ (= テンプレートから複製した頁の番号と同じ所に、同じ見た目で出る)。番号そのものは
+    開いた側が入れる。
+
+    ⚠ **枠の名乗りは、レイアウトの物をそのまま写す** (= `type` と `idx`)。食い違うと、頁の枠はレイアウトの
+    枠と結び付かず、位置を持たない図形になる。
+    """
+    shape = parse_xml(
+        f'<p:sp {nsdecls("p", "a")}><p:nvSpPr>'
+        f'<p:cNvPr id="{slide.shapes._next_shape_id}" name="Slide Number"/>'
+        '<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph/></p:nvPr></p:nvSpPr><p:spPr/>'
+        f'<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:fld id="{NUMBER_FIELD}" type="slidenum">'
+        '<a:rPr lang="en-US"/><a:t>\u2039#\u203a</a:t></a:fld><a:endParaRPr lang="en-US"/></a:p></p:txBody>'
+        "</p:sp>")
+    held = shape.find(f'.//{qn("p:ph")}')
+    for name, value in theme.under.number:
+        held.set(name, value)
+    slide.shapes._spTree.insert_element_before(shape, "p:extLst")
 
 
 def _plain(shape) -> None:
