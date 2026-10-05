@@ -7,6 +7,8 @@
   本文の色で書かれ、テンプレートから複製した頁の題と色が揃わなかった
 * **題と札が、レイアウトのロゴに乗る** ― 題の帯は頁の幅いっぱいに取られ、右上のロゴに届いた題と、帯の
   右端に置かれる札が、重なりの検査で止まった (= 字の大きい、映す資料で先に出た)
+* **型の頁にだけ頁番号が出ない** ― 頁に番号を振る資料で、テンプレートから複製した頁には番号が出て、
+  型の頁には出なかった (= 道具が頁番号の枠を 1 つも置いていなかった)
 
 見た目はテンプレートのもの、頁の割り方は道具のもの、という線は動かさない ― 題の位置と大きさは道具が決め、
 色と書体をレイアウトから継ぐ。
@@ -28,7 +30,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tests"))
 
-from support.templates import SHIPPED, TITLE_COLOUR, a_template  # noqa: E402
+from support.templates import NUMBER_IDX, SHIPPED, TITLE_COLOUR, a_template  # noqa: E402
 
 from pptx_agent_maker import DEFAULT, Page, Rect, cm  # noqa: E402
 from pptx_agent_maker.__main__ import main  # noqa: E402
@@ -39,6 +41,8 @@ LOGO = Rect(DEFAULT.slide.width - cm(1.2) - cm(2.5), cm(0.7), cm(2.5), cm(1.2))
 ONE = "題は結論の文で書く"
 #: ロゴが無ければ 1 行に収まり、ロゴの手前で止めると折れる長さ
 NEARLY_FULL = "題" * 35
+#: 同梱の見本のレイアウトが、頁番号の枠に付けている名乗り
+NUMBER = (("type", "sldNum"), ("sz", "quarter"), ("idx", str(NUMBER_IDX)))
 
 
 def placed(page: Page, kind: str) -> Rect:
@@ -385,6 +389,143 @@ class BuiltOnATemplateOfItsOwn(unittest.TestCase):
         with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
             main(["build", str(root), "deck"])
         self.assertRegex(said.getvalue(), r"FAIL\s+long_title\s+1\b", said.getvalue())
+
+
+class ADeckThatNumbersItsPages(unittest.TestCase):
+    """頁に番号を振る資料 (= 見本の頁が頁番号の枠を持つ) では、型の頁も、レイアウトの頁番号の枠を持つ。
+
+    ⚠ **レイアウトに枠が在るだけでは振らない。**PowerPoint のレイアウトはほとんどが頁番号の枠を持ち、
+    番号が出るのは、頁の側がその枠を持つ時だけ。見本の頁が持たない資料で型の頁にだけ置くと、複製した
+    頁には番号が無く、型の頁にだけ出る。
+    """
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def under(self, **template):
+        from pptx_agent_maker.deck.base.under import under_of
+        return under_of(a_template(self.dir / f"t{len(list(self.dir.iterdir()))}.pptx", **template))
+
+    def test_a_specimen_whose_pages_carry_a_number_hands_on_the_layouts_frame(self) -> None:
+        self.assertEqual(NUMBER, self.under(numbered=True).number)
+
+    def test_a_layout_that_only_offers_the_frame_numbers_nothing(self) -> None:
+        from pptx_agent_maker.deck.base.under import under_of
+
+        self.assertEqual((), self.under().number)
+        self.assertEqual((), under_of(SHIPPED).number)
+
+    def test_with_no_frame_in_the_layout_there_is_nothing_to_carry(self) -> None:
+        self.assertEqual((), self.under(numbered=True, number_frame=None).number)
+
+    def test_the_frame_is_named_the_way_the_layout_names_it(self) -> None:
+        self.assertEqual((("type", "sldNum"), ("sz", "quarter"), ("idx", "21")),
+                         self.under(numbered=True, number_frame=21).number)
+
+    def test_reading_the_number_changes_nothing_else_that_is_read(self) -> None:
+        plain, numbered = self.under(logo=LOGO), self.under(logo=LOGO, numbered=True)
+        self.assertEqual((plain.title, plain.prints), (numbered.title, numbered.prints))
+
+
+class TheNumberIsTheLayoutsFrame(unittest.TestCase):
+    """頁番号は、レイアウトの枠を頁が持つ形で書く。位置も見た目も書かない (= 全部レイアウトから継ぐ)。"""
+
+    @staticmethod
+    def baked(**under) -> list[str]:
+        from pptx_agent_maker.layout.base.tokens import Under
+        return TheTitleIsTheLayoutsTitle.baked(replace(DEFAULT, under=Under(**under)))
+
+    def test_the_page_holds_the_frame_under_the_layouts_name_and_a_field_for_the_number(self) -> None:
+        frames = [s for s in self.baked(number=NUMBER) if 'type="sldNum"' in s]
+        self.assertEqual(1, len(frames))
+        frame = frames[0]
+        self.assertIn(f'<p:ph type="sldNum" sz="quarter" idx="{NUMBER_IDX}"/>', frame)
+        self.assertRegex(frame, r'<a:fld id="\{[0-9A-F-]{36}\}" type="slidenum">')
+        self.assertIn('<a:spLocks noGrp="1"/>', frame)
+
+    def test_it_says_nothing_of_where_it_stands_or_how_it_looks(self) -> None:
+        frame = next(s for s in self.baked(number=NUMBER) if 'type="sldNum"' in s)
+        self.assertIn("<p:spPr/>", frame)
+        for own in ("<a:off", "<a:ext", "<a:solidFill>", "<a:latin", ' sz="1', ' b="', "<a:prstGeom"):
+            self.assertNotIn(own, frame, own)
+
+    def test_the_frame_takes_the_name_it_is_handed(self) -> None:
+        named = (("type", "sldNum"), ("idx", "21"))
+        frame = next(s for s in self.baked(number=named) if 'type="sldNum"' in s)
+        self.assertIn('<p:ph type="sldNum" idx="21"/>', frame)
+
+    def test_no_two_shapes_on_the_page_share_an_id(self) -> None:
+        ids = [found for s in self.baked(title=True, number=NUMBER)
+               for found in re.findall(r'<p:cNvPr id="(\d+)"', s)]
+        self.assertGreater(len(ids), 2)
+        self.assertEqual(len(ids), len(set(ids)), ids)
+
+    def test_the_title_and_the_number_are_the_only_placeholders(self) -> None:
+        shapes = self.baked(title=True, number=NUMBER)
+        self.assertEqual(2, sum("<p:ph" in s for s in shapes))
+
+    def test_a_deck_that_numbers_nothing_gets_no_frame(self) -> None:
+        self.assertFalse(any("<p:ph" in s or "slidenum" in s for s in self.baked()))
+
+
+class NumberedOnATemplateOfItsOwn(unittest.TestCase):
+    """建てる (= 利用者と同じ入口)。複製した頁と型の頁が、同じ枠で番号を持つ。"""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def pages(self, **template) -> tuple[str, list[str], str]:
+        """(what the build said, the pages of the deck in part order, the layout declared pages sit on)."""
+        root = self.dir / f"project-{len(list(self.dir.iterdir()))}"
+        create(root, specimen=a_template(self.dir / f"{root.name}.pptx", **template))
+        (root / "deck.toml").write_text(
+            'specimen = "specimen.pptx"\nout = "deck.pptx"\n\n'
+            '[[pages]]\nkind = "copy"\npage = 1\n'
+            'replace = [["案件名", "見本の案件"], ["第 N 回 進捗報告", "第 1 回 進捗報告"]]\n\n'
+            '[[pages]]\nkind = "declare"\ntype = "figure"\n'
+            f'title = "{ONE}"\nfigure = "example.png"\nfooter = "出所 (= 見本)"\n\n'
+            '[[pages]]\nkind = "declare"\ntype = "figure"\n'
+            f'title = "{ONE}"\nfigure = "example.png"\nfooter = "出所 (= 見本)"\n', encoding="utf-8")
+        (root / "assets" / "deck").mkdir(parents=True)
+        (root / "assets" / "deck" / "example.png").write_bytes(
+            (root / "assets" / "example" / "example.png").read_bytes())
+        said = io.StringIO()
+        with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
+            code = main(["build", str(root), "deck"])
+        self.assertEqual(0, code, said.getvalue())
+        with zipfile.ZipFile(root / "deck.pptx") as archive:
+            names = sorted(n for n in archive.namelist() if re.fullmatch(r"ppt/slides/slide\d+\.xml", n))
+            return (said.getvalue(), [archive.read(n).decode("utf-8") for n in names],
+                    archive.read("ppt/slideLayouts/slideLayout1.xml").decode("utf-8"))
+
+    def test_every_page_of_a_numbered_deck_carries_one_number(self) -> None:
+        said, pages, _layout = self.pages(numbered=True)
+        self.assertEqual(3, len(pages))
+        self.assertEqual([1, 1, 1], [page.count('type="sldNum"') for page in pages])
+        self.assertEqual([1, 1, 1], [page.count('type="slidenum"') for page in pages])
+        self.assertNotIn("FAIL", said)
+
+    def test_the_declared_pages_frame_is_the_one_the_layout_keeps(self) -> None:
+        _said, pages, layout = self.pages(numbered=True, number_frame=21)
+        self.assertIn('<p:ph type="sldNum" sz="quarter" idx="21"/>', layout)
+        declared = [page for page in pages if ONE in page]
+        self.assertEqual(2, len(declared))
+        for page in declared:
+            self.assertIn('<p:ph type="sldNum" sz="quarter" idx="21"/>', page)
+
+    def test_a_deck_that_numbers_nothing_stays_without_numbers(self) -> None:
+        said, pages, layout = self.pages()
+        self.assertIn('type="sldNum"', layout, "the layout offers the frame all the same")
+        self.assertEqual([0, 0, 0], [page.count("sldNum") + page.count("slidenum") for page in pages])
+        self.assertNotIn("FAIL", said)
 
 
 if __name__ == "__main__":
