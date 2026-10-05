@@ -53,11 +53,17 @@ new = "            ground = _cell_colour(theme, heading, r)"
 [[mutant]]
 name = "the words on a deep ground stay in the colour of the body"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "                ink = (theme.palette.words_on(ground) if (r, c) in element.shades\n                       else theme.palette.paper if heading else theme.palette.ink)"
-new = "                ink = theme.palette.paper if heading else theme.palette.ink"
+old = "            ink = (theme.palette.words_on(ground) if (r, c) in element.shades\n                   else theme.palette.paper if heading else theme.palette.ink)\n"
+new = "            ink = theme.palette.paper if heading else theme.palette.ink\n"
 
 [[mutant]]
 name = "true is read as a depth of one quarter"
 file = "src/pptx_agent_maker/layout/types/core/read.py"
 old = "if isinstance(level, bool) or not isinstance(level, int) or not 0 <= level <= Palette.SHADES:"
 new = "if not isinstance(level, int) or not 0 <= level <= Palette.SHADES:"
+
+[[mutant]]
+name = "only the first line of a cell is set in the page's type"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            for paragraph in cell.text_frame.paragraphs:\n                paragraph.alignment = PP_ALIGN.LEFT"
+new = "            for paragraph in cell.text_frame.paragraphs[:1]:\n                paragraph.alignment = PP_ALIGN.LEFT"
