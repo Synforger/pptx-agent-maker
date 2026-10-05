@@ -53,8 +53,20 @@ new = ""
 [[mutant]]
 name = "the title's band grows with the headings, not with the title"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "title_height=round(base.title_height * type.title / read.title),"
-new = "title_height=round(base.title_height * type.heading / read.heading),"
+old = "title_height=kicker + round((base.title_height - base.kicker_height) * type.title / read.title),"
+new = "title_height=kicker + round((base.title_height - base.kicker_height) * type.heading / read.heading),"
+
+[[mutant]]
+name = "the row of the small words above a title keeps its height whatever the type"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "kicker = round(base.kicker_height * type.caption / read.caption)"
+new = "kicker = base.kicker_height"
+
+[[mutant]]
+name = "the row of the small words grows with the title, not with the small words"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "kicker = round(base.kicker_height * type.caption / read.caption)"
+new = "kicker = round(base.kicker_height * type.title / read.title)"
 
 [[mutant]]
 name = "the footer keeps its height whatever the type"

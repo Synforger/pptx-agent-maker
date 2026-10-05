@@ -19,12 +19,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from pptx import Presentation
-from pptx.chart.data import CategoryChartData
+from pptx.chart.data import CategoryChartData, XyChartData
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION, XL_MARKER_STYLE, XL_TICK_MARK
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Emu, Pt
 
@@ -34,6 +34,9 @@ from ..layout.base.tokens import DEFAULT, MARK_FACE, Theme
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
 #: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)
 PRESET = {"rect": MSO_SHAPE.RECTANGLE, "home": MSO_SHAPE.PENTAGON, "chevron": MSO_SHAPE.CHEVRON}
+
+#: 文字の枠が上下に自分で取る余白 (= pptx の既定。左右は `Spacing.text_inset`)
+TEXT_INSET_Y = 45720
 
 #: 「スタイルなし・罫線なし」。PowerPoint が新しい表に付ける既定のスタイルは
 #: **テーマの accent1 で見出しを塗る**ので、色の出どころが palette と 2 つに割れる。
@@ -180,20 +183,56 @@ def _text(slide, element: Text, theme: Theme) -> None:
     frame = box.text_frame
     # 隣の物に付く名前と、段の間の向きは折り返さない。線表の名前と向きは枠の余白も取らない
     # (= 測った幅がそのまま使える幅。向きは狭い列に 1 文字で立つ)
-    frame.word_wrap = element.kind not in {"label", "marker"}
-    if element.kind in {"label", "lane", "marker"}:
+    frame.word_wrap = element.kind not in {"label", "marker", "kicker_beside"}
+    if not frame.word_wrap:
+        # ⚠ **折り返さない枠は、枠を字に合わせない。**python-pptx が文字の枠に付ける既定 (= 字に合わせて
+        # 枠を直す) を残していた間は、全角の短い名前が 1 文字ずつ縦に折れた ― 全角だけの名前は枠の幅が
+        # 字の幅ちょうどで、LibreOffice はその幅で折る (= 焼いた絵で出た。PowerPoint では折れない)
+        frame.auto_size = MSO_AUTO_SIZE.NONE
+    if element.kind in {"label", "lane", "marker", "kicker_beside"}:
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(0)
     frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.kind in {
-        "band_text", "title", "caption", "label", "lane", "stage", "marker"} else MSO_ANCHOR.TOP
+        "band_text", "title", "caption", "label", "lane", "stage", "marker", "kicker_beside"} else MSO_ANCHOR.TOP
+    # 題は、乗るレイアウトに題の枠が在れば、その枠として書く (= 色・書体・太さはテンプレートのもの)
+    titled = element.kind == "title" and theme.under.title
     for index, line in enumerate(element.text.split("\n")):
         paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
         paragraph.alignment = ALIGN[element.align]
         run = paragraph.add_run()
         run.text = line
         run.font.size = Pt(element.size)
+        if titled:
+            continue
         run.font.bold = element.bold
         run.font.color.rgb = _colour(element.colour)
         run.font.name = theme.type.family
+    if titled:
+        _as_title(box, theme)
+
+
+def _as_title(box, theme: Theme) -> None:
+    """Turn a text box into the page's title placeholder, keeping the place and the size it was given.
+
+    ⚠ **継ぐのは見た目だけ** (= 色・書体・太さ・地)。位置と大きさ、折り返し、縦の寄せ、枠の余白はここが
+    書く ― 道具が行を数えて帯の高さを取った、その同じ枠に字が入るように。書かなければレイアウトの
+    題の枠の値を継ぎ、数えた行と実際の行が食い違う。
+    """
+    box.text_frame.auto_size = MSO_AUTO_SIZE.NONE
+    shape = box._element
+    # ⚠ python-pptx は既定と同じ余白を書き出さない。書かれない値はレイアウトから継ぐので、直に書く
+    body = shape.txBody.find(qn("a:bodyPr"))
+    for side, inset in (("lIns", theme.spacing.text_inset), ("tIns", TEXT_INSET_Y),
+                        ("rIns", theme.spacing.text_inset), ("bIns", TEXT_INSET_Y)):
+        body.set(side, str(inset))
+    shape.nvSpPr.cNvPr.set("name", "Title")
+    held = shape.nvSpPr.cNvSpPr
+    held.attrib.pop("txBox", None)
+    held.append(held.makeelement(qn("a:spLocks"), {"noGrp": "1"}))
+    shape.nvSpPr.nvPr.append(shape.nvSpPr.nvPr.makeelement(qn("p:ph"), {"type": "title"}))
+    for own in ("a:prstGeom", "a:noFill"):
+        found = shape.spPr.find(qn(own))
+        if found is not None:
+            shape.spPr.remove(found)
 
 
 def _figure(slide, element: Figure) -> None:
@@ -205,6 +244,9 @@ def _figure(slide, element: Figure) -> None:
     # 開けば読める ― 案件の素材名が先方に届く経路なので置かない。
     picture._element.nvPicPr.cNvPr.attrib.pop("descr", None)
 
+
+#: 点のグラフの点の差し渡し (= pt。本文の字の半分ほど ― 数十個並んでも重なりが読める大きさ)
+POINT = 7
 
 #: 描き方 → 書き出すグラフの種類と、値の数字を置く所 (= 棒の外の端 / 点の上 / 段の真ん中)
 CHART = {
@@ -223,6 +265,9 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
 
     ⚠ **負の値で色を反転させない。**既定のままだと、負の棒は地の色が抜けて白くなる。
     """
+    if element.plot == "scatter":
+        _scatter(slide, element, theme)
+        return
     kind, where = CHART[element.plot]
     data = CategoryChartData()
     data.categories = list(element.categories)
@@ -234,14 +279,7 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
     frame = element.frame or element.rect
     chart = holder.shapes.add_chart(kind, Emu(frame.left), Emu(frame.top),
                                     Emu(frame.width), Emu(frame.height), data).chart
-    chart.has_title = False
-    chart.font.size = Pt(element.size)
-    chart.font.name = theme.type.family
-    chart.font.color.rgb = _colour(element.colour)
-    chart.has_legend = element.legend
-    if element.legend:
-        chart.legend.position = XL_LEGEND_POSITION.BOTTOM
-        chart.legend.include_in_layout = False
+    _dress(chart, element, theme)
 
     # 目盛りの線は引かない。値の数字を棒に付けたグラフは、値の軸も出さない (= 同じ数を 2 度見せない)
     chart.value_axis.has_major_gridlines = False
@@ -286,6 +324,52 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
             labels.position = where
             if series.label_colour:
                 labels.font.color.rgb = _colour(series.label_colour)
+
+
+def _dress(chart, element: Chart, theme: Theme) -> None:
+    """What every chart shares: no title of its own, the page's type, the legend under the plot."""
+    chart.has_title = False
+    chart.font.size = Pt(element.size)
+    chart.font.name = theme.type.family
+    chart.font.color.rgb = _colour(element.colour)
+    chart.has_legend = element.legend
+    if element.legend:
+        chart.legend.position = XL_LEGEND_POSITION.BOTTOM
+        chart.legend.include_in_layout = False
+
+
+def _scatter(slide, element: Chart, theme: Theme) -> None:
+    """A chart of points: each series its marks, no line between them, both axes named.
+
+    点のグラフは、軸が 2 本とも値の軸 (= 項目を持たない)。読むのは軸からなので、軸は 2 本とも出し、
+    それぞれに名前を書く。目盛りの線は引かない (= ほかのグラフと同じ)。
+    """
+    data = XyChartData()
+    for series in element.series:
+        drawn = data.add_series(series.name)
+        for x, y in zip(series.xs, series.values):
+            drawn.add_data_point(x, y)
+    frame = element.rect
+    chart = slide.shapes.add_chart(XL_CHART_TYPE.XY_SCATTER, Emu(frame.left), Emu(frame.top),
+                                   Emu(frame.width), Emu(frame.height), data).chart
+    _dress(chart, element, theme)
+    for axis, name in ((chart.category_axis, element.x_title), (chart.value_axis, element.y_title)):
+        axis.has_major_gridlines = False
+        axis.major_tick_mark = XL_TICK_MARK.NONE
+        axis.format.line.color.rgb = _colour(element.line)
+        axis.has_title = True
+        words = axis.axis_title.text_frame
+        words.text = name
+        for run in words.paragraphs[0].runs:
+            run.font.size = Pt(element.size)
+            run.font.bold = False
+            run.font.name = theme.type.family
+            run.font.color.rgb = _colour(element.colour)
+    # 点の間に線は引かれない (= この種類のグラフを、python-pptx は線なしで書き出す)
+    for drawn, series in zip(chart.plots[0].series, element.series):
+        drawn.marker.style = XL_MARKER_STYLE.CIRCLE
+        drawn.marker.size = POINT
+        _solid(drawn.marker.format, series.colour)
 
 
 def _pin(chart, element: Chart) -> None:
@@ -351,8 +435,11 @@ def _table(slide, element: Table, theme: Theme) -> None:
             cell.margin_bottom = Emu(theme.spacing.cell_pad_y)
             cell.margin_left = Emu(theme.spacing.cell_pad_x)
             cell.margin_right = Emu(theme.spacing.cell_pad_x)
+            # 地の濃さを言ったセルは、差し色をその段まで薄めた地。字は、その地の上で読める方の色
+            ground = (theme.palette.shade(element.shades[(r, c)]) if (r, c) in element.shades
+                      else _cell_colour(theme, heading, r))
             cell.fill.solid()
-            cell.fill.fore_color.rgb = _colour(_cell_colour(theme, heading, r))
+            cell.fill.fore_color.rgb = _colour(ground)
             cell.text = value
             mark = (r, c) in element.marks
             paragraph = cell.text_frame.paragraphs[0]
@@ -361,7 +448,8 @@ def _table(slide, element: Table, theme: Theme) -> None:
                 run.font.size = Pt(theme.type.body)
                 run.font.bold = heading
                 run.font.name = MARK_FACE if mark else theme.type.family
-                ink = theme.palette.paper if heading else theme.palette.ink
+                ink = (theme.palette.words_on(ground) if (r, c) in element.shades
+                       else theme.palette.paper if heading else theme.palette.ink)
                 run.font.color.rgb = _colour(element.highlight.get((r, c)) or ink)
                 if mark:
                     _every_script(run, MARK_FACE)

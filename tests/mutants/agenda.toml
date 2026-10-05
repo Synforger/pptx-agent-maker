@@ -1,0 +1,39 @@
+# An agenda marks its chapter in words, or with a ground the page names; its chapters are numbered plainly or in circles.
+
+tests = ["tests/test_types.py"]
+
+[[mutant]]
+name = "the chapter keeps its words under a ground that already says it"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = 'card = Card(head, "◀ この章" if marked and ground is None else "",'
+new = 'card = Card(head, "◀ この章" if marked else "",'
+
+[[mutant]]
+name = "every chapter takes the ground of the one named"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "Style(ground) if marked and ground is not None else Style())"
+new = "Style(ground) if ground is not None else Style())"
+
+[[mutant]]
+name = "a ground nobody named is taken"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = 'ground = read_tone(spec, {"tone": ground}, "agenda: `highlight_tone`", "box")'
+new = "pass"
+
+[[mutant]]
+name = "a ground with no chapter to put it on is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        if not here:\n            raise PageTypeError(\n                \"agenda: `highlight_tone`"
+new = "        if False:\n            raise PageTypeError(\n                \"agenda: `highlight_tone`"
+
+[[mutant]]
+name = "circles are asked for and the plain numbers come out"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = 'if numbers == "circled" else (lambda number: f"{number}.")'
+new = 'if False else (lambda number: f"{number}.")'
+
+[[mutant]]
+name = "a way of numbering nobody knows is read as plain"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "    if not isinstance(numbers, str) or numbers not in NUMBERS:"
+new = "    if False:"

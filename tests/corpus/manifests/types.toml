@@ -249,3 +249,50 @@ pictures = ["triangle.png"]
 tables = [[["Item", "Value"], ["C", "3"], ["D", "4"]]]
 replace = [["How to read the picture, in one line", "The picture and the table were swapped in"]]
 why = "a page built earlier, brought in with a new picture and new cells"
+
+[[pages]]
+kind = "declare"
+type = "agenda"
+title = "The same chapters, the one in hand on a ground and the numbers in circles"
+buckets = [
+  ["Pictures", ["one", "side by side", "on a grid"]],
+  ["Diagrams", ["flow", "roadmap", "timeline"]],
+  ["Scaffolding", ["cards", "board"]],
+]
+highlight = 2
+highlight_tone = "accent"
+numbers = "circled"
+why = "an agenda's two looks: the chapter marked by its ground, the numbers in circles"
+
+[[pages]]
+kind = "declare"
+type = "board"
+title = "Cells that stand on a ground as deep as their value"
+table = [
+  ["Region", "Last month", "This month"],
+  ["North", { text = "12%", shade = 1 }, { text = "48%", shade = 2 }],
+  ["South", { text = "71%", shade = 3 }, { text = "96%", shade = 4 }],
+  ["West", { text = "3%", shade = 0 }, "―"],
+]
+footer = "made up for the corpus"
+why = "a table whose cells say how deep their ground is"
+
+[[pages]]
+kind = "declare"
+type = "flow"
+title = "Stages top to bottom, branching sideways where a stage holds two nodes"
+direction = "down"
+why = "a flow that runs down the page"
+
+[[pages.stages]]
+name = "Intake"
+nodes = [["Request", "comes in at the desk"]]
+
+[[pages.stages]]
+name = "Review"
+nodes = [["Papers", "read against the rules"], { heading = "Site", body = "seen in person", tone = "tint" }]
+settled = "both must pass"
+
+[[pages.stages]]
+name = "Decision"
+nodes = [["Notice", "the answer goes back"]]

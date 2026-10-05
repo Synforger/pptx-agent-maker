@@ -134,6 +134,9 @@ USES = {
     "read": Type(),
     "present": Type(title=32, heading=24, stage=20, marker=36, body=18, caption=14, minimum=14),
 }
+#: 題の上の小さい字 (= 章の番号と名前) の置き場。`above` は題の上に小さく (= 既定)、`beside` は題の左に
+#: 同じ行で、差し色の太字で置く。資料全体の見た目なので案件が `[theme] kicker` で決め、頁ごとには変えられない
+KICKERS = ("above", "beside")
 #: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
 SIZED = ("title", "heading", "stage", "body", "caption")
 
@@ -193,6 +196,16 @@ class Palette:
         """
         return self.ink if contrast(ground, self.ink) >= contrast(ground, self.paper) else self.paper
 
+    #: 表のセルの地の濃さの段 (= 差し色を紙の色へ、この数に割って薄める。`shade`)
+    SHADES: ClassVar[int] = 4
+
+    def shade(self, level: int) -> str:
+        """The accent thinned toward the paper: `level` parts of `SHADES` are accent (= 0 is the paper)."""
+        paper, accent = ([int(colour[index:index + 2], 16) for index in (0, 2, 4)]
+                         for colour in (self.paper, self.accent))
+        return "".join(f"{round(low + (high - low) * level / self.SHADES):02X}"
+                       for low, high in zip(paper, accent))
+
     def edge(self, ground: str) -> str:
         """The colour of the line round a light ground: the same hue, further from white."""
         channels = (int(ground[index:index + 2], 16) for index in (0, 2, 4))
@@ -211,7 +224,10 @@ class Spacing:
     gap_m: int = cm(0.6)
     gap_l: int = cm(1.0)
     pad: int = cm(0.35)
+    #: 題の帯 (= 題の上の小さい字の段 + 題の段)。小さい字の在る頁も無い頁も、帯はこの高さ
     title_height: int = cm(1.5)
+    #: そのうち、題の上の小さい字の段
+    kicker_height: int = cm(0.5)
     cell_pad_y: int = cm(0.08)
     cell_pad_x: int = cm(0.18)
     #: 文字の枠が左右に自分で取る余白 (= pptx の既定)。文字が使える幅は、枠の幅からこの 2 つぶん狭い
@@ -238,6 +254,20 @@ class Spacing:
 
 
 @dataclass(frozen=True)
+class Under:
+    """What the layout a declared page will sit on already has (= read from the specimen).
+
+    型で組む頁は白紙に描いてから、テンプレートの 1 枚目のレイアウトへ向け直す。描く側が知るのは
+    2 つだけ ― **題の枠が在るか** (= 在れば題はその枠として書かれ、色と書体をテンプレートから継ぐ) と、
+    **そこに何が印字されるか** (= ロゴや飾り。題の帯はその手前で止まる)。余白と割り方は道具のまま。
+    """
+
+    title: bool = False
+    #: レイアウトとマスターが印字する物の場所 (= 重なりの検査が「下敷き」と数える物と同じ)
+    prints: tuple[Rect, ...] = ()
+
+
+@dataclass(frozen=True)
 class Theme:
     """Everything a page is allowed to know about how the deck looks."""
 
@@ -247,6 +277,10 @@ class Theme:
     spacing: Spacing = field(default_factory=Spacing)
     #: 案件が意味の名前を付けた地 (= `[theme.grounds]`)。並びは宣言の順で、凡例もこの順に並ぶ
     grounds: tuple[tuple[str, str], ...] = ()
+    #: 型の頁が乗るレイアウトが持つ物 (= 見本から読む。案件の `[theme]` からは書けない)
+    under: Under = field(default_factory=Under)
+    #: 題の上の小さい字の置き場 (= `KICKERS`。案件が `[theme] kicker` で決める)
+    kicker: str = "above"
 
     def ground_names(self) -> tuple[str, ...]:
         return tuple(name for name, _colour in self.grounds)
@@ -373,17 +407,71 @@ class Theme:
         """How wide a page's sticker stands: its words on one line, with room at each side."""
         return self.width(sticker, self.type.body) + 2 * self.spacing.pad
 
-    def title_lines(self, title: str, sticker: str = "") -> int:
-        """How many lines a page's title breaks into, set across the frame beside its sticker.
+    def clear(self, band: Rect) -> tuple[int, int]:
+        """(left, right) of the stretch of a band that stays off what the layout prints there.
+
+        帯に縦で掛かる物のうち、帯の右半分に在る物は右端を、左半分に在る物は左端を、その手前まで
+        詰める。真ん中をまたぐ物 (= 頁を横切る飾り) は幅では避けられないので、そのまま ― 重なりの検査が
+        言う。
+        """
+        left, right, gap = band.left, band.right, self.spacing.gap_s
+        middle = band.left + band.width // 2
+        for thing in self.under.prints:
+            if (thing.bottom <= band.top or band.bottom <= thing.top
+                    or thing.right <= band.left or band.right <= thing.left):
+                continue
+            if thing.left >= middle:
+                right = min(right, thing.left - gap)
+            elif thing.right <= middle:
+                left = max(left, thing.right + gap)
+        return left, right
+
+    def kicker_lead(self, kicker: str) -> int:
+        """How much of the title's line the small words take when they stand beside it (= none above it)."""
+        if not kicker or self.kicker != "beside":
+            return 0
+        return self.spacing.text_inset + self.width(kicker, self.type.title, bold=True)
+
+    def crossed(self, band: Rect) -> bool:
+        """Whether the layout prints something across the middle of a band (= what `clear` cannot keep off).
+
+        幅を詰めて避けられるのは、片側に在る物だけ。頁を横切る物 (= 罫線) に掛かるかどうかは、
+        ここが言う。
+        """
+        middle = band.left + band.width // 2
+        return any(thing.top < band.bottom and band.top < thing.bottom and thing.left < middle < thing.right
+                   for thing in self.under.prints)
+
+    def title_band(self, title: str, sticker: str = "", kicker: str = "") -> tuple[int, int, int]:
+        """(lines, left, right) of a page's title band: how far the title folds, and where it may run.
 
         ⚠ **題の行を数えるのはここ 1 か所。**頁は題の帯の高さをこの数から取り、検査 (= `long_title`)
         は同じ数で 3 行以上を知らせる。別々に数えると、帯が 2 行ぶん取ったのに検査は 3 行と言う。
-        札を持つ頁は、札と、札との間の空きのぶんだけ題が狭い。
+        札を持つ頁は、札と、札との間の空きのぶんだけ題が狭い。題の上の小さい字を題の左に置く資料
+        (= `kicker = "beside"`) では、その字のぶんも狭い。
+
+        ⚠ **帯は、レイアウトが印字する物の手前で止まる** (= `clear`)。頁の幅いっぱいに取っていた間は、
+        右上のロゴに届いた題と、帯の右端に置く札が、重なりの検査で止まった。帯は題が折れるぶん下へ伸び、
+        伸びた先に在る物も避けるので、行と幅は一緒に決める (= 避けて狭くなると、もう 1 行折れることがある)。
         """
-        room = self.frame().width - 2 * self.spacing.text_inset
-        if sticker:
-            room -= self.sticker_width(sticker) + self.spacing.gap_m
-        return self.wraps(title, room, self.type.title, bold=True)
+        frame, s = self.frame(), self.spacing
+        lines = 1
+        while True:
+            band = Rect(frame.left, frame.top, frame.width,
+                        s.title_height + (lines - 1) * self.line_height(self.type.title))
+            left, right = self.clear(band)
+            room = right - left - 2 * s.text_inset
+            if sticker:
+                room -= self.sticker_width(sticker) + s.gap_m
+            room -= self.kicker_lead(kicker)
+            needed = self.wraps(title, max(room, 1), self.type.title, bold=True)
+            if needed <= lines or band.bottom >= frame.bottom:
+                return lines, left, right
+            lines = needed
+
+    def title_lines(self, title: str, sticker: str = "", kicker: str = "") -> int:
+        """How many lines a page's title breaks into (= `title_band`)."""
+        return self.title_band(title, sticker, kicker)[0]
 
     def pt(self, size: float) -> int:
         """A type size in EMU, refusing anything below the floor."""
@@ -398,7 +486,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type")
+_MINE = ("font", "palette", "grounds", "use", "type", "kicker")
 
 
 class ThemeError(ValueError):
@@ -438,12 +526,19 @@ def theme_from(settings: dict | None) -> Theme:
                 'with no "#", as in "1F5FA9"'
             )
 
+    kicker = settings.get("kicker", "above")
+    if not isinstance(kicker, str) or kicker not in KICKERS:
+        raise ThemeError(
+            f"theme.kicker is {kicker!r} — the small words above a title stand "
+            f"{' or '.join(repr(place) for place in KICKERS)} it")
+
     type = replace(_sizes(settings.get("use", "read"), settings.get("type")), family=family)
     return Theme(
         type=type,
         palette=Palette(**{name: str(value).upper() for name, value in colours.items()}),
         spacing=_furniture(type),
         grounds=_grounds(settings.get("grounds")),
+        kicker=kicker,
     )
 
 
@@ -478,11 +573,16 @@ def _furniture(type: Type) -> Spacing:
     題の帯・条件と結論の帯・出所の帯の高さは、そこに置く字の大きさに比例する (= 読ませる資料の
     大きさのとき、今までの高さ)。字だけ大きくして帯をそのままにすると、字が帯からはみ出す。
     余白と、物どうしの間隔は動かない。
+
+    ⚠ **題の帯は 2 段で、段ごとに自分の字の大きさに比例する** (= 題の上の小さい字の段と、題の段)。
+    帯を題の大きさだけで決めていた間は、小さい字だけを大きくした案件で、小さい字が題の頭に乗った。
     """
     base, read = Spacing(), USES["read"]
+    kicker = round(base.kicker_height * type.caption / read.caption)
     return replace(
         base,
-        title_height=round(base.title_height * type.title / read.title),
+        kicker_height=kicker,
+        title_height=kicker + round((base.title_height - base.kicker_height) * type.title / read.title),
         band_height=round(base.band_height * type.heading / read.heading),
         footer_height=round(base.footer_height * type.caption / read.caption),
     )

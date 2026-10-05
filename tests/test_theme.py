@@ -182,20 +182,33 @@ class HowLargeTheTypeIsTest(unittest.TestCase):
         """字だけ大きくして帯をそのままにすると、字が帯からはみ出す。"""
         read, shown = DEFAULT, theme_from({"use": "present"})
         self.assertEqual(read.spacing, theme_from({"use": "read"}).spacing)
-        for band, role in (("title_height", "title"), ("band_height", "heading"), ("footer_height", "caption")):
+        for band, role in (("band_height", "heading"), ("footer_height", "caption")):
             with self.subTest(band=band):
                 wanted = getattr(read.spacing, band) * getattr(shown.type, role) / getattr(read.type, role)
                 self.assertEqual(round(wanted), getattr(shown.spacing, band))
         self.assertGreaterEqual(shown.spacing.title_height, shown.line_height(shown.type.title))
         self.assertGreaterEqual(shown.spacing.footer_height, shown.line_height(shown.type.caption))
         one = theme_from({"type": {"title": 30}})
-        self.assertEqual(round(read.spacing.title_height * 30 / 24), one.spacing.title_height)
         self.assertEqual(read.spacing.band_height, one.spacing.band_height)
+
+    def test_the_title_band_is_two_rows_and_each_grows_with_its_own_type(self) -> None:
+        """題の帯は、題の上の小さい字の段と、題の段。題の大きさだけで帯を決めると、小さい字だけを
+        大きくした案件で、小さい字の段が足りなくなる。"""
+        read = DEFAULT
+        for settings in ({"use": "present"}, {"type": {"title": 30}}, {"type": {"caption": 16}},
+                         {"use": "present", "type": {"title": 25}}):
+            with self.subTest(settings=settings):
+                theme = theme_from(settings)
+                small = round(read.spacing.kicker_height * theme.type.caption / read.type.caption)
+                large = round((read.spacing.title_height - read.spacing.kicker_height)
+                              * theme.type.title / read.type.title)
+                self.assertEqual(small, theme.spacing.kicker_height)
+                self.assertEqual(small + large, theme.spacing.title_height)
 
     def test_the_margins_and_the_gaps_do_not_move(self) -> None:
         read, shown = DEFAULT.spacing, theme_from({"use": "present", "type": {"body": 22}}).spacing
         moved = {name for name in vars(read) if getattr(read, name) != getattr(shown, name)}
-        self.assertEqual({"title_height", "band_height", "footer_height"}, moved)
+        self.assertEqual({"title_height", "kicker_height", "band_height", "footer_height"}, moved)
         self.assertEqual(DEFAULT.frame(), theme_from({"use": "present"}).frame())
 
     def test_every_type_builds_a_page_to_be_shown_with_nothing_under_its_floor(self) -> None:

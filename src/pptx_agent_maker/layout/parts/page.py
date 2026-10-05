@@ -6,7 +6,7 @@
 
 置ける物は意義を 1:1 で説明できる最小セットだけ:
 
-* `title_bar` ― その頁が何の頁か
+* `title_bar` ― その頁が何の頁か (= 題と、その上か左に置く小さい字)
 * `band` ― 条件の宣言 (= 上) と結論 (= 下)
 * `box` ― 並ぶカード
 * `figure` ― 実物の絵。縦横比は必ず保つ
@@ -37,7 +37,7 @@ from pathlib import Path
 
 from ..base.geometry import Rect
 from ..base.tokens import DEFAULT, Theme
-from .elements import Bar, Chart, Diamond, Element, Figure, Fill, Mark, Table, Text
+from .elements import Bar, Chart, Diamond, Element, Figure, Fill, Mark, Shade, Table, Text
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -128,27 +128,65 @@ class Page:
         1 行の題の帯は今までの高さのままで、折れた行ごとに 1 行ぶん伸びる。題の上の小さい字は
         伸びない (= 伸びたぶんは全部題のもの)。
 
+        ⚠ **題の上の小さい字の段は、その字の大きさで決まる** (= `kicker_height`)。帯を題と 1:2 に
+        割っていた間は、小さい字だけを大きくした案件で、小さい字が題の頭に乗った。
+
+        ⚠ **字と札は、レイアウトが印字する物の手前で止まる** (= `Theme.title_band`)。帯を頁の幅いっぱいに
+        使っていた間は、右上にロゴの在るテンプレートで、長い題と札がロゴに乗った。
+
+        ⚠ **題の上の小さい字は、資料によっては題の左に同じ行で置く** (= `[theme] kicker = "beside"`。
+        差し色の太字で、題の 1 行目の高さ)。帯の高さは上に置く時と同じで、題はそのぶん狭い幅で折れる。
+
+        ⚠ **折れた題が、レイアウトが頁を横切って描く線に乗るなら止まる。**横切る物は幅を詰めても
+        避けられず、題の帯が伸びても動かない (= 2 行目が題の下の罫線に乗った。映す資料で出た)。
+
         札は題の帯の右端に、題の字の枠の真ん中の高さで置く (= 題は枠の真ん中に寄るので、何行に折れても
         札と題が揃う)。**題の字の枠は、札と、札との間の空きのぶん狭い** (= 題が札の下へ回り込まない。
         行もその幅で数える)。
         """
         t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
         tag = self.theme.sticker_width(sticker) if sticker else 0
-        if tag and self._remaining.width - tag - s.gap_m - 2 * s.text_inset < self.theme.unbreakable(title, t.title, bold=True):
+        lines, left, right = self.theme.title_band(title, sticker, kicker)
+        lead = self.theme.kicker_lead(kicker)
+        longest = self.theme.unbreakable(title, t.title, bold=True)
+        if lead and right - left - lead - 2 * s.text_inset < longest:
+            raise PageFullError(
+                f"the kicker {kicker!r} leaves the title no room beside it for its longest word — "
+                "beside a title it is a number and a word or two, not a sentence")
+        if tag and right - left - lead - tag - s.gap_m - 2 * s.text_inset < longest:
             raise PageFullError(
                 f"the sticker {sticker!r} leaves the title no room for its longest word — "
                 "a sticker is a word or two (= draft, illustrative), not a sentence")
-        folded = (self.theme.title_lines(title, sticker) - 1) * self.theme.line_height(t.title)
+        folded = (lines - 1) * self.theme.line_height(t.title)
         bar = self._take_top(s.title_height + folded)
-        if kicker:
-            kick, main = Rect(bar.left, bar.top, bar.width, s.title_height).rows([1, 2])
-            main = Rect(main.left, main.top, main.width, bar.bottom - main.top)
+        # 字と札が使うのは、レイアウトが印字する物 (= ロゴ) の手前まで。帯そのものは頁の幅のまま
+        clear = Rect(left, bar.top, right - left, bar.height)
+        if kicker and not lead:
+            kick, main = clear.split_top(s.kicker_height)
             self.elements.append(Text("kicker", kick, kicker, t.caption, p.muted))
         else:
-            main = bar
-        words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)
+            main = clear
+        # 題の 1 行目の頭 (= 題は枠の真ん中に寄るので、折れた行ぶんの高さを引いて半分)
+        row = self.theme.line_height(t.title)
+        first = main.top + max((main.height - lines * row) // 2, 0)
+        if lead:
+            # 題の左に同じ行で (= 題の 1 行目の高さに、差し色の太字。枠は字の幅ちょうどで、折り返さない)
+            self.elements.append(Text(
+                "kicker_beside", Rect(main.left + s.text_inset, first, lead - s.text_inset, row),
+                kicker, t.title, p.accent, bold=True))
+        if lines > 1:
+            # ⚠ **折れて増えた行が、レイアウトが頁を横切って描く物 (= 題の下の罫線) に掛かるなら止まる。**
+            # 帯は下へ伸びるが、レイアウトの線は動かない。幅を詰めても避けられないので、直せるのは題の長さだけ。
+            # 1 行の題は止めない (= 題を短くしても直らない頁を、ここで止めない)
+            if self.theme.crossed(Rect(main.left, first + row, main.width, (lines - 1) * row)):
+                raise PageFullError(
+                    f"the title folds to {lines} lines, and the lines it folds onto land on a line the "
+                    "layout draws across the page — say it shorter, so it stays on one line")
+        words = Rect(main.left + lead, main.top, main.width - lead - (tag + s.gap_m if tag else 0), main.height)
         self.elements.append(Text("title", words, title, t.title, p.ink, bold=True))
-        self.elements.append(Fill("rule", Rect(bar.left, bar.bottom, bar.width, s.hairline), p.rule))
+        line = Rect(bar.left, bar.bottom, bar.width, s.hairline)
+        start, end = self.theme.clear(line)
+        self.elements.append(Fill("rule", Rect(start, line.top, end - start, line.height), p.rule))
         if tag:
             # 灰の細枠に灰の字 (= 頁の中身より一段うしろに引いた見た目)。地は塗らない
             tall = self.theme.line_height(t.body) + 2 * s.bar_pad_y
@@ -321,6 +359,8 @@ class Page:
               highlight: dict[tuple[int, int], str] | None = None) -> Rect:
         """A small table. Empty cells are refused: write a dash if there is no value.
 
+        セルは言葉か、状態の印 (= `Mark`) か、地の濃さを言った言葉 (= `Shade`。値の大小を地の濃さで見せる)。
+
         ⚠ **表の高さは行数が決める。**渡した枠は上限であって指示ではなく、行が
         入り切らなければ PowerPoint は枠を下へ伸ばす (= 頁から溢れる)。ここで
         必要な高さを測り、入らない宣言をその場で拒む。
@@ -342,9 +382,15 @@ class Page:
         placed = Rect(rect.left, rect.top, rect.width, needed)
         marks = frozenset((r, c) for r, row in enumerate(rows) for c, cell in enumerate(row)
                           if isinstance(cell, Mark))
+        shades = {(r, c): cell.level for r, row in enumerate(rows) for c, cell in enumerate(row)
+                  if isinstance(cell, Shade) and cell.level}
+        if header and any(r == 0 for r, _c in shades):
+            raise ValueError(
+                "a heading cell is given a shade — the heading row stands on the accent already; "
+                "a shade belongs to the cells under it")
         self.elements.append(
             Table("table", placed, tuple(tuple(str(c) for c in row) for row in rows),
-                  header, highlight or {}, tuple(widths), marks)
+                  header, highlight or {}, tuple(widths), marks, shades)
         )
         return placed
 
@@ -474,10 +520,11 @@ class Page:
         self.elements.append(Fill(kind, rect, colour))
 
     def label(self, rect: Rect, text: str, *, align: str = "left", role: str = "ink",
-              size: float | None = None) -> None:
+              size: float | None = None, bold: bool | None = None) -> None:
         """A short name on one line: beside a bar or a mark, or at the head of a column.
 
         `role` は色の役 (= `ink` / `muted` / `accent`)。`accent` は頁を横切る日付の名前で、太字。
+        `bold` を言えば、役に依らずその太さ (= 下へ流れる流れ図の、段の名前)。
 
         ⚠ **折り返さない。**隣の物に付く名前なので、長すぎれば横へ伸びる ― 2 行に折ると
         下の段に乗る。
@@ -486,7 +533,7 @@ class Page:
         size = self.theme.type.body if size is None else size
         colour = {"ink": p.ink, "muted": p.muted, "accent": p.accent}[role]
         self.elements.append(Text("label", rect, text, size, colour,
-                                  bold=role == "accent", align=align))
+                                  bold=role == "accent" if bold is None else bold, align=align))
 
     def lane(self, rect: Rect, name: str) -> None:
         """What one lane of a timeline is (= who, or which line of work)."""

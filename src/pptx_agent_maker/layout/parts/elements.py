@@ -52,6 +52,21 @@ class Mark(str):
     """
 
 
+class Shade(str):
+    """Words in a table cell that stand on a ground as deep as the cell says (= `level` quarters of the accent).
+
+    印と同じく、字のまま表を通る (= 幅も高さもほかのセルと同じに測られる)。濃さだけを持ち、置く時に
+    地の色と、その上で読める字の色が決まる。
+    """
+
+    level: int
+
+    def __new__(cls, words: str, level: int) -> "Shade":
+        cell = super().__new__(cls, words)
+        cell.level = level
+        return cell
+
+
 @dataclass(frozen=True)
 class Table(Element):
     rows: tuple[tuple[str, ...], ...]
@@ -61,6 +76,8 @@ class Table(Element):
     widths: tuple[int, ...] = ()
     #: 状態の印が入っているセル (= 行, 列)
     marks: frozenset[tuple[int, int]] = frozenset()
+    #: 地の濃さを言ったセル: (行, 列) → 4 分の幾つか (= 0 は持たない)
+    shades: dict[tuple[int, int], int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -68,7 +85,7 @@ class Series:
     """One series of a chart, as it is drawn (= every colour and format already decided)."""
 
     name: str
-    #: 項目ごとの値。None は「この項目には無い」(= 棒も数字も出ない)
+    #: 項目ごとの値。None は「この項目には無い」(= 棒も数字も出ない)。点のグラフでは、点ごとの y
     values: tuple[float | None, ...]
     #: 塗りの色 (= 折れ線は線と点の色)。空なら描かない (= 滝グラフの、棒を浮かせるための台)
     colour: str = ""
@@ -80,6 +97,8 @@ class Series:
     label_colour: str = ""
     #: 棒の枠の色。空なら枠を引かない (= 積み上げた段の境)
     outline: str = ""
+    #: 点のグラフ (= `scatter`) の、点ごとの x (= `values` が y)。項目のグラフでは空
+    xs: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -132,6 +151,9 @@ class Chart(Element):
     frame: Rect | None = None
     pinned: Pinned | None = None
     callouts: tuple[Callout, ...] = ()
+    #: 点のグラフ (= `scatter`) の軸の名前。項目のグラフでは空
+    x_title: str = ""
+    y_title: str = ""
 
 
 @dataclass(frozen=True)

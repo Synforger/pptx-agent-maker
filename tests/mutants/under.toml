@@ -1,0 +1,155 @@
+# A declared page knows the layout it sits on: the title it offers, and what it prints.
+
+tests = ["tests/test_under.py"]
+
+[[mutant]]
+name = "the band runs the width of the frame whatever the layout prints"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "            left, right = self.clear(band)\n"
+new = "            left, right = band.left, band.right\n"
+
+[[mutant]]
+name = "a logo at the right is not kept off"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "                right = min(right, thing.left - gap)"
+new = "                pass"
+
+[[mutant]]
+name = "a logo at the left is not kept off"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "                left = max(left, thing.right + gap)"
+new = "                pass"
+
+[[mutant]]
+name = "what is printed below the band narrows it all the same"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "            if (thing.bottom <= band.top or band.bottom <= thing.top\n                    or thing.right"
+new = "            if (False\n                    or thing.right"
+
+[[mutant]]
+name = "a thing across the whole page is read as standing at the right"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "            if thing.left >= middle:"
+new = "            if thing.right >= middle:"
+
+[[mutant]]
+name = "the band is settled on one line, before the title folds"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "            lines = needed\n\n    def title_lines"
+new = "            return needed, left, right\n\n    def title_lines"
+
+[[mutant]]
+name = "the words and the sticker use the whole band"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "clear = Rect(left, bar.top, right - left, bar.height)"
+new = "clear = bar"
+
+[[mutant]]
+name = "the line under the band runs through what the layout prints"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "start, end = self.theme.clear(line)"
+new = "start, end = line.left, line.right"
+
+[[mutant]]
+name = "the layout is not read"
+file = "src/pptx_agent_maker/deck/build.py"
+old = "replace(theme_from(merged(specimen, workspace.look)), under=under_of(specimen))"
+new = "theme_from(merged(specimen, workspace.look))"
+
+[[mutant]]
+name = "the title of a cover counts as a title to write a page's title into"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = """_TITLE = re.compile(r'<p:ph\\b[^>]*\\btype="title"')"""
+new = """_TITLE = re.compile(r'<p:ph\\b[^>]*\\btype="(?:title|ctrTitle)"')"""
+
+[[mutant]]
+name = "a placeholder of the layout counts as something it prints"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "for part in parts for shape in shapes_in(part) if draws_anything(shape)"
+new = "for part in parts for shape in shapes_in(part)"
+
+[[mutant]]
+name = "the title is written as a text box whatever the layout offers"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '    titled = element.kind == "title" and theme.under.title'
+new = "    titled = False"
+
+[[mutant]]
+name = "every text on the page becomes the title placeholder"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '    titled = element.kind == "title" and theme.under.title'
+new = "    titled = theme.under.title"
+
+[[mutant]]
+name = "the title carries the toolkit's colour into the placeholder"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        if titled:\n            continue\n"
+new = ""
+
+[[mutant]]
+name = "the title's insets are left to the layout"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        body.set(side, str(inset))"
+new = "        pass"
+
+[[mutant]]
+name = "the title keeps the text box's own no-fill"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '    for own in ("a:prstGeom", "a:noFill"):'
+new = '    for own in ("a:prstGeom",):'
+
+[[mutant]]
+name = "a declared page's long title is said from both sides"
+file = "src/pptx_agent_maker/checks/__init__.py"
+old = "             if not (finding.check in both and finding.page in declared)]"
+new = "             ]"
+
+# -- a line the layout draws across the page -------------------------------------
+
+[[mutant]]
+name = "a title that folds onto the layout's line is placed all the same"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if self.theme.crossed(Rect(main.left, first + row, main.width, (lines - 1) * row)):"
+new = "            if False:"
+
+[[mutant]]
+name = "a title on one line is stopped by the line under it"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if lines > 1:\n            # ⚠ **折れて増えた行が"
+new = "        if True:\n            # ⚠ **折れて増えた行が"
+
+[[mutant]]
+name = "the first line of a folded title counts as a line it folded onto"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if self.theme.crossed(Rect(main.left, first + row, main.width, (lines - 1) * row)):"
+new = "            if self.theme.crossed(Rect(main.left, main.top, main.width, main.height + 4 * row)):"
+
+[[mutant]]
+name = "a short line at one side counts as a line across the page"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "thing.top < band.bottom and band.top < thing.bottom and thing.left < middle < thing.right"
+new = "thing.top < band.bottom and band.top < thing.bottom"
+
+[[mutant]]
+name = "a connector of the layout is not read as a line"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "_DRAWN = re.compile(r\"<p:(cxnSp|sp)>(.*?)</p:\\1>\", re.S)"
+new = "_DRAWN = re.compile(r\"<p:(sp)>(.*?)</p:\\1>\", re.S)"
+
+[[mutant]]
+name = "a shape with no height is not read as a line"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "        if (kind == \"sp\" and width and height) or not (width or height):"
+new = "        if kind == \"sp\" or not (width or height):"
+
+[[mutant]]
+name = "a shape that says it draws no line is read as a line"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "        if stroke is not None and NO_FILL.search(stroke.group(2) or \"\"):\n            continue\n"
+new = ""
+
+[[mutant]]
+name = "the layout's lines are left out of what it prints"
+file = "src/pptx_agent_maker/deck/base/under.py"
+old = "prints=prints + tuple(line for part in parts for line in _lines(part)))"
+new = "prints=prints)"

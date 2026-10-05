@@ -118,7 +118,10 @@ def describe() -> str:
     lines.append(f"  a chart: kind ({' | '.join(chart.KINDS)}), categories, series = [{{ name, values, tone }}] "
                  'or data = "x.csv", highlight, unit, labels, totals (= of a waterfall), '
                  "callouts = [{ at, series, text }]")
+    lines.append('  a scatter:   kind = "scatter", x, y (= the names of its axes), '
+                 'series = [{ name, points = [[x, y], …], tone }] or data = "x.csv", highlight')
     lines.append("  a table's cell: its words, or one mark — { harvey = 0 to 4 } (= quarters filled) "
-                 f"or {{ mark = {' | '.join(MARKS)} }}")
+                 f"or {{ mark = {' | '.join(MARKS)} }} — or its words on a ground as deep as its value: "
+                 "{ text, shade = 0 to 4 }")
     lines.append(f"  the frame:   {', '.join(sorted(FRAME_KEYS - {'type', 'kind'}))}")
     return "\n".join(lines)

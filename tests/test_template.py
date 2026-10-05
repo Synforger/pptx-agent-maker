@@ -215,6 +215,48 @@ class TheTemplateBuildsTest(unittest.TestCase):
                 self.assertEqual(0, code, said.getvalue())
                 self.assertNotIn("FAIL", said.getvalue())
 
+    def test_a_template_with_words_of_its_own_to_swap_brings_its_own_example(self) -> None:
+        """⚠ **同梱の見本は、道具付属の見本の置き字と検査の語に合わせて書いてある。**別の見本と、その検査の語
+        (= `stale_words`) を対で渡された案件では、道具の見本が検査の語を含む文をそのまま載せ、建てた直後の
+        1 本が検査で止まった。置き字と検査の語を知っているのは見本の持ち主なので、見本の folder が自分の
+        `example.toml` を持てば、それを配る。
+        """
+        import contextlib
+        import io
+        import shutil
+        from pptx_agent_maker.__main__ import main
+
+        def built(shelf: Path, name: str) -> tuple[int, str]:
+            root = Path(self.tmp.name) / name
+            create(root, specimen=shelf)
+            said = io.StringIO()
+            with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
+                code = main(["build", str(root), "example"])
+            return code, said.getvalue()
+
+        shelf = Path(self.tmp.name) / "house-style"
+        shelf.mkdir()
+        shutil.copy(INSTALLED / "specimen.pptx", shelf / "specimen.pptx")
+        # この見本の持ち主は、道具の見本の頁の案内の文を「差し替え忘れ」として検査に掛ける
+        (shelf / "workspace.toml").write_text(
+            'root = "."\n\n[paths]\nassets = "assets"\n\n[checks]\n'
+            'stale_words = ["案件名", "第 N 回", "図の読み方を 1 行"]\n', encoding="utf-8")
+
+        code, said = built(shelf, "with-the-toolkits-example")
+        self.assertNotEqual(0, code, "the fixture no longer shows the failure it was written for")
+        self.assertIn("unreplaced", said)
+
+        (shelf / "example.toml").write_text(
+            'specimen = "specimen.pptx"\nout = "example.pptx"\n\n'
+            '[[pages]]\nkind = "copy"\npage = 1\n'
+            'replace = [["案件名", "見本の案件"], ["第 N 回 進捗報告", "第 1 回 進捗報告"]]\n\n'
+            '[[pages]]\nkind = "declare"\ntype = "figure"\ntitle = "この見本に合わせた 1 頁"\n'
+            'figure = "example.png"\ncaption = "この絵が示すこと"\nfooter = "出所 (= 見本)"\n',
+            encoding="utf-8")
+        code, said = built(shelf, "with-its-own-example")
+        self.assertEqual(0, code, said)
+        self.assertNotIn("FAIL", said)
+
     def test_the_example_shows_every_band_and_every_extra_somewhere(self) -> None:
         """見本は書き方の見本でもある。頁を分けても、枠の帯と付属は全部どこかの頁に出ている。"""
         workspace = Workspace.load(self.root)
@@ -251,6 +293,18 @@ class TheTemplateBuildsTest(unittest.TestCase):
         skill = self.root / ".claude" / "skills" / "deck" / "SKILL.md"
         self.assertTrue(skill.is_file(), "init did not lay the skill down in the project")
         self.assertIn("name: deck", skill.read_text(encoding="utf-8"))
+
+    def test_the_skill_names_only_types_the_toolkit_has_and_every_one_of_them(self) -> None:
+        """⚠ **「作りたい頁 → 型」の表は手で書いた対応。**型を足して表に書かなければ、その型は誰にも
+        選ばれず、型の名前を変えて表を直さなければ、無い型へ案内する。"""
+        from pptx_agent_maker.layout import types
+
+        craft = (self.root / ".claude" / "skills" / "deck" / "craft.md").read_text(encoding="utf-8")
+        table = craft.split("## 何の頁を、どの型で組むか")[1]
+        named = set(re.findall(r"^\| [^|]+ \| `(\w+)` \|", table, re.M))
+        self.assertEqual(set(types.names()), named)
+        skill = (self.root / ".claude" / "skills" / "deck" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("craft.md", skill)
 
     def test_the_project_is_laid_down_with_its_own_entry_point(self) -> None:
         self.assertTrue((self.root / "Taskfile.yml").is_file())

@@ -1,0 +1,15 @@
+# A name beside a bar or a mark, and the arrow between two stages: on one line, in the box they were given.
+
+tests = ["tests/test_timeline.py", "tests/test_flow.py"]
+
+[[mutant]]
+name = "a name beside something is wrapped like any other words"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = 'frame.word_wrap = element.kind not in {"label", "marker", "kicker_beside"}'
+new = "frame.word_wrap = True"
+
+[[mutant]]
+name = "a box that does not wrap is still resized to its words"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        frame.auto_size = MSO_AUTO_SIZE.NONE\n"
+new = "        pass\n"

@@ -186,6 +186,33 @@ class Lifting(unittest.TestCase):
         for name, data in self.before.items():
             self.assertEqual((kept[0] / name).read_bytes(), data, f"{name} was not kept as it was")
 
+    def test_only_the_last_few_copies_are_kept(self) -> None:
+        """⚠ **控えは上げるたびに 1 つ増え、消す所が無かった。**テンプレートの folder は案件に配る物で、
+        そこに見本の写しが際限なく貯まった。残すのは新しい方から数えた世代だけ ― 取り消したいのは
+        直前の上げで、何十回も前の物ではない。"""
+        from pptx_agent_maker.project.commands.lift import KEPT
+
+        for _round in range(KEPT + 2):
+            code, said = self._lift("--page", "w1.pptx:1")
+            self.assertEqual(code, 0, said)
+        kept = sorted(path.name for path in (self.template / "_archive").iterdir())
+        self.assertEqual(KEPT, len(kept))
+        # 残っているのは最後の世代 (= 直前の上げを取り消せる): いちばん新しい控えは、最後の上げの前の見本
+        newest = self.template / "_archive" / kept[-1]
+        self.assertEqual(len(Presentation(str(newest / "specimen.pptx")).slides) + 1,
+                         len(Presentation(str(self.template / "specimen.pptx")).slides))
+
+    def test_what_a_person_put_in_the_archive_is_left_alone(self) -> None:
+        mine = self.template / "_archive" / "kept-by-hand"
+        mine.mkdir(parents=True)
+        (mine / "note.txt").write_text("why this one is kept", encoding="utf-8")
+        from pptx_agent_maker.project.commands.lift import KEPT
+
+        for _round in range(KEPT + 1):
+            self._lift("--page", "w1.pptx:1")
+        self.assertTrue((mine / "note.txt").is_file())
+        self.assertEqual(KEPT + 1, len(list((self.template / "_archive").iterdir())))
+
     # -- a recipe -----------------------------------------------------------
 
     def test_a_recipe_goes_up_with_its_words_replaced_and_reaches_the_next_project(self) -> None:

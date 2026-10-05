@@ -103,6 +103,12 @@ pages, pages built from a type and the master a person sees in PowerPoint all ta
 `[theme]` is the exception laid on top, for when a specimen's palette does not line up with what
 the toolkit means by each colour; only what is written there is overridden.
 
+A page built from a type sits on the specimen's first layout. **If that layout has a title
+placeholder, the page's title is written into it** — the colour, the typeface and the weight are
+the template's — and **the title and its sticker stop short of what that layout prints** (a logo
+in a corner). Where the title stands and how large it is stay the toolkit's: what is read from the
+template is its look and what is already there, never how a page is divided.
+
 ## Try it
 
 ```bash

@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from ...base.tokens import DEFAULT, Theme
-from ...parts.elements import Mark
+from ...base.tokens import DEFAULT, Palette, Theme
+from ...parts.elements import Mark, Shade
 from ...parts.look import Style, TONES
 from ...parts.page import Card
 from .registry import PageTypeError
@@ -75,6 +75,7 @@ MARKS = {"ok": "\u2713", "partial": "\u25b3", "ng": "\u00d7"}
 def read_cell(value, what: str) -> str:
     """One cell of a table: its words, or the status mark it asks for.
 
+    地の濃さで値の大小を見せるセルは `{ text = "82%", shade = 3 }` (= 4 分の幾つか。段を決めるのは書く人)。
     印は `{ harvey = 3 }` か `{ mark = "ok" }` と書く。**印の字そのものを書かせない** ― 人ごとに
     違う字 (= ◯ と ○、✔ と ✓) が混ざり、書体によっては字形が無い。
     """
@@ -91,9 +92,19 @@ def read_cell(value, what: str) -> str:
         if value["mark"] not in MARKS:
             raise PageTypeError(f"{what}: `mark` is one of {', '.join(MARKS)}, not {value['mark']!r}")
         return Mark(MARKS[value["mark"]])
+    if set(value) == {"text", "shade"}:
+        level, words = value["shade"], str(value["text"])
+        if isinstance(level, bool) or not isinstance(level, int) or not 0 <= level <= Palette.SHADES:
+            raise PageTypeError(
+                f"{what}: `shade` is a whole number from 0 to {Palette.SHADES} (= how many quarters of the "
+                f"accent its ground is), not {level!r}")
+        if not words.strip():
+            raise PageTypeError(f"{what}: a shaded cell says its words in `text`, and this one says none")
+        return Shade(words, level)
     raise PageTypeError(
-        f"{what} is {value!r} — a cell is its words, or one mark: {{ harvey = 0 to {len(HARVEY) - 1} }} "
-        f"or {{ mark = {' | '.join(repr(name) for name in MARKS)} }}")
+        f"{what} is {value!r} — a cell is its words, one mark ({{ harvey = 0 to {len(HARVEY) - 1} }} or "
+        f"{{ mark = {' | '.join(repr(name) for name in MARKS)} }}), or its words on a ground as deep as "
+        f"its value ({{ text = …, shade = 0 to {Palette.SHADES} }})")
 
 
 def read_table(rows, what: str) -> list[list[str]]:

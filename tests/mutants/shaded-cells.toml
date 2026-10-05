@@ -1,0 +1,63 @@
+# A table cell that stands on a ground as deep as its value.
+
+tests = ["tests/test_shaded_cells.py"]
+
+[[mutant]]
+name = "a depth past the accent is taken"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "not isinstance(level, int) or not 0 <= level <= Palette.SHADES:"
+new = "not isinstance(level, int):"
+
+[[mutant]]
+name = "a shade with no words under it is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "        if not words.strip():\n            raise PageTypeError(f\"{what}: a shaded cell"
+new = "        if False:\n            raise PageTypeError(f\"{what}: a shaded cell"
+
+[[mutant]]
+name = "a shaded cell is read as plain words"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "        return Shade(words, level)"
+new = "        return words"
+
+[[mutant]]
+name = "a table forgets which of its cells are shaded"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "header, highlight or {}, tuple(widths), marks, shades)"
+new = "header, highlight or {}, tuple(widths), marks)"
+
+[[mutant]]
+name = "a cell of no depth is kept as a shaded cell"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "                  if isinstance(cell, Shade) and cell.level}"
+new = "                  if isinstance(cell, Shade)}"
+
+[[mutant]]
+name = "a heading cell takes a shade"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if header and any(r == 0 for r, _c in shades):"
+new = "        if False:"
+
+[[mutant]]
+name = "every depth is the same ground"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = 'return "".join(f"{round(low + (high - low) * level / self.SHADES):02X}"'
+new = 'return "".join(f"{round(low + (high - low) * 1 / self.SHADES):02X}"'
+
+[[mutant]]
+name = "a shaded cell keeps the ground of its row"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            ground = (theme.palette.shade(element.shades[(r, c)]) if (r, c) in element.shades\n                      else _cell_colour(theme, heading, r))"
+new = "            ground = _cell_colour(theme, heading, r)"
+
+[[mutant]]
+name = "the words on a deep ground stay in the colour of the body"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "                ink = (theme.palette.words_on(ground) if (r, c) in element.shades\n                       else theme.palette.paper if heading else theme.palette.ink)"
+new = "                ink = theme.palette.paper if heading else theme.palette.ink"
+
+[[mutant]]
+name = "true is read as a depth of one quarter"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "if isinstance(level, bool) or not isinstance(level, int) or not 0 <= level <= Palette.SHADES:"
+new = "if not isinstance(level, int) or not 0 <= level <= Palette.SHADES:"

@@ -150,7 +150,9 @@ class TheListingOfTypes(unittest.TestCase):
     def test_it_says_how_a_chart_is_written(self) -> None:
         said = types.describe()
         self.assertRegex(said, r"chart\s+needs: chart")
-        self.assertIn("kind (bar | column | line | stacked | waterfall)", said)
+        self.assertIn("kind (bar | column | line | stacked | waterfall | scatter)", said)
+        self.assertIn('a scatter:   kind = "scatter", x, y', said)
+        self.assertIn("points = [[x, y], …]", said)
         self.assertIn('data = "x.csv"', said)
         self.assertIn("callouts = [{ at, series, text }]", said)
 

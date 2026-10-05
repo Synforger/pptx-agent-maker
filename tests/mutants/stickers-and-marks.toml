@@ -13,19 +13,19 @@ new = "return self.width(sticker, self.type.body)"
 [[mutant]]
 name = "a title is counted as if no sticker stood beside it"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "room -= self.sticker_width(sticker) + self.spacing.gap_m"
+old = "room -= self.sticker_width(sticker) + s.gap_m"
 new = "room -= 0"
 
 [[mutant]]
 name = "the gap between a title and its sticker is not counted as taken"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "room -= self.sticker_width(sticker) + self.spacing.gap_m"
+old = "room -= self.sticker_width(sticker) + s.gap_m"
 new = "room -= self.sticker_width(sticker)"
 
 [[mutant]]
 name = "the title's box runs on under the sticker"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)"
+old = "words = Rect(main.left + lead, main.top, main.width - lead - (tag + s.gap_m if tag else 0), main.height)"
 new = "words = main"
 
 [[mutant]]
@@ -55,8 +55,8 @@ new = "sticker, t.body, p.ink, outline=p.muted))"
 [[mutant]]
 name = "a sticker that leaves the title no room is placed all the same"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if tag and self._remaining.width"
-new = "        if False and self._remaining.width"
+old = "        if tag and right - left - lead - tag"
+new = "        if False and right - left - lead - tag"
 
 [[mutant]]
 name = "a sticker that is not words is not refused"
@@ -73,8 +73,8 @@ new = "sticker=sticker,"
 [[mutant]]
 name = "the check of a long title counts as if no sticker stood beside it"
 file = "src/pptx_agent_maker/checks/declared/long_title.py"
-old = 'theme.title_lines(title, str(entry.data.get("sticker", "")).strip())'
-new = "theme.title_lines(title)"
+old = 'theme.title_lines(title, str(entry.data.get("sticker", "")).strip(),'
+new = 'theme.title_lines(title, "",'
 
 # -- the marks ------------------------------------------------------------------
 
@@ -99,8 +99,8 @@ new = "not 0 <= level <= len(HARVEY)"
 [[mutant]]
 name = "true is read as a Harvey ball of one quarter"
 file = "src/pptx_agent_maker/layout/types/core/read.py"
-old = "if isinstance(level, bool) or not isinstance(level, int) or"
-new = "if not isinstance(level, int) or"
+old = "if isinstance(level, bool) or not isinstance(level, int) or not 0 <= level < len(HARVEY):"
+new = "if not isinstance(level, int) or not 0 <= level < len(HARVEY):"
 
 [[mutant]]
 name = "a cell that asks for two marks at once is read as the first"

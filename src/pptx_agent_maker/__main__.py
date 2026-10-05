@@ -123,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
     started.add_argument("path")
     started.add_argument("--name", default=None)
     started.add_argument("--specimen", default=None, metavar="PPTX",
-                         help="the .pptx this project takes its look from, or a folder\nholding specimen.pptx and a workspace.toml to go with it")
+                         help="the .pptx this project takes its look from, or a folder\nholding specimen.pptx and what goes with it (workspace.toml,\nexample.toml, recipes.toml)")
 
     promoted = sub.add_parser("promote", help="keep pages written the same way as one recipe")
     promoted.add_argument("path", help="the project folder")
@@ -360,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(line)
             return 0
 
-        from .checks import report, run_all, run_declared
+        from .checks import report, run_all, run_built
 
         if args.command == "review" and args.apply:
             from .review.take.apply import ApplyError, apply
@@ -424,7 +424,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         # 焼いた deck を読み直す検査と、manifest を読む検査を、1 つの報告に並べる
         config = _checks(workspace)
-        findings = run_all(built_deck, config) + run_declared(manifest, theme_of(workspace, manifest), config)
+        findings = run_built(built_deck, manifest, theme_of(workspace, manifest), config)
         print(report(findings, declared=True))
         return 1 if findings else 0
     except (WorkspaceError, ManifestError, FileExistsError, FileNotFoundError,
