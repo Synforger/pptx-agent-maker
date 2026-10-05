@@ -164,5 +164,45 @@ class OnceBaked(unittest.TestCase):
         self.assertEqual([], checks.run_all(self.deck))
 
 
+class EveryLineOfACell(unittest.TestCase):
+    """改行を含むセルの文は、行ごとに別の段落になる。どの行も、同じ大きさ・色・書体で書く。
+
+    最初の段落にだけ付けていた間は、改行の後の行が pptx の既定の大きさ (= 18pt) で出た ― 本文 9pt の頁で
+    2 行目だけが倍の大きさになった。
+    """
+
+    @staticmethod
+    def cells(theme=DEFAULT) -> dict[str, str]:
+        from pptx_agent_maker.write import add_page, new_deck, save
+
+        table = [["項目", "中身"], ["一行目\n二行目\n三行目", "一行だけ"], [{"text": "濃い地\n二行目", "shade": 4}, "x"]]
+        with tempfile.TemporaryDirectory() as tmp:
+            deck = new_deck(theme)
+            page = build({"type": "board", "title": "だい", "table": table}, theme)
+            add_page(deck, page.build(), page.theme)
+            with zipfile.ZipFile(save(deck, Path(tmp) / "lines.pptx")) as archive:
+                xml = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        return {"".join(re.findall(r"<a:t>(.*?)</a:t>", cell)): cell for cell in re.findall(r"<a:tc[ >].*?</a:tc>", xml, re.S)}
+
+    def test_each_line_is_a_paragraph_set_as_the_first_is(self) -> None:
+        for theme in (DEFAULT, DEFAULT.using("sheet")):
+            with self.subTest(use=theme.use):
+                cell = self.cells(theme)["一行目二行目三行目"]
+                paragraphs = re.findall(r"<a:p>.*?</a:p>", cell, re.S)
+                self.assertEqual(3, len(paragraphs))
+                said = [re.search(r"<a:rPr[^>]*>.*?</a:rPr>", paragraph, re.S).group(0) for paragraph in paragraphs]
+                self.assertEqual([said[0]] * 3, said, "size, weight, colour and typeface on every line")
+                self.assertIn(f'sz="{int(theme.type.body * 100)}"', said[0])
+                self.assertEqual(3, cell.count('algn="l"'))
+
+    def test_every_line_of_a_shaded_cell_takes_the_colour_that_reads_on_its_ground(self) -> None:
+        cell = self.cells()["濃い地二行目"]
+        inks = re.findall(r'<a:rPr[^>]*>.*?<a:srgbClr val="([0-9A-F]{6})"', cell, re.S)
+        self.assertEqual([DEFAULT.palette.words_on(DEFAULT.palette.shade(4))] * 2, inks)
+
+    def test_a_cell_of_one_line_is_written_as_it_always_was(self) -> None:
+        self.assertEqual(1, len(re.findall(r"<a:p>", self.cells()["一行だけ"])))
+
+
 if __name__ == "__main__":
     unittest.main()
