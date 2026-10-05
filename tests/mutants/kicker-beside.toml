@@ -71,5 +71,6 @@ new = '    if element.kind in {"label", "lane", "marker"}:'
 [[mutant]]
 name = "the check of a long title counts as if nothing stood beside the title"
 file = "src/pptx_agent_maker/checks/declared/long_title.py"
-old = '                                  str(entry.data.get("kicker", ""))) if title else 0'
-new = '                                  "") if title else 0'
+old = "title, str(entry.data.get(\"sticker\", \"\")).strip(), str(entry.data.get(\"kicker\", \"\"))) if title else 0"
+new = "title, str(entry.data.get(\"sticker\", \"\")).strip(), \"\") if title else 0"
+

@@ -1,0 +1,53 @@
+# The sizes of the type come by name: a deck names its use, and a page inside it names another
+# (= a page to be read, in the middle of a deck made to be shown).
+
+specimen = "specimen.pptx"
+out = "uses.pptx"
+use = "present"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "A deck made to be shown says little on a page"
+card_columns = 2
+cards = [
+  { heading = "Large", body = "read from a seat" },
+  { heading = "Few", body = "the points only" },
+]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "read"
+title = "One page to be read, in the middle of it"
+card_columns = 3
+cards = [
+  { heading = "One", body = "the sizes of a deck read at a desk" },
+  { heading = "Two", body = "so the page holds what a shown page cannot" },
+  { heading = "Three", body = "the band of the title is as tall as its type" },
+  { heading = "Four", body = "nothing else about the deck changes" },
+  { heading = "Five", body = "its colours and its typeface stay" },
+  { heading = "Six", body = "and the next page is large again" },
+]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "detail"
+title = "A page in a use the project named for itself"
+card_columns = 3
+cards = [
+  { heading = "Named", body = "under [theme.uses] of the project" },
+  { heading = "Like", body = "it starts from a use of the toolkit" },
+  { heading = "Changed", body = "and says only the sizes it changes" },
+]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "The deck's own use again"
+card_columns = 2
+cards = [
+  { heading = "Back", body = "to the sizes of the deck" },
+  { heading = "Same", body = "as the first page" },
+]

@@ -104,15 +104,37 @@ def _deck_path(workspace, name: str) -> Path:
     return target
 
 
-def _checks(workspace) -> dict:
-    """What the project asks of the checks, with the type floor of its deck's use filled in.
+def _checks(workspace, manifest=None, theme=None) -> dict:
+    """What the project asks of the checks, with the type floor of the deck's use filled in.
 
-    文字の下限は資料の使い方が決める (= 映す資料は 14pt、読ませる資料は 10pt)。案件が
-    `[checks] type_floor` を書いていれば、そちらが勝つ。
+    文字の下限は資料の使い方が決める (= 映す資料は 14pt、読ませる資料は 10pt)。`theme` はその資料の見た目
+    (= manifest が使い方を名指していれば、その使い方)。自分の使い方を名指した頁は、その使い方の下限で
+    見る。案件が `[checks] type_floor` を書いていれば、どの頁でもそちらが勝つ。
     """
     from .layout.base.tokens import theme_from
 
-    return {"type_floor": theme_from(workspace.look).type.minimum, **workspace.settings.get("checks", {})}
+    asked = workspace.settings.get("checks", {})
+    config = {"type_floor": (theme or theme_from(workspace.look)).type.minimum, **asked}
+    if manifest is not None and theme is not None and "type_floor" not in asked:
+        config["type_floor_of"] = {
+            number: theme.using(entry.data.get("use")).type.minimum
+            for number, entry in enumerate(manifest.entries, start=1)
+            if entry.kind == "declare" and entry.data.get("use")}
+    return config
+
+
+def _manifest_of(workspace, deck: Path):
+    """The manifest a built deck came from (= the one whose `out` is this file), or None."""
+    from .project.files.manifest import Manifest, ManifestError
+
+    for path in workspace.manifests():
+        try:
+            manifest = Manifest.load(path)
+        except (ManifestError, OSError):
+            continue  # 読めないマニフェストは build が言う
+        if workspace.out(manifest.out).resolve() == deck.resolve():
+            return manifest
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -411,7 +433,11 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "check":
             target = _deck_path(workspace, args.deck)
-            findings = run_all(target, _checks(workspace))
+            # 案件の manifest から焼いた資料なら、焼いた時と同じ下限で見る (= 資料と頁の使い方)
+            from .deck.build import theme_of
+
+            source = _manifest_of(workspace, target)
+            findings = run_all(target, _checks(workspace, source, theme_of(workspace, source) if source else None))
             print(report(findings))
             return 1 if findings else 0
 
@@ -423,8 +449,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.skip_checks:
             return 0
         # 焼いた deck を読み直す検査と、manifest を読む検査を、1 つの報告に並べる
-        config = _checks(workspace)
-        findings = run_built(built_deck, manifest, theme_of(workspace, manifest), config)
+        theme = theme_of(workspace, manifest)
+        findings = run_built(built_deck, manifest, theme, _checks(workspace, manifest, theme))
         print(report(findings, declared=True))
         return 1 if findings else 0
     except (WorkspaceError, ManifestError, FileExistsError, FileNotFoundError,

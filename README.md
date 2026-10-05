@@ -93,6 +93,9 @@ cd <project-dir> && task build -- example
 A project sets its own **typeface and colours** in `[theme]` in its `workspace.toml`, and pages
 built from a type come out in them. It also says what the deck is for — `use = "read"` or
 `"present"` — and the type sizes follow from that, with a size of its own per role if it needs one.
+A deck, and a page inside it, may name a use of its own (a page packed to be read in the middle of
+a deck made to be shown), and a project may name uses of its own; a page picks a use by name and
+never writes a size.
 **Margins and spacing cannot be set**: the same kind of page keeping the same shape from one round
 to the next is worth more, and the generation that left that open produced a different page every
 week.

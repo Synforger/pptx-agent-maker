@@ -129,7 +129,8 @@ class Type:
 
 #: 資料の使い方ごとの文字の大きさ。`read` は手元で読ませる資料 (= 既定)、`present` は映して話す
 #: 資料 ― 離れた席から読むので全部が 1.3〜1.5 倍で、載る量はそのぶん減る (= 要点だけを載せる)。
-#: 案件は `[theme] use` でどちらかを選ぶ
+#: 案件は `[theme] use` でどちらかを選び、自分の使い方を名前付きで足せる (= `[theme.uses]`)。
+#: 資料 (= manifest) と頁は、その名前のどれかを `use` で名指して選ぶ
 USES = {
     "read": Type(),
     "present": Type(title=32, heading=24, stage=20, marker=36, body=18, caption=14, minimum=14),
@@ -285,6 +286,28 @@ class Theme:
     under: Under = field(default_factory=Under)
     #: 題の上の小さい字の置き場 (= `KICKERS`。案件が `[theme] kicker` で決める)
     kicker: str = "above"
+    #: この見た目の使い方の名前 (= 道具の `read` / `present` か、案件が `[theme.uses]` で名付けたもの)
+    use: str = "read"
+    #: この案件が知っている使い方と、それぞれの字の大きさ (= 資料と頁が `use` で名指す先。`using`)
+    scales: tuple[tuple[str, Type], ...] = tuple(USES.items())
+
+    def using(self, use: str | None) -> "Theme":
+        """This look in the sizes of another use the project knows (= what a deck or a page names with `use`).
+
+        変わるのは字の大きさと、それに付いて行く帯の高さだけ。書体・色・余白・下敷きは同じ資料のまま。
+
+        ⚠ **選べるのは使い方の名前だけ** (= 大きさを 1 つずつは書けない)。役ごとの大きさが頁に書けると、同じ
+        役の字が頁によって違う大きさになる。名前で選ぶなら、同じ使い方の頁どうしは必ず揃う。
+        """
+        if use is None or use == self.use:
+            return self
+        known = dict(self.scales)
+        if not isinstance(use, str) or use not in known:
+            raise ThemeError(
+                f"`use` is {use!r} — this project knows {', '.join(repr(name) for name in known)} "
+                "(= the toolkit's own, and the ones named under [theme.uses])")
+        type = replace(known[use], family=self.type.family)
+        return replace(self, use=use, type=type, spacing=_furniture(type))
 
     def ground_names(self) -> tuple[str, ...]:
         return tuple(name for name, _colour in self.grounds)
@@ -490,7 +513,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type", "kicker")
+_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker")
 
 
 class ThemeError(ValueError):
@@ -505,8 +528,9 @@ def theme_from(settings: dict | None) -> Theme:
     頁の割り方はツールのもの**という線をここで引く。
 
     文字の大きさは**資料の使い方**から決まる (= `use`。手元で読ませるか、映して話すか)。役ごとの
-    上書き (= `[theme.type]`) も受け取るが、決める所は案件のこの 1 か所で、頁ごと・箱ごとには
-    変えられない ― そこが動くと、同じ役の字が頁によって違う大きさになる。
+    上書き (= `[theme.type]`) と、案件が名前を付けた使い方 (= `[theme.uses]`) も受け取るが、大きさを
+    決める所は案件のここだけ ― 資料と頁が選べるのは使い方の名前で (= `Theme.using`)、大きさそのものは
+    書けない。そこが動くと、同じ役の字が頁によって違う大きさになる。
 
     ⚠ **知らないキーは捨てずに拒む。**綴り違いを黙って落とすと、書いた人は見た目を変えた
     つもりで、焼いた頁は既定のまま出る。
@@ -536,8 +560,18 @@ def theme_from(settings: dict | None) -> Theme:
             f"theme.kicker is {kicker!r} — the small words above a title stand "
             f"{' or '.join(repr(place) for place in KICKERS)} it")
 
-    type = replace(_sizes(settings.get("use", "read"), settings.get("type")), family=family)
+    scales = {**USES, **_uses(settings.get("uses"))}
+    use = settings.get("use", "read")
+    if not isinstance(use, str) or use not in scales:
+        raise ThemeError(
+            f"theme.use is {use!r} — a deck is made to be {' or '.join(repr(name) for name in scales)} "
+            "(= read at a desk, shown on a screen and spoken to, or a use named under [theme.uses])")
+    # `[theme.type]` は、案件が選んだ使い方の大きさを上書きする (= ほかの使い方には掛からない)
+    scales[use] = _sizes(f"a deck made to be {use}", scales[use], settings.get("type"), "theme.type")
+    type = replace(scales[use], family=family)
     return Theme(
+        use=use,
+        scales=tuple(scales.items()),
         type=type,
         palette=Palette(**{name: str(value).upper() for name, value in colours.items()}),
         spacing=_furniture(type),
@@ -546,29 +580,59 @@ def theme_from(settings: dict | None) -> Theme:
     )
 
 
-def _sizes(use, declared) -> Type:
-    """The type sizes of a deck made for this use, with the project's own laid over them.
+def _sizes(what: str, base: Type, declared, where: str) -> Type:
+    """The sizes of one use, with what the project wrote for it laid over them.
+
+    `what` は、誤りを言う時のその使い方の呼び方 (= `a deck made to be present`)、`where` は書かれた場所
+    (= `theme.type`)。
 
     ⚠ **下限より小さい大きさは拒む。**下限は使い方が決める (= 映す資料は、読ませる資料より高い)。
     小さくできる口が在ると、載り切らない頁は字を縮めて通され、席から読めない頁が戻ってくる。
     """
-    if use not in USES:
-        raise ThemeError(
-            f"theme.use is {use!r} — a deck is made to be {' or '.join(repr(name) for name in USES)} "
-            "(= read at a desk, or shown on a screen and spoken to)")
     declared = declared or {}
     if not isinstance(declared, dict):
-        raise ThemeError("theme.type is a table of sizes in points, as in body = 14")
-    _refuse_unknown(sorted(set(declared) - set(SIZED)), "theme.type", SIZED)
-    floor = USES[use].minimum
+        raise ThemeError(f"{where} is a table of sizes in points, as in body = 14")
+    _refuse_unknown(sorted(set(declared) - set(SIZED)), where, SIZED)
+    floor = base.minimum
     for name, value in declared.items():
         if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise ThemeError(f"theme.type.{name} is {value!r} — a size is a number of points, as in 14")
+            raise ThemeError(f"{where}.{name} is {value!r} — a size is a number of points, as in 14")
         if value < floor:
             raise ThemeError(
-                f"theme.type.{name} is {value:g}pt, below the {floor:g}pt floor of a deck made to be "
-                f"{use} — nothing smaller is readable there; say less on the page instead")
-    return replace(USES[use], **declared)
+                f"{where}.{name} is {value:g}pt, below the {floor:g}pt floor of {what} "
+                "— nothing smaller is readable there; say less on the page instead")
+    return replace(base, **declared)
+
+
+def _uses(declared) -> dict[str, Type]:
+    """The uses a project names for itself (= `[theme.uses.<name>]`), each with its sizes.
+
+    1 つの使い方は、道具の使い方のどれに倣うか (= `like`。必須) と、そこから変える役の大きさで書く。
+    下限は倣った先のもの (= `read` に倣えば 10pt、`present` に倣えば 14pt)。
+
+    ⚠ **道具の使い方と同じ名前は拒む。**`read` や `present` をここで書き換えられると、その大きさを決める
+    口が `[theme.type]` と 2 つに割れる。
+    """
+    declared = declared or {}
+    if not isinstance(declared, dict):
+        raise ThemeError('theme.uses is a table of uses, each named: [theme.uses.detail] with like = "read"')
+    found: dict[str, Type] = {}
+    for name, said in declared.items():
+        where = f"theme.uses.{name}"
+        if name in USES:
+            raise ThemeError(
+                f"{where} — {name!r} is the toolkit's own use; give the project's use another name "
+                "(= its sizes for the project's own `use` are written under [theme.type])")
+        if not isinstance(said, dict):
+            raise ThemeError(f'{where} is a table: like = "read", then the sizes it changes, as in body = 11')
+        like = said.get("like")
+        if not isinstance(like, str) or like not in USES:
+            raise ThemeError(
+                f"{where}.like is {like!r} — a use of the project's own starts from "
+                f"{' or '.join(repr(use) for use in USES)}")
+        sizes = {key: value for key, value in said.items() if key != "like"}
+        found[name] = _sizes(f"a use like {like}", USES[like], sizes, where)
+    return found
 
 
 def _furniture(type: Type) -> Spacing:

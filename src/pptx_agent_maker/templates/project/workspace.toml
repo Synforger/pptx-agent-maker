@@ -35,6 +35,14 @@ assets = "assets"       # images and other material, one folder per round
 #
 # [theme.type]          # a size of the project's own, role by role, in points
 # body = 20             # title / heading / stage / body / caption
+#
+# A deck may name a use of its own (use = "read" at the top of its manifest), and so may one
+# page inside it (use = "read" on the page): a page packed to be read, in the middle of a deck
+# made to be shown. They pick a use by name; the sizes themselves are written only here.
+#
+# [theme.uses.detail]   # a use of the project's own, picked with use = "detail"
+# like = "read"         # which of the toolkit's uses it starts from: "read" or "present"
+# body = 11             # and the sizes it changes
 
 # Words the specimen leaves behind. A copied page that still says one of these
 # was never reworded, and the check after the build stops it.

@@ -74,6 +74,8 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
         )
     filler, needs, takes, wants_figure = TYPES[name]
     check_keys(name, data, needs, takes)
+    # 頁が使い方を名指していれば、その大きさで組む (= 映す資料の途中に挟む、詰めた 1 枚)
+    theme = theme.using(data.get("use"))
 
     title = data.get("title")
     if not title:
