@@ -110,7 +110,8 @@ in a corner). Where the title stands and how large it is stay the toolkit's: wha
 template is its look and what is already there, never how a page is divided. **In a template
 that numbers its pages** (its slides carry the slide-number placeholder) **a page built from a
 type carries the layout's slide-number placeholder too**, so its number stands where a copied
-page's does and looks the same.
+page's does and looks the same. A first page that carries no number (a cover) is not counted:
+the page after it is 1.
 
 ## Try it
 

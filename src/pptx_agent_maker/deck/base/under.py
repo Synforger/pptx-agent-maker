@@ -27,6 +27,7 @@ from pathlib import Path
 
 from ...checks.base.ink import NO_FILL, PLACEHOLDER, draws_anything, ink_of
 from ...checks.base.slide import EXTENT, OFFSET, TEXT_SHAPE, shapes_in
+from .archive import NUMBER_FRAME as _NUMBER
 from ...layout.base.geometry import Rect
 from ...layout.base.tokens import Under
 
@@ -36,9 +37,6 @@ _MASTER = re.compile(r'Target="\.\./slideMasters/(slideMaster\d+\.xml)"')
 #: 本文の頁の題の枠。表紙の題 (= `ctrTitle`) は数えない ― 真ん中に大きく置く題の見た目を、本文の頁の
 #: 題が継ぐことになる
 _TITLE = re.compile(r'<p:ph\b[^>]*\btype="title"')
-#: 頁番号の枠 (= 番号は開いた側が入れる)。レイアウトでは「この上の頁が持てる枠」、頁では「この頁は
-#: 番号を出す」
-_NUMBER = re.compile(r'<p:ph\b([^>]*\btype="sldNum"[^>]*?)/?>')
 _SAID = re.compile(r'([\w:]+)="([^"]*)"')
 _PAGE = re.compile(r"ppt/slides/slide\d+\.xml")
 #: 線になり得る図形 (= コネクタと、ふつうの図形)

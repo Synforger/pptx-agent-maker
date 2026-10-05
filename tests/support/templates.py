@@ -31,6 +31,26 @@ NUMBER_ON_A_PAGE = (
 TITLE_COLOUR = "0070C0"
 
 
+def with_a_cover(template: Path, *, counts_from: int | None = None) -> Path:
+    """Put a page with no number in front of the template's page (= a cover), in place.
+
+    表紙は、番号を出さない頁として作られる (= 頁番号の枠を持たない)。python-pptx は、レイアウトから頁を
+    作るとき日付・フッター・頁番号の枠を写さないので、足した頁はそのまま「番号を持たない頁」になる。
+
+    `counts_from` は、テンプレートが数え始めを自分で書いている形 (= PowerPoint の「スライド開始番号」)。
+    """
+    from pptx import Presentation
+
+    deck = Presentation(str(template))
+    deck.slides.add_slide(deck.slide_layouts[6])
+    listed = deck.slides._sldIdLst
+    listed.insert(0, listed[-1])
+    if counts_from is not None:
+        deck.part._element.set("firstSlideNum", str(counts_from))
+    deck.save(str(template))
+    return template
+
+
 def _line(across: Rect, how: str) -> str:
     """A line a layout draws, the two ways PowerPoint writes one: a connector, or a shape with no height."""
     place = (f'<a:xfrm><a:off x="{across.left}" y="{across.top}"/><a:ext cx="{across.width}" cy="0"/></a:xfrm>'
