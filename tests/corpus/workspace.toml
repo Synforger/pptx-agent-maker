@@ -20,6 +20,17 @@ like = "read"
 heading = 14
 body = 11
 
+# A use that sets its own floor and spacing (= like the toolkit's sheet, tighter still).
+[theme.uses.proposal]
+like = "sheet"
+floor = 7
+body = 8
+caption = 7
+
+[theme.uses.proposal.spacing]
+scale = 0.5
+pad = 0.1
+
 # The pictures here are made up to exercise the layout, so there is no source to name:
 # the corpus builds with the check for unsourced pages switched off, the way a project may.
 [checks]

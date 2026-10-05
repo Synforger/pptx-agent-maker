@@ -17,25 +17,25 @@ new = "body=18, caption=14, minimum=10),"
 [[mutant]]
 name = "the sizes a project sets are not laid over the table"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    return replace(base, **declared)"
-new = "    return base"
+old = "    sized = replace(base, **declared)"
+new = "    sized = base"
 
 [[mutant]]
 name = "a size under the floor is taken"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        if value < floor:\n"
+old = "        if value < sized.minimum:\n"
 new = "        if False:\n"
 
 [[mutant]]
 name = "the floor a size is held to is always that of a deck to be read"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    floor = base.minimum\n"
-new = "    floor = USES[\"read\"].minimum\n"
+old = "        if value < sized.minimum:\n"
+new = "        if value < USES[\"read\"].minimum:\n"
 
 [[mutant]]
 name = "a role that is not the project's to set is taken"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    _refuse_unknown(sorted(set(declared) - set(SIZED)), where, SIZED)\n"
+old = "    _refuse_unknown(sorted(set(declared) - set(SIZED)), where, takes)\n"
 new = ""
 
 [[mutant]]

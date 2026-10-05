@@ -53,8 +53,8 @@ new = "        if False:"
 [[mutant]]
 name = "a named use starts from a deck to be read whatever it says it is like"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        found[name] = _sizes(f\"a use like {like}\", USES[like], sizes, where)"
-new = "        found[name] = _sizes(f\"a use like {like}\", USES[\"read\"], sizes, where)"
+old = "base = _spaced(_floored(USES[like], said.get(\"floor\"), where), said.get(\"spacing\"), f\"{where}.spacing\")"
+new = "base = _spaced(_floored(USES[\"read\"], said.get(\"floor\"), where), said.get(\"spacing\"), f\"{where}.spacing\")"
 
 [[mutant]]
 name = "what theme.type says is laid over a use the project did not choose"
@@ -133,3 +133,95 @@ name = "a page may not write use"
 file = "src/pptx_agent_maker/layout/types/core/registry.py"
 old = "\"footer\", \"replace\", \"legend\", \"sticker\", \"use\"})"
 new = "\"footer\", \"replace\", \"legend\", \"sticker\"})"
+
+# -- a page read on one sheet, and a use that sets its own floor and spacing ------
+
+[[mutant]]
+name = "the sheet is set as tightly as a deck to be read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "body=9, caption=8, minimum=8, tight=0.75),"
+new = "body=9, caption=8, minimum=8),"
+
+[[mutant]]
+name = "the sheet is held to the floor of a deck to be read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "body=9, caption=8, minimum=8, tight=0.75),"
+new = "body=9, caption=8, minimum=10, tight=0.75),"
+
+[[mutant]]
+name = "a use's ratio is not laid over the spacing"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    if type.tight != 1:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "the edge of the page is tightened with the rest"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "TIGHTENED = (\"gap_s\","
+new = "TIGHTENED = (\"margin_x\", \"gap_s\","
+
+[[mutant]]
+name = "the padding of a table's cells is left out of what is tightened"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "\"pad\", \"cell_pad_y\", \"cell_pad_x\", \"text_inset\", \"bar_pad_x\", \"bar_pad_y\",\n             \"bar_gap\""
+new = "\"pad\", \"cell_pad_x\", \"text_inset\", \"bar_pad_x\", \"bar_pad_y\",\n             \"bar_gap\""
+
+[[mutant]]
+name = "a distance written by itself loses to the ratio"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    base = replace(base, **dict(type.spaced))\n"
+new = ""
+
+[[mutant]]
+name = "a use's own floor is not read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    return replace(base, minimum=floor)"
+new = "    return base"
+
+[[mutant]]
+name = "a floor of nothing or less is taken"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    if isinstance(floor, bool) or not isinstance(floor, (int, float)) or floor <= 0:"
+new = "    if False:"
+
+[[mutant]]
+name = "a size left alone need not clear a floor that was raised"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    for name in SIZED:\n        value = getattr(sized, name)"
+new = "    for name in declared:\n        value = getattr(sized, name)"
+
+[[mutant]]
+name = "a use's spacing is not read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    if declared is None:\n        return base\n    if not isinstance(declared, dict):\n        raise ThemeError(f\"{where} is a table: scale"
+new = "    if True:\n        return base\n    if not isinstance(declared, dict):\n        raise ThemeError(f\"{where} is a table: scale"
+
+[[mutant]]
+name = "a distance is read in points, not in centimetres"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "spaced=tuple((name, cm(value)) for name, value in one_by_one.items()))"
+new = "spaced=tuple((name, pt(value)) for name, value in one_by_one.items()))"
+
+[[mutant]]
+name = "a distance below nothing is taken"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if value < 0:\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "a ratio of nothing is taken"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    if scale <= 0:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "a key that is no distance is taken as spacing"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    _refuse_unknown(sorted(set(declared) - {\"scale\", *SPACED}), where, (\"scale\", *SPACED))\n"
+new = ""
+
+[[mutant]]
+name = "a use that says no ratio is set as loosely as a deck to be read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    scale = declared.get(\"scale\", base.tight)"
+new = "    scale = declared.get(\"scale\", 1.0)"
