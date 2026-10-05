@@ -170,9 +170,9 @@ new = "for name in archive.namelist() if False)"
 
 [[mutant]]
 name = "any placeholder on a page of the specimen counts as its number"
-file = "src/pptx_agent_maker/deck/base/under.py"
-old = """_NUMBER = re.compile(r'<p:ph\\b([^>]*\\btype="sldNum"[^>]*?)/?>')"""
-new = """_NUMBER = re.compile(r'<p:ph\\b([^>]*?)/?>')"""
+file = "src/pptx_agent_maker/deck/base/archive.py"
+old = """NUMBER_FRAME = re.compile(r'<p:ph\\b([^>]*\\btype="sldNum"[^>]*?)/?>')"""
+new = """NUMBER_FRAME = re.compile(r'<p:ph\\b([^>]*?)/?>')"""
 
 [[mutant]]
 name = "the frame's name is cut down to its kind"
@@ -209,3 +209,41 @@ name = "the number is written without the field the reader fills"
 file = "src/pptx_agent_maker/write/pptx.py"
 old = """<a:fld id="{NUMBER_FIELD}" type="slidenum">"""
 new = """<a:fld id="{NUMBER_FIELD}" type="datetime1">"""
+
+# -- where the count starts ---------------------------------------------------------
+
+[[mutant]]
+name = "the cover is counted as page 1 (the count is never moved)"
+file = "src/pptx_agent_maker/deck/__init__.py"
+old = "        if any(numbered) and not numbered[0]:\n            self._archive.count_from(0)"
+new = "        if False:\n            self._archive.count_from(0)"
+
+[[mutant]]
+name = "a deck whose first page carries its number starts at 0 all the same"
+file = "src/pptx_agent_maker/deck/__init__.py"
+old = "        if any(numbered) and not numbered[0]:"
+new = "        if any(numbered):"
+
+[[mutant]]
+name = "a deck that numbers nothing is told where to start counting"
+file = "src/pptx_agent_maker/deck/__init__.py"
+old = "        if any(numbered) and not numbered[0]:"
+new = "        if not numbered[0]:"
+
+[[mutant]]
+name = "what the specimen says about the first number is overruled"
+file = "src/pptx_agent_maker/deck/__init__.py"
+old = "        if self._archive.counts_from() is not None:\n            return\n"
+new = ""
+
+[[mutant]]
+name = "the count starts at 1 where it was meant to start at 0"
+file = "src/pptx_agent_maker/deck/__init__.py"
+old = "            self._archive.count_from(0)"
+new = "            self._archive.count_from(1)"
+
+[[mutant]]
+name = "the first number is written into the first page instead of the deck"
+file = "src/pptx_agent_maker/deck/base/archive.py"
+old = """            else tag[:-1] + f' firstSlideNum="{first}">'"""
+new = """            else tag"""

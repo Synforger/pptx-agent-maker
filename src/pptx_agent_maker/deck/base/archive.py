@@ -20,6 +20,13 @@ MEDIA_TARGET = re.compile(r'Target="[^"]*?media/([^"]+)"')
 #: 頁が絵のほかに連れて来る部品の置き場 (= グラフ本体と、グラフが中に持つデータの表)
 CARRIED_FOLDERS = ("ppt/charts", "ppt/embeddings")
 
+#: 頁番号の枠 (= 番号は開いた側が入れる)。レイアウトでは「この上の頁が持てる枠」、頁では「この頁は
+#: 番号を出す」
+NUMBER_FRAME = re.compile(r'<p:ph\b([^>]*\btype="sldNum"[^>]*?)/?>')
+#: 資料の根の札と、そこに書かれる「1 枚目の番号」 (= 書かれていなければ 1 から数える)
+PRESENTATION_TAG = re.compile(r"<p:presentation\b[^>]*>")
+FIRST_NUMBER = re.compile(r'\bfirstSlideNum="(-?\d+)"')
+
 SLIDE_TYPE = ("application/vnd.openxmlformats-officedocument.presentationml.slide+xml")
 SLIDE_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide"
 
@@ -226,6 +233,22 @@ class Archive:
             re.sub(r"<p:sldIdLst>.*</p:sldIdLst>", f"<p:sldIdLst>{listing}</p:sldIdLst>",
                    text, flags=re.S),
             encoding="utf-8")
+
+    def counts_from(self) -> int | None:
+        """The number the deck says its first page has, or None when it does not say (= counted from 1)."""
+        said = FIRST_NUMBER.search(self._presentation_tag())
+        return int(said.group(1)) if said else None
+
+    def count_from(self, first: int) -> None:
+        """Say which number the first page has (= `firstSlideNum`, what PowerPoint's "Number slides from" writes)."""
+        presentation = self.tree / "ppt/presentation.xml"
+        text, tag = presentation.read_text(encoding="utf-8"), self._presentation_tag()
+        said = FIRST_NUMBER.sub(f'firstSlideNum="{first}"', tag) if FIRST_NUMBER.search(tag) \
+            else tag[:-1] + f' firstSlideNum="{first}">'
+        presentation.write_text(text.replace(tag, said, 1), encoding="utf-8")
+
+    def _presentation_tag(self) -> str:
+        return PRESENTATION_TAG.search((self.tree / "ppt/presentation.xml").read_text(encoding="utf-8")).group(0)
 
     def order_of(self, source: Path | None = None) -> list[str]:
         """Reading order of this deck, or of another .pptx without unpacking it."""

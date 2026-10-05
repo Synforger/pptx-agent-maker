@@ -19,7 +19,7 @@ from typing import Iterator
 
 from .pages import slides as _slides
 from .pages import text as _text
-from .base.archive import Archive
+from .base.archive import NUMBER_FRAME, Archive
 from .pages.text import ReplacementMissed
 
 __all__ = ["Deck", "Slide", "ReplacementMissed", "build"]
@@ -144,6 +144,21 @@ class Deck:
         """The pages declared so far, in the order they will read."""
         return list(self._pages)
 
+    def _count_after_the_cover(self) -> None:
+        """Start the count at 0 when the first page carries no number and a later one does.
+
+        表紙は番号を出さない頁として作られる (= 頁番号の枠を持たない)。数え始めが 1 のままだと、表紙が
+        1 頁目に数えられ、表紙の次の頁に「2」が出る。0 から数えれば、番号の出る最初の頁が 1 になる。
+
+        ⚠ **見本が数え始めを自分で書いている資料は、そのまま** (= テンプレートを作った人の決め)。1 枚目が
+        番号を持つ資料 (= 表紙の無い、1 枚目から本文の資料) も、1 から数えるまま。
+        """
+        if self._archive.counts_from() is not None:
+            return
+        numbered = [bool(NUMBER_FRAME.search(page.path.read_text(encoding="utf-8"))) for page in self._pages]
+        if any(numbered) and not numbered[0]:
+            self._archive.count_from(0)
+
     def _settle(self) -> None:
         """Keep what was declared, in the order declared; remove everything else."""
         if not self._pages:
@@ -153,5 +168,6 @@ class Deck:
             if name not in kept:
                 self._archive.unregister_slide(name)
         self._archive.set_order(kept)
+        self._count_after_the_cover()
         self._archive.drop_unreferenced_media()
         self._archive.drop_unreferenced_parts()
