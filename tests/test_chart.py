@@ -872,7 +872,10 @@ class TheChartTravelsWithItsPage(unittest.TestCase):
             deck.copy(1)
             deck.bring(self.charts("declared.pptx", [12, 15, 21, 18], [1, 2, 3, 4]), 1, relayout=True)
         result = subprocess.run(
-            ["soffice", "--headless", "--convert-to", "pdf", str(out), "--outdir", str(self.dir)],
+            # ⚠ 自分の profile で変換する。既定の profile は機械に 1 つで、同じ時に別の変換 (= 別の端末の
+            # 検査、preview) が動いていると、こちらは終了コード 0 のまま何も書かずに終わる
+            ["soffice", f"-env:UserInstallation=file://{self.dir}/libreoffice", "--headless",
+             "--convert-to", "pdf", str(out), "--outdir", str(self.dir)],
             capture_output=True, timeout=180)
         self.assertEqual(result.returncode, 0, result.stderr.decode()[:400])
         self.assertTrue((self.dir / "built.pdf").is_file(), "the deck did not convert")

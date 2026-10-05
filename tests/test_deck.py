@@ -151,7 +151,10 @@ class DeckTest(unittest.TestCase):
             deck.copy(1).replace("一枚目", "差し替えた見出し")
             deck.bring(self.earlier, 1)
         result = subprocess.run(
-            ["soffice", "--headless", "--convert-to", "pdf", str(out), "--outdir", str(self.dir)],
+            # ⚠ 自分の profile で変換する。既定の profile は機械に 1 つで、同じ時に別の変換 (= 別の端末の
+            # 検査、preview) が動いていると、こちらは終了コード 0 のまま何も書かずに終わる
+            ["soffice", f"-env:UserInstallation=file://{self.dir}/libreoffice", "--headless",
+             "--convert-to", "pdf", str(out), "--outdir", str(self.dir)],
             capture_output=True, timeout=180,
         )
         self.assertEqual(result.returncode, 0, result.stderr.decode()[:400])
