@@ -247,3 +247,41 @@ name = "the first number is written into the first page instead of the deck"
 file = "src/pptx_agent_maker/deck/base/archive.py"
 old = """            else tag[:-1] + f' firstSlideNum="{first}">'"""
 new = """            else tag"""
+
+# -- the rest of the page goes on under a line the layout left below the band --------
+
+[[mutant]]
+name = "the page starts where it always did, over the layout's line"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if lower > 0:\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "the page keeps a line of its own under the title beside the layout's"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            self._remaining = self._remaining.inset(top=lower)\n        else:\n            line = Rect(bar.left"
+new = "            self._remaining = self._remaining.inset(top=lower)\n        if True:\n            line = Rect(bar.left"
+
+[[mutant]]
+name = "what reaches the lower half of the page pushes the rest under it"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "thing.left < middle < thing.right and band.bottom < thing.bottom <= half),"
+new = "thing.left < middle < thing.right and band.bottom < thing.bottom),"
+
+[[mutant]]
+name = "a short line at one side counts as a line across the page under the title"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "if thing.left < middle < thing.right and band.bottom < thing.bottom <= half),"
+new = "if band.bottom < thing.bottom <= half),"
+
+[[mutant]]
+name = "no gap is kept under the layout's line"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        return rest if lowest is None else max(rest, lowest + self.spacing.gap_s)"
+new = "        return rest if lowest is None else max(rest, lowest)"
+
+[[mutant]]
+name = "the highest of several lines decides"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        lowest = max((thing.bottom for thing in self.under.prints"
+new = "        lowest = min((thing.bottom for thing in self.under.prints"

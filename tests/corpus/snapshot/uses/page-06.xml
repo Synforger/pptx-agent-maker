@@ -25,7 +25,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="ctr">
+<a:bodyPr wrap="square" lIns="45720" rIns="45720" anchor="ctr">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -122,7 +122,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" lIns="45720" rIns="45720" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -157,7 +157,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" lIns="45720" rIns="45720" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -224,7 +224,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" lIns="45720" rIns="45720" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -259,7 +259,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" lIns="45720" rIns="45720" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -326,7 +326,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" lIns="45720" rIns="45720" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -361,7 +361,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" lIns="45720" rIns="45720" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -428,7 +428,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" lIns="45720" rIns="45720" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -463,7 +463,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" lIns="45720" rIns="45720" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>

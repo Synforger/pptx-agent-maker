@@ -475,6 +475,32 @@ class TightPagesBuilt(_Project):
         workspace, manifest = Workspace.load(root / "workspace.toml"), Manifest.load(root / "deck.toml")
         self.assertEqual({2: 7}, _checks(workspace, manifest, theme_of(workspace, manifest))["type_floor_of"])
 
+    def test_the_words_of_a_tight_page_get_the_room_the_layout_counted(self) -> None:
+        """詰めた使い方の頁は、文字の枠の左右の余白を数えたとおりに書く (= 書かなければ pptx の既定のままで、
+        字の入る幅が数えたより狭く、狭い箱で見積もりより 1 行多く折れた)。読ませる頁は今までどおり何も書かない。"""
+        code, said, root = self.build('[theme]\nuse = "present"\n\n' + self.PROPOSAL,
+                                      self.page("読ませる頁", "read") + self.page("紙 1 枚の頁", "sheet")
+                                      + self.page("詰めた頁", "proposal"))
+        self.assertEqual(0, code, said)
+        with zipfile.ZipFile(root / "deck.pptx") as archive:
+            presentation = archive.read("ppt/presentation.xml").decode("utf-8")
+            rels = archive.read("ppt/_rels/presentation.xml.rels").decode("utf-8")
+            part = dict(re.findall(r'Id="(rId\d+)"[^>]*Target="(slides/slide\d+\.xml)"', rels))
+            pages = [archive.read(f"ppt/{part[rid]}").decode("utf-8")
+                     for rid in re.findall(r'<p:sldId[^>]*r:id="(rId\d+)"', presentation)]
+
+        def insets(page: str) -> set[tuple[str, str]]:
+            boxes = [box for box in re.findall(r"<p:sp>.*?</p:sp>", page, re.S) if 'txBox="1"' in box]
+            self.assertGreater(len(boxes), 3)
+            return {(re.search(r'<a:bodyPr[^>]*?\blIns="(\d+)"', box) or [None, ""])[1]
+                    + "/" + (re.search(r'<a:bodyPr[^>]*?\brIns="(\d+)"', box) or [None, ""])[1] for box in boxes}
+
+        sheet = DEFAULT.using("sheet").spacing.text_inset
+        tight = round(DEFAULT.spacing.text_inset * 0.5)
+        self.assertEqual({"/"}, insets(pages[0]), "a page to be read writes none: the default is its own")
+        self.assertEqual({f"{sheet}/{sheet}"}, insets(pages[1]))
+        self.assertEqual({f"{tight}/{tight}"}, insets(pages[2]))
+
     def test_the_sheet_is_the_page_a_project_made_of_sheets_would_hold(self) -> None:
         def second_page(look: str, use: str | None) -> str:
             code, said, root = self.build(look, self.page("一枚目") + self.page("紙 1 枚の頁", use))
