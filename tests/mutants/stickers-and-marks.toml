@@ -135,7 +135,7 @@ new = "run.font.name = theme.type.family"
 [[mutant]]
 name = "a mark names its face for the Latin script alone"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "                if mark:\n                    _every_script(run, MARK_FACE)\n"
+old = "                    if mark:\n                        _every_script(run, MARK_FACE)\n"
 new = ""
 
 [[mutant]]

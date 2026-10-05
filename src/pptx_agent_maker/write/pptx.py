@@ -477,17 +477,19 @@ def _table(slide, element: Table, theme: Theme) -> None:
             cell.fill.fore_color.rgb = _colour(ground)
             cell.text = value
             mark = (r, c) in element.marks
-            paragraph = cell.text_frame.paragraphs[0]
-            paragraph.alignment = PP_ALIGN.LEFT
-            for run in paragraph.runs:
-                run.font.size = Pt(theme.type.body)
-                run.font.bold = heading
-                run.font.name = MARK_FACE if mark else theme.type.family
-                ink = (theme.palette.words_on(ground) if (r, c) in element.shades
-                       else theme.palette.paper if heading else theme.palette.ink)
-                run.font.color.rgb = _colour(element.highlight.get((r, c)) or ink)
-                if mark:
-                    _every_script(run, MARK_FACE)
+            ink = (theme.palette.words_on(ground) if (r, c) in element.shades
+                   else theme.palette.paper if heading else theme.palette.ink)
+            # ⚠ **セルの文の行は、全部同じに書く。**改行を含む文は行ごとに別の段落になる。最初の段落にだけ
+            # 大きさ・色・書体を付けていた間は、改行の後の行が pptx の既定の大きさ (= 18pt) で出た
+            for paragraph in cell.text_frame.paragraphs:
+                paragraph.alignment = PP_ALIGN.LEFT
+                for run in paragraph.runs:
+                    run.font.size = Pt(theme.type.body)
+                    run.font.bold = heading
+                    run.font.name = MARK_FACE if mark else theme.type.family
+                    run.font.color.rgb = _colour(element.highlight.get((r, c)) or ink)
+                    if mark:
+                        _every_script(run, MARK_FACE)
 
 
 def _every_script(run, face: str) -> None:
