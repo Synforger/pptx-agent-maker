@@ -71,6 +71,8 @@ class Manifest:
     source: Path | None = None
     #: 素材の置き場 (= 既定はこのマニフェストの名前。`assets/<ここ>/` を見る)
     assets: str = ""
+    #: この資料の使い方 (= 空なら案件の `[theme] use`。案件が知っている名前かは、見た目を組む所が言う)
+    use: str = ""
 
     @classmethod
     def load(cls, path: Path | str) -> "Manifest":
@@ -87,6 +89,9 @@ class Manifest:
         pages = data.get("pages", [])
         if not pages:
             raise ManifestError(f"{path.name}: a deck with no pages is not a deck")
+        use = data.get("use", "")
+        if not isinstance(use, str):
+            raise ManifestError(f'{path.name}: `use` is {use!r} — a deck names its use in words, as in use = "read"')
 
         try:
             recipes = load_recipes(path.parent)
@@ -96,7 +101,7 @@ class Manifest:
                         for index, page in enumerate(pages, start=1))
         return cls(specimen=str(data["specimen"]), out=str(data["out"]),
                    entries=entries, source=path,
-                   assets=str(data.get("assets", path.stem)))
+                   assets=str(data.get("assets", path.stem)), use=use.strip())
 
     @staticmethod
     def _entry(path: Path, index: int, page: dict, recipes: dict | None = None) -> Entry:

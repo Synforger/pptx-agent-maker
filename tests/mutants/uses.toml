@@ -1,0 +1,135 @@
+# The size of the type is picked by name: by the project, by a deck, and by a page.
+
+tests = ["tests/test_uses.py"]
+
+[[mutant]]
+name = "a page's use is ignored: every page is set in the sizes of its deck"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = "    theme = theme.using(data.get(\"use\"))\n"
+new = ""
+
+[[mutant]]
+name = "a page is written in the look of its deck, not its own"
+file = "src/pptx_agent_maker/deck/build.py"
+old = "        add_page(deck, page.build(), page.theme)"
+new = "        add_page(deck, page.build(), theme)"
+
+[[mutant]]
+name = "a look in another use keeps the bands of the first"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        return replace(self, use=use, type=type, spacing=_furniture(type))"
+new = "        return replace(self, use=use, type=type)"
+
+[[mutant]]
+name = "a look in another use takes the toolkit's typeface"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        type = replace(known[use], family=self.type.family)"
+new = "        type = known[use]"
+
+[[mutant]]
+name = "a look in another use forgets which use it is in"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        return replace(self, use=use, type=type, spacing=_furniture(type))"
+new = "        return replace(self, type=type, spacing=_furniture(type))"
+
+[[mutant]]
+name = "a use the project does not know is not refused"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if not isinstance(use, str) or use not in known:"
+new = "        if False:"
+
+[[mutant]]
+name = "a use may take a name the toolkit uses"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if name in USES:\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "a use need not say which of the toolkit's it is like"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if not isinstance(like, str) or like not in USES:"
+new = "        if False:"
+
+[[mutant]]
+name = "a named use starts from a deck to be read whatever it says it is like"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        found[name] = _sizes(f\"a use like {like}\", USES[like], sizes, where)"
+new = "        found[name] = _sizes(f\"a use like {like}\", USES[\"read\"], sizes, where)"
+
+[[mutant]]
+name = "what theme.type says is laid over a use the project did not choose"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    scales[use] = _sizes(f\"a deck made to be {use}\", scales[use], settings.get(\"type\"), \"theme.type\")"
+new = "    scales = {name: _sizes(f\"a deck made to be {use}\", sizes, settings.get(\"type\"), \"theme.type\") for name, sizes in scales.items()}"
+
+[[mutant]]
+name = "the uses a project names are not read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    scales = {**USES, **_uses(settings.get(\"uses\"))}"
+new = "    scales = dict(USES)"
+
+[[mutant]]
+name = "the deck's use is not read from the manifest"
+file = "src/pptx_agent_maker/project/files/manifest.py"
+old = "assets=str(data.get(\"assets\", path.stem)), use=use.strip())"
+new = "assets=str(data.get(\"assets\", path.stem)))"
+
+[[mutant]]
+name = "a use written as something other than words is taken"
+file = "src/pptx_agent_maker/project/files/manifest.py"
+old = "        if not isinstance(use, str):\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "the look of a deck is built without the use it names"
+file = "src/pptx_agent_maker/deck/build.py"
+old = "        return look.using(manifest.use or None)"
+new = "        return look"
+
+[[mutant]]
+name = "the floor of a page's own use is not handed to the check"
+file = "src/pptx_agent_maker/__main__.py"
+old = "    if manifest is not None and theme is not None and \"type_floor\" not in asked:"
+new = "    if False:"
+
+[[mutant]]
+name = "a floor the project writes for itself loses to the page's own"
+file = "src/pptx_agent_maker/__main__.py"
+old = "    if manifest is not None and theme is not None and \"type_floor\" not in asked:"
+new = "    if manifest is not None and theme is not None:"
+
+[[mutant]]
+name = "a page that names no use is held to the floor of a deck to be read"
+file = "src/pptx_agent_maker/__main__.py"
+old = "            if entry.kind == \"declare\" and entry.data.get(\"use\")}"
+new = "            if entry.kind == \"declare\"}"
+
+[[mutant]]
+name = "the deck's floor is the project's, whatever use the deck names"
+file = "src/pptx_agent_maker/__main__.py"
+old = "    config = {\"type_floor\": (theme or theme_from(workspace.look)).type.minimum, **asked}"
+new = "    config = {\"type_floor\": theme_from(workspace.look).type.minimum, **asked}"
+
+[[mutant]]
+name = "the check holds every page to the floor of its deck"
+file = "src/pptx_agent_maker/checks/rules/type_floor.py"
+old = "        floor = float(of_page.get(page.number, deck_floor))"
+new = "        floor = deck_floor"
+
+[[mutant]]
+name = "checking a built deck later forgets the manifest it came from"
+file = "src/pptx_agent_maker/__main__.py"
+old = "            source = _manifest_of(workspace, target)"
+new = "            source = None"
+
+[[mutant]]
+name = "a long title is counted in the size of the deck, not of its page"
+file = "src/pptx_agent_maker/checks/declared/long_title.py"
+old = "        lines = theme.using(entry.data.get(\"use\")).title_lines("
+new = "        lines = theme.title_lines("
+
+[[mutant]]
+name = "a page may not write use"
+file = "src/pptx_agent_maker/layout/types/core/registry.py"
+old = "\"footer\", \"replace\", \"legend\", \"sticker\", \"use\"})"
+new = "\"footer\", \"replace\", \"legend\", \"sticker\"})"

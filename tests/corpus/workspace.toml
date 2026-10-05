@@ -14,6 +14,12 @@ assets = "assets"
 "共通" = "E8F3EA"
 "Late" = "8B1E3F"
 
+# A use of the project's own (= named here, picked by a deck or a page with `use = "detail"`).
+[theme.uses.detail]
+like = "read"
+heading = 14
+body = 11
+
 # The pictures here are made up to exercise the layout, so there is no source to name:
 # the corpus builds with the check for unsourced pages switched off, the way a project may.
 [checks]
