@@ -47,7 +47,7 @@ class AProjectNamesUsesOfItsOwn(unittest.TestCase):
         self.assertEqual((READ.title, 14, READ.stage, 11, READ.caption),
                          (detail.title, detail.heading, detail.stage, detail.body, detail.caption))
         self.assertEqual(READ.minimum, detail.minimum, "the floor is the one of the use it is like")
-        self.assertEqual(["read", "present", "detail"], [name for name, _sizes in theme.scales])
+        self.assertEqual([*USES, "detail"], [name for name, _sizes in theme.scales])
 
     def test_the_project_may_make_its_own_use_one_it_named(self) -> None:
         theme = theme_from({"use": "detail", "uses": {"detail": {"like": "present", "body": 16}}})
@@ -120,7 +120,7 @@ class ALookInAnotherUse(unittest.TestCase):
         for use in ("dense", "", 12, "Read"):
             with self.subTest(use=use), self.assertRaises(ThemeError) as refused:
                 theme.using(use)
-            self.assertIn("'read', 'present', 'detail'", str(refused.exception))
+            self.assertIn(", ".join(repr(name) for name in (*USES, "detail")), str(refused.exception))
 
     def test_a_page_built_in_another_use_is_the_page_that_use_would_build(self) -> None:
         shown = theme_from({"use": "present"})
@@ -128,8 +128,8 @@ class ALookInAnotherUse(unittest.TestCase):
         self.assertNotEqual(Page("題は結論の文で書く").elements, Page("題は結論の文で書く", shown).elements)
 
 
-class BuiltByName(unittest.TestCase):
-    """建てる (= 利用者と同じ入口)。資料と頁が使い方を名指し、検査の下限がそれに付いて行く。"""
+class _Project(unittest.TestCase):
+    """建てる (= 利用者と同じ入口) ための支え: 案件を作り、manifest を書いて建て、頁ごとの字の大きさを読む。"""
 
     CARDS = ('card_columns = 2\ncards = [\n  { heading = "見出し", body = "本文の字" },\n'
              '  { heading = "二つめ", body = "本文の字" },\n]\n\n')
@@ -181,6 +181,10 @@ class BuiltByName(unittest.TestCase):
 
     SHOWN = [PRESENT.body, PRESENT.heading, PRESENT.title]
     TO_READ = [READ.body, READ.heading, READ.title]
+
+
+class BuiltByName(_Project):
+    """資料と頁が使い方を名指し、検査の下限がそれに付いて行く。"""
 
     def test_a_page_to_be_read_stands_in_the_middle_of_a_deck_made_to_be_shown(self) -> None:
         code, said, root = self.build('[theme]\nuse = "present"\n',
@@ -305,6 +309,184 @@ class BuiltByName(unittest.TestCase):
         self.assertNotRegex(said, r"FAIL\s+long_title", said)
         code, said, _root = self.build('[theme]\nuse = "present"\n', self.page(long))
         self.assertRegex(said, r"FAIL\s+long_title\s+1\b", said)
+
+
+SHEET = USES["sheet"]
+
+
+class APageReadOnOneSheet(unittest.TestCase):
+    """紙 1 枚で読ませる頁 (= `sheet`)。字と、字のまわりの余白・間隔が、同じ比で詰まる。
+
+    字だけ小さくできた間は、余白と間隔が手元で読ませる資料の値のまま残り、どの箱も中身の倍の高さを
+    取った ― 字を 10pt まで下げても、企画書 1 枚ぶんの中身は 1 頁に収まらなかった。
+    """
+
+    def test_its_type_is_three_quarters_of_a_deck_to_be_read_and_its_floor_is_lower(self) -> None:
+        self.assertEqual((18, 12, 10, 9, 8), (SHEET.title, SHEET.heading, SHEET.stage, SHEET.body, SHEET.caption))
+        self.assertEqual(8, SHEET.minimum)
+        self.assertEqual(0.75, SHEET.body / READ.body)
+
+    def test_what_stands_round_the_type_is_tightened_by_the_same_ratio(self) -> None:
+        from pptx_agent_maker.layout.base.tokens import TIGHTENED, Spacing
+
+        read, sheet = DEFAULT.spacing, DEFAULT.using("sheet").spacing
+        for name in TIGHTENED:
+            with self.subTest(name=name):
+                self.assertEqual(round(getattr(read, name) * 0.75), getattr(sheet, name))
+        for name in ("margin_x", "margin_top", "margin_bottom", "hairline", "strong_line"):
+            with self.subTest(name=name):
+                self.assertEqual(getattr(read, name), getattr(sheet, name), "the edge of the page and its lines stay")
+        self.assertEqual(Spacing(), read)
+
+    def test_a_deck_to_be_read_and_one_to_be_shown_keep_the_spacing_they_had(self) -> None:
+        from pptx_agent_maker.layout.base.tokens import TIGHTENED
+
+        read, shown = DEFAULT.spacing, DEFAULT.using("present").spacing
+        for name in TIGHTENED:
+            self.assertEqual(getattr(read, name), getattr(shown, name), name)
+
+    def test_the_same_page_holds_more(self) -> None:
+        """同じ形の頁 (= 3 列の箱、見出しと本文 1 行) に載る枚数: 映す 12 → 読ませる 15 → 紙 1 枚 21。"""
+        from pptx_agent_maker.layout import types
+        from pptx_agent_maker.layout.parts.page import PageFullError
+
+        def most(theme) -> int:
+            held = 0
+            for count in range(3, 60, 3):
+                cards = [{"heading": f"見出し {i}", "body": "本文の字が 1 行ぶん"} for i in range(count)]
+                try:
+                    types.build({"type": "cards", "title": "題", "card_columns": 3, "cards": cards},
+                                lambda name: None, lambda path: 1.0, theme)
+                except PageFullError:
+                    break
+                held = count
+            return held
+
+        self.assertEqual((12, 15, 21), tuple(most(DEFAULT.using(use)) for use in ("present", "read", "sheet")))
+
+    def test_a_row_of_a_table_is_as_tall_as_its_line_and_its_tightened_padding(self) -> None:
+        read, sheet = DEFAULT, DEFAULT.using("sheet")
+        self.assertEqual(sheet.line_height() + 2 * sheet.spacing.cell_pad_y, sheet.table_row_height())
+        self.assertLess(sheet.table_row_height(), read.table_row_height() * 0.8)
+
+
+class AUseSetsItsOwnFloorAndSpacing(unittest.TestCase):
+    """案件が名前を付けた使い方は、字の下限と、余白と間隔を自分で決められる。
+
+    ⚠ **道具は幅を持たせ、使い方は道具が配る skill が縛る。**動かせる口は名前を付けた使い方にだけ在り、頁と
+    資料は名前で選ぶだけ ― 同じ名前の頁は、どの資料でも同じ形になる。
+    """
+
+    @staticmethod
+    def use(**said):
+        return theme_from({"uses": {"proposal": {"like": "sheet", **said}}}).using("proposal")
+
+    def refused(self, **said) -> str:
+        with self.assertRaises(ThemeError) as stopped:
+            self.use(**said)
+        return str(stopped.exception)
+
+    def test_a_floor_of_its_own_lets_its_type_go_under_the_one_it_is_like(self) -> None:
+        proposal = self.use(floor=7, body=8, caption=7)
+        self.assertEqual((7, 8, 7), (proposal.type.minimum, proposal.type.body, proposal.type.caption))
+        self.assertIn("theme.uses.proposal.body is 7pt, below the 8pt floor of the use 'proposal'", self.refused(body=7))
+        self.assertIn("below the 7pt floor", self.refused(floor=7, body=6.5))
+
+    def test_a_floor_may_be_raised_and_everything_left_alone_must_clear_it(self) -> None:
+        self.assertEqual(9, self.use(floor=9, caption=9).type.minimum)
+        said = self.refused(floor=9)
+        self.assertIn("theme.uses.proposal leaves caption at 8pt, below the 9pt floor", said)
+
+    def test_a_floor_is_a_size_above_zero(self) -> None:
+        for floor in (0, -1, "8", True):
+            with self.subTest(floor=floor):
+                self.assertIn("theme.uses.proposal.floor", self.refused(floor=floor))
+
+    def test_scale_tightens_everything_together_from_a_deck_to_be_read(self) -> None:
+        from pptx_agent_maker.layout.base.tokens import TIGHTENED
+
+        read, half = DEFAULT.spacing, self.use(spacing={"scale": 0.5}).spacing
+        for name in TIGHTENED:
+            self.assertEqual(round(getattr(read, name) * 0.5), getattr(half, name), name)
+        self.assertEqual(read.margin_x, half.margin_x)
+        self.assertEqual(DEFAULT.using("sheet").spacing.pad, self.use().spacing.pad, "unsaid, that of the use it is like")
+        self.assertEqual(read.pad, self.use(spacing={"scale": 1}).spacing.pad)
+
+    def test_a_distance_written_by_itself_wins_over_the_scale(self) -> None:
+        from pptx_agent_maker import cm
+
+        proposal = self.use(spacing={"scale": 0.5, "pad": 0.1, "gap_m": 0.25, "margin_x": 0.8, "cell_pad_y": 0}).spacing
+        self.assertEqual((cm(0.1), cm(0.25), cm(0.8), 0), (proposal.pad, proposal.gap_m, proposal.margin_x, proposal.cell_pad_y))
+        self.assertEqual(round(DEFAULT.spacing.gap_s * 0.5), proposal.gap_s, "the others follow the scale")
+        kept = self.use(spacing={"pad": 0.1}).spacing
+        self.assertEqual(DEFAULT.using("sheet").spacing.gap_m, kept.gap_m, "with no scale said, that of the use it is like")
+
+    def test_the_bands_still_follow_the_type(self) -> None:
+        loose, tight = self.use().spacing, self.use(spacing={"scale": 0.4}).spacing
+        self.assertEqual((loose.title_height, loose.band_height, loose.footer_height),
+                         (tight.title_height, tight.band_height, tight.footer_height))
+
+    def test_what_cannot_be_read_as_spacing_is_refused(self) -> None:
+        for spacing, said in (({"padding": 0.1}, "theme.uses.proposal.spacing does not take padding"),
+                              ({"title_height": 1}, "does not take title_height"),
+                              ({"hairline": 0.1}, "does not take hairline"),
+                              ({"pad": -0.1}, "theme.uses.proposal.spacing.pad is -0.1cm"),
+                              ({"pad": "small"}, "theme.uses.proposal.spacing.pad is 'small'"),
+                              ({"scale": 0}, "theme.uses.proposal.spacing.scale is 0"),
+                              ({"scale": True}, "theme.uses.proposal.spacing.scale is True"),
+                              (0.5, "theme.uses.proposal.spacing is a table")):
+            with self.subTest(spacing=spacing):
+                self.assertIn(said, self.refused(spacing=spacing))
+
+    def test_the_projects_own_table_of_sizes_takes_neither(self) -> None:
+        for key in ("floor", "spacing"):
+            with self.subTest(key=key), self.assertRaises(ThemeError) as stopped:
+                theme_from({"type": {key: 8}})
+            self.assertIn(f"theme.type does not take {key}", str(stopped.exception))
+
+    def test_a_use_may_be_like_the_sheet(self) -> None:
+        self.assertEqual("proposal", self.use().use)
+        self.assertEqual(SHEET.body, self.use().type.body)
+
+
+class TightPagesBuilt(_Project):
+    """建てる。紙 1 枚の頁が映す資料の途中に立ち、検査の下限がその頁の使い方に付いて行く。"""
+
+    PROPOSAL = ('[theme.uses.proposal]\nlike = "sheet"\nfloor = 7\nbody = 8\ncaption = 7\n\n'
+                '[theme.uses.proposal.spacing]\nscale = 0.5\npad = 0.1\n')
+
+    def test_a_sheet_stands_in_the_middle_of_a_deck_made_to_be_shown(self) -> None:
+        code, said, root = self.build('[theme]\nuse = "present"\n', self.page("映す頁") + self.page("紙 1 枚の頁", "sheet"))
+        self.assertEqual(0, code, said)
+        self.assertEqual([self.SHOWN, [SHEET.body, SHEET.heading, SHEET.title]], self.type_of(root))
+        self.assertNotIn("FAIL", said, "the sheet is held to its own floor of 8pt")
+
+    def test_a_page_in_a_use_with_a_floor_of_its_own_is_held_to_that_floor(self) -> None:
+        from pptx_agent_maker.__main__ import _checks
+        from pptx_agent_maker.deck.build import theme_of
+        from pptx_agent_maker.project.files.manifest import Manifest
+        from pptx_agent_maker.project.files.workspace import Workspace
+
+        code, said, root = self.build('[theme]\nuse = "present"\n\n' + self.PROPOSAL,
+                                      self.page("映す頁") + self.page("詰めた頁", "proposal"))
+        self.assertEqual(0, code, said)
+        self.assertEqual([self.SHOWN, [8, SHEET.heading, SHEET.title]], self.type_of(root))
+        self.assertNotIn("FAIL", said)
+        workspace, manifest = Workspace.load(root / "workspace.toml"), Manifest.load(root / "deck.toml")
+        self.assertEqual({2: 7}, _checks(workspace, manifest, theme_of(workspace, manifest))["type_floor_of"])
+
+    def test_the_sheet_is_the_page_a_project_made_of_sheets_would_hold(self) -> None:
+        def second_page(look: str, use: str | None) -> str:
+            code, said, root = self.build(look, self.page("一枚目") + self.page("紙 1 枚の頁", use))
+            self.assertEqual(0, code, said)
+            with zipfile.ZipFile(root / "deck.pptx") as archive:
+                presentation = archive.read("ppt/presentation.xml").decode("utf-8")
+                rels = archive.read("ppt/_rels/presentation.xml.rels").decode("utf-8")
+                part = dict(re.findall(r'Id="(rId\d+)"[^>]*Target="(slides/slide\d+\.xml)"', rels))
+                return archive.read(f"ppt/{part[re.findall(r'<p:sldId[^>]*r:id="(rId\d+)"', presentation)[1]]}").decode("utf-8")
+
+        self.assertEqual(second_page('[theme]\nuse = "sheet"\n', None), second_page('[theme]\nuse = "present"\n', "sheet"))
+        self.assertNotEqual(second_page("", None), second_page('[theme]\nuse = "present"\n', "sheet"))
 
 
 if __name__ == "__main__":

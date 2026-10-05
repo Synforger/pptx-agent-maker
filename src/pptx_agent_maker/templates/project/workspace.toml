@@ -30,7 +30,7 @@ assets = "assets"       # images and other material, one folder per round
 # to be read at a desk; a deck shown on a screen is set larger throughout, and holds less.
 #
 # [theme]
-# use = "present"       # "read" (the default) or "present"
+# use = "present"       # "read" (the default), "present" or "sheet"
 # kicker = "beside"     # the small words of a title: "above" it (the default), or "beside" it on its line
 #
 # [theme.type]          # a size of the project's own, role by role, in points
@@ -40,9 +40,18 @@ assets = "assets"       # images and other material, one folder per round
 # page inside it (use = "read" on the page): a page packed to be read, in the middle of a deck
 # made to be shown. They pick a use by name; the sizes themselves are written only here.
 #
+# A page read on one sheet of paper (a proposal on one page, a page of details) is use = "sheet":
+# its type is smaller and what stands round the type is tightened by the same ratio. Not for a
+# page that is shown and spoken to.
+#
 # [theme.uses.detail]   # a use of the project's own, picked with use = "detail"
-# like = "read"         # which of the toolkit's uses it starts from: "read" or "present"
+# like = "read"         # which of the toolkit's uses it starts from: "read", "present" or "sheet"
 # body = 11             # and the sizes it changes
+# floor = 8             # a floor of its own under its type, in points
+#
+# [theme.uses.detail.spacing]
+# scale = 0.6           # its spacing, as a ratio of a deck to be read...
+# pad = 0.15            # ...or a distance by itself, in cm (the reference lists them)
 
 # Words the specimen leaves behind. A copied page that still says one of these
 # was never reworded, and the check after the build stops it.

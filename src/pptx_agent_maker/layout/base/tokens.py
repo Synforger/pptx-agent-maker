@@ -102,7 +102,10 @@ def advance(character: str, bold: bool = False, family: str = "") -> float:
 
 @dataclass(frozen=True)
 class Type:
-    """Type sizes in points. `minimum` is the floor anything printed must clear."""
+    """The sizes of one use: its type in points, and how tightly it sets what stands round the type.
+
+    `minimum` is the floor anything printed must clear.
+    """
 
     title: float = 24
     heading: float = 16
@@ -115,6 +118,10 @@ class Type:
     caption: float = 10
     minimum: float = 10
     family: str = "Meiryo"
+    #: 余白と間隔の倍率 (= `read` の値の何倍か。物の内側と、物どうしの間に掛かる)
+    tight: float = 1.0
+    #: 余白と間隔のうち、1 つずつ決めた物 (= 名前と EMU。倍率より勝つ)。書けるのは案件の名前付きの使い方だけ
+    spaced: tuple[tuple[str, int], ...] = ()
 
     @property
     def plan(self) -> tuple[float, ...]:
@@ -129,17 +136,27 @@ class Type:
 
 #: 資料の使い方ごとの文字の大きさ。`read` は手元で読ませる資料 (= 既定)、`present` は映して話す
 #: 資料 ― 離れた席から読むので全部が 1.3〜1.5 倍で、載る量はそのぶん減る (= 要点だけを載せる)。
-#: 案件は `[theme] use` でどちらかを選び、自分の使い方を名前付きで足せる (= `[theme.uses]`)。
+#: `sheet` は紙 1 枚で読ませる頁 (= 企画書の 1 枚、詳細を詰めた 1 枚) ― 手元で近くから読むので全部が
+#: 0.75 倍で、余白と間隔も同じ比で詰まる。映す頁には使わない (= 席からは読めない)。
+#: 案件は `[theme] use` でどれかを選び、自分の使い方を名前付きで足せる (= `[theme.uses]`)。
 #: 資料 (= manifest) と頁は、その名前のどれかを `use` で名指して選ぶ
 USES = {
     "read": Type(),
     "present": Type(title=32, heading=24, stage=20, marker=36, body=18, caption=14, minimum=14),
+    "sheet": Type(title=18, heading=12, stage=10, marker=21, body=9, caption=8, minimum=8, tight=0.75),
 }
 #: 題の上の小さい字 (= 章の番号と名前) の置き場。`above` は題の上に小さく (= 既定)、`beside` は題の左に
 #: 同じ行で、差し色の太字で置く。資料全体の見た目なので案件が `[theme] kicker` で決め、頁ごとには変えられない
 KICKERS = ("above", "beside")
 #: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
 SIZED = ("title", "heading", "stage", "body", "caption")
+#: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
+#: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
+TIGHTENED = ("gap_s", "gap_m", "gap_l", "pad", "cell_pad_y", "cell_pad_x", "text_inset", "bar_pad_x", "bar_pad_y",
+             "bar_gap", "row_gap", "mark", "icon", "chevron_point", "swatch")
+#: 案件の名前付きの使い方が 1 つずつ決められる余白と間隔 (= `[theme.uses.<名前>.spacing]`、cm で書く)
+SPACED = ("margin_x", "margin_top", "margin_bottom", "gap_s", "gap_m", "gap_l", "pad", "cell_pad_y", "cell_pad_x",
+          "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap", "row_gap")
 
 
 #: 道具が持つ色の役 (= 頁の `tone` にいつでも書ける名前)。案件はこのほかに、意味の名前を付けた
@@ -523,9 +540,11 @@ class ThemeError(ValueError):
 def theme_from(settings: dict | None) -> Theme:
     """The look a project sets for itself: its typeface, its colours, and how large its type is.
 
-    ⚠ **余白と間隔は受け取らない。**案件ごとに余白が動くと、同じ役割の頁が週をまたいで別の形に
-    なる (= 前の世代が壊れた道)。**見た目 (= どの書体で、どの色で、どの大きさで) は案件のもの、
-    頁の割り方はツールのもの**という線をここで引く。
+    ⚠ **余白と間隔を、頁や資料からは受け取らない。**頁ごとに余白が動くと、同じ役割の頁が週をまたいで
+    別の形になる (= 前の世代が壊れた道)。**見た目 (= どの書体で、どの色で、どの大きさで) は案件のもの、
+    頁の割り方はツールのもの**という線をここで引く。余白と間隔、字の下限を動かせるのは、案件が名前を
+    付けた使い方の中だけ (= `[theme.uses]`。頁はその名前を選ぶので、同じ名前の頁は同じ形になる)。
+    どう使うかは、道具が配る skill が縛る。
 
     文字の大きさは**資料の使い方**から決まる (= `use`。手元で読ませるか、映して話すか)。役ごとの
     上書き (= `[theme.type]`) と、案件が名前を付けた使い方 (= `[theme.uses]`) も受け取るが、大きさを
@@ -580,35 +599,42 @@ def theme_from(settings: dict | None) -> Theme:
     )
 
 
-def _sizes(what: str, base: Type, declared, where: str) -> Type:
+def _sizes(what: str, base: Type, declared, where: str, takes: tuple[str, ...] = SIZED) -> Type:
     """The sizes of one use, with what the project wrote for it laid over them.
 
     `what` は、誤りを言う時のその使い方の呼び方 (= `a deck made to be present`)、`where` は書かれた場所
-    (= `theme.type`)。
+    (= `theme.type`)。`takes` は、そこに書けるキー (= 誤りを言う時に並べる)。
 
     ⚠ **下限より小さい大きさは拒む。**下限は使い方が決める (= 映す資料は、読ませる資料より高い)。
     小さくできる口が在ると、載り切らない頁は字を縮めて通され、席から読めない頁が戻ってくる。
+    下限そのものを動かせるのは、案件が名前を付けた使い方だけ (= `_uses` の `floor`)。
     """
     declared = declared or {}
     if not isinstance(declared, dict):
         raise ThemeError(f"{where} is a table of sizes in points, as in body = 14")
-    _refuse_unknown(sorted(set(declared) - set(SIZED)), where, SIZED)
-    floor = base.minimum
+    _refuse_unknown(sorted(set(declared) - set(SIZED)), where, takes)
     for name, value in declared.items():
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ThemeError(f"{where}.{name} is {value!r} — a size is a number of points, as in 14")
-        if value < floor:
+    sized = replace(base, **declared)
+    for name in SIZED:
+        value = getattr(sized, name)
+        if value < sized.minimum:
+            said = f"{where}.{name} is" if name in declared else f"{where} leaves {name} at"
             raise ThemeError(
-                f"{where}.{name} is {value:g}pt, below the {floor:g}pt floor of {what} "
+                f"{said} {value:g}pt, below the {sized.minimum:g}pt floor of {what} "
                 "— nothing smaller is readable there; say less on the page instead")
-    return replace(base, **declared)
+    return sized
 
 
 def _uses(declared) -> dict[str, Type]:
     """The uses a project names for itself (= `[theme.uses.<name>]`), each with its sizes.
 
-    1 つの使い方は、道具の使い方のどれに倣うか (= `like`。必須) と、そこから変える役の大きさで書く。
-    下限は倣った先のもの (= `read` に倣えば 10pt、`present` に倣えば 14pt)。
+    1 つの使い方は、道具の使い方のどれに倣うか (= `like`。必須) と、そこから変える物で書く ― 役の大きさ、
+    字の下限 (= `floor`)、余白と間隔 (= `[theme.uses.<名前>.spacing]`)。書かなかった物は倣った先のまま。
+
+    ⚠ **道具は幅を持たせ、使い方は道具が配る skill が縛る。**下限と余白を動かせる口は、ここ 1 か所 (= 名前を
+    付けた使い方) にだけ在る ― 頁や資料は名前で選ぶだけなので、同じ名前の頁はどこでも同じ形になる。
 
     ⚠ **道具の使い方と同じ名前は拒む。**`read` や `present` をここで書き換えられると、その大きさを決める
     口が `[theme.type]` と 2 つに割れる。
@@ -630,9 +656,43 @@ def _uses(declared) -> dict[str, Type]:
             raise ThemeError(
                 f"{where}.like is {like!r} — a use of the project's own starts from "
                 f"{' or '.join(repr(use) for use in USES)}")
-        sizes = {key: value for key, value in said.items() if key != "like"}
-        found[name] = _sizes(f"a use like {like}", USES[like], sizes, where)
+        base = _spaced(_floored(USES[like], said.get("floor"), where), said.get("spacing"), f"{where}.spacing")
+        sizes = {key: value for key, value in said.items() if key not in ("like", "floor", "spacing")}
+        found[name] = _sizes(f"the use {name!r}", base, sizes, where, ("like", "floor", "spacing", *SIZED))
     return found
+
+
+def _floored(base: Type, floor, where: str) -> Type:
+    """A use with a floor of its own under its type (= `floor`, in points; unsaid, that of the use it is like)."""
+    if floor is None:
+        return base
+    if isinstance(floor, bool) or not isinstance(floor, (int, float)) or floor <= 0:
+        raise ThemeError(f"{where}.floor is {floor!r} — a floor is a size in points above zero, as in 8")
+    return replace(base, minimum=floor)
+
+
+def _spaced(base: Type, declared, where: str) -> Type:
+    """A use with spacing of its own: everything scaled together (= `scale`), and distances set one by one in cm.
+
+    `scale` は、手元で読ませる資料の余白と間隔の何倍か (= `TIGHTENED` に掛かる。`sheet` は 0.75)。1 つずつ書いた
+    距離 (= `SPACED`) は、倍率より勝つ。
+    """
+    if declared is None:
+        return base
+    if not isinstance(declared, dict):
+        raise ThemeError(f"{where} is a table: scale = 0.6, or distances in cm one by one, as in pad = 0.2")
+    _refuse_unknown(sorted(set(declared) - {"scale", *SPACED}), where, ("scale", *SPACED))
+    for name, value in declared.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ThemeError(f"{where}.{name} is {value!r} — a number, as in 0.2")
+    scale = declared.get("scale", base.tight)
+    if scale <= 0:
+        raise ThemeError(f"{where}.scale is {scale:g} — how many times the spacing of a deck to be read, above zero")
+    one_by_one = {name: value for name, value in declared.items() if name != "scale"}
+    for name, value in one_by_one.items():
+        if value < 0:
+            raise ThemeError(f"{where}.{name} is {value:g}cm — a distance is zero or more")
+    return replace(base, tight=scale, spaced=tuple((name, cm(value)) for name, value in one_by_one.items()))
 
 
 def _furniture(type: Type) -> Spacing:
@@ -640,12 +700,18 @@ def _furniture(type: Type) -> Spacing:
 
     題の帯・条件と結論の帯・出所の帯の高さは、そこに置く字の大きさに比例する (= 読ませる資料の
     大きさのとき、今までの高さ)。字だけ大きくして帯をそのままにすると、字が帯からはみ出す。
-    余白と、物どうしの間隔は動かない。
+
+    余白と、物どうしの間隔は、使い方が持つ倍率で決まる (= `Type.tight`。読ませる資料と映す資料は 1 倍で、
+    今までの値のまま。紙 1 枚で読ませる頁は字と同じ比で詰まる)。字だけ小さくして間隔をそのままにすると、
+    どの箱も中身の倍の高さを取る。使い方が 1 つずつ決めた距離 (= `Type.spaced`) は、倍率より勝つ。
 
     ⚠ **題の帯は 2 段で、段ごとに自分の字の大きさに比例する** (= 題の上の小さい字の段と、題の段)。
     帯を題の大きさだけで決めていた間は、小さい字だけを大きくした案件で、小さい字が題の頭に乗った。
     """
     base, read = Spacing(), USES["read"]
+    if type.tight != 1:
+        base = replace(base, **{name: round(getattr(base, name) * type.tight) for name in TIGHTENED})
+    base = replace(base, **dict(type.spaced))
     kicker = round(base.kicker_height * type.caption / read.caption)
     return replace(
         base,
