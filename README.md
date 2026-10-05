@@ -95,8 +95,10 @@ built from a type come out in them. It also says what the deck is for — `use =
 `"present"` — and the type sizes follow from that, with a size of its own per role if it needs one.
 A deck, and a page inside it, may name a use of its own (a page packed to be read in the middle of
 a deck made to be shown), and a project may name uses of its own; a page picks a use by name and
-never writes a size.
-**Margins and spacing cannot be set**: the same kind of page keeping the same shape from one round
+never writes a size. A third use, `"sheet"`, is a page read on one sheet of paper: smaller type,
+with what stands round it tightened by the same ratio.
+**Margins and spacing are the toolkit's**, and so is the floor under the type; a project moves
+them only inside a use it names, which a page then picks by that name: the same kind of page keeping the same shape from one round
 to the next is worth more, and the generation that left that open produced a different page every
 week.
 

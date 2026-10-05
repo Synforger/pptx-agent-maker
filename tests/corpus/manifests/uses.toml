@@ -51,3 +51,34 @@ cards = [
   { heading = "Back", body = "to the sizes of the deck" },
   { heading = "Same", body = "as the first page" },
 ]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "sheet"
+title = "One sheet to be read close up"
+card_columns = 3
+cards = [
+  { heading = "Smaller", body = "three quarters of a deck read at a desk" },
+  { heading = "Tighter", body = "and what stands round the type by the same ratio" },
+  { heading = "More", body = "so the page holds what a proposal on one sheet says" },
+  { heading = "Edge", body = "the edge of the page stays where the deck has it" },
+  { heading = "Lines", body = "and its lines stay as thin as they were" },
+  { heading = "Floor", body = "nothing on it is under eight points" },
+]
+table = [["Item", "Cost", "When"], ["Design", "1", "week 1"], ["Build", "3", "weeks 2 to 4"], ["Review", "1", "week 5"]]
+note = "The rows of a table follow: a line of type and the padding of its cells."
+footer = "source: made up for the corpus"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "proposal"
+title = "A use that sets a floor and a spacing of its own"
+card_columns = 4
+cards = [
+  { heading = "Floor", body = "seven points, said by the project" },
+  { heading = "Scale", body = "half the spacing of a deck to be read" },
+  { heading = "Pad", body = "and one distance written by itself" },
+  { heading = "Name", body = "a page picks all of it by one name" },
+]
