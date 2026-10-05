@@ -30,7 +30,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tests"))
 
-from support.templates import NUMBER_IDX, SHIPPED, TITLE_COLOUR, a_template  # noqa: E402
+from support.templates import NUMBER_IDX, SHIPPED, TITLE_COLOUR, a_template, with_a_cover  # noqa: E402
 
 from pptx_agent_maker import DEFAULT, Page, Rect, cm  # noqa: E402
 from pptx_agent_maker.__main__ import main  # noqa: E402
@@ -526,6 +526,88 @@ class NumberedOnATemplateOfItsOwn(unittest.TestCase):
         self.assertIn('type="sldNum"', layout, "the layout offers the frame all the same")
         self.assertEqual([0, 0, 0], [page.count("sldNum") + page.count("slidenum") for page in pages])
         self.assertNotIn("FAIL", said)
+
+
+class TheCountStartsAfterTheCover(unittest.TestCase):
+    """表紙 (= 番号を持たない 1 枚目) は数えない。番号の出る最初の頁が 1 になる。
+
+    数え始めが 1 のままだと、表紙が 1 頁目に数えられ、表紙の次の頁に「2」が出た。資料は「1 枚目の番号」を
+    1 つだけ持てる (= PowerPoint の「スライド開始番号」)。表紙が番号を持たない資料では、そこに 0 を書く。
+    """
+
+    COVER = '[[pages]]\nkind = "copy"\npage = 1\n\n'
+    BODY = ('[[pages]]\nkind = "declare"\ntype = "figure"\n'
+            f'title = "{ONE}"\nfigure = "example.png"\nfooter = "出所 (= 見本)"\n\n')
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def built(self, pages: str, template: Path) -> tuple[str, list[int]]:
+        """(the tag at the root of the built deck, how many number frames each page carries in reading order)."""
+        root = self.dir / f"project-{len(list(self.dir.iterdir()))}"
+        create(root, specimen=template)
+        (root / "deck.toml").write_text('specimen = "specimen.pptx"\nout = "deck.pptx"\n\n' + pages,
+                                        encoding="utf-8")
+        (root / "assets" / "deck").mkdir(parents=True)
+        (root / "assets" / "deck" / "example.png").write_bytes(
+            (root / "assets" / "example" / "example.png").read_bytes())
+        said = io.StringIO()
+        with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
+            code = main(["build", str(root), "deck"])
+        self.assertEqual(0, code, said.getvalue())
+        self.assertNotIn("FAIL", said.getvalue())
+        with zipfile.ZipFile(root / "deck.pptx") as archive:
+            presentation = archive.read("ppt/presentation.xml").decode("utf-8")
+            rels = archive.read("ppt/_rels/presentation.xml.rels").decode("utf-8")
+            part = dict(re.findall(r'Id="(rId\d+)"[^>]*Target="(slides/slide\d+\.xml)"', rels))
+            frames = [archive.read(f"ppt/{part[rid]}").decode("utf-8").count('type="sldNum"')
+                      for rid in re.findall(r'<p:sldId[^>]*r:id="(rId\d+)"', presentation)]
+        return re.search(r"<p:presentation\b[^>]*>", presentation).group(0), frames
+
+    def template(self, name: str, **how) -> Path:
+        return a_template(self.dir / f"{name}.pptx", **how)
+
+    def test_a_cover_without_a_number_is_not_counted(self) -> None:
+        tag, frames = self.built(self.COVER + self.BODY * 2, with_a_cover(self.template("cover", numbered=True)))
+        self.assertEqual([0, 1, 1], frames)
+        self.assertIn(' firstSlideNum="0"', tag)
+        self.assertEqual(1, tag.count("firstSlideNum"))
+
+    def test_a_deck_that_begins_with_a_numbered_page_counts_from_one(self) -> None:
+        tag, frames = self.built(self.BODY * 2, with_a_cover(self.template("no-cover", numbered=True)))
+        self.assertEqual([1, 1], frames)
+        self.assertNotIn("firstSlideNum", tag)
+
+    def test_a_deck_that_numbers_nothing_is_left_alone(self) -> None:
+        tag, frames = self.built(self.COVER + self.BODY * 2, with_a_cover(self.template("plain")))
+        self.assertEqual([0, 0, 0], frames)
+        self.assertNotIn("firstSlideNum", tag)
+
+    def test_where_the_specimen_says_the_count_starts_is_kept(self) -> None:
+        for said in (1, 5):
+            with self.subTest(said=said):
+                template = with_a_cover(self.template(f"says-{said}", numbered=True), counts_from=said)
+                tag, frames = self.built(self.COVER + self.BODY, template)
+                self.assertEqual([0, 1], frames)
+                self.assertIn(f' firstSlideNum="{said}"', tag)
+                self.assertEqual(1, tag.count("firstSlideNum"))
+
+    def test_the_first_number_is_read_and_rewritten_in_the_decks_own_tag(self) -> None:
+        from pptx_agent_maker.deck.base.archive import Archive
+
+        archive = Archive.unpack(self.template("tag"), self.dir / "unpacked")
+        before = (archive.tree / "ppt/presentation.xml").read_text(encoding="utf-8")
+        self.assertIsNone(archive.counts_from())
+        archive.count_from(0)
+        self.assertEqual(0, archive.counts_from())
+        archive.count_from(3)
+        self.assertEqual(3, archive.counts_from())
+        after = (archive.tree / "ppt/presentation.xml").read_text(encoding="utf-8")
+        self.assertEqual(before, after.replace(' firstSlideNum="3"', ""), "nothing else in the part moved")
 
 
 if __name__ == "__main__":
