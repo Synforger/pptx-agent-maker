@@ -222,6 +222,10 @@ def _text(slide, element: Text, theme: Theme) -> None:
         frame.auto_size = MSO_AUTO_SIZE.NONE
     if element.kind in {"label", "lane", "marker", "kicker_beside"}:
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(0)
+    elif theme.spacing.text_inset != DEFAULT.spacing.text_inset:
+        # ⚠ **詰めた使い方では、枠の左右の余白を数えたとおりに書く。**書かなければ pptx の既定 (= 手元で
+        # 読ませる資料の値) のままで、字の入る幅が道具の数えた幅より狭く、狭い箱で見積もりより 1 行多く折れた
+        frame.margin_left = frame.margin_right = Emu(theme.spacing.text_inset)
     frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.kind in {
         "band_text", "title", "caption", "label", "lane", "stage", "marker", "kicker_beside"} else MSO_ANCHOR.TOP
     # 題は、乗るレイアウトに題の枠が在れば、その枠として書く (= 色・書体・太さはテンプレートのもの)

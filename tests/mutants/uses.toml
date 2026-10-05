@@ -225,3 +225,9 @@ name = "a use that says no ratio is set as loosely as a deck to be read"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
 old = "    scale = declared.get(\"scale\", base.tight)"
 new = "    scale = declared.get(\"scale\", 1.0)"
+
+[[mutant]]
+name = "the words of a tight page keep the room at their sides that a deck to be read has"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    elif theme.spacing.text_inset != DEFAULT.spacing.text_inset:\n"
+new = "    elif False:\n"

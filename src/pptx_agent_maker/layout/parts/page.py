@@ -140,6 +140,10 @@ class Page:
         ⚠ **折れた題が、レイアウトが頁を横切って描く線に乗るなら止まる。**横切る物は幅を詰めても
         避けられず、題の帯が伸びても動かない (= 2 行目が題の下の罫線に乗った。映す資料で出た)。
 
+        ⚠ **題の帯の下にレイアウトの罫線が残る頁は、その下から続ける** (= `Theme.under_the_title`)。字の小さい
+        使い方の頁は帯が低く、本文が罫線より上から始まって箱が罫線に乗った。その頁では題の下の線を自分では
+        引かない (= 線はレイアウトのもの 1 本)。
+
         札は題の帯の右端に、題の字の枠の真ん中の高さで置く (= 題は枠の真ん中に寄るので、何行に折れても
         札と題が揃う)。**題の字の枠は、札と、札との間の空きのぶん狭い** (= 題が札の下へ回り込まない。
         行もその幅で数える)。
@@ -184,9 +188,16 @@ class Page:
                     "layout draws across the page — say it shorter, so it stays on one line")
         words = Rect(main.left + lead, main.top, main.width - lead - (tag + s.gap_m if tag else 0), main.height)
         self.elements.append(Text("title", words, title, t.title, p.ink, bold=True))
-        line = Rect(bar.left, bar.bottom, bar.width, s.hairline)
-        start, end = self.theme.clear(line)
-        self.elements.append(Fill("rule", Rect(start, line.top, end - start, line.height), p.rule))
+        lower = self.theme.under_the_title(bar) - self._remaining.top
+        if lower > 0:
+            # レイアウトの罫線が、残りの始まる所より下に在る頁: 残りはその線の下から。題の下の線は自分では引かない
+            if lower >= self._remaining.height:
+                raise PageFullError("a line the layout draws across the page leaves no room under the title")
+            self._remaining = self._remaining.inset(top=lower)
+        else:
+            line = Rect(bar.left, bar.bottom, bar.width, s.hairline)
+            start, end = self.theme.clear(line)
+            self.elements.append(Fill("rule", Rect(start, line.top, end - start, line.height), p.rule))
         if tag:
             # 灰の細枠に灰の字 (= 頁の中身より一段うしろに引いた見た目)。地は塗らない
             tall = self.theme.line_height(t.body) + 2 * s.bar_pad_y
