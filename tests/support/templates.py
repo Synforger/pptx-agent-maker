@@ -18,6 +18,15 @@ from pptx_agent_maker.layout.base.geometry import Rect  # noqa: E402
 
 SHIPPED = REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx"
 LAYOUT = "ppt/slideLayouts/slideLayout1.xml"
+PAGE = "ppt/slides/slide1.xml"
+#: 同梱の見本のレイアウトが、頁番号の枠に付けている番号
+NUMBER_IDX = 12
+#: 頁番号を持つ頁が、その枠を持つ書き方 (= PowerPoint で「スライド番号」を入れた頁)
+NUMBER_ON_A_PAGE = (
+    '<p:sp><p:nvSpPr><p:cNvPr id="95" name="Slide Number Placeholder 1"/><p:cNvSpPr><a:spLocks noGrp="1"/>'
+    f'</p:cNvSpPr><p:nvPr><p:ph type="sldNum" sz="quarter" idx="{NUMBER_IDX}"/></p:nvPr></p:nvSpPr><p:spPr/>'
+    '<p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:fld id="{C1FF6DA9-008F-8B48-92A6-B652298478BF}" type="slidenum">'
+    '<a:rPr lang="en-US"/><a:t>1</a:t></a:fld><a:endParaRPr lang="en-US"/></a:p></p:txBody></p:sp>')
 #: 題の枠の字の色 (= テーマの色のどれでもない青。継いだことが色で分かる)
 TITLE_COLOUR = "0070C0"
 
@@ -37,17 +46,32 @@ def _line(across: Rect, how: str) -> str:
 
 
 def a_template(destination: Path, *, title: bool = True, logo: Rect | None = None,
-               line: Rect | None = None, line_as: str = "connector") -> Path:
+               line: Rect | None = None, line_as: str = "connector",
+               numbered: bool = False, number_frame: int | None = NUMBER_IDX) -> Path:
     """The shipped specimen, with its first layout made a page of content.
 
     `line` は、レイアウトが頁に描く線 (= 題の下の罫線など。高さは読まない)。`line_as` はその書かれ方 ―
     `connector` (= コネクタ) / `flat` (= 高さの無い図形) / `unseen` (= 線を引かない図形)。
+
+    `numbered` は、見本の頁が頁番号を持つか (= 頁に番号を振る資料)。`number_frame` は、レイアウトの
+    頁番号の枠の番号 (= `idx`。None なら、レイアウトから枠ごと抜く)。
     """
     with zipfile.ZipFile(SHIPPED) as source, zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as out:
         for item in source.infolist():
             data = source.read(item.filename)
+            if item.filename == PAGE and numbered:
+                xml = data.decode("utf-8")
+                assert xml.count("</p:spTree>") == 1
+                data = xml.replace("</p:spTree>", NUMBER_ON_A_PAGE + "</p:spTree>").encode("utf-8")
             if item.filename == LAYOUT:
                 xml = data.decode("utf-8")
+                offered = f'<p:ph type="sldNum" sz="quarter" idx="{NUMBER_IDX}"/>'
+                assert xml.count(offered) == 1
+                if number_frame is None:
+                    start = xml.rindex("<p:sp>", 0, xml.index(offered))
+                    xml = xml[:start] + xml[xml.index("</p:sp>", start) + len("</p:sp>"):]
+                else:
+                    xml = xml.replace(offered, offered.replace(str(NUMBER_IDX), str(number_frame)))
                 if title:
                     assert xml.count('<p:ph type="ctrTitle"/>') == 1
                     xml = xml.replace('<p:ph type="ctrTitle"/>', '<p:ph type="title"/>')

@@ -107,7 +107,10 @@ A page built from a type sits on the specimen's first layout. **If that layout h
 placeholder, the page's title is written into it** — the colour, the typeface and the weight are
 the template's — and **the title and its sticker stop short of what that layout prints** (a logo
 in a corner). Where the title stands and how large it is stay the toolkit's: what is read from the
-template is its look and what is already there, never how a page is divided.
+template is its look and what is already there, never how a page is divided. **In a template
+that numbers its pages** (its slides carry the slide-number placeholder) **a page built from a
+type carries the layout's slide-number placeholder too**, so its number stands where a copied
+page's does and looks the same.
 
 ## Try it
 
