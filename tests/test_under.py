@@ -686,3 +686,159 @@ class TheCountStartsAfterTheCover(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def inches(value: float) -> int:
+    return round(value * 914400)
+
+
+def build_one(root: Path, specimen: Path, theme: str = "") -> tuple[int, str]:
+    """A project on that specimen with one declared page titled `ONE`, built the way a user builds it."""
+    if not root.exists():
+        create(root, specimen=specimen)
+        (root / "assets" / "deck").mkdir(parents=True)
+        (root / "assets" / "deck" / "example.png").write_bytes((root / "assets" / "example" / "example.png").read_bytes())
+    settings = root / "workspace.toml"
+    text = settings.read_text(encoding="utf-8").split("\n[theme]\n")[0]
+    settings.write_text(text + (f"\n[theme]\n{theme}" if theme else ""), encoding="utf-8")
+    (root / "deck.toml").write_text(
+        'specimen = "specimen.pptx"\nout = "deck.pptx"\n\n'
+        f'[[pages]]\nkind = "declare"\ntype = "figure"\ntitle = "{ONE}"\n'
+        'figure = "example.png"\nfooter = "出所 (= 見本)"\n', encoding="utf-8")
+    said = io.StringIO()
+    with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
+        code = main(["build", str(root), "deck"])
+    return code, said.getvalue()
+
+
+def built_page(deck: Path) -> tuple[str, str]:
+    """(the XML, the relationships) of the built page titled `ONE`."""
+    with zipfile.ZipFile(deck) as archive:
+        name = next(name for name in archive.namelist() if re.fullmatch(r"ppt/slides/slide\d+\.xml", name)
+                    and ONE in archive.read(name).decode("utf-8"))
+        return (archive.read(name).decode("utf-8"),
+                archive.read(name.replace("slides/", "slides/_rels/") + ".rels").decode("utf-8"))
+
+
+class TheLayoutIsNamedByASpecimenPage(unittest.TestCase):
+    """⚠ **型の頁が乗るレイアウトは、部品の名前で決まっていた** (= `slideLayout1.xml`)。Google スライドの
+    書き出しでは、その部品が表紙の型 (= 右下に飾りの絵) で、型の頁が表紙の飾りの上に乗った。並べ替えても効かない
+    (= 並びではなく名前)。案件が見本の頁を 1 枚名指せば、型の頁はその頁と同じレイアウトに乗る。"""
+
+    def test_without_a_name_the_declared_pages_sit_on_the_layout_part_named_first(self) -> None:
+        from pptx_agent_maker.deck.base.under import under_of
+
+        self.assertEqual("slideLayout1.xml", under_of(SHIPPED).layout)
+
+    def test_a_named_page_hands_on_the_layout_it_sits_on(self) -> None:
+        from pptx_agent_maker.deck.base.under import under_of
+
+        from pptx import Presentation
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = a_template(Path(tmp) / "two.pptx")
+            deck = Presentation(str(path))
+            deck.slides.add_slide(deck.slide_layouts[1])       # 2 枚目は、別のレイアウトに乗る頁
+            deck.save(str(path))
+            first, second = under_of(path, 1), under_of(path, 2)
+        self.assertEqual("slideLayout7.xml", first.layout)    # 同梱の見本の頁が乗るレイアウト
+        self.assertEqual("slideLayout2.xml", second.layout)
+        self.assertTrue(second.title, "the layout read is the named page's (= a title and content layout)")
+
+    def test_a_page_the_specimen_does_not_have_stops(self) -> None:
+        from pptx_agent_maker.deck.base.under import under_of
+
+        with self.assertRaises(ValueError) as stopped:
+            under_of(SHIPPED, 2)
+        self.assertIn("1 pages", str(stopped.exception))
+
+    def test_it_is_written_as_the_number_of_a_page(self) -> None:
+        from pptx_agent_maker.layout.base.tokens import ThemeError, theme_from
+
+        self.assertTrue(theme_from({"layout_of_page": 3}))
+        for wrong in (0, -1, "3", True, 2.0):
+            with self.subTest(wrong=wrong), self.assertRaises(ThemeError):
+                theme_from({"layout_of_page": wrong})
+
+    def test_the_built_page_sits_on_the_layout_of_the_named_page(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root, specimen = Path(tmp) / "project", a_template(Path(tmp) / "template.pptx")
+            for named, expected in (("", "slideLayout1.xml"), ("layout_of_page = 1\n", "slideLayout7.xml")):
+                with self.subTest(named=named):
+                    code, said = build_one(root, specimen, named)
+                    self.assertEqual(0, code, said)
+                    self.assertIn(f"slideLayouts/{expected}", built_page(root / "deck.pptx")[1])
+
+    def test_a_page_the_specimen_does_not_have_stops_the_build_and_says_so(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            code, said = build_one(Path(tmp) / "project", a_template(Path(tmp) / "t.pptx"), "layout_of_page = 9\n")
+        self.assertNotEqual(0, code)
+        self.assertIn("layout_of_page", said)
+
+
+class TheTitleSitsWhereTheTemplatesTitleSits(unittest.TestCase):
+    """⚠ **題の帯は道具の余白で置かれ、テンプレートの題の枠の場所を見ていなかった。**マスターの題の枠が
+    上の余白より上 (= 0.29 in) に在り、その下 (= 0.74 in) に太い罫線を引く雛形で、型の頁の題の帯
+    (= 0.35〜0.94 in) の真ん中を線が通り、取り消し線に見えた。道具はさらに帯の下に自分の線を引いて、線が
+    2 本になった。題の枠が在れば帯の上下をそれに合わせ、それでも線が題の字を横切るなら止める。"""
+
+    SEAT = Rect(DEFAULT.frame().left, inches(0.29), DEFAULT.frame().width, inches(0.45))
+    RULE = Rect(inches(1.75), inches(0.74), inches(12.18) - inches(1.75), 0)
+
+    def theme_on(self, tmp: str, **template):
+        from pptx_agent_maker.deck.base.under import under_of
+
+        return replace(DEFAULT, under=under_of(a_template(Path(tmp) / "t.pptx", **template)))
+
+    def test_the_title_frame_and_the_lines_are_read_with_their_names(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            under = self.theme_on(tmp, title_at=self.SEAT, line=self.RULE, line_in="master").under
+        self.assertEqual(self.SEAT, under.title_frame)
+        self.assertEqual(["Line"], [name for name, _ in under.lines])
+
+    def test_the_title_goes_where_the_template_puts_it_and_the_rule_stays_under_it(self) -> None:
+        for where in ("master", "layout"):
+            with self.subTest(where=where), tempfile.TemporaryDirectory() as tmp:
+                theme = self.theme_on(tmp, title_at=self.SEAT, line=self.RULE, line_in=where)
+                page = Page(ONE, theme)
+                title = placed(page, "title")
+                self.assertEqual(self.SEAT.top, title.top)
+                # 線はテンプレートが引くので、道具は自分の線を引かず、残りはその線の下から
+                self.assertEqual([], [e for e in page.elements if e.kind == "rule"])
+                self.assertGreater(page.body.top, self.RULE.top)
+
+    def test_a_title_frame_the_rule_runs_through_ends_at_the_rule(self) -> None:
+        tall = Rect(self.SEAT.left, self.SEAT.top, self.SEAT.width, inches(0.75))   # 0.29〜1.04 in
+        with tempfile.TemporaryDirectory() as tmp:
+            theme = self.theme_on(tmp, title_at=tall, line=self.RULE, line_in="master")
+        page = Page(ONE, theme)
+        title = placed(page, "title")
+        self.assertEqual(tall.top, title.top)
+        self.assertLess(title.bottom, tall.bottom, "the band ends near the rule, not at the foot of the frame")
+        self.assertEqual([], [e for e in page.elements if e.kind == "rule"])
+
+    def test_without_a_title_frame_a_line_through_the_title_stops_and_names_it(self) -> None:
+        from pptx_agent_maker import PageFullError
+
+        frame, row = DEFAULT.frame(), DEFAULT.line_height(DEFAULT.type.title)
+        through = Rect(frame.left, frame.top + DEFAULT.spacing.title_height // 2, frame.width, 0)
+        with tempfile.TemporaryDirectory() as tmp:
+            theme = self.theme_on(tmp, title=False, line=through, line_in="master")
+        self.assertLess(frame.top, through.top)
+        self.assertLess(through.top, frame.top + DEFAULT.spacing.title_height + row)
+        with self.assertRaises(PageFullError) as stopped:
+            Page(ONE, theme)
+        said = str(stopped.exception)
+        for words in ("'Line'", "struck through", "layout_of_page"):
+            self.assertIn(words, said)
+
+    def test_the_requested_case_builds_and_the_built_title_stands_at_the_templates_title(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "project"
+            code, said = build_one(root, a_template(Path(tmp) / "t.pptx", title_at=self.SEAT, line=self.RULE,
+                                                    line_in="master"))
+            self.assertEqual(0, code, said)
+            self.assertNotIn("FAIL", said)
+            page = built_page(root / "deck.pptx")[0]
+        title = next(s for s in re.findall(r"<p:sp>.*?</p:sp>", page, re.S) if '<p:ph type="title"/>' in s)
+        self.assertIn(f'y="{self.SEAT.top}"', title)

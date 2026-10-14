@@ -39,7 +39,11 @@ def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
     specimen = (workspace.root / manifest.specimen).resolve()
     if not specimen.is_file():
         raise ManifestError(f"specimen not found: {specimen}")
-    look = replace(theme_from(merged(specimen, workspace.look)), under=under_of(specimen))
+    try:
+        under = under_of(specimen, (workspace.look or {}).get("layout_of_page"))
+    except ValueError as reason:
+        raise ManifestError(f"workspace.toml: {reason}") from reason
+    look = replace(theme_from(merged(specimen, workspace.look)), under=under)
     try:
         return look.using(manifest.use or None)
     except ThemeError as reason:
@@ -64,7 +68,7 @@ def build(workspace: Workspace, manifest: Manifest) -> Path:
         declared = _bake_declared(workspace, manifest, Path(scratch), theme)
         with Deck.open(specimen, destination) as deck:
             for index, entry in enumerate(manifest.entries, start=1):
-                page = _place(deck, workspace, entry, declared, index)
+                page = _place(deck, workspace, entry, declared, index, theme.under.layout)
                 _swap(page, workspace, manifest, entry, index)
                 for old, new in entry.replace:
                     page.replace(old, new)
@@ -73,7 +77,7 @@ def build(workspace: Workspace, manifest: Manifest) -> Path:
 
 
 def _place(deck: Deck, workspace: Workspace, entry: Entry, declared: dict[int, int],
-           index: int) -> Slide:
+           index: int, layout: str) -> Slide:
     if entry.kind == "copy":
         return deck.copy(entry.page)
     if entry.kind == "import":
@@ -81,7 +85,7 @@ def _place(deck: Deck, workspace: Workspace, entry: Entry, declared: dict[int, i
         if not source.is_file():
             raise ManifestError(f"page {index}: deck to import from not found: {source}")
         return deck.bring(source, entry.page)
-    return deck.bring(declared["path"], declared[index], relayout=True)
+    return deck.bring(declared["path"], declared[index], relayout=layout)
 
 
 def _swap(page: Slide, workspace: Workspace, manifest: Manifest, entry: Entry,

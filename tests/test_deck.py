@@ -360,7 +360,7 @@ class RedMarksAreDroppedOnlyFromImportedPages(unittest.TestCase):
     def _slide(self, relayout: bool) -> str:
         out = self.dir / "built.pptx"
         with Deck.open(self.specimen, out) as deck:
-            brought = deck.bring(self.source, 1, relayout=relayout)
+            brought = deck.bring(self.source, 1, relayout="slideLayout1.xml" if relayout else None)
             name = brought.name
         with zipfile.ZipFile(out) as archive:
             return archive.read(f"ppt/slides/{name}").decode("utf-8")
@@ -402,7 +402,7 @@ class DeclaredPagesDoNotInheritALayout(unittest.TestCase):
         out = self.dir / "built.pptx"
         with Deck.open(self.specimen, out) as deck:
             deck.copy(1)
-            deck.bring(self.elsewhere, 1, relayout=True)
+            deck.bring(self.elsewhere, 1, relayout="slideLayout1.xml")
         self.assertIn("slideLayout1", self._layouts(out))
 
     def test_a_page_imported_from_an_earlier_deck_keeps_its_own(self) -> None:

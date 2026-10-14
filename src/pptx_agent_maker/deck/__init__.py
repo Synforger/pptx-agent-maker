@@ -121,12 +121,12 @@ class Deck:
         return page
 
     def bring(self, source: Path | str, page_number: int,
-              relayout: bool = False) -> Slide:
+              relayout: str | None = None) -> Slide:
         """Import the Nth page of another deck, media and all.
 
-        `relayout` は宣言で組んだ頁を持ち込むとき (= 白紙に描いてあるので、テンプレートの
-        どのレイアウトの上に乗るかを引き継がせない)。過去デッキからの輸入では偽 ―
-        その頁は元のレイアウトの上で作られている。
+        `relayout` は宣言で組んだ頁を持ち込むとき、乗せるレイアウトの部品の名前 (= 白紙に描いてあるので、
+        どのレイアウトの上に乗っていたかを引き継がせない。名前は `Under.layout`)。過去デッキからの輸入では
+        None ― その頁は元のレイアウトの上で作られている。
 
         ⚠ **赤い注目マークを落とすのは、過去デッキから輸入した頁だけ。**宣言で組んだ頁にも掛けていた間は、
         案件が色の役をその赤に決めると、その色の箱が全部、何も言わずに消えた ― 宣言の頁の図形は

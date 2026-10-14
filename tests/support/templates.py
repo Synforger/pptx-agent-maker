@@ -15,9 +15,11 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker.layout.base.geometry import Rect  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DEFAULT  # noqa: E402
 
 SHIPPED = REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx"
 LAYOUT = "ppt/slideLayouts/slideLayout1.xml"
+MASTER = "ppt/slideMasters/slideMaster1.xml"
 PAGE = "ppt/slides/slide1.xml"
 #: 同梱の見本のレイアウトが、頁番号の枠に付けている番号
 NUMBER_IDX = 12
@@ -29,6 +31,10 @@ NUMBER_ON_A_PAGE = (
     '<a:rPr lang="en-US"/><a:t>1</a:t></a:fld><a:endParaRPr lang="en-US"/></a:p></p:txBody></p:sp>')
 #: 題の枠の字の色 (= テーマの色のどれでもない青。継いだことが色で分かる)
 TITLE_COLOUR = "0070C0"
+#: 同梱の見本のレイアウトの、真ん中の題の枠の場所 (= 表紙の題。本文の頁にする時は上へ動かす)
+COVER_TITLE_AT = '<a:off x="685800" y="2130425"/><a:ext cx="7772400" cy="1470025"/>'
+#: 本文の頁の題の枠の、既定の場所 (= 道具が自分の余白で置く題の帯と同じ。題の帯は動かない)
+TOOLS_TITLE_AT = Rect(DEFAULT.frame().left, DEFAULT.frame().top, DEFAULT.frame().width, DEFAULT.spacing.title_height)
 
 
 def with_a_cover(template: Path, *, counts_from: int | None = None) -> Path:
@@ -67,7 +73,8 @@ def _line(across: Rect, how: str) -> str:
 
 def a_template(destination: Path, *, title: bool = True, logo: Rect | None = None,
                line: Rect | None = None, line_as: str = "connector",
-               numbered: bool = False, number_frame: int | None = NUMBER_IDX) -> Path:
+               numbered: bool = False, number_frame: int | None = NUMBER_IDX,
+               title_at: Rect = TOOLS_TITLE_AT, line_in: str = "layout") -> Path:
     """The shipped specimen, with its first layout made a page of content.
 
     `line` は、レイアウトが頁に描く線 (= 題の下の罫線など。高さは読まない)。`line_as` はその書かれ方 ―
@@ -75,6 +82,9 @@ def a_template(destination: Path, *, title: bool = True, logo: Rect | None = Non
 
     `numbered` は、見本の頁が頁番号を持つか (= 頁に番号を振る資料)。`number_frame` は、レイアウトの
     頁番号の枠の番号 (= `idx`。None なら、レイアウトから枠ごと抜く)。
+
+    `title_at` は、題の枠の場所 (= 既定は道具が自分で置く題の帯と同じ所)。`line_in` は、線を引く部品
+    (= `layout` / `master`)。
     """
     with zipfile.ZipFile(SHIPPED) as source, zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED) as out:
         for item in source.infolist():
@@ -95,6 +105,9 @@ def a_template(destination: Path, *, title: bool = True, logo: Rect | None = Non
                 if title:
                     assert xml.count('<p:ph type="ctrTitle"/>') == 1
                     xml = xml.replace('<p:ph type="ctrTitle"/>', '<p:ph type="title"/>')
+                    assert xml.count(COVER_TITLE_AT) == 1
+                    xml = xml.replace(COVER_TITLE_AT, f'<a:off x="{title_at.left}" y="{title_at.top}"/>'
+                                                      f'<a:ext cx="{title_at.width}" cy="{title_at.height}"/>')
                     xml = xml.replace(
                         "<a:lstStyle/>",
                         '<a:lstStyle><a:lvl1pPr algn="ctr"><a:defRPr sz="2500" b="0"><a:solidFill>'
@@ -105,8 +118,11 @@ def a_template(destination: Path, *, title: bool = True, logo: Rect | None = Non
                         f'<a:xfrm><a:off x="{logo.left}" y="{logo.top}"/><a:ext cx="{logo.width}" cy="{logo.height}"/>'
                         '</a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill>'
                         '<a:srgbClr val="7F7F7F"/></a:solidFill></p:spPr></p:sp></p:spTree>'))
-                if line is not None:
+                if line is not None and line_in == "layout":
                     xml = xml.replace("</p:spTree>", _line(line, line_as) + "</p:spTree>")
                 data = xml.encode("utf-8")
+            if item.filename == MASTER and line is not None and line_in == "master":
+                xml = data.decode("utf-8")
+                data = xml.replace("</p:spTree>", _line(line, line_as) + "</p:spTree>", 1).encode("utf-8")
             out.writestr(item, data)
     return destination

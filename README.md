@@ -108,11 +108,16 @@ pages, pages built from a type and the master a person sees in PowerPoint all ta
 `[theme]` is the exception laid on top, for when a specimen's palette does not line up with what
 the toolkit means by each colour; only what is written there is overridden.
 
-A page built from a type sits on the specimen's first layout. **If that layout has a title
-placeholder, the page's title is written into it** — the colour, the typeface and the weight are
-the template's — and **the title and its sticker stop short of what that layout prints** (a logo
-in a corner). Where the title stands and how large it is stay the toolkit's: what is read from the
-template is its look and what is already there, never how a page is divided. **In a template
+A page built from a type sits on the layout whose part is named `slideLayout1.xml` — by its part
+name, not by the order of the specimen's pages. Some exporters make that part a cover; then name a
+specimen page in `workspace.toml` (`[theme] layout_of_page = 3`) and the pages built from types sit
+on the layout that page sits on. **If that layout has a title placeholder, the page's title is
+written into it** — the colour, the typeface and the weight are the template's — **at the height of
+that placeholder**, so it stands where a copied page's title does, and **the title and its sticker
+stop short of what that layout prints** (a logo in a corner). A rule the template draws under its
+title stays the only rule there. If a line the layout draws would run through the title's type,
+the build stops and names the line rather than strike the title through. How large the title is
+and how the rest of the page is divided stay the toolkit's. **In a template
 that numbers its pages** (its slides carry the slide-number placeholder) **a page built from a
 type carries the layout's slide-number placeholder too**, so its number stands where a copied
 page's does and looks the same. A first page that carries no number (a cover) is not counted:
