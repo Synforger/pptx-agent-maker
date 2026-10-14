@@ -316,7 +316,8 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
                                     Emu(frame.width), Emu(frame.height), data).chart
     _dress(chart, element, theme)
 
-    # 目盛りの線は引かない。値の数字を棒に付けたグラフは、値の軸も出さない (= 同じ数を 2 度見せない)
+    # 目盛りの線は引かない。値の数字を棒に付けたグラフは、値の軸も出さない (= 同じ数を 2 度見せない)。
+    # 範囲を書いたグラフ (= `scale`) だけは、軸と、目盛りごとの薄い線を出す (= 読み手が範囲の中の位置を測る。下)
     chart.value_axis.has_major_gridlines = False
     chart.value_axis.visible = element.axis
     chart.value_axis.major_tick_mark = XL_TICK_MARK.NONE
@@ -330,6 +331,17 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
         # ⚠ python-pptx の項目の軸には、この設定の口が無い (= 代入しても黙って何も起きない)。
         # 値の軸の側に「項目の軸のいちばん端で交わる」と直に書く
         chart.value_axis._element.find(qn("c:crosses")).set("val", "max")
+    if element.scale is not None:
+        low, high, step = element.scale
+        chart.value_axis.minimum_scale = low
+        chart.value_axis.maximum_scale = high
+        chart.value_axis.major_unit = step
+        chart.value_axis.has_major_gridlines = True
+        grid = chart.value_axis.major_gridlines.format.line
+        grid.color.rgb = _colour(element.line)
+        grid.width = Emu(theme.spacing.hairline)
+    elif not element.axis and element.pinned is None:
+        _zero_end(chart, element)
     if element.pinned:
         _pin(chart, element)
     for callout in element.callouts:
@@ -359,6 +371,21 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
             labels.position = where
             if series.label_colour:
                 labels.font.color.rgb = _colour(series.label_colour)
+
+
+def _zero_end(chart, element: Chart) -> None:
+    """Hold 0 at the end of a hidden value axis, so the bars stand in the ratio of their numbers.
+
+    ⚠ **値の軸を隠したグラフは、軸の端を描く側の自動に任せない。**近い値ばかりのグラフ (= 75 / 75 / 67) で、
+    描く側 (= LibreOffice、PowerPoint も Excel と同じ決め方) は下限を 0 より上に取り、67 の棒が 75 の棒の
+    半分以下の高さに見えた。軸が隠れているので、読み手は下限が 0 でないことに気づけない。値が全部 0 以上なら
+    下限を、全部 0 以下なら上限を 0 に置く (= 正と負が混ざるグラフは、自動でも 0 をまたぐ)。
+    """
+    values = [value for series in element.series for value in series.values if value is not None]
+    if values and min(values) >= 0:
+        chart.value_axis.minimum_scale = 0
+    elif values and max(values) <= 0:
+        chart.value_axis.maximum_scale = 0
 
 
 def _dress(chart, element: Chart, theme: Theme) -> None:

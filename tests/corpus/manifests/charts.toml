@@ -167,3 +167,26 @@ series = [
   { name = "With the guide", points = [[1, 2.5], [2, 3.5], [3.5, 5]] },
   { name = "Without", points = [[1.5, 1], [4, 2], [5, 2.5]] },
 ]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "A rating on a scale of five: the axis runs 1 to 5 with a line at every step, and the numbers stay on the bars"
+footer = "Source: the numbers written on this page"
+
+[pages.chart]
+kind = "column"
+categories = ["A", "B", "C", "D"]
+series = [{ name = "Average of five", values = [4.53, 4.31, 4.18, 3.49] }]
+scale = { from = 1, to = 5, step = 1 }
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "Numbers close together with the axis hidden: the bars still stand from zero"
+footer = "Source: the numbers written on this page"
+
+[pages.chart]
+kind = "column"
+categories = ["A", "B", "C"]
+series = [{ name = "Score", values = [75, 75, 67] }]

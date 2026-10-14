@@ -9,6 +9,11 @@
 * **目を集めるのは 1 つ。**`highlight` に書いた系列か項目だけが差し色で、ほかは灰
 * **値の数字は棒に付ける。**目盛りの線は引かず、数字を付けたグラフは値の軸も出さない
   (= 同じ数を 2 度見せない)。`labels = false` なら数字を付けず、値の軸が出る
+* **値の軸を隠したグラフは、0 から立つ** (= 棒の高さが値の比になる。近い値ばかりのグラフで、描く側の自動が
+  下限を 0 より上に取り、軸が見えないまま棒の比が値の比と食い違った)
+* **値の軸の範囲を書いたグラフ (= `scale`) だけは、値の軸と目盛りの線を出す** (= 数字は棒に付けたまま)。
+  5 段階の評価のように、読み手が「どの範囲のどこか」を目で測るグラフ。下限が 0 でない時は棒が途中から立つので、
+  それが分かるよう軸は必ず出る
 * **凡例は系列が 2 つ以上の時だけ**
 * 字の大きさは本文の大きさ、書体は頁と同じ
 
@@ -29,7 +34,7 @@ from __future__ import annotations
 
 import csv
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from pathlib import Path
 
@@ -44,7 +49,12 @@ from ..core.registry import PageTypeError, register
 #: `scatter` は点 (= 2 つの量の関係)
 KINDS = ("bar", "column", "line", "stacked", "waterfall", "scatter")
 #: グラフが読むキー
-KEYS = ("kind", "categories", "series", "data", "highlight", "unit", "labels", "totals", "callouts", "x", "y")
+KEYS = ("kind", "categories", "series", "data", "highlight", "unit", "labels", "totals", "callouts", "x", "y",
+        "scale")
+#: 値の軸の範囲が読むキー (= 下限・上限・目盛りの間)
+SCALE_KEYS = ("from", "to", "step")
+#: 目盛りの数の上限 (= これより細かい目盛りの線は、地の模様になって読めない)
+MOST_TICKS = 20
 #: 点のグラフが読むキー (= 項目も、棒に付ける数字も、柱を指す注記も持たない)
 POINT_KEYS = ("kind", "x", "y", "series", "data", "highlight")
 #: 点のグラフの系列が読むキー
@@ -79,6 +89,8 @@ class _Plan:
     totals: tuple[str, ...]
     #: (項目の番号, 系列の番号, 言葉)
     callouts: tuple[tuple[int, int, str], ...] = ()
+    #: 値の軸の (下限, 上限, 目盛りの間)。書かなければ None (= 軸は PowerPoint が決める)
+    scale: tuple[float, float, float] | None = None
 
 
 @register("chart", needs=["chart"])
@@ -102,7 +114,8 @@ def place_chart(page: Page, spec: Spec, written, rect: Rect, what: str) -> None:
     frame, pinned, callouts = _pointed(page, plan, rect, legend, what) if plan.callouts else (None, None, ())
     page.chart(Chart(
         "chart", rect, "stacked" if plan.kind == "waterfall" else plan.kind, plan.categories, series,
-        legend=legend, axis=not plan.labels, frame=frame, pinned=pinned, callouts=callouts, **look))
+        legend=legend, axis=not plan.labels or plan.scale is not None, frame=frame, pinned=pinned,
+        callouts=callouts, scale=plan.scale, **look))
 
 
 # -- reading ---------------------------------------------------------------------
@@ -146,9 +159,57 @@ def _read(spec: Spec, written, what: str) -> _Plan:
     if not isinstance(totals, list) or any(str(name) not in categories for name in totals):
         raise PageTypeError(f"{what}: `totals` lists the categories that are totals (= bars that stand on "
                             f"the ground), each by its name; the categories are {', '.join(categories)}")
-    return _Plan(kind, tuple(categories), tuple(series), highlight, unit, labels,
-                 tuple(str(name) for name in totals),
-                 _callouts(written.get("callouts"), kind, categories, names, what))
+    callouts = _callouts(written.get("callouts"), kind, categories, names, what)
+    plan = _Plan(kind, tuple(categories), tuple(series), highlight, unit, labels,
+                 tuple(str(name) for name in totals), callouts)
+    if "scale" not in written:
+        return plan
+    return replace(plan, scale=_scale(written["scale"], plan, what))
+
+
+def _scale(written, plan: _Plan, what: str) -> tuple[float, float, float]:
+    """The value axis as written: where it starts and ends, and the step of its ticks.
+
+    ⚠ **範囲の外の値は止める。**軸の外へ出た棒は枠で切れ、切れたことは絵から分からない。
+    ⚠ **積み上げは 0 から**、**滝グラフと注記付きのグラフは書けない** ― 積み上げは下の段が 0 から立つ前提で
+    読まれ、滝グラフは見えない土台の上に立ち、注記付きのグラフは言葉を点に合わせるために軸を自分で決める。
+    """
+    where = f"{what}: `scale`"
+    if not isinstance(written, dict):
+        raise PageTypeError(f"{where} is {{ from = …, to = …, step = … }} (= where the value axis starts and "
+                            f"ends, and the step of its ticks), not {written!r}")
+    only_keys(written, set(SCALE_KEYS), where)
+    missing = [key for key in SCALE_KEYS if key not in written]
+    if missing:
+        raise PageTypeError(f"{where} needs {', '.join(f'`{key}`' for key in missing)} — "
+                            "{ from = 1, to = 5, step = 1 } is a scale of five")
+    low, high, step = (_number(written[key], f"{where} `{key}`") for key in SCALE_KEYS)
+    if plan.kind == "waterfall":
+        raise PageTypeError(f"{where}: a waterfall stands on bars that are not drawn, and the axis follows them — "
+                            "it takes no scale")
+    if plan.callouts:
+        raise PageTypeError(f"{where}: a chart with callouts works out its own axis to put the words over the "
+                            "points — take the callouts or the scale off")
+    if not low < high:
+        raise PageTypeError(f"{where}: `from` ({low}) is below `to` ({high})")
+    ticks = (high - low) / step if step > 0 else 0
+    if step <= 0 or abs(ticks - round(ticks)) > 1e-9 or round(ticks) > MOST_TICKS:
+        raise PageTypeError(f"{where}: `step` ({step}) divides {low} to {high} into whole steps, "
+                            f"at most {MOST_TICKS} of them")
+    if plan.kind == "stacked" and low > 0:
+        raise PageTypeError(f"{where}: a stacked column is read from 0 — its lowest part would be cut off at {low}")
+    if plan.kind == "stacked":
+        reach = [(sum(min(values[i], 0) for _n, values, _t in plan.series),
+                  sum(max(values[i], 0) for _n, values, _t in plan.series)) for i in range(len(plan.categories))]
+        outside = [plan.categories[i] for i, (down, up) in enumerate(reach) if down < low or up > high]
+    else:
+        outside = [f"{plan.categories[i]} ({name})" if len(plan.series) > 1 else plan.categories[i]
+                   for name, values, _tone in plan.series for i, value in enumerate(values)
+                   if not low <= value <= high]
+    if outside:
+        raise PageTypeError(f"{where}: {', '.join(outside)} fall outside {low} to {high} — a bar past the axis "
+                            "is cut off where it ends, and nothing shows it was")
+    return low, high, step
 
 
 def _callouts(listed, kind: str, categories: list[str], names: list[str], what: str):

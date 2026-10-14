@@ -43,7 +43,7 @@ new = "    return tuple(drawn), True"
 [[mutant]]
 name = "the bars carry their numbers and the axis repeats them"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "legend=legend, axis=not plan.labels,"
+old = "legend=legend, axis=not plan.labels or plan.scale is not None,"
 new = "legend=legend, axis=True,"
 
 [[mutant]]
@@ -385,3 +385,51 @@ name = "a scatter is drawn as a chart of categories"
 file = "src/pptx_agent_maker/write/pptx.py"
 old = "    if element.plot == \"scatter\":\n        _scatter(slide, element, theme)"
 new = "    if False:\n        _scatter(slide, element, theme)"
+
+[[mutant]]
+name = "the scale is read and dropped"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = 'callouts=callouts, scale=plan.scale, **look))'
+new = 'callouts=callouts, **look))'
+
+[[mutant]]
+name = "a chart with a scale hides its axis once its numbers are on the bars"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "axis=not plan.labels or plan.scale is not None,"
+new = "axis=not plan.labels,"
+
+[[mutant]]
+name = "the scale draws no lines at its steps"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        chart.value_axis.has_major_gridlines = True\n        grid = chart.value_axis.major_gridlines.format.line\n        grid.color.rgb = _colour(element.line)\n        grid.width = Emu(theme.spacing.hairline)\n"
+new = ""
+
+[[mutant]]
+name = "the axis is left to PowerPoint whatever the scale says"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        chart.value_axis.minimum_scale = low\n"
+new = "        pass\n"
+
+[[mutant]]
+name = "a value past the axis is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if outside:\n        raise PageTypeError(f\"{where}: {', '.join(outside)} fall outside"
+new = "    if False:\n        raise PageTypeError(f\"{where}: {', '.join(outside)} fall outside"
+
+[[mutant]]
+name = "steps that do not divide the axis are let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "abs(ticks - round(ticks)) > 1e-9 or "
+new = ""
+
+[[mutant]]
+name = "a stacked column may start above zero"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = 'if plan.kind == "stacked" and low > 0:'
+new = "if False:"
+
+[[mutant]]
+name = "a chart whose axis is hidden lets the reader's app start its bars above zero"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    elif not element.axis and element.pinned is None:\n        _zero_end(chart, element)\n"
+new = ""

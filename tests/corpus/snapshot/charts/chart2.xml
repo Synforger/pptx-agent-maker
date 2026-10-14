@@ -264,7 +264,9 @@
 </c:catAx>
 <c:valAx>
 <c:axId val="-2113994440"/>
-<c:scaling/>
+<c:scaling>
+<c:min val="0.0"/>
+</c:scaling>
 <c:delete/>
 <c:axPos val="b"/>
 <c:majorTickMark val="none"/>
