@@ -11,9 +11,12 @@ PDF でも毎回バイトが変わる (= 実測で確認済み)。
 from __future__ import annotations
 
 import os
+import posixpath
 import queue
+import re
 import shutil
 import subprocess
+import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -24,6 +27,10 @@ from pathlib import Path
 # 引き伸ばしになり、220dpi 以上は等倍を超えるので容量の払い損。
 # 焼く時間の差は小さい (= 頁を分けて並列に焼くため)。
 DEFAULT_DPI = 200
+
+# 描き方の版。描く前に deck へ手を入れる処理 (= 頁番号の開始) を変えたら上げる。キャッシュは deck の
+# 中身の hash で引くので、上げないと、前の描き方で焼いた絵が使われ続ける。
+RENDERER = 2
 
 # 頁一覧に並べる小さい絵の解像度。本画像を CSS で縮めると 100 頁ぶんの原寸を
 # 読み込むことになるので、専用に低い解像度でもう一度焼く。PDF は既に手元に
@@ -117,12 +124,67 @@ class ProfilePool:
             self._free.put(profile)
 
 
+_FIRST_NUMBER = re.compile(rb'<p:presentation\b[^>]*\bfirstSlideNum="(\d+)"')
+_SLIDE_IDS = re.compile(rb'<p:sldId\b[^>]*\br:id="([^"]+)"')
+_RELATION = re.compile(rb'<Relationship\b[^>]*>')
+_NUMBER_FIELD = re.compile(rb'<a:fld\b[^>]*\btype="slidenum"[^>]*>(.*?)</a:fld>', re.S)
+_RUN_PROPERTIES = re.compile(rb'<a:rPr\b[^>]*/>|<a:rPr\b.*?</a:rPr>', re.S)
+
+
+def numbered_as_powerpoint(pptx: Path, work_dir: Path) -> Path:
+    """The deck to hand LibreOffice: a copy whose page numbers start where the deck says.
+
+    ⚠ **LibreOffice は頁番号の開始 (= presentation.xml の firstSlideNum) を読まない。**表紙に番号を
+    付けない資料は開始を 0 にして表紙の次を 1 にするが、LibreOffice は表紙から数えて 2 と描くので、
+    プレビューだけが PowerPoint と違う番号を見せる。開始が 1 以外の資料に限り、写しの中で各頁の
+    頁番号の欄を、PowerPoint が出す数 (= 開始 + 頁の位置 - 1) の文字に置き換えてから渡す。
+    レイアウトとマスターの欄は頁ごとに数が違うので置き換えない (= 頁に置いた欄だけが対象)。
+    """
+    with zipfile.ZipFile(pptx) as deck:
+        names = set(deck.namelist())
+        presentation = deck.read("ppt/presentation.xml") if "ppt/presentation.xml" in names else b""
+        first = _FIRST_NUMBER.search(presentation)
+        if first is None or int(first.group(1)) == 1:
+            return pptx
+        start = int(first.group(1))
+        targets = {}
+        for relation in _RELATION.findall(deck.read("ppt/_rels/presentation.xml.rels")):
+            rid = re.search(rb'\bId="([^"]+)"', relation)
+            target = re.search(rb'\bTarget="([^"]+)"', relation)
+            if rid and target:
+                targets[rid.group(1)] = posixpath.normpath(
+                    posixpath.join("ppt", target.group(1).decode()))
+        order = [targets.get(rid) for rid in _SLIDE_IDS.findall(presentation)]
+        numbers = {name: str(start + position).encode()
+                   for position, name in enumerate(order) if name}
+
+        def literal(number: bytes):
+            def run(field: re.Match) -> bytes:
+                props = _RUN_PROPERTIES.search(field.group(1))
+                return b"<a:r>" + (props.group(0) if props else b"") + b"<a:t>" + number + b"</a:t></a:r>"
+            return run
+
+        copy = work_dir / "numbered" / pptx.name
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(copy, "w", zipfile.ZIP_DEFLATED) as out:
+            for item in deck.infolist():
+                data = deck.read(item)
+                if item.filename in numbers:
+                    data = _NUMBER_FIELD.sub(literal(numbers[item.filename]), data)
+                out.writestr(item, data)
+    return copy
+
+
 def to_pdf(pptx: Path, work_dir: Path, profile: Path) -> Path:
     """Convert ``pptx`` to a PDF inside ``work_dir``, using ``profile``."""
     pptx = pptx.resolve()
     if not pptx.exists():
         raise RenderError(f"deck not found: {pptx}")
     work_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        pptx = numbered_as_powerpoint(pptx, work_dir)
+    except (zipfile.BadZipFile, KeyError):
+        pass  # 壊れた deck は LibreOffice に渡し、その失敗をそのまま画面へ出す
 
     result = subprocess.run(
         [
