@@ -17,7 +17,7 @@ from tempfile import TemporaryDirectory
 
 from . import notes as notes_mod
 from .cache import DeckCache, cache_root, deck_key, digest
-from .render import DEFAULT_DPI, THUMB_DPI, ProfilePool, RenderError, rasterize, to_pdf
+from .render import DEFAULT_DPI, RENDERER, THUMB_DPI, ProfilePool, RenderError, rasterize, to_pdf
 
 # 同時に走らせる soffice の数。変換は 1 本あたり CPU 1 コアと数百 MB を使うので、
 # デッキ数ぶん無制限に起動するとフォルダが育ったときにマシンごと詰まる。
@@ -93,7 +93,7 @@ class DeckState:
         try:
             # 解像度も判定材料に混ぜる。デッキが同じでも焼く細かさを変えたら
             # 焼き直さないと、キャッシュに古い粗さの絵が残ったままになる。
-            source = f"{digest(self.pptx.read_bytes())}@{self.dpi}/{THUMB_DPI}"
+            source = f"{digest(self.pptx.read_bytes())}@{self.dpi}/{THUMB_DPI}/r{RENDERER}"
         except OSError as exc:
             return self._fail(f"cannot read deck: {exc}")
 
