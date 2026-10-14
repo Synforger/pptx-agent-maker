@@ -24,7 +24,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .recipes import RecipeError, expand
+from .recipes import RecipeError, expand, expand_parts, load_parts
 from .recipes import load as load_recipes
 
 KINDS = ("copy", "import", "declare", "recipe")
@@ -94,17 +94,18 @@ class Manifest:
             raise ManifestError(f'{path.name}: `use` is {use!r} — a deck names its use in words, as in use = "read"')
 
         try:
-            recipes = load_recipes(path.parent)
+            recipes, parts = load_recipes(path.parent), load_parts(path.parent)
         except RecipeError as error:
             raise ManifestError(str(error)) from error
-        entries = tuple(cls._entry(path, index, page, recipes)
+        entries = tuple(cls._entry(path, index, page, recipes, parts)
                         for index, page in enumerate(pages, start=1))
         return cls(specimen=str(data["specimen"]), out=str(data["out"]),
                    entries=entries, source=path,
                    assets=str(data.get("assets", path.stem)), use=use.strip())
 
     @staticmethod
-    def _entry(path: Path, index: int, page: dict, recipes: dict | None = None) -> Entry:
+    def _entry(path: Path, index: int, page: dict, recipes: dict | None = None,
+               parts: dict | None = None) -> Entry:
         kind = str(page.get("kind", "")).strip()
         where = f"{path.name} page {index}"
         if kind not in KINDS:
@@ -120,6 +121,13 @@ class Manifest:
             page = {**declared, "kind": "declare",
                     **{k: page[k] for k in ("why", "replace") if k in page}}
             kind = "declare"
+
+        if kind == "declare":
+            # 部品を呼ぶマスを書き下す (= recipe の頁も、展開した後のマスで同じに)
+            try:
+                page = expand_parts(where, page, parts or {})
+            except RecipeError as error:
+                raise ManifestError(str(error)) from error
 
         if kind == "copy" and not page.get("page"):
             raise ManifestError(f"{where}: a copied page needs `page` (= the specimen's Nth page)")

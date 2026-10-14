@@ -41,8 +41,9 @@ reading → conclusion → footer.** A band left unwritten is simply not taken. 
 thing — what goes in the body — and there are ten of them (`figure`, `figures`, `figure_grid`,
 `flow`, `roadmap`, `timeline`, `chart`, `cards`, `board`, `agenda`). Cards, a table and the reading
 can be added to any of them. One more, `compose`, writes the body as rows of cells instead, one part
-in each cell — a card, a picture, a table, words, a chart, or one of those types — for a page none
-of them lays out. A `chart` is drawn from its numbers, which travel inside the deck: a person can
+in each cell — a card, a picture (with marks that name points on it), a table, words (set very large,
+or monospaced for code), a chart, a ring, a tree, overlapping circles, or one of those types — for a
+page none of them lays out; cells can be joined by arrows. A `chart` is drawn from its numbers, which travel inside the deck: a person can
 still edit them in PowerPoint.
 
 Naming a few positions and asking people to use them does not hold: the previous generation did
@@ -70,7 +71,8 @@ points at. Data cannot enter a commit, so it cannot enter a push.
 
 ## Three layers
 
-- **the toolkit** — this repository: the vocabulary of the page (eight types) and the machinery.
+- **the toolkit** — this repository: the vocabulary of the page (eleven types, and the pieces and
+  arrangements a compose cell is built from) and the machinery.
   Installed **once per machine**
 - **the template** — `src/pptx_agent_maker/templates/project/`: where a project starts (its look,
   an example manifest, and its entry point). It **ships with the toolkit**, so an installed
@@ -79,6 +81,12 @@ points at. Data cannot enter a commit, so it cannot enter a push.
 
 **A new type is added to the toolkit**, and every project has it at once: there is nothing to
 distribute. What a project owns is its look and the order of its pages, and those differ by project.
+
+**A project grows its own parts.** A cell it writes again and again — a big figure with its meaning
+under it, a quote, a named picture — is kept once in its `recipes.toml` as `[parts.<name>]` and
+placed with `part = "<name>"` (a new project starts with nine samples to rewrite). A part that turns
+up in two projects is lifted into the company template (`lift --part`). The toolkit changes only
+when a piece or an arrangement is missing, and those are few, so it stops growing.
 
 A project stands on its own — its `Taskfile.yml` is the door to the toolkit.
 

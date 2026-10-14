@@ -1,0 +1,57 @@
+# Parts: one compose cell kept once in recipes.toml, the samples a project starts with, and lifting them.
+
+tests = ["tests/test_recipes.py", "tests/test_lift.py"]
+
+[[mutant]]
+name = "a cell may change what its part fixes"
+file = "src/pptx_agent_maker/project/files/recipes.py"
+old = "    clash = sorted(set(own) & set(part))"
+new = "    clash = []"
+
+[[mutant]]
+name = "a fill nobody uses is let through"
+file = "src/pptx_agent_maker/project/files/recipes.py"
+old = "    unused = sorted(set(fill) - used)\n    if unused:\n        raise RecipeError(f\"{where}: `fill` names"
+new = "    unused = []\n    if unused:\n        raise RecipeError(f\"{where}: `fill` names"
+
+[[mutant]]
+name = "a part calling itself is let run"
+file = "src/pptx_agent_maker/project/files/recipes.py"
+old = "if name in calling or len(calling) >= PART_DEPTH:"
+new = "if False:"
+
+[[mutant]]
+name = "parts inside a part are left unexpanded"
+file = "src/pptx_agent_maker/project/files/recipes.py"
+old = '        written["rows"] = _rows(where, written["rows"], parts, calling + (name,))'
+new = "        pass"
+
+[[mutant]]
+name = "cells inside rows are not looked into"
+file = "src/pptx_agent_maker/project/files/recipes.py"
+old = '        return {**cell, "rows": _rows(where, cell["rows"], parts, calling)} if "rows" in cell else cell'
+new = "        return cell"
+
+[[mutant]]
+name = "the template's recipes replace the sample parts"
+file = "src/pptx_agent_maker/project/commands/scaffold.py"
+old = '(destination / "recipes.toml").write_text(_with_sample_parts(recipes), encoding="utf-8")'
+new = 'shutil.copy2(recipes, destination / "recipes.toml")'
+
+[[mutant]]
+name = "a sample part overrides the template's own"
+file = "src/pptx_agent_maker/project/commands/scaffold.py"
+old = "if name not in theirs}"
+new = "}"
+
+[[mutant]]
+name = "a choice value is lifted as words"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = "    if key in CHOICES:\n        return value"
+new = "    if False:\n        return value"
+
+[[mutant]]
+name = "a value that is only a hole is lifted as words"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = "if not value.strip() or HOLE.fullmatch(value.strip()):"
+new = "if not value.strip():"

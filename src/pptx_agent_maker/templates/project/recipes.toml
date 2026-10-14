@@ -1,0 +1,58 @@
+# Pages this project writes the same way every round, kept once.
+# A manifest page calls one with `kind = "recipe"` and gives only what changes.
+#
+# Parts are the same for one cell of a compose page: a cell writes `part = "<name>"` and
+# `fill = { ... }` for the holes. The ones below are samples — rewrite them for this project,
+# or drop the ones it does not use. When the same part turns up in two projects, lift it into
+# the company template (`pptx-agent-maker lift <project> <template> --part <name>`).
+
+# The figure the page is about, set very large, with what it means under it.
+[parts.big_number]
+rows = [
+  { cells = [ { text = "{figure}", role = "display" } ] },
+  { cells = [ { text = "{meaning}" } ] },
+]
+
+# What someone said, in their words, with who said it.
+[parts.quote]
+voices = [ { text = "{words}", who = "{who}" } ]
+
+# A picture with the parts it shows named beside it. The cell writes the marks, since every
+# picture has its own: marks = [ { at = [0.25, 0.35], text = "Lens" }, ... ]
+[parts.named_picture]
+figure = "{picture}"
+
+# A whole and what it splits into (= add children, or a level under them).
+[parts.tree]
+tree = { heading = "{whole}", children = [ { heading = "{first}" }, { heading = "{second}" }, { heading = "{third}" } ] }
+
+# Steps that go round and come back.
+[parts.cycle]
+ring = [
+  { heading = "{first}" },
+  { heading = "{second}" },
+  { heading = "{third}" },
+  { heading = "{fourth}" },
+]
+
+# Lines of code, a command or anything set monospaced.
+[parts.code]
+text = "{code}"
+role = "mono"
+
+# Two things and what they share.
+[parts.overlap]
+overlap = { sets = ["{first}", "{second}"], shared = "{shared}" }
+
+# A map with where it marks named beside it and where it comes from under it. The cell writes
+# the marks: marks = [ { at = [0.62, 0.41], text = "Osaka" }, ... ]
+[parts.map]
+figure = "{map}"
+caption = "{source}"
+
+# An equation, set monospaced as written, with what it says under it.
+[parts.equation]
+rows = [
+  { cells = [ { text = "{equation}", role = "mono" } ] },
+  { cells = [ { text = "{reading}" } ] },
+]
