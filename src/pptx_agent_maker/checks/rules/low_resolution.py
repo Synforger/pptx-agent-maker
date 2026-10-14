@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..base.finding import Finding
-from ..base.picture import placed
+from ..base.picture import ours, placed
 
 NAME = "low_resolution"
 #: 頁の上で 1 インチに並ぶ画素の下限
@@ -24,7 +24,7 @@ def run(deck: Path, config: dict | None = None) -> list[Finding]:
     if (config or {}).get(NAME, True) is False:
         return []
     findings: list[Finding] = []
-    for picture in placed(deck):
+    for picture in ours(placed(deck), config):
         width, height = picture.shown_pixels
         if not picture.shape.width or not picture.shape.height:
             continue

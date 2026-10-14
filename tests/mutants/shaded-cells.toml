@@ -53,7 +53,7 @@ new = "            ground = _cell_colour(theme, heading, r)"
 [[mutant]]
 name = "the words on a deep ground stay in the colour of the body"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "            ink = (theme.palette.words_on(ground) if (r, c) in element.shades\n                   else theme.palette.paper if heading else theme.palette.ink)\n"
+old = "            ink = theme.palette.words_on(ground)\n"
 new = "            ink = theme.palette.paper if heading else theme.palette.ink\n"
 
 [[mutant]]

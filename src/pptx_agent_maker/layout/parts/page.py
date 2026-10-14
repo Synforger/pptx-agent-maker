@@ -275,10 +275,10 @@ class Page:
         if tone in LIGHT:
             fill = getattr(p, tone)
             return fill, p.ink, p.edge(fill)
-        if tone in TONES:
-            return {"accent": p.accent, "good": p.good, "bad": p.bad}[tone], p.paper, ""
-        # 案件が意味の名前を付けた地: 字は読める方の色、本文の色の字が乗る薄い地は枠を持つ
-        fill = dict(self.theme.grounds)[tone]
+        # 濃い役の地と、案件が意味の名前を付けた地: 字は読める方の色、本文の色の字が乗る薄い地は枠を持つ
+        # (= 差し色は案件が変えるので、濃いとは限らない。白を決め打つと薄い差し色で字が溶けた)
+        fill = ({"accent": p.accent, "good": p.good, "bad": p.bad}[tone] if tone in TONES
+                else dict(self.theme.grounds)[tone])
         words = p.words_on(fill)
         return fill, words, p.edge(fill) if words == p.ink else ""
 
@@ -622,7 +622,7 @@ class Page:
         """What one column of a timeline is called, in a cell of its own (= a table's heading row)."""
         p = self.theme.palette
         size = self.theme.type.body if size is None else size
-        self.elements.append(Bar("period", rect, name, size, p.paper, fill=p.accent, bold=True))
+        self.elements.append(Bar("period", rect, name, size, p.words_on(p.accent), fill=p.accent, bold=True))
 
     def stripe(self, rect: Rect) -> None:
         """The faint ground under every other column, so the eye can follow a period down the page."""

@@ -152,7 +152,35 @@ def _checks(workspace, manifest=None, theme=None) -> dict:
             number: theme.using(entry.data.get("use")).type.minimum
             for number, entry in enumerate(manifest.entries, start=1)
             if entry.kind == "declare" and entry.data.get("use")}
+    template = _template_media(workspace, manifest)
+    if template:
+        config["template_media"] = template
     return config
+
+
+def _template_media(workspace, manifest=None) -> set[str]:
+    """What the project's templates carry as pictures (= left out of the picture checks).
+
+    この資料の manifest が分かればその雛形、分からなければ案件の manifest が使う雛形の全部。
+    """
+    from .checks.base.picture import media_digests
+    from .project.files.manifest import Manifest, ManifestError
+
+    if manifest is not None:
+        specimens = {manifest.specimen}
+    else:
+        specimens = set()
+        for path in workspace.manifests():
+            try:
+                specimens.add(Manifest.load(path).specimen)
+            except (ManifestError, OSError):
+                continue  # 読めないマニフェストは build が言う
+    found: set[str] = set()
+    for specimen in specimens:
+        path = Path(specimen) if Path(specimen).is_absolute() else workspace.root / specimen
+        if path.is_file():
+            found |= media_digests(path)
+    return found
 
 
 def _manifest_of(workspace, deck: Path):

@@ -1,0 +1,27 @@
+# Words on a ground the project coloured take the colour that reads on it.
+
+tests = ["tests/test_readable_grounds.py"]
+
+[[mutant]]
+name = "a table's heading row keeps white words on any accent"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            ink = theme.palette.words_on(ground)\n"
+new = "            ink = theme.palette.paper if heading else theme.palette.ink\n"
+
+[[mutant]]
+name = "a box on the accent keeps white words"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        words = p.words_on(fill)\n"
+new = "        words = p.paper if tone in TONES else p.words_on(fill)\n"
+
+[[mutant]]
+name = "a timeline's period keeps white words"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'Bar("period", rect, name, size, p.words_on(p.accent), fill=p.accent, bold=True)'
+new = 'Bar("period", rect, name, size, p.paper, fill=p.accent, bold=True)'
+
+[[mutant]]
+name = "a template's picture is judged like the project's"
+file = "src/pptx_agent_maker/checks/base/picture.py"
+old = "    return [picture for picture in pictures if picture.digest not in template]"
+new = "    return list(pictures)"

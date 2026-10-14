@@ -537,8 +537,9 @@ def _table(slide, element: Table, theme: Theme) -> None:
             cell.fill.fore_color.rgb = _colour(ground)
             cell.text = value
             mark = (r, c) in element.marks
-            ink = (theme.palette.words_on(ground) if (r, c) in element.shades
-                   else theme.palette.paper if heading else theme.palette.ink)
+            # 字は地の上で読める方の色 (= 見出し行の地は案件の差し色。薄い差し色に白い字を決め打つと
+            # 読めない見出しになった)
+            ink = theme.palette.words_on(ground)
             # ⚠ **セルの文の行は、全部同じに書く。**改行を含む文は行ごとに別の段落になる。最初の段落にだけ
             # 大きさ・色・書体を付けていた間は、改行の後の行が pptx の既定の大きさ (= 18pt) で出た
             for paragraph in cell.text_frame.paragraphs:
