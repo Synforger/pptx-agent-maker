@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..base.finding import Finding
-from ..base.picture import placed
+from ..base.picture import ours, placed
 
 NAME = "stretched"
 #: 元の比と枠の比の食い違いの上限 (= 2%)
@@ -22,7 +22,7 @@ def run(deck: Path, config: dict | None = None) -> list[Finding]:
     if (config or {}).get(NAME, True) is False:
         return []
     findings: list[Finding] = []
-    for picture in placed(deck):
+    for picture in ours(placed(deck), config):
         width, height = picture.shown_pixels
         frame = picture.shape.width / picture.shape.height if picture.shape.height else 0
         if not frame or not height:

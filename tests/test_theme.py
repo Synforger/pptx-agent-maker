@@ -329,7 +329,9 @@ class ThemeThroughTheWorkspaceTest(unittest.TestCase):
         self.assertEqual(10, _checks(self._settings(""))["type_floor"])
         self.assertEqual(14, _checks(self._settings('[theme]\nuse = "present"\n'))["type_floor"])
         own = self._settings('[theme]\nuse = "present"\n\n[checks]\ntype_floor = 12\nstale_words = ["x"]\n')
-        self.assertEqual({"type_floor": 12, "stale_words": ["x"]}, _checks(own))
+        asked = _checks(own)
+        asked.pop("template_media", None)  # 雛形の絵 (= 案件が書く物ではない。test_readable_grounds が見る)
+        self.assertEqual({"type_floor": 12, "stale_words": ["x"]}, asked)
 
     def test_a_copied_page_set_too_small_for_a_deck_to_be_shown_fails_the_build(self) -> None:
         """見本の頁は読ませる資料の大きさ (= 本文 12pt) で組んである。映す資料に複製すると下限を割る。"""

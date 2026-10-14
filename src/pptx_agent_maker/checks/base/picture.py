@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import posixpath
 import re
@@ -37,6 +38,8 @@ class Placed:
     pixels: tuple[int, int]
     #: 切り抜いて残る割合 (= 幅, 高さ。切り抜かなければ 1)
     kept: tuple[float, float]
+    #: 絵の中身の sha256 (= 雛形が持つ絵かどうかを見分ける)
+    digest: str = ""
 
     @property
     def shown_pixels(self) -> tuple[float, float]:
@@ -72,6 +75,7 @@ def placed(deck: Path) -> list[Placed]:
     """Every picture on every page whose image size can be read."""
     found: list[Placed] = []
     sizes: dict[str, tuple[int, int] | None] = {}
+    digests: dict[str, str] = {}
     with zipfile.ZipFile(Path(deck)) as archive:
         for page in read(deck):
             targets = _targets(archive, page.name)
@@ -84,11 +88,30 @@ def placed(deck: Path) -> list[Placed]:
                     continue
                 if media not in sizes:
                     try:
-                        with Image.open(io.BytesIO(archive.read(media))) as image:
+                        data = archive.read(media)
+                        digests[media] = hashlib.sha256(data).hexdigest()
+                        with Image.open(io.BytesIO(data)) as image:
                             sizes[media] = image.size
                     except (KeyError, OSError, UnidentifiedImageError):
                         sizes[media] = None
                 kept = _kept(shape.xml)
                 if sizes[media] and kept[0] > 0 and kept[1] > 0:
-                    found.append(Placed(page.number, shape, sizes[media], kept))
+                    found.append(Placed(page.number, shape, sizes[media], kept, digests.get(media, "")))
     return found
+
+
+def media_digests(deck: Path) -> set[str]:
+    """The sha256 of every picture a deck carries (= a template's, to leave out of the picture checks)."""
+    with zipfile.ZipFile(Path(deck)) as archive:
+        return {hashlib.sha256(archive.read(name)).hexdigest()
+                for name in archive.namelist() if name.startswith("ppt/media/")}
+
+
+def ours(pictures: list[Placed], config: dict | None) -> list[Placed]:
+    """The pictures the project put in, not the ones its template came with.
+
+    ⚠ **雛形の絵 (= ロゴ・飾り) は雛形の側で直す。**複製した表紙のロゴが粗いと、案件の側には差し替える元が
+    無いので、検査を案件ごと外すしかなくなる (= 案件の絵まで見なくなる)。雛形と同じ中身の絵だけを外す。
+    """
+    template = set((config or {}).get("template_media", ()))
+    return [picture for picture in pictures if picture.digest not in template]
