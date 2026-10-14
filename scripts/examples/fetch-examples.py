@@ -6,14 +6,22 @@
 
     ~/.local/share/pptx-agent-maker/examples/
     ├── INDEX.md            # 場面ごとの一覧と見方 (= agent が最初に開く 1 枚)
-    └── slides-align/       # 人が 1 番に選んだ資料 (= Slides-Align、MIT、研究用)
-        └── <場面>/<題材>/1-<道具>/page-NN.jpg と page-NN.md
+    ├── slides-align/       # 人が 1 番に選んだ資料 (= Slides-Align、MIT、研究用)
+    │   └── <場面>/<題材>/1-<道具>/page-NN.jpg と page-NN.md
+    └── albums/             # プレビューで見る束 (= `.album`、絵は slides-align/ を指すだけ)
+        ├── scenes/<場面>/NN-<1 頁目の題>.album   # 資料 1 本 = 束 1 本
+        └── forms/<頁の形>.album                  # 形 1 つ = 束 1 本 (= 語で拾った候補)
 
-    python3 scripts/examples/fetch-examples.py [--to DIR]
+    python3 scripts/examples/fetch-examples.py [--to DIR] [--no-fetch]
+
+束をプレビューの欄に出すには、`~/.config/pptx-agent-maker/preview.toml` に場面と形の folder を
+`[[folder]]` で足す (= 書く行は `--no-fetch` の最後に出る)。
 
 ⚠ **取るのは 1 位だけ。**agent が 1 回に開くのは 2〜3 本で、1 位 (= 題材ごとに 1 本、187 本) で足りる。
 ⚠ **途中で落ちても続きから。**取れた file は飛ばすので、打ち直せば残りだけを取る。配る側で取れない
 file は飛ばして数え、一覧の末尾に出す (= 1 file のために全体を止めない)。
+⚠ **形の束は語で拾った候補。**頁の文字の抜き出し (= 「3. Visual Interpretation」) の太字の見出しを語で
+引くので、外れも混ざり、見落としもある。場面の束は資料をそのまま並べるので外れない。
 """
 
 from __future__ import annotations
@@ -21,7 +29,9 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import os
 import re
+import shutil
 import sys
 import time
 import urllib.error
@@ -53,6 +63,28 @@ SCENES = {
     "personal_statement": "自己紹介",
 }
 
+#: 頁の形と、それを拾う語 (= 抜き出しの「3. Visual Interpretation」の太字の見出しに当てる。小文字で)。
+#: `text` は見出しでなく節の本文に当てる (= 大きな数字は見出しに名前が出ない)。`not` に当たる見出しは外す
+FORMS = {
+    "大きな数字": {"text": r"\b(?:large|big|oversized|giant|huge|massive|enlarged)\b[\w ,-]{0,20}?\b"
+                          r"(?:numerals?|numbers?|percentages?|figures?|digits?|statistics?)\b"
+                          r"|\bkey (?:metric|statistic|figure)s?\b",
+                  "not": r"slide number|page number"},
+    "発言": {"label": r"\bquot(?:e|es|ation|ations)\b|\btestimonial"},
+    "写真や図に線で名前": {"label": r"\bcallout (?:arrow|line)s?\b|\bannotations?\b|\bleader lines?\b"
+                                 r"|\barrows and labels\b|\blabel(?:l)?ed (?:diagram|illustration|photo|image)"},
+    "木の図": {"label": r"\b(?:tree|branching) (?:diagram|structure|chart|graph|layout)|\bdecision tree"
+                       r"|\bhierarch\w* (?:diagram|chart|structure|tree|layout|flow)|\borg(?:anizational|anisational)? ?chart"
+                       r"|\bmind ?map"},
+    "輪の図": {"label": r"\bcircular (?:flow |arrow )?diagram|\bcycle (?:diagram|graphic)|\b\d+-stage cycle"
+                       r"|\bloop diagram|\bcircular graphic"},
+    "コードの枠": {"label": r"\bcode\b|\bterminal\b", "not": r"\b(?:qr|colou?r|zip|dress|post(?:al)?) code\b"},
+    "円の重なり": {"label": r"\bvenn\b|\boverlapping circles?\b"},
+    "地図": {"label": r"\bmap\b",
+             "not": r"background|icon|faint|watermark|\b(?:mind|road|heat|empathy|journey|site|concept) ?map"},
+    "数式": {"label": r"\bequations?\b|\bformulas?\b|\bmathematical\b"},
+}
+
 GUIDE = """\
 # 良い資料の見本 (= 作る前に見る)
 
@@ -72,6 +104,13 @@ GUIDE = """\
   絵の中の綴りが崩れている所がある ― 絵に字を焼く作り方と飾りは真似しない (= 作法の「概念図と工程図は
   図形で組み、画像に文字を焼かない」)
 - 1 頁だけを見ず、資料を頭から順に見る (= `page-NN.md` の題を順に読むと、話の筋だけが追える)
+
+## プレビューで見る
+
+常駐のプレビューの欄で「見本 · <場面>」を選ぶと、その場面の資料が 1 本ずつタブに並ぶ (= `albums/scenes/`)。
+「見本 · 頁の形」は、形ごとの頁を集めた束 (= `albums/forms/`、大きな数字・発言・木の図・輪の図・地図ほか)。
+⚠ 形の束は、頁の文字の抜き出しを語で拾った候補で、外れも混ざる。頁の下の注記に、元の資料と頁と、
+当たった語が出る。
 """
 
 
@@ -183,21 +222,102 @@ def index(root: Path, decks: list[dict]) -> None:
     (root / "INDEX.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def visual_labels(markdown: str) -> tuple[list[str], str]:
+    """The bold headings of a page's "Visual Interpretation" section, and the section itself (both lowercased)."""
+    found = re.search(r"## 3\. Visual Interpretation(.*?)(?:\n## |\Z)", markdown, re.S)
+    if not found:
+        return [], ""
+    section = found.group(1).lower()
+    labels = [label.strip(" :") for label in re.findall(r"^\s*[-*]\s+\*\*([^*]+)\*\*", section, re.M)]
+    return labels, section
+
+
+def form_of(markdown: str) -> dict[str, str]:
+    """Form → the words that picked this page for it (= a guess from the words, not a judgement)."""
+    labels, section = visual_labels(markdown)
+    picked = {}
+    for form, rule in FORMS.items():
+        unwanted = re.compile(rule["not"]) if "not" in rule else None
+        if "label" in rule:
+            hit = next((label for label in labels
+                        if re.search(rule["label"], label) and not (unwanted and unwanted.search(label))), None)
+        else:
+            found = re.search(rule["text"], section)
+            hit = found.group(0) if found and not (unwanted and unwanted.search(found.group(0))) else None
+        if hit:
+            picked[form] = hit
+    return picked
+
+
+def albums(root: Path, decks: list[dict]) -> list[tuple[str, Path]]:
+    """Write the albums the preview shows: one per deck under each scene, one per form. → (name, folder) to offer."""
+    out = root / "albums"
+    if out.exists():
+        shutil.rmtree(out)  # 書き直す (= 束は slides-align/ から毎回作る写しで、手で足す物は置かない)
+    by_form: dict[str, list[str]] = defaultdict(list)
+    offers = []
+    for scene, scene_name in SCENES.items():
+        rows = sorted((d for d in decks if not d.get("missing") and d["difficulty"] == scene),
+                      key=lambda d: d["topic"])
+        if not rows:
+            continue
+        folder = out / "scenes" / scene
+        folder.mkdir(parents=True)
+        offers.append((f"見本 · {scene_name}", folder))
+        for number, deck in enumerate(rows, 1):
+            path = root / deck["path"]
+            title = (deck["titles"][0] if deck["titles"] else "") or deck["topic"]
+            pages = sorted(path.glob("page-*.jpg"))
+            lines = []
+            for page in pages:
+                lines += [f"# {scene_name} · {title} · {page.stem[5:]}/{len(pages):02d} 頁",
+                          os.path.relpath(page, folder)]
+                text = page.with_suffix(".md")
+                if text.is_file():
+                    for form, words in form_of(text.read_text(encoding="utf-8", errors="replace")).items():
+                        by_form[form] += [f"# {scene_name} · {title} · {page.stem[5:]} 頁目",
+                                          f"# 拾った語: {words}", str(page)]
+            # ⚠ 番号を頭に付ける (= 題を縮めた名前だけだと、同じ書き出しの資料が上書きし合う)
+            name = f"{number:02d}-{slug(title)[:40]}.album"
+            (folder / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    forms = out / "forms"
+    forms.mkdir(parents=True)
+    for form in FORMS:
+        listed = by_form.get(form, [])
+        if listed:
+            lines = [line if line.startswith("#") else os.path.relpath(line, forms) for line in listed]
+            (forms / f"{form}.album").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    offers.append(("見本 · 頁の形", forms))
+    return offers
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--to", type=Path, default=DEFAULT, help=f"where to gather (default {DEFAULT})")
+    parser.add_argument("--no-fetch", action="store_true",
+                        help="rebuild the index and the albums from what is already gathered")
     args = parser.parse_args(argv)
     started = time.monotonic()
     root = args.to.expanduser()
     root.mkdir(parents=True, exist_ok=True)
-    print("slides-align: fetching the decks ranked first", flush=True)
-    decks = slides_align(root)
+    if args.no_fetch:
+        decks = json.loads((root / "slides-align" / "decks.json").read_text(encoding="utf-8"))
+    else:
+        print("slides-align: fetching the decks ranked first", flush=True)
+        decks = slides_align(root)
     index(root, decks)
+    offers = albums(root, decks)
     got = [d for d in decks if not d.get("missing")]
     failed = sum(len(d.get("failed", [])) for d in decks)
+    forms = {p.stem: len([line for line in p.read_text(encoding="utf-8").splitlines() if not line.startswith("#")])
+             for p in sorted((root / "albums" / "forms").glob("*.album"))}
     print(f"{len(got)} decks ({sum(d['pages'] for d in got)} pages), {len(decks) - len(got)} not offered, "
-          f"{failed} files that would not come; index at {root / 'INDEX.md'} "
-          f"in {time.monotonic() - started:.0f}s")
+          f"{failed} files that would not come; index at {root / 'INDEX.md'}")
+    print("forms (pages picked by their words): " + ", ".join(f"{k} {v}" for k, v in forms.items()))
+    print("to see them in the preview, add to ~/.config/pptx-agent-maker/preview.toml:\n")
+    for name, folder in offers:
+        print(f'[[folder]]\nname = "{name}"\npath = "{folder}"\n')
+    print(f"done in {time.monotonic() - started:.0f}s")
     return 0
 
 
