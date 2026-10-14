@@ -315,7 +315,7 @@ class TheTemplateBuildsTest(unittest.TestCase):
         """
         workspace = Workspace.load(self.root)
         build(workspace, Manifest.load(workspace.manifest("example")))
-        theirs = {"_README.md", "Taskfile.yml", "workspace.toml", "specimen.pptx",
+        theirs = {"_README.md", "Taskfile.yml", "workspace.toml", "specimen.pptx", "recipes.toml",
                   "example.toml", "example.pptx", "assets", ".claude"}
         self.assertEqual({p.name for p in self.root.iterdir()} - theirs,
                          {".pptx-agent-maker"},

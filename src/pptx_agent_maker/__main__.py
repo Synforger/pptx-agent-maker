@@ -217,6 +217,7 @@ def main(argv: list[str] | None = None) -> int:
     lifted.add_argument("path", help="the project folder")
     lifted.add_argument("template", help="the template folder (= specimen.pptx and its workspace.toml)")
     lifted.add_argument("--recipe", action="append", default=[], metavar="NAME")
+    lifted.add_argument("--part", action="append", default=[], metavar="NAME")
     lifted.add_argument("--page", action="append", default=[], metavar="DECK:PAGE")
     lifted.add_argument("--replace", action="append", default=[], metavar="OLD=NEW",
                         help="a project word and what stands in for it")
@@ -381,6 +382,13 @@ def main(argv: list[str] | None = None) -> int:
                 fixed = ", ".join(k for k in recipe if k != "type")
                 print(f"  {name:<12} type: {recipe['type']:<12} fixes: {fixed or '—'}"
                       f"{'  fill: ' + ', '.join(holes) if holes else ''}")
+            from .project.files.recipes import load_parts
+
+            parts = load_parts(workspace.root)
+            print(f"parts in this project ({len(parts)}; a compose cell writes part = \"<name>\" and fill):")
+            for name, part in parts.items():
+                holes = sorted(set(HOLE.findall(repr(part))))
+                print(f"  {name:<16} holds: {', '.join(part)}{'  fill: ' + ', '.join(holes) if holes else ''}")
             return 0
 
         if args.command == "round":
@@ -414,12 +422,14 @@ def main(argv: list[str] | None = None) -> int:
                 replace.append((old, new))
             try:
                 done = lift(workspace.root, args.template, recipes=args.recipe,
-                            pages=pages, replace=replace, keep=args.keep)
+                            pages=pages, replace=replace, keep=args.keep, parts=args.part)
             except LiftError as error:
                 print(f"error: {error}", file=sys.stderr)
                 return 1
             for name in done.recipes:
                 print(f"lifted recipe {name!r} into {args.template}/recipes.toml")
+            for name in done.parts:
+                print(f"lifted part {name!r} into {args.template}/recipes.toml")
             for position in done.pages:
                 print(f"lifted a page as specimen page {position} (pictures grey, alt text dropped)")
             for label, placed in done.words.items():

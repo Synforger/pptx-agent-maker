@@ -33,8 +33,9 @@ from pathlib import Path
 
 from ...deck.pages.text import STAND_IN, decide, stand_in
 from ..files.recipes import FILENAME as RECIPES
-from ..files.recipes import HEADER, recipe_block
+from ..files.recipes import HEADER, HOLE, recipe_block
 from ..files.recipes import load as load_recipes
+from ..files.recipes import load_parts
 
 #: 頁が持っていてよい関係 (= これ以外は、表やグラフの元データなどを連れてくる)
 PLAIN_RELS = ("slideLayout", "image", "notesSlide", "hyperlink")
@@ -49,6 +50,7 @@ class Lifted:
     """What went into the template, for the person to read over."""
 
     recipes: list[str] = field(default_factory=list)
+    parts: list[str] = field(default_factory=list)
     pages: list[int] = field(default_factory=list)
     #: 上げた物ごとに (元の文言, テンプレートに入った文言) の並び
     words: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
@@ -59,16 +61,16 @@ class Lifted:
 
 def lift(project: Path | str, template: Path | str, *, recipes: list[str] = (),
          pages: list[tuple[str, int]] = (), replace: list[tuple[str, str]] = (),
-         keep: list[str] = ()) -> Lifted:
-    """Lift recipes and built pages from `project` into the template folder `template`."""
+         keep: list[str] = (), parts: list[str] = ()) -> Lifted:
+    """Lift recipes, parts and built pages from `project` into the template folder `template`."""
     from ...deck import Deck
 
     project, template = Path(project), Path(template).expanduser()
     specimen = template / "specimen.pptx"
     if not specimen.is_file():
         raise LiftError(f"{template} holds no specimen.pptx — lift into a template folder")
-    if not recipes and not pages:
-        raise LiftError("nothing to lift: name a --recipe or a --page")
+    if not recipes and not pages and not parts:
+        raise LiftError("nothing to lift: name a --recipe, a --part or a --page")
     for old, new in replace:
         if not old or not new or old == new:
             raise LiftError(f"--replace {old!r}={new!r}: give the project's word and what stands in for it")
@@ -80,12 +82,25 @@ def lift(project: Path | str, template: Path | str, *, recipes: list[str] = (),
 
     # recipe (= 文言の中の語を置き換える。穴 `{method}` はそのまま残る)
     new_recipes = None
-    if recipes:
+    if recipes or parts:
         own, theirs = load_recipes(project), load_recipes(template)
         path = template / RECIPES
         text = path.read_text(encoding="utf-8") if path.is_file() else HEADER
         if not text.endswith("\n"):
             text += "\n"
+        # 部品 (= マスの recipe) も、頁の recipe と同じく文言の中の語を置き換えて上げる
+        own_parts, their_parts = load_parts(project), load_parts(template)
+        for name in parts:
+            if name not in own_parts:
+                raise LiftError(f"the project has no part named {name!r}")
+            if name in their_parts or name in result.parts:
+                raise LiftError(f"the template already has a part named {name!r}")
+            placed: list[tuple[str, str]] = []
+            shaped = {key: _decided(value, keep, replace, names, hits, placed, key)
+                      for key, value in own_parts[name].items()}
+            text += recipe_block(name, shaped, "parts")
+            result.parts.append(name)
+            result.words[f"part {name}"] = placed
         for name in recipes:
             if name not in own:
                 raise LiftError(f"the project has no recipe named {name!r}")
@@ -93,8 +108,7 @@ def lift(project: Path | str, template: Path | str, *, recipes: list[str] = (),
                 raise LiftError(f"the template already has a recipe named {name!r}")
             placed: list[tuple[str, str]] = []
             # 型の名前は文言ではない (= 仮の語にすると recipe が組めなくなる)
-            shaped = {key: value if key == "type" else
-                      _decided(value, keep, replace, names, hits, placed)
+            shaped = {key: _decided(value, keep, replace, names, hits, placed, key)
                       for key, value in own[name].items()}
             text += recipe_block(name, shaped)
             result.recipes.append(name)
@@ -148,10 +162,19 @@ def lift(project: Path | str, template: Path | str, *, recipes: list[str] = (),
     return result
 
 
-def _decided(value, keep, replace, names, hits, placed):
-    """A recipe's words under the same rule as a page's (= `decide`)."""
+#: 文言ではなく、決まった語から選ぶ値のキー (= 仮の語にすると、その recipe や部品が組めなくなる)
+CHOICES = frozenset({"type", "role", "tone", "kind", "direction", "numbers", "highlight_tone", "use"})
+
+
+def _decided(value, keep, replace, names, hits, placed, key: str = ""):
+    """A recipe's words under the same rule as a page's (= `decide`).
+
+    選ぶ値 (= `CHOICES`) と、穴だけの値 (= `{figure}`) はそのまま上がる ― どちらも案件の言葉を持たない。
+    """
+    if key in CHOICES:
+        return value
     if isinstance(value, str):
-        if not value.strip():
+        if not value.strip() or HOLE.fullmatch(value.strip()):
             return value
         new = decide(value, keep=keep, replace=replace, names=names, hits=hits)
         placed.append((value, new))
@@ -159,8 +182,8 @@ def _decided(value, keep, replace, names, hits, placed):
     if isinstance(value, list):
         return [_decided(item, keep, replace, names, hits, placed) for item in value]
     if isinstance(value, dict):
-        return {key: _decided(item, keep, replace, names, hits, placed)
-                for key, item in value.items()}
+        return {name: _decided(item, keep, replace, names, hits, placed, name)
+                for name, item in value.items()}
     return value
 
 

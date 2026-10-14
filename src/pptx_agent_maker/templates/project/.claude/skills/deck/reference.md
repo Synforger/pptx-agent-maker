@@ -198,7 +198,7 @@ bars = [ { from = 0, to = 2, text = "build" } ]
   `card` (= ノードと同じ 2 通りの書き方) / `figure` (+ `caption`) / `table` / `text` (= 本文の色と大きさの文章) /
   `points` / `chart` (= 下の「`chart` の書き方」のまま) / `voices` (= 下の「人の声」) / 並べ方 (= `ring` `tree`
   `overlap`、下の「並べ方」) / 型 (= `flow` `roadmap` `timeline` `figures` `figure_grid` `board` `agenda`)。
-  マスに `rows` を書けば入れ子になる
+  マスに `rows` を書けば入れ子になる。マスに `part` を書けば案件の部品を呼ぶ (= SKILL の「同じ形のマスは部品にする」)
 - **高さ** ― カード・表・文章・要点だけの段は**中身の言葉ぶんの高さ**で、同じ段のカードは一番高い物に揃う。
   絵や型の入った段と、段に `weight` を書いた段は、**残りの高さを `weight` の比で分け合う**。分け合う段に置いた
   カードや文章は自分の高さのまま上に寄る (= 段がそれより低ければ止まる。段の `weight` を増やすか、物を減らす)。

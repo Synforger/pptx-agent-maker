@@ -28,6 +28,7 @@ from pptx_agent_maker.__main__ import main  # noqa: E402
 from pptx_agent_maker.checks import run_all  # noqa: E402
 from pptx_agent_maker.checks.rules import untyped_parts  # noqa: E402
 from pptx_agent_maker.project import create  # noqa: E402
+from pptx_agent_maker.project.files.recipes import load_parts  # noqa: E402
 
 DATA = Path(__file__).resolve().parent / "data"
 
@@ -225,6 +226,23 @@ class Lifting(unittest.TestCase):
         self.assertEqual(recipe["recipes"]["result"]["type"], "figure", "the type name is not words")
         following = create(Path(self.tmp.name) / "next", specimen=self.template)
         self.assertTrue((following / "recipes.toml").is_file(), "init did not hand the recipes on")
+
+    def test_a_part_goes_up_with_its_words_replaced_and_its_choices_and_holes_kept(self) -> None:
+        (self.project / "recipes.toml").write_text(
+            RECIPES + '\n[parts.figure_of_hand]\nrows = [ { cells = [ { text = "{figure}", role = "display" } ] },'
+            ' { cells = [ { card = { heading = "手法 A の数", body = "{meaning}", tone = "accent" } } ] } ]\n',
+            encoding="utf-8")
+        code, said = self._lift("--part", "figure_of_hand", "--replace", "手法 A=<手法名>")
+        self.assertEqual(code, 0, said)
+        self.assertIn("lifted part 'figure_of_hand'", said)
+        part = tomllib.loads((self.template / "recipes.toml").read_text(encoding="utf-8"))["parts"]["figure_of_hand"]
+        (number,), (card,) = part["rows"][0]["cells"], part["rows"][1]["cells"]
+        self.assertEqual(number, {"text": "{figure}", "role": "display"}, "a hole and a role are not words")
+        self.assertEqual(card["card"]["tone"], "accent")
+        self.assertEqual(card["card"]["body"], "{meaning}")
+        self.assertIn("<手法名>", card["card"]["heading"])
+        following = create(Path(self.tmp.name) / "next", specimen=self.template)
+        self.assertIn("figure_of_hand", load_parts(following))
 
     def test_a_recipe_name_the_template_has_is_refused(self) -> None:
         self._lift("--recipe", "result", "--replace", "手法 A=<手法名>")

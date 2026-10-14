@@ -44,7 +44,7 @@ def create(destination: Path | str, *, name: str | None = None,
     if settings is not None:
         shutil.copy2(settings, destination / "workspace.toml")
     if recipes is not None and recipes.is_file():
-        shutil.copy2(recipes, destination / "recipes.toml")
+        (destination / "recipes.toml").write_text(_with_sample_parts(recipes), encoding="utf-8")
     if example is not None and example.is_file():
         shutil.copy2(example, destination / "example.toml")
 
@@ -87,3 +87,23 @@ def _a_deck(look: Path) -> Path:
     if not zipfile.is_zipfile(look):
         raise ValueError(f"{look} is not a .pptx (= it is not even a zip)")
     return look
+
+
+def _with_sample_parts(recipes: Path) -> str:
+    """The template's recipes, with the toolkit's sample parts it does not have added at the end.
+
+    ⚠ **見本の部品は、会社の雛形の recipe で消さない。**雛形の `recipes.toml` で道具の物を上書きしていた間は、
+    雛形から建てた案件にだけ見本の部品が無かった。雛形が同じ名前の部品を持っていれば、雛形の物が勝つ。
+    """
+    from ..files.recipes import load_parts, recipe_block
+
+    text = recipes.read_text(encoding="utf-8")
+    theirs = load_parts(recipes.parent)
+    samples = {name: part for name, part in load_parts(TEMPLATE).items() if name not in theirs}
+    if not samples:
+        return text
+    if not text.endswith("\n"):
+        text += "\n"
+    text += "\n# The toolkit's sample parts (= a cell kept once). Rewrite them, or drop the ones not used.\n"
+    return text + "".join(recipe_block(name, part, "parts") for name, part in samples.items())
+

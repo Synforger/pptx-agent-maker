@@ -110,6 +110,8 @@ class PromotingThroughTheCommandLine(unittest.TestCase):
             shutil.copy(DATA / name, self.root / "assets" / name)
         (self.root / "w1.toml").write_text(W1, encoding="utf-8")
         (self.root / "w2.toml").write_text(W2, encoding="utf-8")
+        # 新しい案件は見本の部品を持つ recipe の file で始まる (= 拒んだ promote はそれを書き換えない)
+        self.recipes_before = (self.root / "recipes.toml").read_text(encoding="utf-8")
 
     def tearDown(self) -> None:
         self.tmp.cleanup()
@@ -155,16 +157,16 @@ class PromotingThroughTheCommandLine(unittest.TestCase):
 
     def test_pages_of_different_types_are_not_one_shape(self) -> None:
         self.assertEqual(1, self._run("promote", str(self.root), "mixed", "w1:2", "w1:3"))
-        self.assertFalse((self.root / "recipes.toml").exists())
+        self.assertEqual((self.root / "recipes.toml").read_text(encoding="utf-8"), self.recipes_before)
         self.assertEqual(W1, (self.root / "w1.toml").read_text(encoding="utf-8"))
 
     def test_one_page_is_not_yet_a_shape(self) -> None:
         self.assertEqual(1, self._run("promote", str(self.root), "result", "w1:2"))
-        self.assertFalse((self.root / "recipes.toml").exists())
+        self.assertEqual((self.root / "recipes.toml").read_text(encoding="utf-8"), self.recipes_before)
 
     def test_a_copied_page_has_nothing_to_share(self) -> None:
         self.assertEqual(1, self._run("promote", str(self.root), "cover", "w1:1", "w2:1"))
-        self.assertFalse((self.root / "recipes.toml").exists())
+        self.assertEqual((self.root / "recipes.toml").read_text(encoding="utf-8"), self.recipes_before)
 
     def test_a_rewrite_that_would_change_a_page_writes_nothing(self) -> None:
         """⚠ 書き換えの検証が効いていることを、わざと壊した書き換えで確かめる。"""
@@ -172,7 +174,7 @@ class PromotingThroughTheCommandLine(unittest.TestCase):
             {k: v for k, v in page.items() if k != "conclusion"})
         with mock.patch.object(recipes, "page_block", side_effect=dropping):
             self.assertEqual(1, self._run("promote", str(self.root), "result", "w1:2", "w2:2"))
-        self.assertFalse((self.root / "recipes.toml").exists())
+        self.assertEqual((self.root / "recipes.toml").read_text(encoding="utf-8"), self.recipes_before)
         self.assertEqual(W1, (self.root / "w1.toml").read_text(encoding="utf-8"))
         self.assertEqual(W2, (self.root / "w2.toml").read_text(encoding="utf-8"))
 
@@ -187,3 +189,119 @@ class PromotingThroughTheCommandLine(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# -- parts (= one compose cell kept once) --------------------------------------
+
+from pptx_agent_maker.project.files.recipes import expand_parts, load_parts  # noqa: E402
+
+PARTS = {"big_number": {"rows": [{"cells": [{"text": "{figure}", "role": "display"}]},
+                                 {"cells": [{"text": "{meaning}"}]}]},
+         "loop": {"rows": [{"cells": [{"part": "loop"}]}]}}
+
+
+def _composed(*cells):
+    return {"type": "compose", "title": "t", "rows": [{"cells": list(cells)}]}
+
+
+class ExpandingAPart(unittest.TestCase):
+    """A cell naming a part becomes the cell the part writes, its holes filled."""
+
+    def test_the_cell_gives_only_what_changes_and_keeps_where_it_stands(self) -> None:
+        page = _composed({"part": "big_number", "fill": {"figure": "98%", "meaning": "own a phone"},
+                          "weight": 2, "id": "n"})
+        (cell,) = expand_parts("p", page, PARTS)["rows"][0]["cells"]
+        self.assertEqual(cell, {"rows": [{"cells": [{"text": "98%", "role": "display"}]},
+                                         {"cells": [{"text": "own a phone"}]}], "weight": 2, "id": "n"})
+
+    def test_cells_inside_rows_are_written_out_too(self) -> None:
+        page = _composed({"rows": [{"cells": [{"part": "big_number", "fill": {"figure": "1", "meaning": "m"}}]}]})
+        inner = expand_parts("p", page, PARTS)["rows"][0]["cells"][0]["rows"][0]["cells"][0]
+        self.assertIn("rows", inner)
+        self.assertNotIn("part", inner)
+
+    def test_a_cell_cannot_change_what_its_part_fixes(self) -> None:
+        with self.assertRaises(RecipeError) as raised:
+            expand_parts("p", _composed({"part": "big_number", "fill": {"figure": "1", "meaning": "m"},
+                                         "rows": []}), PARTS)
+        self.assertIn("already fixes rows", str(raised.exception))
+
+    def test_a_hole_left_open_a_fill_nobody_uses_and_an_unknown_part_are_refused(self) -> None:
+        with self.assertRaises(RecipeError) as open_hole:
+            expand_parts("p", _composed({"part": "big_number", "fill": {"figure": "1"}}), PARTS)
+        self.assertIn("{meaning}", str(open_hole.exception))
+        with self.assertRaises(RecipeError) as unused:
+            expand_parts("p", _composed({"part": "big_number", "fill": {"figure": "1", "meaning": "m", "x": "y"}}),
+                         PARTS)
+        self.assertIn("names x", str(unused.exception))
+        with self.assertRaises(RecipeError) as unknown:
+            expand_parts("p", _composed({"part": "nope"}), PARTS)
+        self.assertIn("big_number", str(unknown.exception))
+        with self.assertRaises(RecipeError) as stray:
+            expand_parts("p", _composed({"text": "x", "fill": {"a": "b"}}), PARTS)
+        self.assertIn("`fill` belongs to a cell that names a `part`", str(stray.exception))
+
+    def test_a_part_that_calls_itself_is_refused(self) -> None:
+        with self.assertRaises(RecipeError) as raised:
+            expand_parts("p", _composed({"part": "loop"}), PARTS)
+        self.assertIn("calling itself", str(raised.exception))
+
+    def test_a_part_carrying_where_its_cell_stands_is_refused_when_the_file_is_read(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "recipes.toml").write_text('[parts.wide]\ntext = "x"\nweight = 2\n', encoding="utf-8")
+            with self.assertRaises(RecipeError) as raised:
+                load_parts(tmp)
+        self.assertIn("carries weight", str(raised.exception))
+
+
+class TheSampleParts(unittest.TestCase):
+    """Every part a new project is handed builds, with its holes filled, and the checks find nothing."""
+
+    def test_each_sample_part_builds_on_a_page_of_its_own(self) -> None:
+        from pptx_agent_maker import checks
+        from pptx_agent_maker.layout import types
+        from pptx_agent_maker.project.commands.scaffold import TEMPLATE
+        from pptx_agent_maker.project.files.recipes import HOLE
+        from pptx_agent_maker.write import add_page, aspect, new_deck, save
+
+        parts = load_parts(TEMPLATE)
+        self.assertEqual(len(parts), 9)
+        deck = new_deck()
+        for name, part in parts.items():
+            with self.subTest(name):
+                holes = sorted(set(HOLE.findall(repr(part))))
+                fill = {hole: ("dot.png" if hole in ("picture", "map") else f"Words for {hole}") for hole in holes}
+                cell = {"part": name, "fill": fill}
+                if name in ("named_picture", "map"):
+                    cell["marks"] = [{"at": [0.3, 0.4], "text": "Here"}]
+                page = expand_parts(name, _composed(cell), parts)
+                add_page(deck, types.build(page, lambda asset: DATA / asset, aspect).build())
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual([], checks.run_all(save(deck, Path(tmp) / "parts.pptx")))
+
+    def test_a_project_built_from_a_template_with_recipes_keeps_the_samples_it_lacks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            seed = create(Path(tmp) / "seed")
+            template = Path(tmp) / "template"
+            template.mkdir()
+            for name in ("specimen.pptx", "workspace.toml"):
+                shutil.copy(seed / name, template / name)
+            (template / "recipes.toml").write_text(
+                '[recipes.result]\ntype = "figure"\ntitle = "x"\n\n[parts.quote]\ntext = "the company\'s own"\n',
+                encoding="utf-8")
+            project = create(Path(tmp) / "project", specimen=template)
+            parts = load_parts(project)
+            self.assertEqual(parts["quote"], {"text": "the company's own"}, "the template's part wins")
+            self.assertIn("big_number", parts, "a sample the template lacks is added")
+            self.assertIn("result", recipes.load(project))
+
+    def test_a_manifest_page_with_a_part_builds_through_the_command_line(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = create(Path(tmp) / "p")
+            (project / "w1.toml").write_text(
+                'specimen = "specimen.pptx"\nout = "w1.pptx"\n\n[[pages]]\nkind = "declare"\ntype = "compose"\n'
+                'title = "One in four"\n\n[[pages.rows]]\n[[pages.rows.cells]]\npart = "big_number"\n'
+                'fill = { figure = "25%", meaning = "of the work is waiting" }\n', encoding="utf-8")
+            entries = Manifest.load(project / "w1.toml").entries
+        (cell,) = entries[0].data["rows"][0]["cells"]
+        self.assertEqual(cell["rows"][0]["cells"][0], {"text": "25%", "role": "display"})

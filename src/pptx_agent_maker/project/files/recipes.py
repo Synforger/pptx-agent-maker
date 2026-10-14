@@ -25,6 +25,23 @@
 週ごとに少しずつ違う形になる (= recipe を作った意味が消える)。違う形が要るなら recipe を
 直すか、別の recipe を上げる。
 
+**部品 (= `[parts.<名前>]`) は、`compose` の 1 マスの recipe。**頁の recipe と同じ決まりで、マスは部品が
+決めたキーを書き換えられず、穴は `fill` で埋める。マスが自分で持つのは置き方 (= `weight` と `id`) と、部品が
+決めていないキーだけ:
+
+    # recipes.toml
+    [parts.big_number]
+    rows = [ { cells = [ { text = "{figure}", role = "display" } ] },
+             { cells = [ { text = "{meaning}" } ] } ]
+
+    # w3.toml (= compose の頁のマス)
+    [[pages.rows.cells]]
+    part = "big_number"
+    fill = { figure = "98%", meaning = "15 歳の 98% がスマートフォンを持つ" }
+
+足りない形に当たったら、道具を直すのではなく、案件の部品を 1 つ書く。2 つの案件で同じ部品が出たら
+`lift --part` で会社の雛形へ上げる。
+
 上げるのは `promote` 1 回 ― 同じ形の頁を 2 か所以上指すと、全部で同じ値のキーが recipe に
 なり、違うキーだけが各頁に残り、**元の頁は recipe を呼ぶ形に書き換わる**。前の世代は
 この書き換えが人の手だったので、上げた後も古いコピーが残り続けた。
@@ -40,6 +57,10 @@ FILENAME = "recipes.toml"
 
 #: 頁の運び方に属するキー (= recipe には入れない)
 CARRIAGE = frozenset({"kind", "page", "deck", "replace", "why", "recipe", "fill"})
+#: マスの置き方と、部品の呼び方に属するキー (= 部品には入れない)
+CELL_CARRIAGE = frozenset({"part", "fill", "weight", "id"})
+#: 部品が部品を呼べる深さ (= 自分を呼ぶ部品で止まらなくなるのを防ぐ)
+PART_DEPTH = 4
 #: 文言の中の穴 (= `{method}`)
 HOLE = re.compile(r"\{(\w+)\}")
 #: TOML の表の見出し行 (= `[[pages]]` / `[recipes.result]` / `[theme]`)
@@ -57,9 +78,9 @@ def load(root: Path | str) -> dict[str, dict]:
         return {}
     with path.open("rb") as handle:
         data = tomllib.load(handle)
-    unknown = sorted(set(data) - {"recipes"})
+    unknown = sorted(set(data) - {"recipes", "parts"})
     if unknown:
-        raise RecipeError(f"{FILENAME}: only [recipes.<name>] tables belong here, not {unknown}")
+        raise RecipeError(f"{FILENAME}: only [recipes.<name>] and [parts.<name>] tables belong here, not {unknown}")
     recipes = data.get("recipes", {})
     for name, recipe in recipes.items():
         if not recipe.get("type"):
@@ -71,6 +92,77 @@ def load(root: Path | str) -> dict[str, dict]:
                 "to the page that calls it, not to the page's shape"
             )
     return recipes
+
+
+def load_parts(root: Path | str) -> dict[str, dict]:
+    """Every part the project has, by name (= a compose cell kept once)."""
+    path = Path(root) / FILENAME
+    if not path.is_file():
+        return {}
+    with path.open("rb") as handle:
+        parts = tomllib.load(handle).get("parts", {})
+    for name, part in parts.items():
+        carried = sorted(set(part) & CELL_CARRIAGE)
+        if carried:
+            raise RecipeError(
+                f"{FILENAME}: part {name!r} carries {', '.join(carried)} — those belong to the cell that "
+                "places it, not to the part")
+        if not part:
+            raise RecipeError(f"{FILENAME}: part {name!r} is empty — a part is what one cell holds")
+    return parts
+
+
+def expand_parts(where: str, page: dict, parts: dict[str, dict]) -> dict:
+    """The page with every cell that names a part written out (= rows inside cells too)."""
+    if "rows" not in page:
+        return page
+    return {**page, "rows": _rows(where, page["rows"], parts, ())}
+
+
+def _rows(where: str, rows, parts: dict[str, dict], calling: tuple[str, ...]):
+    if not isinstance(rows, list):
+        return rows
+    out = []
+    for number, row in enumerate(rows, start=1):
+        if not isinstance(row, dict) or not isinstance(row.get("cells"), list):
+            out.append(row)
+            continue
+        cells = [_cell(f"{where}, row {number}, cell {index}", cell, parts, calling)
+                 for index, cell in enumerate(row["cells"], start=1)]
+        out.append({**row, "cells": cells})
+    return out
+
+
+def _cell(where: str, cell, parts: dict[str, dict], calling: tuple[str, ...]):
+    if not isinstance(cell, dict):
+        return cell
+    if "fill" in cell and "part" not in cell:
+        raise RecipeError(f"{where}: `fill` belongs to a cell that names a `part`")
+    if "part" not in cell:
+        return {**cell, "rows": _rows(where, cell["rows"], parts, calling)} if "rows" in cell else cell
+    name = str(cell["part"])
+    if name not in parts:
+        known = ", ".join(sorted(parts)) or "none — the project's recipes.toml has no [parts.<name>] yet"
+        raise RecipeError(f"{where}: no part named {name!r} (= the project has: {known})")
+    if name in calling or len(calling) >= PART_DEPTH:
+        raise RecipeError(f"{where}: part {name!r} ends up calling itself ({' → '.join(calling + (name,))})")
+    part = parts[name]
+    own = {key: value for key, value in cell.items() if key not in {"part", "fill"}}
+    clash = sorted(set(own) & set(part))
+    if clash:
+        raise RecipeError(
+            f"{where}: part {name!r} already fixes {', '.join(clash)}. A cell that changes what its part "
+            "fixes drifts from the others; change the part, or write another one")
+    fill = {str(k): str(v) for k, v in (cell.get("fill") or {}).items()}
+    used: set[str] = set()
+    filled = {key: _fill(value, fill, used, f"{where}: part {name!r}, {key}") for key, value in part.items()}
+    unused = sorted(set(fill) - used)
+    if unused:
+        raise RecipeError(f"{where}: `fill` names {', '.join(unused)}, which part {name!r} has no hole for")
+    written = {**filled, **own}
+    if "rows" in written:
+        written["rows"] = _rows(where, written["rows"], parts, calling + (name,))
+    return written
 
 
 def expand(where: str, page: dict, recipes: dict[str, dict]) -> dict:
@@ -167,9 +259,9 @@ def append_recipe(root: Path | str, name: str, recipe: dict) -> str:
     return text + recipe_block(name, recipe)
 
 
-def recipe_block(name: str, recipe: dict) -> str:
-    """One `[recipes.<name>]` table, as it is written into the file."""
-    lines = [f"\n[recipes.{name}]"] + [f"{toml_key(k)} = {dump(v)}" for k, v in recipe.items()]
+def recipe_block(name: str, recipe: dict, table: str = "recipes") -> str:
+    """One `[recipes.<name>]` table (= or `[parts.<name>]`), as it is written into the file."""
+    lines = [f"\n[{table}.{name}]"] + [f"{toml_key(k)} = {dump(v)}" for k, v in recipe.items()]
     return "\n".join(lines) + "\n"
 
 
