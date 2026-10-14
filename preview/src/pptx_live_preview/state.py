@@ -17,7 +17,8 @@ from tempfile import TemporaryDirectory
 
 from . import notes as notes_mod
 from .cache import DeckCache, cache_root, deck_key, digest
-from .render import DEFAULT_DPI, RENDERER, THUMB_DPI, ProfilePool, RenderError, rasterize, to_pdf
+from .render import (ALBUM, DEFAULT_DPI, RENDERER, THUMB_DPI, ProfilePool, RenderError, album_pages,
+                     rasterize, read_album, to_pdf)
 
 # 同時に走らせる soffice の数。変換は 1 本あたり CPU 1 コアと数百 MB を使うので、
 # デッキ数ぶん無制限に起動するとフォルダが育ったときにマシンごと詰まる。
@@ -47,7 +48,20 @@ class DeckState:
         # 前回の実行が焼いた絵はキャッシュに残っている。起動直後から見えるように
         # ここで拾っておく (= 再起動のたびに全頁を焼き直して待つ、が消える)。
         if self.cache.current is not None:
-            self.notes = notes_mod.extract(pptx)
+            self.notes = self._notes()
+
+    @property
+    def is_album(self) -> bool:
+        return self.pptx.suffix == ALBUM
+
+    def _notes(self) -> list[str]:
+        """The notes under each page: the speaker notes of a deck, the notes an album writes."""
+        if self.is_album:
+            try:
+                return [note for _, note in read_album(self.pptx)]
+            except OSError:
+                return []
+        return notes_mod.extract(self.pptx)
 
     @property
     def slides(self) -> int:
@@ -105,13 +119,16 @@ class DeckState:
         with TemporaryDirectory(prefix="pptx-live-work-") as tmp:
             work = Path(tmp)
             try:
-                with PROFILES.lease() as profile:
-                    pdf = to_pdf(self.pptx, work, profile)
-                raster = rasterize(pdf, work, self.dpi)
+                if self.is_album:
+                    raster = album_pages(self.pptx, work)
+                else:
+                    with PROFILES.lease() as profile:
+                        pdf = to_pdf(self.pptx, work, profile)
+                    raster = rasterize(pdf, work, self.dpi)
             except RenderError as exc:
                 return self._fail(str(exc))
             self.cache.adopt(source, raster.pages, raster.thumbs)
-        self.notes = notes_mod.extract(self.pptx)
+        self.notes = self._notes()
         self.error = None
         return True
 
@@ -181,7 +198,7 @@ class DeckSet:
         if not self.is_folder:
             return [self.source] if self.source.exists() else []
         return sorted(
-            p for p in self.source.glob("*.pptx")
+            p for pattern in ("*.pptx", f"*{ALBUM}") for p in self.source.glob(pattern)
             if not p.name.startswith("~$")  # PowerPoint lock file
             and p.stem not in self.skip
         )
