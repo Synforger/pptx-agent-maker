@@ -22,6 +22,10 @@
 
 案件はそれぞれのテンプレートを一覧から外す。一覧は画面が取りに来るたびに探し直すので、
 新しく `init` した案件は再起動なしで欄に出る。
+
+⚠ **読めない案件も欄から消さない。**`workspace.toml` が読めない案件を黙って飛ばしていた間は、
+画面を見る人には「デッキが消えた」としか見えなかった (= 常駐が古い道具のまま走っていて、新しい
+欄を書いた案件を読めなかった実例が在る)。欄に残してデッキも見せ、読めなかった理由を添える。
 """
 
 from __future__ import annotations
@@ -29,14 +33,28 @@ from __future__ import annotations
 import hashlib
 import tomllib
 from pathlib import Path
+from typing import NamedTuple
 
 DEFAULT = Path.home() / ".config" / "pptx-agent-maker" / "preview.toml"
 #: 探す時に下りない folder (= 控え・ツールの状態)
 NOT_PROJECTS = {"_archive", "_edits", ".pptx-agent-maker", "node_modules"}
 
 
+#: 案件の設定が読めない時に一覧から外す名前 (= `init` が必ず置くテンプレート)
+TEMPLATE = "specimen"
+
+
 class PlacesError(ValueError):
     """The places file cannot be read as places."""
+
+
+class Offer(NamedTuple):
+    """One thing the preview offers: its folder, the decks left out, and why it was not read."""
+
+    folder: Path
+    skip: list[str]
+    #: 案件の設定が読めなかった理由 (= 読めた物と案件でない folder は None)
+    problem: str | None = None
 
 
 def load(path: Path | str = DEFAULT) -> dict:
@@ -76,13 +94,14 @@ def projects_under(parent: Path, depth: int = 3) -> list[Path]:
     return sorted(found)
 
 
-def discover(places: dict, skip_of) -> dict[str, tuple[Path, list[str]]]:
-    """Name → (folder, names to leave out) for everything the places file offers.
+def discover(places: dict, skip_of) -> dict[str, Offer]:
+    """Name → what is offered under it, for everything the places file offers.
 
     `skip_of(folder)` は案件のテンプレートの名前を返す (= 案件でない folder には呼ばない)。
-    読めない案件は黙って飛ばす (= 画面が 2 秒ごとに探し直すので、ここで騒ぐと log が埋まる)。
+    読めない案件は、いつものテンプレートの名前だけを外して残し、読めなかった理由を持たせる
+    (= log には書かない。画面が 2 秒ごとに探し直すので、log が埋まる)。
     """
-    found: dict[str, tuple[Path, list[str]]] = {}
+    found: dict[str, Offer] = {}
     labels = {str(Path(k).expanduser().resolve()): str(v)
               for k, v in (places.get("labels") or {}).items()}
     for entry in places.get("search", []):
@@ -94,13 +113,13 @@ def discover(places: dict, skip_of) -> dict[str, tuple[Path, list[str]]]:
             if name in found:
                 name = f"{name} ({unnamed(folder).split()[-1]})"
             try:
-                found[name] = (folder, sorted(skip_of(folder)))
-            except Exception:  # noqa: BLE001 - 壊れた案件 1 つで一覧を止めない
-                continue
+                found[name] = Offer(folder, sorted(skip_of(folder)))
+            except Exception as error:  # noqa: BLE001 - 壊れた案件 1 つで一覧を止めない
+                found[name] = Offer(folder, [TEMPLATE], f"could not read the project: {error}")
     for entry in places.get("folder", []):
         folder = Path(entry["path"]).expanduser()
         if folder.is_dir():
-            found[str(entry["name"])] = (folder, [])
+            found[str(entry["name"])] = Offer(folder, [])
     return found
 
 

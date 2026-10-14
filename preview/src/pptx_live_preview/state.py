@@ -168,6 +168,8 @@ class DeckSet:
         self.dpi = dpi
         #: 見張らない stem (= 焼いた成果ではない pptx が folder に在る場合)
         self.skip = frozenset(skip)
+        #: この案件を読めなかった理由 (= 画面の帯に出す。読めている間は None)
+        self.problem: str | None = None
         self.lock = threading.Lock()
         self.cond = threading.Condition(self.lock)
         self.decks: dict[str, DeckState] = {}
@@ -212,6 +214,15 @@ class DeckSet:
         if deck.rerender_if_stale(force=force, rebuild=rebuild):
             with self.lock:
                 self._bump_locked()
+
+    def set_problem(self, problem: str | None, skip: Iterable[str]) -> None:
+        """Say why the project could not be read (None once it can), and what to leave out."""
+        with self.lock:
+            if problem == self.problem and frozenset(skip) == self.skip:
+                return
+            self.problem = problem
+            self.skip = frozenset(skip)
+            self._bump_locked()  # 帯の出し入れも画面への変化として届ける
 
     def deck_names(self) -> list[str]:
         with self.lock:
@@ -352,14 +363,25 @@ class Switchboard:
         self._rediscover()
         return sorted(self._projects)
 
+    def problems(self) -> dict[str, str]:
+        """Name → why it could not be read, for the projects that could not be."""
+        return {name: decks.problem for name, decks in sorted(self._projects.items())
+                if decks.problem}
+
     def _rediscover(self) -> None:
         if self._discover is None or time.monotonic() - self._looked < self.REDISCOVER_SECONDS:
             return
         self._looked = time.monotonic()
         found = self._discover()
-        for name, (folder, skip) in found.items():
-            if name not in self._projects:
-                self._projects[name] = DeckSet(Path(folder), self._dpi, skip=skip)
+        for name, offer in found.items():
+            folder, skip, *rest = offer
+            problem = rest[0] if rest else None
+            decks = self._projects.get(name)
+            if decks is None:
+                decks = self._projects[name] = DeckSet(Path(folder), self._dpi, skip=skip)
+            # ⚠ **読めなかった案件が読めるようになったら、帯を消して外す名前も戻す** (= 欄に
+            # 残したまま理由を出すので、直った後も同じ DeckSet が使われ続ける)
+            decks.set_problem(problem, skip)
         for name in list(self._projects):
             if name not in found and name != self._name:  # 今見ている物は外さない
                 del self._projects[name]

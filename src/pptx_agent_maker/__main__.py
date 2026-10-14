@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
+import time
 from pathlib import Path
 
 from .project import Workspace, WorkspaceError, create
@@ -29,27 +31,57 @@ def _skip_of(folder: Path) -> set[str]:
     return _specimens(Workspace.load(folder))
 
 
+def _fingerprint() -> str:
+    """The toolkit's own source as it stands on disk (= moves when the checkout moves)."""
+    package = Path(__file__).resolve().parent
+    seen = hashlib.sha1()
+    for path in sorted(package.rglob("*.py")):
+        stat = path.stat()
+        seen.update(f"{path.relative_to(package)}:{stat.st_mtime_ns}:{stat.st_size}\n".encode())
+    return seen.hexdigest()
+
+
+def _offers(places: dict, started: str, since: str):
+    """What the places file offers, each unreadable project told whether a restart would help.
+
+    ⚠ **常駐は起動した時の道具のまま走り続ける。**repo から入れた道具は、checkout が進んでも
+    走っている process の中身は変わらない。新しい欄を書いた案件はその道具で読めず、画面には
+    理由だけが出る ― 道具の file が起動の後に変わっていれば、それも理由に添える。
+    """
+    from .project.files.places import discover
+
+    found = discover(places, _skip_of)
+    if any(offer.problem for offer in found.values()) and _fingerprint() != started:
+        note = (f" — this preview still runs the toolkit as it was at {since}, and the toolkit "
+                "has changed since; restart the preview to read the project with the current one")
+        found = {name: offer._replace(problem=offer.problem + note) if offer.problem else offer
+                 for name, offer in found.items()}
+    return found
+
+
 def _preview_places(places: dict, port: int, no_open: bool) -> int:
     """Everything a places file offers behind one page, one of them looked at.
 
     1 案件の起動と同じ画面を使い、上の欄で選ぶ。描くのは選んだ物だけ。一覧は画面が
     取りに来るたびに探し直す (= 常駐のまま、新しい案件が欄に出る)。
     """
-    from .project.files.places import discover
-
     try:
         entry, state = _preview_package()
     except ImportError as error:  # pragma: no cover - depends on the environment
         print(f"error: the live preview is not available ({error})", file=sys.stderr)
         return 1
-    found = discover(places, _skip_of)
+    started, since = _fingerprint(), time.strftime("%Y-%m-%d %H:%M")
+    found = _offers(places, started, since)
     if not found:
         print("error: nothing to show — no deck project and no folder the places name exists",
               file=sys.stderr)
         return 1
     print(f"{len(found)} to choose from: {', '.join(sorted(found))}")
-    first = {name: state.DeckSet(folder, skip=skip) for name, (folder, skip) in found.items()}
-    board = state.Switchboard(first, discover=lambda: discover(places, _skip_of))
+    first = {}
+    for name, offer in found.items():
+        first[name] = state.DeckSet(offer.folder, skip=offer.skip)
+        first[name].set_problem(offer.problem, offer.skip)
+    board = state.Switchboard(first, discover=lambda: _offers(places, started, since))
     return entry.serve(board, port, no_open)
 
 

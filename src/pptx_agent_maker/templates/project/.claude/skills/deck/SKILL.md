@@ -27,13 +27,26 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
    (`copy` / `import` / `declare`) と、案件の recipe を呼ぶ `recipe`
 4. **組む** ― `task build -- w1` (= 組んで検査まで)。組めたら `task titles -- w1` で題だけを順に読み、
    話が通るかを見る
-5. **焼いて見る** ― `task preview`、または pptx を画像にして 1 枚ずつ見る。
+5. **焼いて見る** ― pptx を画像にして 1 枚ずつ見る。
    ⚠ **検査が通っても、読みやすさは座標に出ない。**目で見るまで終わりでない
-6. **人が PowerPoint で直したら取り込む** ― `task review -- w1.pptx --apply`。**取り込みはエージェントの
+6. **人が見ている画面に、組んだ版が出たかを確かめる** ― 人はデッキを、機械に常駐しているプレビュー
+   (= `pptx-agent-maker preview` を OS の service で走らせた物) で見る。⚠ **自分で焼いた絵を見て
+   済ませない。**その画面の欄にこの案件が出ていて、組んだ版が映っていることまで確かめる:
+
+   ```bash
+   curl -s localhost:<port>/api/projects           # 欄の名前。読めない案件は problems に理由が付く
+   curl -s 'localhost:<port>/api/decks?p=<名前>'    # 各デッキの last_rendered_at が build より後か
+   ```
+
+   `<port>` は常駐の service 定義が渡している `--port` (= macOS なら `launchctl list` で名前を引き、
+   その plist を読む)。欄に無い・名前に ⚠ が付いている時は `problems` の理由を読む ―
+   「restart the preview」と出ていれば、常駐が起動した時の古い道具のまま走っていて、この案件の
+   `workspace.toml` を読めない。常駐を起動し直す。常駐の無い機械では `task preview` で開いて見せる
+7. **人が PowerPoint で直したら取り込む** ― `task review -- w1.pptx --apply`。**取り込みはエージェントの
    仕事で、人に残さない。**文言は宣言か `replace` へ、絵は `assets/` と `pictures` へ、それ以外
    (= 位置・大きさ・書式・新しい場所の文字・足した頁) はその頁を人が直した版からの `import` にする。
    焼き直して直した版と同じに読めることを確かめてから書く (= 違えば何も書かずに止まる)
-7. **同じ形を 2 回書いたら上げる** ― `task promote -- <名前> w1:5 w2:7`。
+8. **同じ形を 2 回書いたら上げる** ― `task promote -- <名前> w1:5 w2:7`。
    ⚠ **3 回目を複製で書かない。**前の世代は上げずに複製し続け、同じ頁の手書きが溜まった
 
 ## 同じ形の頁は recipe にする
