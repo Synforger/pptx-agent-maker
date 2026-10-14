@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..base.geometry import Rect, cm
-from ..base.tokens import DEFAULT, Theme
+from ..base.tokens import DEFAULT, MONO_FACE, Theme
 from .elements import Bar, Chart, Diamond, Element, Figure, Fill, Mark, Shade, Table, Text
 from .look import LIGHT, Look, Style, TONES
 
@@ -460,6 +460,35 @@ class Page:
         """Words that are part of what the page says: the body's colour, at the body's size."""
         t, p = self.theme.type, self.theme.palette
         self.elements.append(Text("text", rect, text, t.body, p.ink))
+
+    def display(self, rect: Rect, text: str) -> None:
+        """The figure the page is about, set very large (= `Type.display`): bold, in the accent."""
+        t, p = self.theme.type, self.theme.palette
+        self.elements.append(Text("display", rect, text, t.display, p.accent, bold=True))
+
+    def code_height(self, width: int, text: str) -> int:
+        """How tall a block of code stands: its lines as written, with the room of a box round them.
+
+        ⚠ **折らない。**コードとコマンドは、行の途中で折ると別の意味になる (= 字下げも桁も崩れる)。
+        いちばん長い行が枠に入らなければ止まる (= 行を短くするか、マスを広げる)。
+        """
+        s, t = self.theme.spacing, self.theme.type
+        lines = str(text).split("\n")
+        widest = max(self.theme.width(line, t.body, family=MONO_FACE) for line in lines)
+        room = width - 2 * (s.pad + s.text_inset)
+        if widest > room:
+            raise PageFullError(
+                f"a line of code runs {widest} EMU and the box holds {room} — lines of code are not "
+                "broken; shorten the line, or give the cell more width")
+        return len(lines) * self.theme.line_height(t.body) + 2 * s.pad
+
+    def code(self, rect: Rect, text: str) -> None:
+        """Lines of code, a command or an equation: monospaced, as written, on a light ground with its edge."""
+        s, t = self.theme.spacing, self.theme.type
+        fill, ink, edge = self.ground("band")
+        self.elements.append(Fill("code_box", rect, fill, edge))
+        self.elements.append(Text("code", rect.inset(left=s.pad, right=s.pad, top=s.pad, bottom=s.pad),
+                                  str(text), t.body, ink, family=MONO_FACE))
 
     def note(self, rect: Rect, text: str) -> None:
         """One or two lines telling the reader how to read what is above."""

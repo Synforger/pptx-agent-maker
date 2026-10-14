@@ -37,6 +37,9 @@ from .chart import place_chart
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
 PARTS = ("card", "figure", "table", "text", "points", "chart", "voices")
+#: 文章の役 (= `role`)。書かなければ本文の色と大きさ。`display` = 頁の主役の数字を特大で、`mono` = コード・
+#: コマンド・数式の行を等幅で、折らずに薄い地の枠に
+ROLES = ("display", "mono")
 #: 声 1 つが読むキー
 VOICE_KEYS = ("text", "who", "tone")
 #: マスに丸ごと入れられる型 (= その型の書き方のまま)。`cards` はマスごとの `card` で、
@@ -84,7 +87,7 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
         if not isinstance(cells, list) or not cells:
             raise PageTypeError(f"{what} has no cells — write [[…cells]] under it, one per part")
         for index, cell in enumerate(cells, start=1):
-            only_keys(cell, {"weight", "rows", "caption", *PARTS, *BODIES}, f"{what}, cell {index}")
+            only_keys(cell, {"weight", "rows", "caption", "role", *PARTS, *BODIES}, f"{what}, cell {index}")
         weights = [_weight(cell, f"{what}, cell {index}") for index, cell in enumerate(cells, start=1)]
         columns = Rect(0, 0, width, 1).columns(weights, gap=gap)
         measured = [(cell, column, _natural(page, spec, cell, column.width, f"{what}, cell {index}"))
@@ -114,6 +117,11 @@ def _part(cell: dict, what: str) -> str:
             f"{what} holds {', '.join(named)} — one part per cell; put the others in cells beside it")
     if "caption" in cell and named[0] != "figure":
         raise PageTypeError(f"{what}: `caption` belongs to a figure, and this cell holds {named[0]}")
+    if "role" in cell:
+        if named[0] != "text":
+            raise PageTypeError(f"{what}: `role` belongs to a text, and this cell holds {named[0]}")
+        if cell["role"] not in ROLES:
+            raise PageTypeError(f"{what}: `role` is one of {', '.join(ROLES)}, not {cell['role']!r}")
     return named[0]
 
 
@@ -126,8 +134,14 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
     if part == "table":
         rows = _table(cell, what)
         return theme.table_height(rows, theme.column_widths(rows, width))
+    if part == "text" and cell.get("role") == "mono":
+        try:
+            return page.code_height(width, str(cell["text"]))
+        except PageFullError as reason:
+            raise PageFullError(f"{what}: {reason}") from reason
     if part == "text":
-        return theme.wrapped_height(str(cell["text"]), max(width - 2 * s.text_inset, 1))
+        size, bold = (theme.type.display, True) if cell.get("role") == "display" else (None, False)
+        return theme.wrapped_height(str(cell["text"]), max(width - 2 * s.text_inset, 1), size, bold=bold)
     if part == "points":
         return page.points_height(width, _points(cell, what))
     if part == "voices":
@@ -161,6 +175,10 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             page.boxes(rect if own_row else fitted, [_the_card(spec, cell, what)])
         elif part == "table":
             page.table(fitted, _table(cell, what))
+        elif part == "text" and cell.get("role") == "display":
+            page.display(fitted, str(cell["text"]))
+        elif part == "text" and cell.get("role") == "mono":
+            page.code(fitted, str(cell["text"]))
         elif part == "text":
             page.text(fitted, str(cell["text"]))
         elif part == "points":

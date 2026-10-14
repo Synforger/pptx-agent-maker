@@ -379,3 +379,67 @@ class Voices(unittest.TestCase):
         self.assertLess(int(adjusted["adj1"]), 0, "the tail leans to the left")
         self.assertGreater(int(adjusted["adj2"]), 50000, "the tail reaches below the bubble")
         self.assertIn("「分かりやすかった」", xml)
+
+
+class Roles(unittest.TestCase):
+    """文章の役 (= `role`): 頁の主役の数字を特大で、コードと数式の行を等幅で、折らずに。"""
+
+    CODE = "def area(r):\n    return 3.14 * r * r"
+
+    def test_a_display_text_is_twice_the_title_bold_in_the_accent(self):
+        (shown,) = kinds(compose([row({"text": "2.4x", "role": "display"}), row({"text": "faster"})]), "display")
+        self.assertEqual(shown.size, DEFAULT.type.title * 2)
+        self.assertTrue(shown.bold)
+        self.assertEqual(shown.colour, DEFAULT.palette.accent)
+
+    def test_a_display_text_takes_the_height_of_its_own_large_lines(self):
+        page = compose([row({"text": "2.4x", "role": "display"})])
+        (shown,) = kinds(page, "display")
+        self.assertEqual(shown.rect.height, DEFAULT.line_height(DEFAULT.type.display))
+
+    def test_code_is_monospaced_as_written_on_a_light_ground(self):
+        page = compose([row({"text": self.CODE, "role": "mono"})])
+        (box,) = kinds(page, "code_box")
+        (code,) = kinds(page, "code")
+        self.assertEqual(code.family, "Consolas")
+        self.assertEqual(code.text, self.CODE, "the indent is kept")
+        self.assertEqual(box.colour, DEFAULT.palette.band)
+        s = DEFAULT.spacing
+        self.assertEqual(box.rect.height, 2 * DEFAULT.line_height() + 2 * s.pad)
+        self.assertTrue(box.rect.contains(code.rect))
+
+    def test_code_is_measured_by_its_monospaced_lines_not_by_the_project_s_face(self):
+        """`m` は案件の書体では等幅の倍近く広い。等幅なら 1 行に入る行が、案件の書体の字幅で数えると折れる。"""
+        line = "m" * 100
+        self.assertGreater(DEFAULT.wraps(line, body_of().width), 1, "the project's face would break it")
+        (box,) = kinds(compose([row({"text": line, "role": "mono"})]), "code_box")
+        self.assertEqual(box.rect.height, DEFAULT.line_height() + 2 * DEFAULT.spacing.pad)
+
+    def test_a_line_of_code_too_long_for_its_cell_stops_rather_than_breaking(self):
+        long = "x = " + " + ".join(f"value_{n}" for n in range(30))
+        with self.assertRaises(PageFullError) as stopped:
+            compose([row({"text": long, "role": "mono"}, {"text": "beside"})])
+        self.assertIn("row 1, cell 1", str(stopped.exception))
+        self.assertIn("not broken", str(stopped.exception))
+
+    def test_a_role_is_only_for_a_text_and_only_one_of_the_two(self):
+        with self.assertRaises(PageTypeError) as wrong_part:
+            compose([row({**card("A"), "role": "display"})])
+        self.assertIn("`role` belongs to a text", str(wrong_part.exception))
+        with self.assertRaises(PageTypeError) as unknown:
+            compose([row({"text": "A", "role": "huge"})])
+        self.assertIn("display, mono", str(unknown.exception))
+
+    def test_written_out_the_code_keeps_its_face_and_lines_and_the_checks_find_nothing(self):
+        page = compose([row({"text": "98%", "role": "display"}, {"text": self.CODE, "role": "mono"})])
+        with tempfile.TemporaryDirectory() as tmp:
+            deck = new_deck(DEFAULT)
+            add_page(deck, page.build(), DEFAULT)
+            saved = save(deck, Path(tmp) / "roles.pptx")
+            self.assertEqual([], checks.run_all(saved))
+            import zipfile
+            with zipfile.ZipFile(saved) as archive:
+                xml = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        self.assertIn('typeface="Consolas"', xml)
+        self.assertIn("<a:t>    return 3.14 * r * r</a:t>", xml)
+        self.assertIn('wrap="none"', xml)

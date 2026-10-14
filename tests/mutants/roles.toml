@@ -1,0 +1,39 @@
+# The roles a compose text can take: a figure set very large, lines of code set monospaced.
+
+tests = ["tests/test_compose.py"]
+
+[[mutant]]
+name = "code is wrapped like any other words"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '"kicker_beside", "code"}'
+new = '"kicker_beside"}'
+
+[[mutant]]
+name = "the face of a text of its own is ignored"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "run.font.name = element.family or theme.type.family"
+new = "run.font.name = theme.type.family"
+
+[[mutant]]
+name = "the display size is the title's"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.title * 2"
+new = "return self.title"
+
+[[mutant]]
+name = "a line of code too long for its box is let through"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "if widest > room:"
+new = "if False:"
+
+[[mutant]]
+name = "code is measured as wrapped words"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return len(lines) * self.theme.line_height(t.body) + 2 * s.pad"
+new = "return self.theme.wrapped_height(text, width) + 2 * s.pad"
+
+[[mutant]]
+name = "a display text is measured at the body's size"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'size, bold = (theme.type.display, True) if cell.get("role") == "display" else (None, False)'
+new = "size, bold = (None, False)"
