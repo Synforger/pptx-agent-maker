@@ -1,0 +1,69 @@
+# Arrangements in a compose cell: a ring, a tree, circles that overlap.
+
+tests = ["tests/test_arrange.py"]
+
+[[mutant]]
+name = "the ring goes round anticlockwise"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "round(cx + rx * math.sin(2 * math.pi * i / count))"
+new = "round(cx - rx * math.sin(2 * math.pi * i / count))"
+
+[[mutant]]
+name = "the last box of a ring is not joined back to the first"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "after = boxes[(number + 1) % len(boxes)]"
+new = "after = boxes[min(number + 1, len(boxes) - 1)]"
+
+[[mutant]]
+name = "ring boxes are let touch"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "if _apart(boxes, s.gap_l):"
+new = "if True:"
+
+[[mutant]]
+name = "the ring's arrows run into the boxes"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "leave, enter = _exit(a, dx, dy), 1 - _exit(b, -dx, -dy)"
+new = "leave, enter = 0.0, 1.0"
+
+[[mutant]]
+name = "a parent is not centred over its children"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "here = Rect(left + (right - left - box) // 2, tops[depth], box, heights[depth])"
+new = "here = Rect(left, tops[depth], box, heights[depth])"
+
+[[mutant]]
+name = "a tree any depth is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "if children and depth >= DEPTH:"
+new = "if False:"
+
+[[mutant]]
+name = "a tree too wide to read is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    if box < floor:"
+new = "    if False:"
+
+[[mutant]]
+name = "overlapping circles are solid"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "page.circle(circle, tone, clear=CLEAR)"
+new = "page.circle(circle, tone)"
+
+[[mutant]]
+name = "a circle's name is set in the middle of its circle"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "x, y = cx + dx / reach * away, cy + dy / reach * away"
+new = "x, y = cx, cy"
+
+[[mutant]]
+name = "no arrowhead is written"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if element.arrow:\n        line = shape.line._get_or_add_ln()"
+new = "    if False:\n        line = shape.line._get_or_add_ln()"
+
+[[mutant]]
+name = "a connector keeps the theme's line style"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if style is not None:                      # テーマの線の書式を引かない"
+new = "    if False:                      # テーマの線の書式を引かない"

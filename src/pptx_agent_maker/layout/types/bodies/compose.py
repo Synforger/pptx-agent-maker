@@ -33,10 +33,11 @@ from ...parts.page import Card, Page, PageFullError, Voice
 from ..core.registry import TYPES, PageTypeError, register
 from ..core.read import Spec, read_card, read_table, read_tone, only_keys
 from ..core.stack import card_height
+from . import arrange
 from .chart import place_chart
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
-PARTS = ("card", "figure", "table", "text", "points", "chart", "voices")
+PARTS = ("card", "figure", "table", "text", "points", "chart", "voices", "ring", "tree", "overlap")
 #: 文章の役 (= `role`)。書かなければ本文の色と大きさ。`display` = 頁の主役の数字を特大で、`mono` = コード・
 #: コマンド・数式の行を等幅で、折らずに薄い地の枠に
 ROLES = ("display", "mono")
@@ -146,6 +147,11 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
         return page.points_height(width, _points(cell, what))
     if part == "voices":
         return page.voices_height(width, _voices(spec, cell, what))
+    if part == "tree":
+        try:
+            return arrange.tree_height(page, arrange.tree_root(spec, cell["tree"], f"{what}, tree"), width)
+        except PageFullError as reason:
+            raise PageFullError(f"{what}: {reason}") from reason
     if part == "rows":
         laid = _measure(page, spec, cell["rows"], width, what)
         if any(height is None for _row, _cells, height, _weight in laid):
@@ -165,7 +171,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
     カードの字が箱からはみ出し、文章の枠は字より短かった。入れ子の段と表は、自分で同じことを言う。
     """
     part = _part(cell, what)
-    if natural is not None and natural > rect.height and part in ("card", "text", "points", "voices"):
+    if natural is not None and natural > rect.height and part in ("card", "text", "points", "voices", "tree"):
         raise PageFullError(
             f"{what}: this {part} needs {natural} EMU of height and its row has {rect.height} — "
             "give the row a larger `weight`, or take something off the page; nothing will shrink")
@@ -187,6 +193,13 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             page.voices(fitted, _voices(spec, cell, what))
         elif part == "rows":
             _stack(page, spec, cell["rows"], rect, what)
+        elif part == "ring":
+            arrange.ring(page, rect, arrange.ring_cards(spec, cell["ring"], f"{what}, ring"), what)
+        elif part == "tree":
+            arrange.tree(page, fitted, arrange.tree_root(spec, cell["tree"], f"{what}, tree"), what)
+        elif part == "overlap":
+            sets, shared = arrange.overlap_sets(spec, cell["overlap"], f"{what}, overlap")
+            arrange.overlap(page, rect, sets, shared, what)
         elif part == "chart":
             place_chart(page, spec, cell["chart"], rect, f"{what}, chart")
         elif part == "figure":

@@ -35,13 +35,13 @@ new = "    if False:\n"
 [[mutant]]
 name = "a part in a row that shares the height is cut to the row"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = 'if natural is not None and natural > rect.height and part in ("card", "text", "points", "voices"):'
+old = 'if natural is not None and natural > rect.height and part in ("card", "text", "points", "voices", "tree"):'
 new = "if False:"
 
 [[mutant]]
 name = "only a card is held to its own height in a shared row"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = 'if natural is not None and natural > rect.height and part in ("card", "text", "points", "voices"):'
+old = 'if natural is not None and natural > rect.height and part in ("card", "text", "points", "voices", "tree"):'
 new = 'if natural is not None and natural > rect.height and part in ("card",):'
 
 [[mutant]]
