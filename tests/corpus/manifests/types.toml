@@ -311,3 +311,54 @@ voices = [
   { text = "\"Great sound\"", who = "Work C" },
   { text = "\"Thank you\"" },
 ]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Three in four answer in a day, and the check is one line"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = "76%"
+role = "display"
+[[pages.rows.cells]]
+weight = 2
+text = """
+def answered(ticket):
+    return ticket.closed - ticket.opened < DAY"""
+role = "mono"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = "of tickets are answered within a day"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "The loop we run, and where two teams meet"
+
+[[pages.rows]]
+weight = 1
+[[pages.rows.cells]]
+ring = [
+  ["Plan", "set the aim"],
+  ["Do", "try it small"],
+  ["Check", "measure it"],
+  { heading = "Act", body = "feed it back", tone = "accent" },
+]
+[[pages.rows.cells]]
+overlap = { sets = ["Support", { name = "Product", tone = "tint" }], shared = "Triage" }
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Who answers what"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+[pages.rows.cells.tree]
+heading = "Support"
+children = [
+  { heading = "Front desk", children = [ { heading = "Chat" }, { heading = "Mail" } ] },
+  { heading = "Specialists", body = "the hard cases", tone = "tint" },
+]

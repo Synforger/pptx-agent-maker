@@ -37,7 +37,7 @@ from pathlib import Path
 
 from ..base.geometry import Rect, cm
 from ..base.tokens import DEFAULT, MONO_FACE, Theme
-from .elements import Bar, Chart, Diamond, Element, Figure, Fill, Mark, Shade, Table, Text
+from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Mark, Shade, Table, Text
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -656,6 +656,22 @@ class Page:
     def stripe(self, rect: Rect) -> None:
         """The faint ground under every other column, so the eye can follow a period down the page."""
         self.elements.append(Fill("stripe", rect, self.theme.palette.wash))
+
+    def line(self, start: tuple[int, int], end: tuple[int, int], *, arrow: bool = False) -> None:
+        """A thin straight line in the colour of quiet ink (= what joins things, not a thing itself)."""
+        left, right = sorted((start[0], end[0]))
+        top, bottom = sorted((start[1], end[1]))
+        self.elements.append(Line("line", Rect(left, top, right - left, bottom - top), start, end,
+                                  self.theme.palette.muted, arrow=arrow))
+
+    def centred(self, rect: Rect, text: str, size: float, *, bold: bool = False) -> None:
+        """Words set in the middle of a part of a diagram (= the name of a circle, what two circles share)."""
+        self.elements.append(Text("diagram_text", rect, text, size, self.theme.palette.ink, bold=bold, align="center"))
+
+    def circle(self, rect: Rect, tone: str, *, clear: float = 0.0) -> None:
+        """A circle on the ground of a tone, with that ground's edge."""
+        fill, _words, edge = self.ground(tone)
+        self.elements.append(Ellipse("circle", rect, fill, edge, clear))
 
     def diamond(self, rect: Rect) -> None:
         """A point in time, drawn in the square given."""

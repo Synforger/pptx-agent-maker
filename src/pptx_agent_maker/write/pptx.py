@@ -25,13 +25,13 @@ from pptx.chart.data import CategoryChartData, XyChartData
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION, XL_MARKER_STYLE, XL_TICK_MARK
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
-from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls, qn
 from pptx.util import Emu, Pt
 
-from ..layout.parts.elements import Bar, Chart, Diamond, Element, Figure, Fill, Table, Text
+from ..layout.parts.elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Table, Text
 from ..layout.base.tokens import DEFAULT, MARK_FACE, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
@@ -72,6 +72,10 @@ def add_page(deck: Presentation, elements: list[Element], theme: Theme = DEFAULT
             _bar(slide, element, theme)
         elif isinstance(element, Diamond):
             _diamond(slide, element)
+        elif isinstance(element, Line):
+            _line(slide, element, theme)
+        elif isinstance(element, Ellipse):
+            _ellipse(slide, element, theme)
         elif isinstance(element, Text):
             _text(slide, element, theme)
         elif isinstance(element, Figure):
@@ -214,6 +218,38 @@ def _voice(shape, element: Bar, theme: Theme) -> None:
     run.font.size = Pt(element.size)
     run.font.color.rgb = _colour(element.colour)
     run.font.name = theme.type.family
+
+
+def _line(slide, element: Line, theme: Theme) -> None:
+    """A straight connector between two points, its arrowhead (if any) at the end.
+
+    矢じりは線の書式 (= `a:tailEnd`) で付ける。並びは決まっている (= 塗り・破線の後に端) ― 順を違えた file を
+    PowerPoint は修復しようとする。
+    """
+    (x1, y1), (x2, y2) = element.start, element.end
+    shape = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, Emu(x1), Emu(y1), Emu(x2), Emu(y2))
+    style = shape._element.find(qn("p:style"))
+    if style is not None:                      # テーマの線の書式を引かない (= `_plain` と同じ理由)
+        shape._element.remove(style)
+    shape.line.color.rgb = _colour(element.colour)
+    shape.line.width = Emu(theme.spacing.hairline * 3 // 2)
+    if element.arrow:
+        line = shape.line._get_or_add_ln()
+        line.append(line.makeelement(qn("a:tailEnd"), {"type": "triangle", "w": "med", "len": "med"}))
+
+
+def _ellipse(slide, element: Ellipse, theme: Theme) -> None:
+    """A circle, its ground let through as asked (= `a:alpha` on the fill), with a thin edge."""
+    rect = element.rect
+    shape = slide.shapes.add_shape(MSO_SHAPE.OVAL, Emu(rect.left), Emu(rect.top), Emu(rect.width), Emu(rect.height))
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = _colour(element.colour)
+    if element.clear:
+        colour = shape.fill._xPr.find(qn("a:solidFill"))[0]
+        colour.append(colour.makeelement(qn("a:alpha"), {"val": str(round((1 - element.clear) * 100000))}))
+    _edge(shape, element.outline, theme)
+    _plain(shape)
+    shape.text_frame.paragraphs[0].text = ""
 
 
 def _diamond(slide, element: Diamond) -> None:

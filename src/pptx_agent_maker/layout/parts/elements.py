@@ -41,6 +41,31 @@ class Fill(Element):
 
 
 @dataclass(frozen=True)
+class Line(Element):
+    """A straight line from one point to another. `rect` is the box round the two points.
+
+    ⚠ **矢印は線の端の形で描く。**プリセットの矢印の図形 1 つで PowerPoint が修復を言い出した実例が
+    在る (= 流れ図の向きを字で置く理由)。直線の端に付ける矢じりは線の書式で、図形の種類を増やさない。
+    """
+
+    start: tuple[int, int]
+    end: tuple[int, int]
+    colour: str
+    #: 終わりの端に矢じりを付ける
+    arrow: bool = False
+
+
+@dataclass(frozen=True)
+class Ellipse(Element):
+    """A circle (or an ellipse) filling `rect`, its ground let through by `clear` (= 0 is solid)."""
+
+    colour: str
+    outline: str = ""
+    #: 下の物が透けて見える割合 (= 重なった所が濃く見える)
+    clear: float = 0.0
+
+
+@dataclass(frozen=True)
 class Figure(Element):
     source: Path
     aspect: float

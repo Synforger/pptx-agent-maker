@@ -41,8 +41,8 @@ new = 'Style("box")'
 [[mutant]]
 name = "voices that do not fit are let through"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = 'part in ("card", "text", "points", "voices"):'
-new = 'part in ("card", "text", "points"):'
+old = 'part in ("card", "text", "points", "voices", "tree"):'
+new = 'part in ("card", "text", "points", "tree"):'
 
 [[mutant]]
 name = "the tail is left where the preset puts it"
