@@ -26,6 +26,8 @@ class Text(Element):
     colour: str
     bold: bool = False
     align: str = "left"
+    #: この字だけの書体 (= 等幅の行)。空なら案件の書体
+    family: str = ""
 
 
 @dataclass(frozen=True)

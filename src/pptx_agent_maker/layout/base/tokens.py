@@ -78,17 +78,23 @@ _ADVANCE = {
 }
 _ADVANCE_OF = {group: {character: wide for wide, characters in table.items() for character in characters}
                for group, table in _ADVANCE.items()}
+#: 等幅の書体は、半角が全部同じ幅 (= Consolas は 1 em の 1126/2048。PowerPoint の Mac 版に入っている 4 書体の
+#: 字幅の表を読んで確かめた。太字も同じ幅)
+_ADVANCE_OF["mono"] = {chr(code): 1126 / 2048 for code in range(0x20, 0x7F)}
 #: 表のセルの状態の印 (= ○◔◑◕● と ✓△×) を置く書体。**印の字形を全部持つ書体は限られる** ―
 #: 書体の file を読んで確かめたところ、Meiryo は 8 つとも持ち、Arial・Calibri・游ゴシックは 4 分の 1 と
 #: 4 分の 3 の円、✓ を持たない。案件の書体が何であっても、印だけはこの書体で置く (= 字のまま置けるので、
 #: 人が PowerPoint で直せる)
 MARK_FACE = "Meiryo"
+#: コード・コマンド・数式の行を置く等幅の書体 (= `compose` の文章の `role = "mono"`)。Windows と、PowerPoint の
+#: Mac 版 (= app の中の書体) の両方に在る。案件の書体が何であっても、等幅の行だけはこの書体で置く (= 桁が揃わないコードは読めない)
+MONO_FACE = "Consolas"
 #: どの書体がどの表を引くか (= 名前の頭で引く)。Helvetica は Arial と同じ字幅に作られている
-_FAMILY = {"arial": "arial", "helvetica": "arial"}
+_FAMILY = {"arial": "arial", "helvetica": "arial", "consolas": "mono"}
 #: 表に無い半角 (= アクセント付きの字など) はこの幅で数える
 _ADVANCE_OTHER = 0.7
 #: 太字は同じ字でもこれだけ広い (= 測った書体の、小文字の平均)
-_BOLD = {"any": 1.14, "arial": 1.10}
+_BOLD = {"any": 1.14, "arial": 1.10, "mono": 1.0}
 
 
 def advance(character: str, bold: bool = False, family: str = "") -> float:
@@ -122,6 +128,15 @@ class Type:
     tight: float = 1.0
     #: 余白と間隔のうち、1 つずつ決めた物 (= 名前と EMU。倍率より勝つ)。書けるのは案件の名前付きの使い方だけ
     spaced: tuple[tuple[str, int], ...] = ()
+
+    @property
+    def display(self) -> float:
+        """特大の字 (= 頁の主役の数字。`compose` の文章の `role = "display"`)。**題の 2 倍。**
+
+        人が 1 番に選んだ資料 (= 見本の集まり) では、頁の主役の数字は題のおよそ 2〜3 倍で置かれていた。
+        題から出すので、案件が題の大きさを変えれば付いて行き、使い方 (= `present` / `sheet`) の比も保つ。
+        """
+        return self.title * 2
 
     @property
     def plan(self) -> tuple[float, ...]:
@@ -362,7 +377,7 @@ class Theme:
         """The height that text actually needs at that width."""
         return self.lines(text, width, size) * self.line_height(size)
 
-    def width(self, text: str, size: float | None = None, *, bold: bool = False) -> int:
+    def width(self, text: str, size: float | None = None, *, bold: bool = False, family: str = "") -> int:
         """How wide this text runs on one line.
 
         `lines` は全角 1 文字ぶんで数えて余らせるが、**1 行に収まるかどうか**を決める場面では
@@ -371,7 +386,7 @@ class Theme:
         溢れて折れた (= 焼いて初めて出た)。
         """
         size = self.type.body if size is None else size
-        family = self.type.family
+        family = family or self.type.family
         return round(max(sum(advance(c, bold, family) for c in line)
                          for line in str(text).split("\n")) * pt(size))
 
