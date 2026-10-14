@@ -50,7 +50,7 @@ def duplicate(archive: Archive, source_name: str) -> str:
 
 
 def import_from(archive: Archive, source: Path, page_number: int,
-                relayout: bool = False) -> str:
+                relayout: str | None = None) -> str:
     """Bring one page of another deck in, media and all, by its reading position.
 
     Part names are an artefact of how a deck was built (`slide64.xml` means nothing),
@@ -94,8 +94,9 @@ def import_from(archive: Archive, source: Path, page_number: int,
     if relayout:
         # ⚠ **宣言で組んだ頁は白紙に描いてある。**持ち込むときレイアウトの参照を
         # そのままにすると、番号だけが引き継がれてテンプレートの別のレイアウト (= 終わりの頁
-        # など) の上に乗り、その背景の飾りが出る。テンプレートの 1 枚目へ向け直す。
-        rels = LAYOUT_TARGET.sub('Target="../slideLayouts/slideLayout1.xml"', rels)
+        # など) の上に乗り、その背景の飾りが出る。`relayout` (= 型の頁が乗るレイアウトの部品の名前。
+        # `deck/base/under.py` が決める) へ向け直す。
+        rels = LAYOUT_TARGET.sub(f'Target="../slideLayouts/{relayout}"', rels)
 
     archive.slide(new_name).write_text(slide_xml, encoding="utf-8")
     archive.rels_of(new_name).parent.mkdir(parents=True, exist_ok=True)

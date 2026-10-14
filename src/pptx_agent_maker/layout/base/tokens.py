@@ -275,10 +275,11 @@ class Spacing:
 class Under:
     """What the layout a declared page will sit on already has (= read from the specimen).
 
-    型で組む頁は白紙に描いてから、テンプレートの 1 枚目のレイアウトへ向け直す。描く側が知るのは
-    3 つだけ ― **題の枠が在るか** (= 在れば題はその枠として書かれ、色と書体をテンプレートから継ぐ)、
-    **そこに何が印字されるか** (= ロゴや飾り。題の帯はその手前で止まる)、**頁に番号を振る資料か**
-    (= 振る資料なら、型の頁もレイアウトの頁番号の枠を持つ)。余白と割り方は道具のまま。
+    型で組む頁は白紙に描いてから、テンプレートのレイアウトへ向け直す (= どのレイアウトかは `layout`)。
+    描く側が知るのは 3 つだけ ― **題の枠が在るか、在ればどこか** (= 在れば題はその枠として書かれ、色と
+    書体をテンプレートから継ぎ、題の帯の上下はその枠に合わせる)、**そこに何が印字されるか** (= ロゴや飾り。
+    題の帯はその手前で止まる)、**頁に番号を振る資料か** (= 振る資料なら、型の頁もレイアウトの頁番号の枠を
+    持つ)。余白と左右の割り方は道具のまま。
     """
 
     title: bool = False
@@ -287,6 +288,12 @@ class Under:
     #: レイアウトの頁番号の枠の名乗り (= `type` / `sz` / `idx` を、書かれている順のまま)。見本の頁が
     #: 1 枚も頁番号を持たない資料と、レイアウトに枠が無い資料では空 (= 型の頁も番号を持たない)
     number: tuple[tuple[str, str], ...] = ()
+    #: 題の枠の場所 (= レイアウトのか、それが場所を書いていなければマスターの)。題の枠が無ければ None
+    title_frame: Rect | None = None
+    #: レイアウトとマスターが引く線の、名前と場所 (= `prints` にも入っている。題の字を横切る物を名指すのに使う)
+    lines: tuple[tuple[str, Rect], ...] = ()
+    #: 型の頁が乗るレイアウトの部品の名前 (= `ppt/slideLayouts/` の中。`deck/pages/slides.py` がここへ向け直す)
+    layout: str = "slideLayout1.xml"
 
 
 @dataclass(frozen=True)
@@ -486,6 +493,34 @@ class Theme:
         return any(thing.top < band.bottom and band.top < thing.bottom and thing.left < middle < thing.right
                    for thing in self.under.prints)
 
+    def crossing_line(self, row: Rect) -> tuple[str, Rect] | None:
+        """The first line the layout draws across the middle of a row of type (= its name and where it is), if any.
+
+        ⚠ **数えるのは線だけ。**題の後ろに敷く地 (= 帯の色の矩形や絵) は題がその上に乗るように描かれていて、
+        字を横切っても題は読める。線が字の真ん中を通ると、取り消し線に見える。
+        """
+        middle = row.left + row.width // 2
+        return next(((name, line) for name, line in self.under.lines
+                     if line.top < row.bottom and row.top < line.bottom and line.left < middle < line.right), None)
+
+    def title_row(self) -> tuple[int, int]:
+        """(top, height) of a page's title band while its title stays on one line.
+
+        ふつうは、頁の内側の枠の上端から、決まった高さ (= 今までと同じ)。レイアウトに題の枠が在る時は、
+        その枠の上端から、その枠の高さ ― 型の頁の題が、複製した頁の題と同じ高さに出る。ただし枠の中を
+        頁を横切って通る線 (= 題の下の罫線) が在れば、帯はその線の手前で止まる (= 線は題の下に来る)。
+        高さは、題の 1 行より低くはしない。
+        """
+        frame, s = self.frame(), self.spacing
+        seat = self.under.title_frame if self.under.title else None
+        if seat is None:
+            return frame.top, s.title_height
+        bottom, middle = seat.bottom, seat.left + seat.width // 2
+        for _name, line in self.under.lines:
+            if line.left < middle < line.right and seat.top < line.top < bottom:
+                bottom = line.top
+        return seat.top, max(bottom - seat.top, self.line_height(self.type.title))
+
     def under_the_title(self, band: Rect) -> int:
         """Where the page may go on under its title band: under what the layout prints across the page there.
 
@@ -519,10 +554,10 @@ class Theme:
         伸びた先に在る物も避けるので、行と幅は一緒に決める (= 避けて狭くなると、もう 1 行折れることがある)。
         """
         frame, s = self.frame(), self.spacing
+        top, first = self.title_row()
         lines = 1
         while True:
-            band = Rect(frame.left, frame.top, frame.width,
-                        s.title_height + (lines - 1) * self.line_height(self.type.title))
+            band = Rect(frame.left, top, frame.width, first + (lines - 1) * self.line_height(self.type.title))
             left, right = self.clear(band)
             room = right - left - 2 * s.text_inset
             if sticker:
@@ -550,7 +585,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker")
+_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "layout_of_page")
 
 
 class ThemeError(ValueError):
@@ -598,6 +633,12 @@ def theme_from(settings: dict | None) -> Theme:
         raise ThemeError(
             f"theme.kicker is {kicker!r} — the small words above a title stand "
             f"{' or '.join(repr(place) for place in KICKERS)} it")
+    # 型の頁を乗せるレイアウトは、見本を読む所が使う (= `deck/base/under.py`)。ここは書き方だけ確かめる
+    on = settings.get("layout_of_page")
+    if on is not None and (isinstance(on, bool) or not isinstance(on, int) or on < 1):
+        raise ThemeError(
+            f"theme.layout_of_page is {on!r} — it is the number of a specimen page (= 1, 2, ...), and the "
+            "declared pages sit on the layout that page sits on")
 
     scales = {**USES, **_uses(settings.get("uses"))}
     use = settings.get("use", "read")

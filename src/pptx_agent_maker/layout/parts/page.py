@@ -107,6 +107,20 @@ class Page:
                                rest.width, self._remaining.bottom - band.bottom - self.theme.spacing.gap_m)
         return band
 
+    def _take_at(self, top: int, height: int) -> Rect:
+        """Take a band of that height starting at that height of the slide (= the title, where the layout puts it)."""
+        if getattr(self, "_frozen", False):
+            raise RuntimeError("the frame is settled; everything else divides `body`")
+        rest = self._remaining
+        gap = self.theme.spacing.gap_m
+        if top + height + gap >= rest.bottom:
+            raise PageFullError(
+                f"the title band ends at {top + height} EMU, and the page ends at {rest.bottom} — "
+                "a page that does not fit is a page that needs splitting, not shrinking")
+        band = Rect(rest.left, top, rest.width, height)
+        self._remaining = Rect(rest.left, band.bottom + gap, rest.width, rest.bottom - band.bottom - gap)
+        return band
+
     def _take_bottom(self, height: int) -> Rect:
         if getattr(self, "_frozen", False):
             raise RuntimeError("the frame is settled; everything else divides `body`")
@@ -162,7 +176,13 @@ class Page:
                 f"the sticker {sticker!r} leaves the title no room for its longest word — "
                 "a sticker is a word or two (= draft, illustrative), not a sentence")
         folded = (lines - 1) * self.theme.line_height(t.title)
-        bar = self._take_top(s.title_height + folded)
+        if self.theme.under.title and self.theme.under.title_frame is not None:
+            # レイアウトの題の枠の高さに置く (= 複製した頁の題と同じ高さ)。上に置く小さい字は、その枠の上に
+            top, height = self.theme.title_row()
+            above = s.kicker_height if kicker and not lead else 0
+            bar = self._take_at(max(top - above, self.theme.slide.top), height + above + folded)
+        else:
+            bar = self._take_top(s.title_height + folded)
         # 字と札が使うのは、レイアウトが印字する物 (= ロゴ) の手前まで。帯そのものは頁の幅のまま
         clear = Rect(left, bar.top, right - left, bar.height)
         if kicker and not lead:
@@ -178,6 +198,19 @@ class Page:
             self.elements.append(Text(
                 "kicker_beside", Rect(main.left + s.text_inset, first, lead - s.text_inset, row),
                 kicker, t.title, p.accent, bold=True))
+        # ⚠ **レイアウトの線が題の 1 行目の字を横切るなら止まる** (= 取り消し線に見える)。題の帯を題の枠に
+        # 合わせても残るのは、題の枠そのものを線が横切る雛形か、題の枠を持たないレイアウト。直せるのは、
+        # 型の頁を乗せるレイアウトの方
+        # 字の高さ (= 行の高さから行間を除いた、字が実際に立つ所)。線が行間だけを通るなら取り消し線にはならない
+        size = self.theme.pt(t.title)
+        glyph = max((row - size) // 2, 0)
+        struck = self.theme.crossing_line(Rect(main.left, first + glyph, main.width, size))
+        if struck is not None:
+            name, line = struck
+            raise PageFullError(
+                f"the layout draws {repr(name) if name else 'a line'} at {(line.top + line.height // 2) / 914400:.2f} in "
+                "from the top, through the title — it would read struck through. Put the declared pages on the "
+                "layout of a specimen page whose title sits clear of it (`[theme] layout_of_page`)")
         if lines > 1:
             # ⚠ **折れて増えた行が、レイアウトが頁を横切って描く物 (= 題の下の罫線) に掛かるなら止まる。**
             # 帯は下へ伸びるが、レイアウトの線は動かない。幅を詰めても避けられないので、直せるのは題の長さだけ。
@@ -195,9 +228,13 @@ class Page:
                 raise PageFullError("a line the layout draws across the page leaves no room under the title")
             self._remaining = self._remaining.inset(top=lower)
         else:
-            line = Rect(bar.left, bar.bottom, bar.width, s.hairline)
-            start, end = self.theme.clear(line)
-            self.elements.append(Fill("rule", Rect(start, line.top, end - start, line.height), p.rule))
+            # 題の字の下から帯の足元のすぐ下までに、レイアウトが頁を横切る線を引いていれば、それが題の下の線
+            # (= 道具の線を重ねると 2 本になる)
+            foot = first + (lines - 1) * row + glyph + size
+            if self.theme.crossing_line(Rect(bar.left, foot, bar.width, bar.bottom + s.gap_m - foot)) is None:
+                line = Rect(bar.left, bar.bottom, bar.width, s.hairline)
+                start, end = self.theme.clear(line)
+                self.elements.append(Fill("rule", Rect(start, line.top, end - start, line.height), p.rule))
         if tag:
             # 灰の細枠に灰の字 (= 頁の中身より一段うしろに引いた見た目)。地は塗らない
             tall = self.theme.line_height(t.body) + 2 * s.bar_pad_y

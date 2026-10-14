@@ -53,8 +53,8 @@ new = "start, end = line.left, line.right"
 [[mutant]]
 name = "the layout is not read"
 file = "src/pptx_agent_maker/deck/build.py"
-old = "replace(theme_from(merged(specimen, workspace.look)), under=under_of(specimen))"
-new = "theme_from(merged(specimen, workspace.look))"
+old = "look = replace(theme_from(merged(specimen, workspace.look)), under=under)"
+new = "look = theme_from(merged(specimen, workspace.look))"
 
 [[mutant]]
 name = "the title of a cover counts as a title to write a page's title into"
@@ -151,7 +151,7 @@ new = ""
 [[mutant]]
 name = "the layout's lines are left out of what it prints"
 file = "src/pptx_agent_maker/deck/base/under.py"
-old = "prints=prints + tuple(line for part in parts for line in _lines(part)),"
+old = "prints=prints + tuple(rect for _, rect in lines),"
 new = "prints=prints,"
 
 # -- the page's number -------------------------------------------------------------
@@ -177,8 +177,8 @@ new = """NUMBER_FRAME = re.compile(r'<p:ph\\b([^>]*?)/?>')"""
 [[mutant]]
 name = "the frame's name is cut down to its kind"
 file = "src/pptx_agent_maker/deck/base/under.py"
-old = "number=tuple(_SAID.findall(frame.group(1))) if frame else ())"
-new = "number=tuple(_SAID.findall(frame.group(1)))[:1] if frame else ())"
+old = "number=tuple(_SAID.findall(frame.group(1))) if frame else (),"
+new = "number=tuple(_SAID.findall(frame.group(1)))[:1] if frame else (),"
 
 [[mutant]]
 name = "the number is never written"
@@ -259,8 +259,8 @@ new = "        if False:\n"
 [[mutant]]
 name = "the page keeps a line of its own under the title beside the layout's"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "            self._remaining = self._remaining.inset(top=lower)\n        else:\n            line = Rect(bar.left"
-new = "            self._remaining = self._remaining.inset(top=lower)\n        if True:\n            line = Rect(bar.left"
+old = "            self._remaining = self._remaining.inset(top=lower)\n        else:\n"
+new = "            self._remaining = self._remaining.inset(top=lower)\n        if True:\n"
 
 [[mutant]]
 name = "what reaches the lower half of the page pushes the rest under it"
@@ -285,3 +285,33 @@ name = "the highest of several lines decides"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
 old = "        lowest = max((thing.bottom for thing in self.under.prints"
 new = "        lowest = min((thing.bottom for thing in self.under.prints"
+
+[[mutant]]
+name = "the title band stays where the toolkit's margin puts it, whatever the layout's title frame says"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        seat = self.under.title_frame if self.under.title else None\n"
+new = "        seat = None\n"
+
+[[mutant]]
+name = "a title frame the rule runs through keeps its full height, and the rule crosses the title"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "                bottom = line.top\n"
+new = "                pass\n"
+
+[[mutant]]
+name = "a line through the title's type is let through"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if struck is not None:\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "the page draws its own line under the title beside the one the layout draws there"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if self.theme.crossing_line(Rect(bar.left, foot, bar.width, bar.bottom + s.gap_m - foot)) is None:"
+new = "            if True:"
+
+[[mutant]]
+name = "the page the project names is not read, and the declared pages sit on the first layout part"
+file = "src/pptx_agent_maker/deck/build.py"
+old = 'under = under_of(specimen, (workspace.look or {}).get("layout_of_page"))'
+new = "under = under_of(specimen)"

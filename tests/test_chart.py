@@ -775,8 +775,8 @@ class TheChartTravelsWithItsPage(unittest.TestCase):
         out = self.dir / "built.pptx"
         with Deck.open(self.specimen, out) as deck:
             deck.copy(1)
-            deck.bring(source, 2, relayout=True)
-            deck.bring(source, 1, relayout=True)
+            deck.bring(source, 2, relayout="slideLayout1.xml")
+            deck.bring(source, 1, relayout="slideLayout1.xml")
         found = self.charts_of(out)
         self.assertEqual([["1", "2", "3", "4"], ["12", "15", "21", "18"]], [values for _c, values, _b in found])
         self.assertEqual(2, len({chart for chart, _v, _b in found}), "two pages point at one chart")
@@ -788,7 +788,7 @@ class TheChartTravelsWithItsPage(unittest.TestCase):
         テンプレートには、グラフの登録も、中の表の登録も無い。"""
         out = self.dir / "built.pptx"
         with Deck.open(self.specimen, out) as deck:
-            deck.bring(self.charts("declared.pptx", [12, 15, 21, 18]), 1, relayout=True)
+            deck.bring(self.charts("declared.pptx", [12, 15, 21, 18]), 1, relayout="slideLayout1.xml")
         types_xml = self.parts(out)["[Content_Types].xml"].decode("utf-8")
         self.assertNotIn("xlsx", self.parts(self.specimen)["[Content_Types].xml"].decode("utf-8"))
         self.assertIn(f'<Default Extension="xlsx" ContentType="{XLSX}"/>', types_xml)
@@ -801,7 +801,7 @@ class TheChartTravelsWithItsPage(unittest.TestCase):
         out = self.dir / "built.pptx"
         with Deck.open(template, out) as deck:
             deck.keep(1)
-            deck.bring(self.charts("declared.pptx", [12, 15, 21, 18]), 1, relayout=True)
+            deck.bring(self.charts("declared.pptx", [12, 15, 21, 18]), 1, relayout="slideLayout1.xml")
         found = self.charts_of(out)
         self.assertEqual([("chart1.xml", ["7", "7", "7", "7"]), ("chart2.xml", ["12", "15", "21", "18"])],
                          [(chart, values) for chart, values, _book in found])
@@ -858,7 +858,7 @@ class TheChartTravelsWithItsPage(unittest.TestCase):
         out = self.dir / "built.pptx"
         with Deck.open(self.specimen, out) as built:
             built.copy(1)
-            built.bring(source, 1, relayout=True)
+            built.bring(source, 1, relayout="slideLayout1.xml")
         self.assertEqual([["12", "15", "21", "18"]], [values for _c, values, _b in self.charts_of(out)])
         slide = self.parts(out)["ppt/slides/" + read_pages(out)[1].name].decode("utf-8")
         self.assertIn("<p:grpSp>", slide)
@@ -870,7 +870,7 @@ class TheChartTravelsWithItsPage(unittest.TestCase):
         out = self.dir / "built.pptx"
         with Deck.open(self.specimen, out) as deck:
             deck.copy(1)
-            deck.bring(self.charts("declared.pptx", [12, 15, 21, 18], [1, 2, 3, 4]), 1, relayout=True)
+            deck.bring(self.charts("declared.pptx", [12, 15, 21, 18], [1, 2, 3, 4]), 1, relayout="slideLayout1.xml")
         result = subprocess.run(
             # ⚠ 自分の profile で変換する。既定の profile は機械に 1 つで、同じ時に別の変換 (= 別の端末の
             # 検査、preview) が動いていると、こちらは終了コード 0 のまま何も書かずに終わる
