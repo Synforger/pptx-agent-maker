@@ -259,3 +259,70 @@ def rasterize(pdf: Path, work_dir: Path, dpi: int = DEFAULT_DPI) -> Rasterized:
     if not pages:
         raise RenderError("pdftoppm produced no pages")
     return Rasterized(pages=pages, thumbs=thumbs)
+
+
+#: 絵の束の file の拡張子 (= 頁の絵を並べた一覧。焼かずにそのまま見せる)
+ALBUM = ".album"
+#: 絵の束の頁の長辺 (= 本画像と同じく Retina で 1280px 幅に置いて潰れない大きさ)
+ALBUM_EDGE = 2560
+#: 絵の束の頁一覧の小さい絵の長辺
+ALBUM_THUMB_EDGE = 854
+
+
+def read_album(album: Path) -> list[tuple[Path, str]]:
+    """The pictures an album lists, each with the note written above it.
+
+    形は再生リスト (= M3U) と同じ: 1 行に 1 つの絵の path (= 相対なら album の在る folder から)。
+    ``#`` で始まる行は、次の絵の注記 (= 画面のノートの欄に出る)。空行は読み飛ばす。
+    """
+    found, note = [], []
+    for line in album.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            note.append(line.lstrip("#").strip())
+            continue
+        path = Path(line).expanduser()
+        found.append((path if path.is_absolute() else album.parent / path, "\n".join(note)))
+        note = []
+    return found
+
+
+def album_pages(album: Path, work_dir: Path) -> Rasterized:
+    """An album's pictures as pages: scaled to the page and the list sizes when Pillow is there.
+
+    ⚠ **焼かない。**絵はもう頁の形をしているので、LibreOffice を通さない。縮めるのは Pillow が在る時だけ
+    (= このプレビューは標準のライブラリだけで動く)。無ければ JPEG の絵をそのまま使う。
+    """
+    listed = read_album(album)
+    if not listed:
+        raise RenderError(f"the album lists no pictures: {album.name}")
+    missing = [str(path) for path, _ in listed if not path.is_file()]
+    if missing:
+        raise RenderError(f"the album names pictures that are not there: {', '.join(missing[:3])}")
+    try:
+        from PIL import Image
+    except ImportError:  # pragma: no cover - depends on the environment
+        Image = None
+    pages, thumbs = work_dir / "full", work_dir / "small"
+    pages.mkdir(parents=True, exist_ok=True)
+    thumbs.mkdir(parents=True, exist_ok=True)
+    out_pages, out_thumbs = [], []
+    for number, (path, _) in enumerate(listed, 1):
+        page, thumb = pages / f"page-{number:04d}.jpg", thumbs / f"thumb-{number:04d}.jpg"
+        if Image is None:
+            if path.suffix.lower() not in (".jpg", ".jpeg"):
+                raise RenderError(f"{path.name}: only JPEG pictures can be shown without Pillow")
+            shutil.copyfile(path, page)
+            shutil.copyfile(path, thumb)
+        else:
+            with Image.open(path) as image:
+                image = image.convert("RGB")
+                for target, edge in ((page, ALBUM_EDGE), (thumb, ALBUM_THUMB_EDGE)):
+                    copy = image.copy()
+                    copy.thumbnail((edge, edge))
+                    copy.save(target, "JPEG", quality=85)
+        out_pages.append(page)
+        out_thumbs.append(thumb)
+    return Rasterized(pages=out_pages, thumbs=out_thumbs)
