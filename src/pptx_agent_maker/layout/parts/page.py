@@ -35,10 +35,24 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..base.geometry import Rect
+from ..base.geometry import Rect, cm
 from ..base.tokens import DEFAULT, Theme
 from .elements import Bar, Chart, Diamond, Element, Figure, Fill, Mark, Shade, Table, Text
 from .look import LIGHT, Look, Style, TONES
+
+
+@dataclass(frozen=True)
+class Voice:
+    """What one person said, in their words, and who said it (= `who` may be left out)."""
+
+    text: str
+    who: str = ""
+    #: 吹き出しの地の色の役 (= 箱と同じ語彙)
+    style: Style = Style()
+
+
+#: 吹き出し 1 つの幅の下限 (= 本文の大きさで 1 行に 10 字ほど)。マスの幅をこれで割った数が、1 行に並ぶ数
+VOICE_WIDTH = cm(5.5)
 
 
 @dataclass(frozen=True)
@@ -473,6 +487,65 @@ class Page:
         # 先頭の空白は階層なので残す (= 落とすと章と小項目が同じ並びに潰れる)
         return [f"{' ' * (len(str(item)) - len(str(item).lstrip()))}\u2014 {str(item).strip()}"
                 for item in items if str(item).strip()]
+
+    def _voice_rows(self, width: int, voices: list["Voice"]) -> tuple[int, list[list["Voice"]]]:
+        """(how many stand side by side, the voices row by row) at this width."""
+        gap = self.theme.spacing.gap_m
+        most = max(1, min(len(voices), (width + gap) // (VOICE_WIDTH + gap)))
+        # 行の数は幅で決まる数のまま、1 行に並ぶ数を均す (= 6 つを 5 つと 1 つにせず、3 つずつ)
+        across = -(-len(voices) // -(-len(voices) // most))
+        return across, [voices[start:start + across] for start in range(0, len(voices), across)]
+
+    def _voice_heights(self, width: int, voices: list["Voice"]) -> tuple[int, list[tuple[int, int]]]:
+        """(how many across, and for every row: the height of its bubbles and of the whole row)."""
+        t, s = self.theme.type, self.theme.spacing
+        across, rows = self._voice_rows(width, voices)
+        room = max((width - s.gap_m * (across - 1)) // across - 2 * s.pad, 1)
+        heights = []
+        for row in rows:
+            bubble = max(self.theme.wrapped_height(voice.text, room) for voice in row) + 2 * s.pad
+            who = self.theme.line_height(t.caption) if any(voice.who for voice in row) else 0
+            heights.append((bubble, bubble + s.gap_m + who))
+        return across, heights
+
+    def voices_height(self, width: int, voices: list["Voice"]) -> int:
+        """How tall `voices` stands at this width (= every row, and the gaps between them)."""
+        _across, heights = self._voice_heights(width, voices)
+        return sum(whole for _bubble, whole in heights) + self.theme.spacing.gap_m * (len(heights) - 1)
+
+    def voices(self, rect: Rect, voices: list["Voice"]) -> None:
+        """What people said, each in a speech bubble with who said it under its tail.
+
+        ⚠ **吹き出しは 1 つの図形** (= 尾の付いた角丸の矩形。PowerPoint の「角丸四角形吹き出し」)。字は
+        その中に持たせ、人が動かしても尾と字が離れない。尾は左下へ、誰の声かはその尾の先の下に小さく。
+        1 行に並ぶ数はマスの幅で決まり (= `VOICE_WIDTH`)、行どうしで数を均す。同じ行の吹き出しは一番高い
+        ものに揃う。
+
+        ⚠ **見出しは持たない。**カードで声を置いていた間は、短い声 1 つにも見出しの行が付いて箱が高くなり、
+        数の札と同じ見た目で「声」だと目に入らなかった。
+        """
+        if not voices:
+            raise ValueError("voices was given no one's words — drop the cell rather than leaving it empty")
+        t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
+        needed = self.voices_height(rect.width, voices)
+        if needed > rect.height:
+            raise PageFullError(f"the voices need {needed} EMU of height and have {rect.height} — "
+                                "fewer or shorter voices, or a cell of their own")
+        across, heights = self._voice_heights(rect.width, voices)
+        _across, rows = self._voice_rows(rect.width, voices)
+        top = rect.top
+        for row, (bubble, whole) in zip(rows, heights):
+            for cell, voice in zip(Rect(rect.left, top, rect.width, whole).columns(across, s.gap_m), row):
+                look = self.look(voice.style)
+                self.elements.append(Bar("voice", Rect(cell.left, cell.top, cell.width, bubble), voice.text,
+                                         t.body, look.ink, fill=look.fill, outline=look.outline,
+                                         align="left", shape="voice"))
+                if voice.who:
+                    self.elements.append(Text(
+                        "voice_who", Rect(cell.left + s.pad, cell.top + bubble + s.gap_m,
+                                          cell.width - s.pad, self.theme.line_height(t.caption)),
+                        voice.who, t.caption, p.muted))
+            top += whole + s.gap_m
 
     def points_height(self, width: int, items: list[str]) -> int:
         """How tall `points` stands at this width, counted on the lines it writes."""

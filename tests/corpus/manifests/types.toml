@@ -296,3 +296,18 @@ settled = "both must pass"
 [[pages.stages]]
 name = "Decision"
 nodes = [["Notice", "the answer goes back"]]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "What visitors said, in their own words"
+footer = "Source: the visitors' survey"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+voices = [
+  { text = "\"The display was easy to follow\"", who = "Work A" },
+  { text = "\"I wanted longer. I will come back with my family\"", who = "Work B", tone = "tint" },
+  { text = "\"Great sound\"", who = "Work C" },
+  { text = "\"Thank you\"" },
+]
