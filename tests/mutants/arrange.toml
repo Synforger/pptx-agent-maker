@@ -67,3 +67,45 @@ name = "a connector keeps the theme's line style"
 file = "src/pptx_agent_maker/write/pptx.py"
 old = "    if style is not None:                      # テーマの線の書式を引かない"
 new = "    if False:                      # テーマの線の書式を引かない"
+
+[[mutant]]
+name = "every name of a mark goes in the right column"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = 'sides = {"left": [m for m in marks if m[0] < 0.5], "right": [m for m in marks if m[0] >= 0.5]}'
+new = 'sides = {"left": [], "right": list(marks)}'
+
+[[mutant]]
+name = "names of crowded marks are piled on each other"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "tops[i] = max(round(point - heights[i] / 2), below)"
+new = "tops[i] = max(round(point - heights[i] / 2), rect.top)"
+
+[[mutant]]
+name = "the line of a mark stops short of its point"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "point = (round(placed.left + x * placed.width), round(placed.top + y * placed.height))"
+new = "point = (round(placed.left + x * placed.width), round(placed.top + y * placed.height / 2))"
+
+[[mutant]]
+name = "a link between cells that do not face each other is drawn anyway"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "elif a.left < b.right and b.left < a.right:                     # 縦に向き合う"
+new = "elif True:                     # 縦に向き合う"
+
+[[mutant]]
+name = "a link crosses the cell between"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "            if other in (a, b) or other.contains(a) or other.contains(b):"
+new = "            if True:"
+
+[[mutant]]
+name = "a link backwards points forwards"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "start, end = ((a.right, y), (b.left, y)) if a.right <= b.left else ((a.left, y), (b.right, y))"
+new = "start, end = ((a.right, y), (b.left, y)) if a.right <= b.left else ((b.right, y), (a.left, y))"
+
+[[mutant]]
+name = "a marked picture floats in the middle of its cell"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "tall = min(round((right - left) / aspect) + named, rect.height)"
+new = "tall = rect.height"
