@@ -101,7 +101,8 @@ def slug(text: str) -> str:
 
 
 def title_of(markdown: str) -> str:
-    found = re.search(r"\*\*Title:\*\*\s*(.+)", markdown)
+    # 抜き出しの書き方が 2 通りある (= `**Title:**` と `**Title**:`)
+    found = re.search(r"\*\*Title(?::\*\*|\*\*:)\s*(.+)", markdown)
     return found.group(1).strip() if found else ""
 
 
