@@ -96,6 +96,37 @@ class ReadingThePlaces(unittest.TestCase):
         self.assertTrue(name.startswith("案件 "))
         self.assertEqual(sorted(discover(places, lambda f: set())), [name], "the name moved")
 
+    def test_a_project_that_cannot_be_read_stays_and_says_why(self) -> None:
+        """⚠ 読めない案件を黙って飛ばしていた間は、画面を見る人には「デッキが消えた」だった。"""
+        from pptx_agent_maker.project.files.places import discover, load
+        create(self.base / "cases" / "client-one")
+        settings = self.base / "cases" / "client-one" / "workspace.toml"
+        settings.write_text(settings.read_text(encoding="utf-8") + "\n[theme]\nnot_a_key = 1\n",
+                            encoding="utf-8")
+        places = load(self._places(f'[[search]]\npath = "{self.base / "cases"}"\n'))
+        (offer,) = discover(places, lambda folder: _specimens(Workspace.load(folder))).values()
+        self.assertEqual(offer.folder, self.base / "cases" / "client-one")
+        self.assertEqual(offer.skip, ["specimen"], "the usual template is still left out")
+        self.assertIn("not_a_key", offer.problem)
+
+    def test_an_unreadable_project_is_told_when_the_toolkit_moved_after_the_start(self) -> None:
+        """⚠ 常駐は起動した時の道具のまま走る ― 新しい欄を書いた案件は、起動し直すまで読めない。"""
+        from pptx_agent_maker.__main__ import _fingerprint, _offers
+        from pptx_agent_maker.project.files.places import load
+        create(self.base / "cases" / "good")
+        create(self.base / "cases" / "bad")
+        settings = self.base / "cases" / "bad" / "workspace.toml"
+        settings.write_text(settings.read_text(encoding="utf-8") + "\n[theme]\nnot_a_key = 1\n",
+                            encoding="utf-8")
+        places = load(self._places(f'[[search]]\npath = "{self.base / "cases"}"\n'))
+        same = {o.folder.name: o.problem for o in _offers(places, _fingerprint(), "then").values()}
+        self.assertIsNone(same["good"])
+        self.assertNotIn("restart", same["bad"], "the toolkit did not change; a restart would not help")
+        moved = {o.folder.name: o.problem for o in _offers(places, "older", "then").values()}
+        self.assertIsNone(moved["good"])
+        self.assertIn("restart the preview", moved["bad"])
+        self.assertIn("then", moved["bad"])
+
     def test_a_folder_that_is_not_there_is_left_out_quietly(self) -> None:
         from pptx_agent_maker.project.files.places import discover, load
         places = load(self._places(f'[[folder]]\nname = "gone"\npath = "{self.base / "gone"}"\n'))

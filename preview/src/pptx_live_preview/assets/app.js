@@ -775,13 +775,20 @@ let events = null;
 function connectEvents() {
   if (events) events.close();
   events = new EventSource(at('events'));
-  events.onmessage = () => loadDecks();
+  events.onmessage = () => { loadDecks(); loadMeta(); };  // 帯の出し入れも変化として届く
 }
 
 function loadMeta() {
   fetch(at('api/meta'))
     .then((r) => r.json())
-    .then((m) => { S.title = m.title; document.title = m.title + ' · pptx-live-preview'; })
+    .then((m) => {
+      S.title = m.title;
+      document.title = m.title + ' · pptx-live-preview';
+      // 案件を読めなかった理由 (= 欄に残したデッキは見せたまま、上の帯で言う)
+      const note = $('projectNote');
+      note.hidden = !m.problem;
+      note.textContent = m.problem || '';
+    })
     .catch(() => {});
 }
 
@@ -806,7 +813,7 @@ async function loadProjects() {
   for (const name of listing.projects) {
     const option = document.createElement('option');
     option.value = name;
-    option.textContent = name;
+    option.textContent = (listing.problems || {})[name] ? '⚠ ' + name : name;
     option.selected = name === listing.active;
     select.appendChild(option);
   }

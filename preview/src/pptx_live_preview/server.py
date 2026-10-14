@@ -143,7 +143,8 @@ def make_handler(deckset: DeckSet):
             elif path == "/api/meta":
                 # 束ねて見る時の題は表示名 (= folder 名には会社の名前が入りうる。タブの題にも出る)
                 self._json({"title": self.key if board else self.ds.title,
-                            "folder": self.ds.is_folder})
+                            "folder": self.ds.is_folder,
+                            "problem": getattr(self.ds, "problem", None)})
             elif path == "/api/decks":
                 self._json(self.ds.summaries())
             elif path == "/api/refresh":
@@ -190,7 +191,10 @@ def make_handler(deckset: DeckSet):
             if not hasattr(deckset, "projects"):
                 self._not_found()
                 return
-            self._json({"projects": board.projects(), "active": board.project})
+            names = board.projects()
+            # 読めなかった案件も欄に残し、印を付ける (= 黙って消すと「デッキが消えた」に見える)
+            self._json({"projects": names, "active": board.project,
+                        "problems": board.problems()})
 
         def _select(self, name: str):
             if board is None or name not in board.projects():

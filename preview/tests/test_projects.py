@@ -66,7 +66,8 @@ def board(tmp_path, monkeypatch):
 
 def test_the_projects_are_listed_with_the_one_looked_at(board):
     base, _ = board
-    assert _json(base + "/api/projects") == {"projects": ["alpha", "beta"], "active": "alpha"}
+    assert _json(base + "/api/projects") == {"projects": ["alpha", "beta"], "active": "alpha",
+                                             "problems": {}}
     assert [d["name"] for d in _json(base + "/api/decks")] == ["a1"]
 
 
@@ -218,3 +219,33 @@ def test_a_project_named_by_a_page_is_kept_up_to_date(tmp_path, monkeypatch):
                         lambda **kw: watched.append("beta"))
     board.rescan_and_rerender()
     assert watched == ["beta"]
+
+
+def test_a_project_that_cannot_be_read_stays_and_says_why(tmp_path, monkeypatch):
+    """⚠ 読めない案件を欄から黙って消すと、画面を見る人には「デッキが消えた」としか見えない。"""
+    _fake_render(monkeypatch)
+    for name in ("alpha", "beta"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / f"{name}.pptx").write_bytes(b"x")
+    offered = {"alpha": (tmp_path / "alpha", []),
+               "beta": (tmp_path / "beta", ["specimen"], "workspace.toml could not be read: x")}
+    board = st.Switchboard({"alpha": st.DeckSet(tmp_path / "alpha")},
+                           discover=lambda: dict(offered))
+    board.REDISCOVER_SECONDS = 0
+    server, base = _serve(board)
+    try:
+        listing = _json(base + "/api/projects")
+        assert listing["projects"] == ["alpha", "beta"]
+        assert listing["problems"] == {"beta": "workspace.toml could not be read: x"}
+        assert _json(base + "/api/meta?p=beta")["problem"] == "workspace.toml could not be read: x"
+        assert _json(base + "/api/meta?p=alpha")["problem"] is None
+        assert [d["name"] for d in _json(base + "/api/decks?p=beta")] == ["beta"], \
+            "its decks are still shown"
+
+        version = board.get("beta").version
+        offered["beta"] = (tmp_path / "beta", ["specimen"])  # 直った
+        assert _json(base + "/api/projects")["problems"] == {}
+        assert _json(base + "/api/meta?p=beta")["problem"] is None
+        assert board.get("beta").version > version, "the page is woken to drop the note"
+    finally:
+        server.shutdown()

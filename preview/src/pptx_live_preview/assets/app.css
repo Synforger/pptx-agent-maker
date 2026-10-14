@@ -148,6 +148,17 @@ body {
 
 /* ---- main split ---- */
 
+/* 案件を読めなかった時だけ出る帯 (= 欄から消さずに、なぜ読めなかったかを言う) */
+.projectNote {
+  flex: none;
+  padding: 8px 14px;
+  color: var(--bad);
+  background: var(--chrome-hi);
+  border-bottom: 1px solid var(--line);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 #body { flex: 1; display: flex; min-height: 0; position: relative; }
 
 #filmstrip {
