@@ -48,13 +48,23 @@ VOICE_KEYS = ("text", "who", "tone")
 BODIES = ("figures", "figure_grid", "flow", "roadmap", "timeline", "board", "agenda")
 
 
-@register("compose", needs=["rows"], figure=False)
+@register("compose", needs=["rows"], takes=["links"], figure=False)
 def _compose(page: Page, spec: Spec, area: Rect) -> None:
-    """Rows top to bottom, cells left to right, one part in each cell (or more rows)."""
-    _stack(page, spec, spec.get("rows"), area, "compose")
+    """Rows top to bottom, cells left to right, one part in each cell (or more rows); then the links."""
+    seen: list[tuple[str | None, Rect]] = []
+    _stack(page, spec, spec.get("rows"), area, "compose", seen)
+    named: dict[str, Rect] = {}
+    for name, rect in seen:
+        if name is None:
+            continue
+        if name in named:
+            raise PageTypeError(f"compose: two cells have the id {name!r} — an id names one cell")
+        named[name] = rect
+    if spec.get("links") is not None:
+        arrange.links(page, spec.get("links"), named, [rect for _name, rect in seen], "compose")
 
 
-def _stack(page: Page, spec: Spec, rows, area: Rect, where: str) -> None:
+def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> None:
     """Lay rows down inside `area`: natural rows at their own height, the rest sharing what is left."""
     gap = page.theme.spacing.gap_m
     laid = _measure(page, spec, rows, area.width, where)
@@ -70,8 +80,9 @@ def _stack(page: Page, spec: Spec, rows, area: Rect, where: str) -> None:
     for number, (row, cells, height, weight) in enumerate(laid, start=1):
         tall = height if height is not None else int(left_over * weight / shares)
         for index, (cell, column, natural) in enumerate(cells, start=1):
-            _place(page, spec, cell, Rect(area.left + column.left, top, column.width, tall),
-                   natural, height is not None, f"{where}: row {number}, cell {index}")
+            rect = Rect(area.left + column.left, top, column.width, tall)
+            seen.append((str(cell["id"]) if "id" in cell else None, rect))
+            _place(page, spec, cell, rect, natural, height is not None, f"{where}: row {number}, cell {index}", seen)
         top += tall + gap
 
 
@@ -88,7 +99,7 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
         if not isinstance(cells, list) or not cells:
             raise PageTypeError(f"{what} has no cells — write [[…cells]] under it, one per part")
         for index, cell in enumerate(cells, start=1):
-            only_keys(cell, {"weight", "rows", "caption", "role", *PARTS, *BODIES}, f"{what}, cell {index}")
+            only_keys(cell, {"weight", "rows", "caption", "role", "marks", "id", *PARTS, *BODIES}, f"{what}, cell {index}")
         weights = [_weight(cell, f"{what}, cell {index}") for index, cell in enumerate(cells, start=1)]
         columns = Rect(0, 0, width, 1).columns(weights, gap=gap)
         measured = [(cell, column, _natural(page, spec, cell, column.width, f"{what}, cell {index}"))
@@ -118,6 +129,8 @@ def _part(cell: dict, what: str) -> str:
             f"{what} holds {', '.join(named)} — one part per cell; put the others in cells beside it")
     if "caption" in cell and named[0] != "figure":
         raise PageTypeError(f"{what}: `caption` belongs to a figure, and this cell holds {named[0]}")
+    if "marks" in cell and named[0] != "figure":
+        raise PageTypeError(f"{what}: `marks` belong to a figure, and this cell holds {named[0]}")
     if "role" in cell:
         if named[0] != "text":
             raise PageTypeError(f"{what}: `role` belongs to a text, and this cell holds {named[0]}")
@@ -161,7 +174,7 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
 
 
 def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, own_row: bool,
-           what: str) -> None:
+           what: str, seen: list) -> None:
     """Put one cell's part in its rect.
 
     `own_row` は、段が中身の言葉ぶんの高さの段か (= その段のカードは段の高さに揃える)。
@@ -192,7 +205,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
         elif part == "voices":
             page.voices(fitted, _voices(spec, cell, what))
         elif part == "rows":
-            _stack(page, spec, cell["rows"], rect, what)
+            _stack(page, spec, cell["rows"], rect, what, seen)
         elif part == "ring":
             arrange.ring(page, rect, arrange.ring_cards(spec, cell["ring"], f"{what}, ring"), what)
         elif part == "tree":
@@ -206,6 +219,10 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             # 絵は横幅いっぱいで上に寄る (= 同じ段の表や文章と上端が揃う)。縦が足りなければ縮む
             source, aspect = Spec({"figure": cell["figure"]}, spec.asset, spec.aspect, spec.theme).figure()
             caption = str(cell.get("caption", ""))
+            if "marks" in cell:
+                arrange.marked_figure(page, rect, source, aspect, arrange.read_marks(cell["marks"], what),
+                                      caption, what)
+                return
             s, ty = page.theme.spacing, page.theme.type
             wanted = round(rect.width / aspect) + (
                 s.gap_s + page.theme.wrapped_height(caption, max(rect.width - 2 * s.text_inset, 1),

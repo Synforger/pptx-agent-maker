@@ -373,7 +373,7 @@ class Page:
                 head = inner
             self.elements.append(Text("box_heading", head, heading, t.heading, ink, bold=True))
 
-    def figure(self, rect: Rect, source: Path | str, aspect: float, *, caption: str = "") -> None:
+    def figure(self, rect: Rect, source: Path | str, aspect: float, *, caption: str = "") -> Rect:
         """An image, kept at its own aspect ratio inside the area given.
 
         ⚠ **名は絵の下辺に付ける。**枠の下に固定していた間は、縦横比で縮んだぶんだけ
@@ -408,6 +408,7 @@ class Page:
         if caption:
             strip = Rect(rect.left, placed.bottom + s.gap_s, rect.width, tall)
             self.elements.append(Text("caption", strip, caption, t.caption, p.muted, align="center"))
+        return placed
 
     def chart(self, chart: Chart) -> None:
         """A chart, already worked out (= `types/bodies/chart.py` decides what is drawn and how).
@@ -664,9 +665,9 @@ class Page:
         self.elements.append(Line("line", Rect(left, top, right - left, bottom - top), start, end,
                                   self.theme.palette.muted, arrow=arrow))
 
-    def centred(self, rect: Rect, text: str, size: float, *, bold: bool = False) -> None:
-        """Words set in the middle of a part of a diagram (= the name of a circle, what two circles share)."""
-        self.elements.append(Text("diagram_text", rect, text, size, self.theme.palette.ink, bold=bold, align="center"))
+    def words(self, rect: Rect, text: str, size: float, *, bold: bool = False, align: str = "center") -> None:
+        """Words that name a part of a diagram (= a circle's name, what two circles share, a mark on a picture)."""
+        self.elements.append(Text("diagram_text", rect, text, size, self.theme.palette.ink, bold=bold, align=align))
 
     def circle(self, rect: Rect, tone: str, *, clear: float = 0.0) -> None:
         """A circle on the ground of a tone, with that ground's edge."""

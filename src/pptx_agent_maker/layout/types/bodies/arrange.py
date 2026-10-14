@@ -9,6 +9,9 @@
   線を引く。葉の数で幅を割る
 * **重なり (`overlap`)** ― 2 つか 3 つの集まりと、その共通部分 (= ベン図)。円を透かして重ね、重なった所に
   共通の言葉を置く
+* **絵の上の印 (`marks`)** ― 写真や図の 1 点を指して名前を付ける (= 製品の各部、画面の各所)。点の位置だけは
+  絵に対する割合で書く (= 頁の座標ではないので、絵の外へは出ない)。名前は絵の左右の列に並び、点まで線が引かれる
+* **マスどうしの線 (`links`)** ― `compose` の頁で、`id` を付けたマスからマスへ矢印を引く (= 隣り合うマスだけ)
 
 ⚠ **収まらなければ縮めずに止まる** (= どの並べ方も、箱か字を小さくして押し込むことはしない)。
 """
@@ -32,6 +35,8 @@ DEPTH = 4
 LENS = 0.4
 #: 重なった円の透け方 (= 重なった所が濃く見える)
 CLEAR = 0.35
+#: 印の名の列が取ってよい幅の上限 (= マスの幅に対する比。左右に列が立っても、絵がマスの 3 分の 1 は残る)
+MARK_COLUMN = 1 / 3
 #: 木の箱の子を持つ側のキー
 TREE_KEYS = ("heading", "body", "tone", "icon", "tentative", "strong", "children")
 
@@ -264,4 +269,113 @@ def _words(page: Page, rect: Rect, text: str, size: float, bold: bool, what: str
     if needed > rect.height:
         raise PageFullError(f"{what}: {text[:20]!r} does not fit its part of the circles — shorter words, "
                             "or give the cell more room; nothing will shrink")
-    page.centred(Rect(rect.left, rect.top + (rect.height - needed) // 2, rect.width, needed), text, size, bold=bold)
+    page.words(Rect(rect.left, rect.top + (rect.height - needed) // 2, rect.width, needed), text, size, bold=bold)
+
+
+# -- 絵の上の印 --------------------------------------------------------------
+
+
+def read_marks(items, what: str) -> list[tuple[float, float, str]]:
+    """Each mark: where on the picture (= across and down, 0 to 1) and what it is called."""
+    if not isinstance(items, list) or not items:
+        raise PageTypeError(f"{what}: `marks` is a list of {{ at = [across, down], text = \"…\" }}, at least one")
+    found = []
+    for number, item in enumerate(items, start=1):
+        where = f"{what}: mark {number}"
+        only_keys(item, {"at", "text"}, where)
+        at, text = item.get("at"), str(item.get("text", "")).strip()
+        if (not isinstance(at, list) or len(at) != 2 or not all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                                                                 and 0 <= v <= 1 for v in at)):
+            raise PageTypeError(f"{where}: `at` is [across, down] on the picture, each from 0 (= left, top) to 1")
+        if not text:
+            raise PageTypeError(f"{where} has no `text` — a mark is there to name what it points at")
+        found.append((float(at[0]), float(at[1]), text))
+    return found
+
+
+def marked_figure(page: Page, rect: Rect, source, aspect: float, marks: list[tuple[float, float, str]],
+                  caption: str, what: str) -> None:
+    """The picture between two columns of names, a thin line from each name to the point it names.
+
+    名前は、点が絵の左半分なら左の列、右半分なら右の列に、点の高さに合わせて並ぶ (= 重なれば下へずらし、
+    下に余らなければ上へ戻す)。列の幅はいちばん長い名前の 1 行ぶん (= マスの 3 分の 1 まで)。
+    """
+    s, ty = page.theme.spacing, page.theme.type
+    sides = {"left": [m for m in marks if m[0] < 0.5], "right": [m for m in marks if m[0] >= 0.5]}
+    widths = {side: min(max(page.theme.width(text, ty.body) for _x, _y, text in group) + 2 * s.text_inset,
+                        int(rect.width * MARK_COLUMN)) if group else 0 for side, group in sides.items()}
+    left = rect.left + (widths["left"] + s.gap_l if widths["left"] else 0)
+    right = rect.right - (widths["right"] + s.gap_l if widths["right"] else 0)
+    # 絵は上に寄る (= 印の無い絵と同じ。同じ段の物と上端が揃う)。取る高さは絵の幅で決まる高さと名の行だけ
+    named = s.gap_s + page.theme.wrapped_height(caption, max(right - left - 2 * s.text_inset, 1), ty.caption) \
+        if caption else 0
+    tall = min(round((right - left) / aspect) + named, rect.height)
+    placed = page.figure(Rect(left, rect.top, right - left, tall), source, aspect, caption=caption)
+    for side, group in sides.items():
+        if not group:
+            continue
+        width = widths[side]
+        column = rect.left if side == "left" else rect.right - width
+        heights = [page.theme.wrapped_height(text, max(width - 2 * s.text_inset, 1), ty.body) for _x, _y, text in group]
+        order = sorted(range(len(group)), key=lambda i: group[i][1])
+        tops = {}
+        below = rect.top
+        for i in order:
+            point = placed.top + group[i][1] * placed.height
+            tops[i] = max(round(point - heights[i] / 2), below)
+            below = tops[i] + heights[i] + s.gap_s
+        above = rect.bottom
+        for i in reversed(order):
+            tops[i] = min(tops[i], above - heights[i])
+            above = tops[i] - s.gap_s
+        if tops[order[0]] < rect.top:
+            raise PageFullError(f"{what}: the names on the {side} of the picture need more height than the cell has "
+                                "— fewer marks, shorter names, or a taller row; nothing will shrink")
+        dot = s.mark // 2
+        for i, (x, y, text) in enumerate(group):
+            label = Rect(column, tops[i], width, heights[i])
+            page.words(label, text, ty.body, align="right" if side == "left" else "left")
+            point = (round(placed.left + x * placed.width), round(placed.top + y * placed.height))
+            edge = label.right if side == "left" else label.left
+            page.line((edge + (s.gap_s if side == "left" else -s.gap_s), label.top + label.height // 2), point)
+            page.circle(Rect(point[0] - dot // 2, point[1] - dot // 2, dot, dot), "accent")
+
+
+# -- マスどうしの線 ----------------------------------------------------------
+
+
+def links(page: Page, written, cells: dict[str, Rect], every: list[Rect], what: str) -> None:
+    """An arrow from each cell named in `from` to the one in `to`, across the gap where the two face each other.
+
+    `every` は頁の全部のマス (= `id` の無いマスも)。2 つのあいだに別のマスが在れば、線はそれを横切るので止める。
+    """
+    if not isinstance(written, list) or not written:
+        raise PageTypeError(f"{what}: `links` is a list of {{ from = \"id\", to = \"id\" }}")
+    for number, item in enumerate(written, start=1):
+        where = f"{what}: link {number}"
+        only_keys(item, {"from", "to"}, where)
+        ends = [str(item.get(key, "")) for key in ("from", "to")]
+        missing = [end for end in ends if end not in cells]
+        if missing:
+            known = ", ".join(sorted(cells)) or "none — give the cells an `id`"
+            raise PageTypeError(f"{where}: no cell has the id {missing[0]!r} (= the ids on this page: {known})")
+        a, b = cells[ends[0]], cells[ends[1]]
+        if a.top < b.bottom and b.top < a.bottom:                       # 横に向き合う
+            y = (max(a.top, b.top) + min(a.bottom, b.bottom)) // 2
+            start, end = ((a.right, y), (b.left, y)) if a.right <= b.left else ((a.left, y), (b.right, y))
+        elif a.left < b.right and b.left < a.right:                     # 縦に向き合う
+            x = (max(a.left, b.left) + min(a.right, b.right)) // 2
+            start, end = ((x, a.bottom), (x, b.top)) if a.bottom <= b.top else ((x, a.top), (x, b.bottom))
+        else:
+            raise PageTypeError(f"{where}: {ends[0]!r} and {ends[1]!r} do not face each other across a row or a "
+                                "column — a link joins cells side by side or one above the other")
+        between = Rect(min(start[0], end[0]), min(start[1], end[1]),
+                       abs(end[0] - start[0]), abs(end[1] - start[1]))
+        for other in every:
+            if other in (a, b) or other.contains(a) or other.contains(b):
+                continue
+            if (other.left < between.right and between.left < other.right
+                    and other.top < between.bottom and between.top < other.bottom):
+                raise PageTypeError(f"{where}: another cell stands between {ends[0]!r} and {ends[1]!r} — "
+                                    "a link joins cells with nothing between them")
+        page.line(start, end, arrow=True)

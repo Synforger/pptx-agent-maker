@@ -362,3 +362,35 @@ children = [
   { heading = "Front desk", children = [ { heading = "Chat" }, { heading = "Mail" } ] },
   { heading = "Specialists", body = "the hard cases", tone = "tint" },
 ]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Where a ticket goes, and what the board shows"
+links = [ { from = "in", to = "sort" }, { from = "sort", to = "done" }, { from = "in", to = "log" } ]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "in"
+card = { heading = "Received", body = "at the desk" }
+[[pages.rows.cells]]
+id = "sort"
+card = { heading = "Sorted", body = "an owner is named" }
+[[pages.rows.cells]]
+id = "done"
+card = { heading = "Answered", body = "within a day", tone = "accent" }
+
+[[pages.rows]]
+weight = 1
+[[pages.rows.cells]]
+id = "log"
+card = { heading = "Logged", body = "every ticket is kept" }
+[[pages.rows.cells]]
+weight = 2
+figure = "wide.png"
+caption = "The board"
+marks = [
+  { at = [0.15, 0.5], text = "Open tickets" },
+  { at = [0.85, 0.3], text = "Owner" },
+  { at = [0.9, 0.8], text = "Age" },
+]

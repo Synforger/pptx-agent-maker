@@ -200,3 +200,100 @@ class Written(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Marks(unittest.TestCase):
+    """絵の上の印: 名前は絵の左右の列に、点の高さに合わせて並び、点まで線が引かれる。"""
+
+    MARKS = [{"at": [0.2, 0.3], "text": "Lens"}, {"at": [0.1, 0.8], "text": "Grip"},
+             {"at": [0.9, 0.5], "text": "Button"}]
+
+    def test_names_stand_beside_the_picture_on_the_side_of_their_point_with_a_line_to_it(self):
+        page = types.build({"type": "compose", "title": "A page", "rows": [{"cells": [
+            {"figure": "wide.png", "marks": self.MARKS}]}]}, lambda name: DATA / name, aspect)
+        (picture,) = [e.rect for e in kinds(page, "figure")]
+        self.assertEqual(picture.top, page.body.top, "the picture stands at the top of its cell, like any other")
+        names = {t.text: t for t in kinds(page, "diagram_text")}
+        self.assertLess(names["Lens"].rect.right, picture.left)
+        self.assertLess(names["Grip"].rect.right, picture.left)
+        self.assertGreater(names["Button"].rect.left, picture.right)
+        self.assertEqual(names["Lens"].align, "right")
+        self.assertLess(names["Lens"].rect.top, names["Grip"].rect.top, "in the order of their points")
+        lines = kinds(page, "line")
+        self.assertEqual(len(lines), 3)
+        for line, (x, y) in zip(lines, ((0.2, 0.3), (0.1, 0.8), (0.9, 0.5))):
+            self.assertAlmostEqual(line.end[0], picture.left + x * picture.width, delta=1)
+            self.assertAlmostEqual(line.end[1], picture.top + y * picture.height, delta=1)
+        self.assertEqual(len(kinds(page, "circle")), 3, "a dot on each point")
+
+    def test_names_whose_points_crowd_are_pushed_apart_not_piled(self):
+        crowd = [{"at": [0.1, 0.5], "text": f"Part {n}"} for n in range(4)]
+        page = types.build({"type": "compose", "title": "A page", "rows": [{"cells": [
+            {"figure": "wide.png", "marks": crowd}]}]}, lambda name: DATA / name, aspect)
+        boxes = sorted((t.rect for t in kinds(page, "diagram_text")), key=lambda r: r.top)
+        for upper, lower in zip(boxes, boxes[1:]):
+            self.assertGreaterEqual(lower.top, upper.bottom + DEFAULT.spacing.gap_s)
+
+    def test_names_whose_points_crowd_at_the_top_are_pushed_down_into_the_cell(self):
+        crowd = [{"at": [0.1, 0.0], "text": f"Part {n}"} for n in range(4)]
+        page = types.build({"type": "compose", "title": "A page", "rows": [{"cells": [
+            {"figure": "dot.png", "marks": crowd}]}]}, lambda name: DATA / name, aspect)
+        (picture,) = [e.rect for e in kinds(page, "figure")]
+        self.assertEqual(picture.top, page.body.top, "a square picture stands from the top of a wide cell")
+        boxes = sorted((t.rect for t in kinds(page, "diagram_text")), key=lambda r: r.top)
+        self.assertGreaterEqual(boxes[0].top, page.body.top)
+        for upper, lower in zip(boxes, boxes[1:]):
+            self.assertGreaterEqual(lower.top, upper.bottom + DEFAULT.spacing.gap_s)
+
+    def test_a_mark_off_the_picture_or_without_words_is_refused(self):
+        for mark in ({"at": [1.2, 0.5], "text": "x"}, {"at": [0.5], "text": "x"}, {"at": [0.5, 0.5]}):
+            with self.assertRaises(PageTypeError):
+                compose({"figure": "wide.png", "marks": [mark]})
+        with self.assertRaises(PageTypeError) as wrong:
+            compose({"card": {"heading": "A"}, "marks": self.MARKS})
+        self.assertIn("`marks` belong to a figure", str(wrong.exception))
+
+
+class Links(unittest.TestCase):
+    """マスどうしの線: `id` を付けたマスからマスへ、向き合う所に矢印を引く。"""
+
+    def build(self, rows, links):
+        return types.build({"type": "compose", "title": "A page", "rows": rows, "links": links},
+                           lambda name: DATA / name, aspect)
+
+    def test_cells_side_by_side_and_one_above_the_other_are_joined_across_their_gap(self):
+        page = self.build([{"cells": [{"id": "a", "card": {"heading": "A"}}, {"id": "b", "card": {"heading": "B"}}]},
+                           {"cells": [{"id": "c", "card": {"heading": "C"}}]}],
+                          [{"from": "a", "to": "b"}, {"from": "a", "to": "c"}])
+        a, b, c = (e.rect for e in kinds(page, "box"))
+        across, down = kinds(page, "line")
+        self.assertTrue(across.arrow and down.arrow)
+        self.assertEqual((across.start[0], across.end[0]), (a.right, b.left))
+        self.assertEqual(across.start[1], across.end[1])
+        self.assertEqual((down.start[1], down.end[1]), (a.bottom, c.top))
+        self.assertTrue(a.left < down.start[0] < a.right)
+
+    def test_a_link_backwards_points_the_other_way(self):
+        page = self.build([{"cells": [{"id": "a", "card": {"heading": "A"}}, {"id": "b", "card": {"heading": "B"}}]}],
+                          [{"from": "b", "to": "a"}])
+        a, b = (e.rect for e in kinds(page, "box"))
+        (line,) = kinds(page, "line")
+        self.assertEqual((line.start[0], line.end[0]), (b.left, a.right))
+
+    def test_an_unknown_id_a_cell_between_or_cells_that_do_not_face_are_refused(self):
+        row = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"card": {"heading": "M"}},
+                          {"id": "b", "card": {"heading": "B"}}]}]
+        with self.assertRaises(PageTypeError) as unknown:
+            self.build(row, [{"from": "a", "to": "z"}])
+        self.assertIn("'z'", str(unknown.exception))
+        with self.assertRaises(PageTypeError) as between:
+            self.build(row, [{"from": "a", "to": "b"}])
+        self.assertIn("stands between", str(between.exception))
+        corner = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"card": {"heading": "M"}}]},
+                  {"cells": [{"text": "x", "weight": 3}, {"id": "b", "card": {"heading": "B"}}]}]
+        with self.assertRaises(PageTypeError) as apart:
+            self.build(corner, [{"from": "a", "to": "b"}])
+        self.assertIn("do not face", str(apart.exception))
+        with self.assertRaises(PageTypeError) as twice:
+            self.build([{"cells": [{"id": "a", "text": "x"}, {"id": "a", "text": "y"}]}], [{"from": "a", "to": "a"}])
+        self.assertIn("two cells have the id", str(twice.exception))
