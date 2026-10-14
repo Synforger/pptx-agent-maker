@@ -173,7 +173,7 @@ class Bar(Element):
     dashed: bool = False
     align: str = "center"
     bold: bool = False
-    #: 形 (= `SHAPES`)。矩形のほかは、道のりの段の矢羽根だけ
+    #: 形 (= `SHAPES`)。矩形のほかは、道のりの段の矢羽根と、人の声の吹き出し
     shape: str = "rect"
     #: 太い枠 (= 強調)
     heavy: bool = False
@@ -183,7 +183,7 @@ class Bar(Element):
 
 #: 文字を持つ図形の形。`home` は左が平らで右が尖る矢羽根 (= 道のりの最初の段)、`chevron` は
 #: 左が切り欠かれて右が尖る矢羽根 (= 2 段目から)
-SHAPES = ("rect", "home", "chevron")
+SHAPES = ("rect", "home", "chevron", "voice")
 
 
 @dataclass(frozen=True)

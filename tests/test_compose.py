@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import tempfile
 import unittest
@@ -286,3 +287,95 @@ class OnceBaked(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def kinds(page, kind):
+    """Every element of that kind, in the order they were placed."""
+    return [e for e in page.build() if e.kind == kind]
+
+
+def voices(*said):
+    return {"voices": [dict(item) for item in said]}
+
+
+class Voices(unittest.TestCase):
+    """人の声 (= `voices`): 1 つずつ吹き出しの図形に入り、誰の声かが尾の下に小さく出る。見出しは持たない。
+    カードで置いていた間は、短い声にも見出しの行が付いて箱が高くなり、数の札と見分けが付かなかった。"""
+
+    SIX = [{"text": f"「声の {n}」", "who": f"作品 {n}"} for n in "ABCDEF"]
+
+    def test_each_voice_is_one_speech_bubble_with_who_said_it_under_it(self):
+        page = compose([row(voices({"text": "「分かりやすかった」", "who": "作品 A"}))])
+        bubble, = kinds(page, "voice")
+        who, = kinds(page, "voice_who")
+        self.assertIsInstance(bubble, Bar)
+        self.assertEqual(("voice", "「分かりやすかった」"), (bubble.shape, bubble.text))
+        self.assertEqual(("作品 A", DEFAULT.type.caption, DEFAULT.palette.muted), (who.text, who.size, who.colour))
+        self.assertGreater(who.rect.top, bubble.rect.bottom, "who said it stands under the tail")
+
+    def test_a_voice_needs_no_heading_and_stands_lower_than_a_card(self):
+        said = compose([row(voices({"text": "「良い」"}))])
+        boxed = compose([row(card("見出し", "「良い」"))])
+        self.assertLess(kinds(said, "voice")[0].rect.height, box_of(boxed, "見出し").rect.height)
+
+    def test_the_width_of_the_cell_decides_how_many_stand_side_by_side_and_rows_are_even(self):
+        page = compose([row(voices(*self.SIX))])
+        tops = sorted({bubble.rect.top for bubble in kinds(page, "voice")})
+        self.assertEqual(2, len(tops))
+        for top in tops:
+            self.assertEqual(3, sum(1 for bubble in kinds(page, "voice") if bubble.rect.top == top))
+        narrow = compose([row(voices(*self.SIX[:2]), {"text": "beside", "weight": 3})])
+        self.assertEqual(1, len({bubble.rect.left for bubble in kinds(narrow, "voice")}), "a narrow cell stacks them")
+
+    def test_the_bubbles_of_a_row_stand_as_tall_as_the_tallest(self):
+        long = {"text": "「長い声。" + "とても長い声で、折り返して何行にもなる。" * 3 + "」"}
+        page = compose([row(voices({"text": "「短い」"}, long))])
+        alone = compose([row(voices({"text": "「短い」"}, {"text": "「短い」"}))])
+        heights = {bubble.rect.height for bubble in kinds(page, "voice")}
+        self.assertEqual(1, len(heights))
+        self.assertGreater(heights.pop(), kinds(alone, "voice")[0].rect.height, "the short one grows to the long one")
+
+    def test_a_voice_takes_the_tone_a_box_takes(self):
+        page = compose([row(voices({"text": "「a」"}, {"text": "「b」", "tone": "tint"}))])
+        plain, tinted = kinds(page, "voice")
+        self.assertNotEqual(plain.fill, tinted.fill)
+
+    def test_a_row_of_voices_is_as_tall_as_its_words(self):
+        page = compose([row(voices(*self.SIX)), row({"figure": SQUARE})])
+        last = max(who.rect.bottom for who in kinds(page, "voice_who"))
+        picture = next(e for e in page.build() if isinstance(e, Figure))
+        self.assertEqual(last + GAP, picture.rect.top, "the picture row takes what the voices leave")
+
+    def test_what_is_refused(self):
+        for cell, words in ((voices(), "at least one"), ({"voices": "a"}, "at least one"),
+                            (voices({"who": "A"}), "no `text`"), (voices({"text": "a", "by": "A"}), "by"),
+                            (voices({"text": "a", "tone": "neon"}), "tone"), ({"voices": ["a"]}, "write it as")):
+            with self.subTest(cell=cell), self.assertRaises(PageTypeError) as refused:
+                compose([row(cell)])
+            self.assertIn(words, str(refused.exception))
+
+    def test_voices_that_do_not_fit_stop(self):
+        many = [{"text": "「" + "長い声" * 20 + "」", "who": "誰か"} for _ in range(30)]
+        with self.assertRaises(PageFullError):
+            compose([row(voices(*many))])
+
+    def test_voices_in_a_row_that_shares_the_height_stop_and_say_which_cell(self):
+        some = [{"text": "「" + "長い声" * 10 + "」", "who": "誰か"} for _ in range(8)]
+        with self.assertRaises(PageFullError) as stopped:
+            compose([row(voices(*some), weight=1), row({"figure": SQUARE}, weight=6)])
+        self.assertIn("give the row a larger `weight`", str(stopped.exception))
+
+    def test_it_is_written_as_a_rounded_callout_with_its_tail_to_the_lower_left(self):
+        page = compose([row(voices({"text": "「分かりやすかった」", "who": "作品 A"}))])
+        with tempfile.TemporaryDirectory() as tmp:
+            deck = new_deck(DEFAULT)
+            add_page(deck, page.build(), DEFAULT)
+            saved = save(deck, Path(tmp) / "voices.pptx")
+            import zipfile
+            with zipfile.ZipFile(saved) as archive:
+                xml = archive.read("ppt/slides/slide1.xml").decode("utf-8")
+        self.assertIn('prst="wedgeRoundRectCallout"', xml)
+        adjusted = dict(re.findall(r'<a:gd name="(adj\d)" fmla="val (-?\d+)"/>', xml))
+        self.assertLess(int(adjusted["adj1"]), 0, "the tail leans to the left")
+        self.assertGreater(int(adjusted["adj2"]), 50000, "the tail reaches below the bubble")
+        self.assertIn("「分かりやすかった」", xml)

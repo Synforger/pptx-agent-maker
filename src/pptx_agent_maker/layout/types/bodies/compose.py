@@ -28,14 +28,17 @@ from __future__ import annotations
 from numbers import Real
 
 from ...base.geometry import Rect
-from ...parts.page import Card, Page, PageFullError
+from ...parts.look import Style
+from ...parts.page import Card, Page, PageFullError, Voice
 from ..core.registry import TYPES, PageTypeError, register
-from ..core.read import Spec, read_card, read_table, only_keys
+from ..core.read import Spec, read_card, read_table, read_tone, only_keys
 from ..core.stack import card_height
 from .chart import place_chart
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
-PARTS = ("card", "figure", "table", "text", "points", "chart")
+PARTS = ("card", "figure", "table", "text", "points", "chart", "voices")
+#: 声 1 つが読むキー
+VOICE_KEYS = ("text", "who", "tone")
 #: マスに丸ごと入れられる型 (= その型の書き方のまま)。`cards` はマスごとの `card` で、
 #: 入れ子は `rows` で書くので、この 2 つは入れない
 BODIES = ("figures", "figure_grid", "flow", "roadmap", "timeline", "board", "agenda")
@@ -127,6 +130,8 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
         return theme.wrapped_height(str(cell["text"]), max(width - 2 * s.text_inset, 1))
     if part == "points":
         return page.points_height(width, _points(cell, what))
+    if part == "voices":
+        return page.voices_height(width, _voices(spec, cell, what))
     if part == "rows":
         laid = _measure(page, spec, cell["rows"], width, what)
         if any(height is None for _row, _cells, height, _weight in laid):
@@ -146,7 +151,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
     カードの字が箱からはみ出し、文章の枠は字より短かった。入れ子の段と表は、自分で同じことを言う。
     """
     part = _part(cell, what)
-    if natural is not None and natural > rect.height and part in ("card", "text", "points"):
+    if natural is not None and natural > rect.height and part in ("card", "text", "points", "voices"):
         raise PageFullError(
             f"{what}: this {part} needs {natural} EMU of height and its row has {rect.height} — "
             "give the row a larger `weight`, or take something off the page; nothing will shrink")
@@ -160,6 +165,8 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             page.text(fitted, str(cell["text"]))
         elif part == "points":
             page.points(fitted, _points(cell, what))
+        elif part == "voices":
+            page.voices(fitted, _voices(spec, cell, what))
         elif part == "rows":
             _stack(page, spec, cell["rows"], rect, what)
         elif part == "chart":
@@ -206,6 +213,25 @@ def _the_card(spec: Spec, cell: dict, what: str) -> Card:
 
 def _table(cell: dict, what: str) -> list[list[str]]:
     return read_table(cell["table"], f"{what}: table")
+
+
+def _voices(spec: Spec, cell: dict, what: str) -> list[Voice]:
+    """What people said, each `{ text = "…", who = "…", tone = "…" }` (= `who` and `tone` may be left out)."""
+    listed = cell["voices"]
+    if not isinstance(listed, list) or not listed:
+        raise PageTypeError(f"{what}: `voices` is a list of {{ text = …, who = … }}, at least one")
+    found = []
+    for number, item in enumerate(listed, start=1):
+        where = f"{what}: voice {number}"
+        if not isinstance(item, dict):
+            raise PageTypeError(f"{where} is {item!r} — write it as {{ text = \"…\", who = \"…\" }}")
+        only_keys(item, set(VOICE_KEYS), where)
+        text = str(item.get("text", "")).strip()
+        if not text:
+            raise PageTypeError(f"{where} has no `text` — a voice is what someone said")
+        found.append(Voice(text, str(item.get("who", "")).strip(),
+                           Style(read_tone(spec, item, where, "box") if "tone" in item else "box")))
+    return found
 
 
 def _points(cell: dict, what: str) -> list[str]:

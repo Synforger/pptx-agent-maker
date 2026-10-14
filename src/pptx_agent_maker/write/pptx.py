@@ -36,7 +36,8 @@ from ..layout.base.tokens import DEFAULT, MARK_FACE, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
 #: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)
-PRESET = {"rect": MSO_SHAPE.RECTANGLE, "home": MSO_SHAPE.PENTAGON, "chevron": MSO_SHAPE.CHEVRON}
+PRESET = {"rect": MSO_SHAPE.RECTANGLE, "home": MSO_SHAPE.PENTAGON, "chevron": MSO_SHAPE.CHEVRON,
+          "voice": MSO_SHAPE.ROUNDED_RECTANGULAR_CALLOUT}
 
 #: 文字の枠が上下に自分で取る余白 (= pptx の既定。左右は `Spacing.text_inset`)
 TEXT_INSET_Y = 45720
@@ -152,6 +153,9 @@ def _bar(slide, element: Bar, theme: Theme) -> None:
         PRESET[element.shape], Emu(element.rect.left), Emu(element.rect.top),
         Emu(element.rect.width), Emu(element.rect.height),
     )
+    if element.shape == "voice":
+        _voice(shape, element, theme)
+        return
     if element.shape != "rect":
         # 尖りの深さはプリセットの調整値 (= 短い辺に対する比) で書く。既定のままだと、段の高さで
         # 深さが変わり、隣の段の切り欠きと噛み合わない
@@ -179,6 +183,35 @@ def _bar(slide, element: Bar, theme: Theme) -> None:
     run.text = element.text
     run.font.size = Pt(element.size)
     run.font.bold = element.bold
+    run.font.color.rgb = _colour(element.colour)
+    run.font.name = theme.type.family
+
+
+def _voice(shape, element: Bar, theme: Theme) -> None:
+    """A speech bubble: its tail to the lower left, its words inside with the room of a box.
+
+    尾の先はプリセットの調整値で書く (= 図形の真ん中からの、幅と高さに対する比)。先は左の角の丸みの内側、
+    吹き出しの下の間隔 (= `gap_m`) の 3 分の 2 まで ― 誰の声かの字は、その間隔の下に置かれる (= `Page.voices`)。
+    """
+    s, rect = theme.spacing, element.rect
+    shape.adjustments[0] = (2 * s.pad - rect.width / 2) / rect.width
+    shape.adjustments[1] = (rect.height / 2 + s.gap_m * 2 / 3) / rect.height
+    if element.fill:
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = _colour(element.fill)
+    else:
+        shape.fill.background()
+    _edge(shape, element.outline, theme)
+    _plain(shape)
+    frame = shape.text_frame
+    frame.word_wrap = True
+    frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+    frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(s.pad)
+    paragraph = frame.paragraphs[0]
+    paragraph.alignment = ALIGN[element.align]
+    run = paragraph.add_run()
+    run.text = element.text
+    run.font.size = Pt(element.size)
     run.font.color.rgb = _colour(element.colour)
     run.font.name = theme.type.family
 
