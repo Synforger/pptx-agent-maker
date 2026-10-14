@@ -40,18 +40,23 @@ def a_specimen(destination: Path, titles: list[str]) -> Path:
     return save(deck, destination)
 
 
+#: 見本の絵の一辺 (= px)。頁いっぱいに置いても 150 ppi を割らない大きさ (= 小さいと検査
+#: `low_resolution` が、見本の絵の粗さを頁の欠陥として正しく言う)
+DOT = 2000
+
+
 def make_dot() -> Path:
-    """A tiny PNG written on the spot, so a specimen has media to copy."""
+    """A plain square PNG written on the spot, so a specimen has media to copy."""
     target = REPO / "tests" / "data" / "dot.png"
     target.parent.mkdir(parents=True, exist_ok=True)
     if True:  # written every run: a half-written fixture otherwise fails forever
-        raw = b"".join(b"\x00" + b"\x80\x80\x80" * 8 for _ in range(8))
+        raw = b"".join(b"\x00" + b"\x80\x80\x80" * DOT for _ in range(DOT))
         def chunk(tag: bytes, payload: bytes) -> bytes:
             body = tag + payload
             return struct.pack(">I", len(payload)) + body + struct.pack(">I", zlib.crc32(body))
         target.write_bytes(
             b"\x89PNG\r\n\x1a\n"
-            + chunk(b"IHDR", struct.pack(">IIBBBBB", 8, 8, 8, 2, 0, 0, 0))
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", DOT, DOT, 8, 2, 0, 0, 0))
             + chunk(b"IDAT", zlib.compress(raw, 9))
             + chunk(b"IEND", b"")
         )
