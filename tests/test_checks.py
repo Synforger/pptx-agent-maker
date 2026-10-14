@@ -12,7 +12,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from PIL import Image
 from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE
 from pptx.util import Emu, Pt
 
 REPO = Path(__file__).resolve().parent.parent
@@ -22,7 +25,8 @@ sys.path.insert(0, str(REPO / "tests"))
 from pptx_agent_maker import DEFAULT, Page  # noqa: E402
 from pptx_agent_maker.checks import CHECKS, run_all  # noqa: E402
 from pptx_agent_maker.checks.rules import (  # noqa: E402
-    empty_cells, internal_names, long_title, off_page, overlap, type_floor, unreplaced, untyped_parts)
+    contrast, empty_cells, internal_names, long_title, low_resolution, near_alignment, off_page, overlap,
+    stretched, type_floor, unreplaced, untyped_parts)
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 from test_deck import make_dot  # noqa: E402
 
@@ -142,10 +146,78 @@ class ChecksFireTest(unittest.TestCase):
         deck.save(str(self.dir / "broken.pptx"))
         self.assertTrue(long_title.run(self.dir / "broken.pptx", {}))
 
+    def _words_on(self, name: str, ink: str, ground: str | None, *, beneath: str | None = None,
+                  size: float = 14) -> Path:
+        """One box of words in `ink`, filled with `ground` (or on a box filled `beneath` under it)."""
+        def place(slide):
+            if beneath:
+                under = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(500000), Emu(500000),
+                                               Emu(5000000), Emu(2000000))
+                under.fill.solid()
+                under.fill.fore_color.rgb = RGBColor.from_string(beneath)
+            box = text_at(slide, "地に溶ける文字", size=Pt(size))
+            if ground:
+                box.fill.solid()
+                box.fill.fore_color.rgb = RGBColor.from_string(ground)
+            box.text_frame.paragraphs[0].runs[0].font.color.rgb = RGBColor.from_string(ink)
+        return raw_deck(self.dir / name, place)
+
+    def test_words_too_close_to_their_ground_are_caught(self) -> None:
+        """⚠ 地は字の図形の塗り、無ければ下に敷かれた図形の塗り。字の色を書いていない字は測らない。"""
+        self.assertTrue(contrast.run(self._words_on("pale.pptx", "BBBBBB", "FFFFFF"), {}))
+        self.assertTrue(contrast.run(self._words_on("dark.pptx", "333333", None, beneath="1F1F1F"), {}),
+                        "the ground under a clear box was not read")
+        self.assertEqual([], contrast.run(self._words_on("ok.pptx", "222222", "FFFFFF"), {}))
+        self.assertEqual([], contrast.run(self._words_on("light.pptx", "FFFFFF", None, beneath="1F3864"), {}))
+        # 4.5 には届かないが 3 は越える色 (= 大きい字なら通る)
+        self.assertTrue(contrast.run(self._words_on("grey14.pptx", "8A8A8A", "FFFFFF"), {}))
+        self.assertEqual([], contrast.run(self._words_on("grey24.pptx", "8A8A8A", "FFFFFF", size=24), {}))
+        self.assertEqual([], contrast.run(self._words_on("pale.pptx", "BBBBBB", "FFFFFF"), {"contrast": False}))
+
+    def _picture(self, name: str, pixels: tuple[int, int], frame: tuple[int, int]) -> Path:
+        image = self.dir / f"{name}.png"
+        Image.new("RGB", pixels, (90, 120, 160)).save(image)
+        return raw_deck(self.dir / f"{name}.pptx", lambda s: s.shapes.add_picture(
+            str(image), Emu(500000), Emu(500000), Emu(frame[0]), Emu(frame[1])))
+
+    def test_a_picture_pulled_out_of_its_shape_is_caught(self) -> None:
+        self.assertTrue(stretched.run(self._picture("squashed", (1600, 1600), (3600000, 1800000)), {}))
+        self.assertEqual([], stretched.run(self._picture("kept", (1600, 800), (3600000, 1800000)), {}))
+        self.assertEqual([], stretched.run(self._picture("near", (1600, 800), (3600000, 1820000)), {}),
+                         "a drift under 2% was reported")
+
+    def test_a_cropped_picture_is_compared_by_what_is_left(self) -> None:
+        deck = self._picture("cropped", (1600, 1600), (3600000, 1800000))
+        cropped = Presentation(str(deck))
+        picture = cropped.slides[0].shapes[0]
+        picture.crop_top = picture.crop_bottom = 0.25  # 正方形の上下を切って 2:1
+        cropped.save(str(deck))
+        self.assertEqual([], stretched.run(deck, {}))
+
+    def test_a_picture_blown_up_past_its_pixels_is_caught(self) -> None:
+        # 1 inch = 914400 EMU: 300 px を 4 inch に置けば 75 ppi、1200 px なら 300 ppi
+        self.assertTrue(low_resolution.run(self._picture("blurred", (300, 300), (3657600, 3657600)), {}))
+        self.assertEqual([], low_resolution.run(self._picture("sharp", (1200, 1200), (3657600, 3657600)), {}))
+
+    def _boxes(self, name: str, drop: int, *, height: int = 1000000) -> Path:
+        def place(slide):
+            slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(500000), Emu(1000000), Emu(2000000), Emu(1000000))
+            slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(3000000), Emu(1000000 + drop), Emu(2000000), Emu(height))
+        return raw_deck(self.dir / name, place)
+
+    def test_siblings_that_miss_by_a_hair_are_caught(self) -> None:
+        """⚠ 揃うはずの組 (= 同じ大きさで横に並ぶ) だけを比べる。1 mm 以上はわざとずらした物。"""
+        self.assertTrue(near_alignment.run(self._boxes("hair.pptx", 10800), {}), "0.3 mm went through")
+        self.assertEqual([], near_alignment.run(self._boxes("level.pptx", 0), {}))
+        self.assertEqual([], near_alignment.run(self._boxes("meant.pptx", 72000), {}), "2 mm is on purpose")
+        self.assertEqual([], near_alignment.run(self._boxes("other.pptx", 10800, height=600000), {}),
+                         "boxes of a different height are not siblings in a row")
+
     def test_every_check_has_a_fixture_that_fires_it(self) -> None:
         """A check nobody proved is a check nobody can trust."""
         proven = {off_page.NAME, overlap.NAME, type_floor.NAME, empty_cells.NAME,
-                  internal_names.NAME, unreplaced.NAME, untyped_parts.NAME, long_title.NAME}
+                  internal_names.NAME, unreplaced.NAME, untyped_parts.NAME, long_title.NAME,
+                  contrast.NAME, stretched.NAME, low_resolution.NAME, near_alignment.NAME}
         self.assertEqual({check.NAME for check in CHECKS}, proven,
                          "a check exists with no fixture proving it fires")
 

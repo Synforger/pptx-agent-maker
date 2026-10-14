@@ -3,4 +3,4 @@
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
 <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>
 </Relationships>
-<!-- image1.png sha256 43b393de49cf639cc8d786b7133e867e598815e0c8998e5e093ecbea7b0cd09a -->
+<!-- image1.png sha256 d1c6057fe74cb8048a5a0a2576174220c3529b812753019efb3d677e0c51d196 -->

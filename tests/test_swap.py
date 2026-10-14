@@ -75,6 +75,11 @@ class SwappingThroughTheBuild(unittest.TestCase):
         arranged_by_hand(self.root / "w0.pptx")
         for name in ("dot.png", "wide.png"):
             shutil.copy(DATA / name, self.root / "assets" / name)
+        # 見本は手で並べた頁をわざと作っている (= 0.3 mm 揃っていない段と、枠に合わない比の絵)。
+        # 見るのは差し替えなので、その崩れを言う 2 つの検査はこの案件では外す
+        settings = self.root / "workspace.toml"
+        settings.write_text(settings.read_text(encoding="utf-8").replace(
+            "[checks]\n", "[checks]\nnear_alignment = false\nstretched = false\n", 1), encoding="utf-8")
 
     def tearDown(self) -> None:
         self.tmp.cleanup()
