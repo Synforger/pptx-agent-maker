@@ -31,6 +31,7 @@ from pptx_agent_maker.deck import Deck  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
 from pptx_agent_maker.layout.base.tokens import theme_from  # noqa: E402
 from pptx_agent_maker.layout.parts.elements import Chart  # noqa: E402
+from pptx_agent_maker.layout.types.bodies import chart as chart_body  # noqa: E402
 from pptx_agent_maker.write import add_page, aspect, new_deck, save  # noqa: E402
 from support.pages import build  # noqa: E402
 from test_deck import a_specimen, make_dot  # noqa: E402
@@ -501,8 +502,10 @@ class WordsPointingAtAPoint(unittest.TestCase):
         chart = a_chart()
         self.assertEqual((None, None, ()), (chart.frame, chart.pinned, chart.callouts))
         xml, parts = written(chart)
-        for mark in ("manualLayout", "<c:max ", "<c:min ", "<c:majorUnit", "<c:gapWidth"):
+        for mark in ("manualLayout", "<c:max ", "<c:majorUnit", "<c:gapWidth"):
             self.assertNotIn(mark, xml)
+        # 値の軸を隠したグラフは、下限だけ 0 に置く (= `AHiddenAxisStartsAtZero`)
+        self.assertIn('<c:min val="0.0"/>', xml)
         self.assertNotIn("<p:grpSp>", parts["ppt/slides/slide1.xml"].decode("utf-8"))
 
     def test_the_words_take_a_band_above_the_chart_and_the_chart_takes_the_rest(self) -> None:
@@ -883,3 +886,128 @@ class TheChartTravelsWithItsPage(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AScaleOfItsOwn(unittest.TestCase):
+    """`scale` は値の軸の下限・上限・目盛りの間。書いたグラフだけ、値の軸と目盛りの線が出て、数字は棒に付いたまま
+    (= 5 段階の評価で「5 のうちどこか」を目で測る)。今までは、数字を付けると軸が消え、軸を出すと数字が消え、
+    目盛りの線はどちらでも引かなかった。"""
+
+    RATED = {"name": "5 段階の平均", "values": [4.53, 4.31, 3.49]}
+    WHO = ["A", "B", "C"]
+    FIVE = {"from": 1, "to": 5, "step": 1}
+
+    def rated(self, kind="column", **keys) -> Chart:
+        return a_chart(kind, series=(self.RATED,), categories=self.WHO, scale=self.FIVE, **keys)
+
+    def test_the_numbers_stay_on_the_bars_and_the_axis_shows_too(self) -> None:
+        chart = self.rated()
+        self.assertEqual((1, 5, 1), chart.scale)
+        self.assertTrue(chart.axis)
+        self.assertTrue(chart.series[0].number_format, "the numbers are still on the bars")
+
+    def test_without_a_scale_nothing_changes(self) -> None:
+        self.assertIsNone(a_chart().scale)
+        self.assertFalse(a_chart().axis)
+        xml, _parts = written(a_chart())
+        self.assertNotIn("<c:majorGridlines", xml)
+
+    def test_the_axis_runs_from_and_to_with_a_line_at_every_step(self) -> None:
+        for kind in ("column", "bar", "line"):
+            with self.subTest(kind=kind):
+                xml, _parts = written(self.rated(kind))
+                value_axis = re.search(r"<c:valAx>.*?</c:valAx>", xml, re.S).group(0)
+                self.assertIn('<c:min val="1.0"/>', value_axis)
+                self.assertIn('<c:max val="5.0"/>', value_axis)
+                self.assertIn('<c:majorUnit val="1.0"/>', value_axis)
+                self.assertIn("<c:majorGridlines>", value_axis)
+                self.assertIn(f'<a:srgbClr val="{P.rule}"/>', re.search(
+                    r"<c:majorGridlines>.*?</c:majorGridlines>", value_axis, re.S).group(0))
+                self.assertIn('<c:delete val="0"/>', value_axis)
+                self.assertIn("<c:showVal val=\"1\"/>", xml)
+
+    def test_a_stacked_column_takes_a_scale_from_zero(self) -> None:
+        chart = a_chart("stacked", series=(NORTH, SOUTH), scale={"from": 0, "to": 40, "step": 10})
+        self.assertEqual((0, 40, 10), chart.scale)
+
+    def test_a_percentage_runs_zero_to_a_hundred(self) -> None:
+        chart = a_chart(series=({"name": "share", "values": [12.5, 40, 87]},), categories=self.WHO,
+                        unit="%", scale={"from": 0, "to": 100, "step": 25})
+        self.assertEqual((0, 100, 25), chart.scale)
+
+
+class AScaleIsRefused(unittest.TestCase):
+    """書けない範囲は止める (= 黙って直さない)。"""
+
+    refused = WhatIsRefused.refused
+
+    def test_it_is_three_numbers(self) -> None:
+        self.refused({"scale": 5}, "`scale` is { from = …, to = …, step = … }")
+        self.refused({"scale": {"from": 1, "to": 5}}, "needs `step`")
+        self.refused({"scale": {"from": 1, "to": 5, "step": 1, "by": 2}}, "by")
+        self.refused({"scale": {"from": "1", "to": 5, "step": 1}}, "a chart is drawn from numbers")
+
+    def test_from_is_below_to_and_the_steps_are_whole(self) -> None:
+        self.refused({"scale": {"from": 5, "to": 1, "step": 1}}, "`from` (5) is below `to` (1)")
+        self.refused({"scale": {"from": 0, "to": 30, "step": 7}}, "whole steps")
+        self.refused({"scale": {"from": 0, "to": 30, "step": 0}}, "whole steps")
+        self.refused({"scale": {"from": 0, "to": 30, "step": 1}}, f"at most {chart_body.MOST_TICKS}")
+
+    def test_a_value_outside_the_axis(self) -> None:
+        self.refused({"scale": {"from": 0, "to": 20, "step": 5}}, "Q3 fall outside 0 to 20", "cut off")
+        self.refused({"series": [NORTH, SOUTH], "scale": {"from": 10, "to": 25, "step": 5}}, "Q1 (South)")
+
+    def test_a_stacked_column_starts_at_zero_and_its_stack_fits(self) -> None:
+        self.refused({"kind": "stacked", "series": [NORTH, SOUTH], "scale": {"from": 5, "to": 40, "step": 5}},
+                     "read from 0")
+        self.refused({"kind": "stacked", "series": [NORTH, SOUTH], "scale": {"from": 0, "to": 30, "step": 5}},
+                     "Q3, Q4 fall outside")
+
+    def test_a_waterfall_and_a_chart_with_callouts_take_none(self) -> None:
+        self.refused({"kind": "waterfall", "series": [{"name": "n", "values": [10, 2, 12]}],
+                      "categories": ["Start", "Up", "End"], "totals": ["Start", "End"],
+                      "scale": {"from": 0, "to": 20, "step": 5}}, "waterfall", "no scale")
+        self.refused({"callouts": [{"at": "Q3", "text": "peak"}], "scale": {"from": 0, "to": 25, "step": 5}},
+                     "callouts", "scale off")
+
+    def test_a_scatter_names_its_axes_and_takes_no_scale(self) -> None:
+        with self.assertRaises(PageTypeError):
+            build({"type": "chart", "title": "t", "chart": {
+                "kind": "scatter", "x": "x", "y": "y", "series": [{"name": "s", "points": [[1, 2]]}],
+                "scale": {"from": 0, "to": 5, "step": 1}}})
+
+
+class AHiddenAxisStartsAtZero(unittest.TestCase):
+    """⚠ **値の軸を隠したグラフは、0 を軸の端に固定する。**近い値 (= 75 / 75 / 67) を自動に任せると、描く側が
+    下限を 0 より上に取り、67 の棒が 75 の棒の半分以下に見えた。軸が隠れているので読み手は気づけない。"""
+
+    def axis_of(self, chart: Chart) -> str:
+        return re.search(r"<c:valAx>.*?</c:valAx>", written(chart)[0], re.S).group(0)
+
+    def test_numbers_close_together_still_stand_from_zero(self) -> None:
+        close = a_chart(series=({"name": "Score", "values": [75, 75, 67]},), categories=["A", "B", "C"])
+        self.assertFalse(close.axis)
+        self.assertIn('<c:min val="0.0"/>', self.axis_of(close))
+        self.assertNotIn("<c:max ", self.axis_of(close))
+
+    def test_every_kind_with_its_axis_hidden_holds_zero(self) -> None:
+        for kind in ("column", "bar", "line", "stacked"):
+            with self.subTest(kind=kind):
+                self.assertIn('<c:min val="0.0"/>', self.axis_of(a_chart(kind, series=(NORTH, SOUTH))))
+
+    def test_numbers_all_below_zero_hold_zero_at_the_top(self) -> None:
+        below = a_chart(series=({"name": "Loss", "values": [-3, -5, -4, -6]},))
+        self.assertIn('<c:max val="0.0"/>', self.axis_of(below))
+        self.assertNotIn("<c:min ", self.axis_of(below))
+
+    def test_numbers_on_both_sides_of_zero_are_left_to_the_axis_that_crosses_it(self) -> None:
+        both = self.axis_of(a_chart(series=({"name": "Change", "values": [3, -2, 5, -1]},)))
+        self.assertNotIn("<c:min ", both)
+        self.assertNotIn("<c:max ", both)
+
+    def test_a_shown_axis_is_left_to_the_app_and_a_scale_says_its_own(self) -> None:
+        shown = self.axis_of(a_chart(labels=False))
+        self.assertNotIn("<c:min ", shown)
+        scaled = self.axis_of(a_chart(series=({"name": "r", "values": [4.5, 4.3, 3.5, 4.0]},),
+                                      scale={"from": 1, "to": 5, "step": 1}))
+        self.assertIn('<c:min val="1.0"/>', scaled)

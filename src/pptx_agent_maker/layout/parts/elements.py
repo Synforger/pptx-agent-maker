@@ -154,6 +154,9 @@ class Chart(Element):
     #: 点のグラフ (= `scatter`) の軸の名前。項目のグラフでは空
     x_title: str = ""
     y_title: str = ""
+    #: 値の軸の (下限, 上限, 目盛りの間)。在れば値の軸と目盛りの線を出す (= 無ければ軸は PowerPoint が決め、
+    #: 目盛りの線は引かない)
+    scale: tuple[float, float, float] | None = None
 
 
 @dataclass(frozen=True)
