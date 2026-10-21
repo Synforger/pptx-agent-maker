@@ -198,7 +198,7 @@ class EveryLineOfACell(unittest.TestCase):
     def test_every_line_of_a_shaded_cell_takes_the_colour_that_reads_on_its_ground(self) -> None:
         cell = self.cells()["濃い地二行目"]
         inks = re.findall(r'<a:rPr[^>]*>.*?<a:srgbClr val="([0-9A-F]{6})"', cell, re.S)
-        self.assertEqual([DEFAULT.palette.words_on(DEFAULT.palette.shade(4))] * 2, inks)
+        self.assertEqual([DEFAULT.palette.words_on(DEFAULT.palette.shade(4), DEFAULT.type.body)] * 2, inks)
 
     def test_a_cell_of_one_line_is_written_as_it_always_was(self) -> None:
         self.assertEqual(1, len(re.findall(r"<a:p>", self.cells()["一行だけ"])))

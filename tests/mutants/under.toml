@@ -101,8 +101,8 @@ new = '    for own in ("a:prstGeom",):'
 [[mutant]]
 name = "a declared page's long title is said from both sides"
 file = "src/pptx_agent_maker/checks/__init__.py"
-old = "             if not (finding.check in both and finding.page in declared)]"
-new = "             ]"
+old = "for finding in found if not (finding.check in both and finding.page in declared)]"
+new = "for finding in found]"
 
 # -- a line the layout draws across the page -------------------------------------
 

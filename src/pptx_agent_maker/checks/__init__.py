@@ -16,19 +16,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .base.finding import Finding
+from .base.finding import Finding, Findings
 from .declared import ALL as DECLARED
 from .rules import ALL as CHECKS
 
-__all__ = ["Finding", "CHECKS", "DECLARED", "run_all", "run_declared", "run_built", "report"]
+__all__ = ["Finding", "Findings", "CHECKS", "DECLARED", "run_all", "run_declared", "run_built", "report"]
 
 
 def run_all(deck: Path | str, config: dict | None = None) -> list[Finding]:
     """Every check over one built deck."""
     deck = Path(deck)
-    findings: list[Finding] = []
+    findings = Findings()
     for check in CHECKS:
-        findings.extend(check.run(deck, config or {}))
+        found = check.run(deck, config or {})
+        findings.extend(found)
+        findings.allowed.extend(getattr(found, "allowed", ()))
     return findings
 
 
@@ -49,16 +51,17 @@ def run_built(deck: Path | str, manifest, theme, config: dict | None = None) -> 
     """
     both = {check.NAME for check in CHECKS} & {check.NAME for check in DECLARED}
     declared = {number for number, entry in enumerate(manifest.entries, start=1) if entry.kind == "declare"}
-    built = [finding for finding in run_all(deck, config)
-             if not (finding.check in both and finding.page in declared)]
-    return built + run_declared(manifest, theme, config)
+    found = run_all(deck, config)
+    built = [finding for finding in found if not (finding.check in both and finding.page in declared)]
+    return Findings(built + run_declared(manifest, theme, config), found.allowed)
 
 
 def report(findings: list[Finding], declared: bool = False) -> str:
     """The findings, then a line per check so a clean deck still says what was looked at.
 
     `declared` は、manifest を見る検査も回したか (= `build` は回す。焼いた deck だけを渡された
-    `check` は回せない)。回していない検査を「ok」と言わない。
+    `check` は回せない)。回していない検査を「ok」と言わない。案件が通した物 (= `Findings.allowed`) は、
+    その検査の行の下に `pass` で 1 行ずつ出す (= 数えないが、黙って通さない)。
     """
     lines = [finding.render() for finding in sorted(findings, key=lambda f: f.page)]
     lines.append("")
@@ -66,4 +69,6 @@ def report(findings: list[Finding], declared: bool = False) -> str:
     for name in names:
         count = sum(1 for f in findings if f.check == name)
         lines.append(f"  {'FAIL' if count else 'ok':4}  {name:<16} {count}")
+        lines.extend(f"  {'pass':4}  {name:<16} {what}" for check, what in getattr(findings, "allowed", ())
+                     if check == name)
     return "\n".join(lines)

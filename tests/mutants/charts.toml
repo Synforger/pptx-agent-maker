@@ -67,7 +67,7 @@ new = "    unit = \"\""
 [[mutant]]
 name = "the numbers inside stacked columns are all set in the colour of the body"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "label_colour=palette.words_on(colour) if stacked else \"\","
+old = "label_colour=palette.words_on(colour, page.theme.type.body) if stacked else \"\","
 new = "label_colour=\"\","
 
 [[mutant]]

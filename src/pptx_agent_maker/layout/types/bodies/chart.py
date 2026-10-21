@@ -492,7 +492,7 @@ def _plain(page: Page, plan: _Plan, what: str) -> tuple[tuple[Series, ...], bool
             points=((one_category, palette.accent),) if one_category is not None else (),
             number_format=number_format,
             # 段の中に置く数字は、その段の地の上で読める方の色。段の境は紙の色の細い線で切る
-            label_colour=palette.words_on(colour) if stacked else "",
+            label_colour=palette.words_on(colour, page.theme.type.body) if stacked else "",
             outline=edge or (palette.paper if stacked else "")))
     return tuple(drawn), len(drawn) > 1
 
@@ -540,7 +540,8 @@ def _waterfall(page: Page, plan: _Plan, what: str) -> tuple[tuple[Series, ...], 
         up.append(tall if value >= 0 else None), down.append(tall if value < 0 else None), total.append(None)
 
     def labelled(sign: str, colour: str) -> dict:
-        return {"number_format": _format(plan, sign) if plan.labels else "", "label_colour": palette.words_on(colour)}
+        return {"number_format": _format(plan, sign) if plan.labels else "",
+                "label_colour": palette.words_on(colour, page.theme.type.body)}
 
     return (
         Series("(base)", tuple(base)),

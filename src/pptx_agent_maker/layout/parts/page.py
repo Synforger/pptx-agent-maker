@@ -265,8 +265,12 @@ class Page:
             Text("band_text", rect.inset(s.pad), text, t.heading, p.ink, bold=conclusion)
         )
 
-    def ground(self, tone: str) -> tuple[str, str, str]:
+    def ground(self, tone: str, points: float | None = None, bold: bool = False) -> tuple[str, str, str]:
         """(the fill, the colour of words on it, the colour of its edge) for a tone.
+
+        `points` と `bold` は、その地に載せる字の大きさと太さ (= 書かなければ本文の大きさ、太字でない)。
+        字の色は大きさと太さで下限が変わる (= `Palette.words_on`)。同じ地に大きさの違う字が載るなら、
+        小さい方で渡す。
 
         Dark grounds take the paper's colour for their words and no edge; light grounds take
         an edge, or they melt into whatever lies behind them.
@@ -279,7 +283,7 @@ class Page:
         # (= 差し色は案件が変えるので、濃いとは限らない。白を決め打つと薄い差し色で字が溶けた)
         fill = ({"accent": p.accent, "good": p.good, "bad": p.bad}[tone] if tone in TONES
                 else dict(self.theme.grounds)[tone])
-        words = p.words_on(fill)
+        words = p.words_on(fill, self.theme.type.body if points is None else points, bold)
         return fill, words, p.edge(fill) if words == p.ink else ""
 
     def _legend_layout(self, rect: Rect, names: list[str]):
@@ -300,7 +304,7 @@ class Page:
         tops = [top for _n, _x, top, _w in self._legend_layout(Rect(0, 0, width, line), names)]
         return max(tops) + line
 
-    def look(self, style: Style) -> Look:
+    def look(self, style: Style, points: float | None = None, bold: bool = False) -> Look:
         """How a box, a bar or an arrowhead is painted, from the looks every one of them takes.
 
         `tentative` (= 点線) は地を紙の色にし、字と枠を灰色の点線にする ― 決まった物の隣で同じ重さに
@@ -310,7 +314,7 @@ class Page:
         if style.tentative:
             fill, ink, outline = p.paper, p.muted, p.muted
         else:
-            fill, ink, outline = self.ground(style.tone)
+            fill, ink, outline = self.ground(style.tone, points, bold)
         if style.strong:
             outline = ink if style.tentative else p.ink
         return Look(fill, ink, outline, dashed=style.tentative, heavy=style.strong)
@@ -352,7 +356,8 @@ class Page:
         columns = rect.columns(len(cards), gap if gap is not None else s.gap_m)
         for card, said in zip(columns, cards):
             heading, body = said.heading, said.body
-            look = self.look(said.style)
+            # 見出しと本文は同じ色の字 ― 本文があれば本文 (= 小さい方、太字でない)、無ければ太字の見出し
+            look = self.look(said.style, *((t.body, False) if body else (t.heading, True)))
             ink = look.ink
             self.elements.append(Fill("box", card, look.fill, outline=look.outline,
                                       dashed=look.dashed, heavy=look.heavy))
@@ -566,7 +571,7 @@ class Page:
         top = rect.top
         for row, (bubble, whole) in zip(rows, heights):
             for cell, voice in zip(Rect(rect.left, top, rect.width, whole).columns(across, s.gap_m), row):
-                look = self.look(voice.style)
+                look = self.look(voice.style, t.body)
                 self.elements.append(Bar("voice", Rect(cell.left, cell.top, cell.width, bubble), voice.text,
                                          t.body, look.ink, fill=look.fill, outline=look.outline,
                                          align="left", shape="voice"))
@@ -623,7 +628,7 @@ class Page:
         文字が置き去りにならない。アイコンは名前の前に、字の高さで置く。
         """
         size = self.theme.type.body if size is None else size
-        look = self.look(style)
+        look = self.look(style, size)
         # アイコンの幅は置く前に決まる (= 字の高さ)。先に測って、棒は 1 度で書く
         self.elements.append(Bar("bar", rect, text, size, look.ink, fill=look.fill, outline=look.outline,
                                  dashed=look.dashed, heavy=look.heavy, lead=self._lead(style.icon, size)))
@@ -635,7 +640,7 @@ class Page:
         `shape` は `home` (= 最初の段、左が平ら) か `chevron` (= 2 段目から、左が切り欠き)。
         アイコンは名前の前に、切り欠きの内側から置く。
         """
-        look = self.look(style)
+        look = self.look(style, size, True)
         self.elements.append(Bar("chevron", rect, text, size, look.ink, fill=look.fill, outline=look.outline,
                                  dashed=look.dashed, heavy=look.heavy, bold=True, shape=shape,
                                  lead=self._lead(style.icon, size)))
@@ -652,7 +657,8 @@ class Page:
         """What one column of a timeline is called, in a cell of its own (= a table's heading row)."""
         p = self.theme.palette
         size = self.theme.type.body if size is None else size
-        self.elements.append(Bar("period", rect, name, size, p.words_on(p.accent), fill=p.accent, bold=True))
+        self.elements.append(Bar("period", rect, name, size, p.words_on(p.accent, size, True),
+                                 fill=p.accent, bold=True))
 
     def stripe(self, rect: Rect) -> None:
         """The faint ground under every other column, so the eye can follow a period down the page."""

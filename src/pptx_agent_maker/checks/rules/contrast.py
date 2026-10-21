@@ -10,8 +10,14 @@
 絵の地、透過の掛かった色は、どの色に見えるかを決められない。
 
 閾値は Web の読みやすさの基準 (= WCAG 2 の AA): 明暗差 4.5、大きい字 (= 18pt 以上、太字なら
-14pt 以上) は 3。大きさを書いていない字は大きい側で数える (= 迷ったら言わない側へ)。
-案件で外すなら `[checks] contrast = false`。
+14pt 以上) は 3。大きさを書いていない字は大きい側で数える (= 迷ったら言わない側へ)。値と大きさの決まりは
+組む側と同じ物を読む (= `layout/base/tokens.py` の `READABLE` と `reading_floor`)。
+
+**通してよい組は、字の色と地の色の組で書く** (= `[checks] contrast_allowed`)。テンプレートのブランドの
+差し色 (= 差し色の地に白い字、白い地に差し色の字) は案件の側では動かせないが、検査ごと外すと
+灰色の字のような本物の取りこぼしも見えなくなる。色 1 つで通す形にしないのは、その色を使う組の全部
+(= 薄い灰色の地に差し色の字も) が黙って通るから。通した組は報告に 1 行ずつ出す (= `Findings.allowed`)。
+案件で検査ごと外すなら `[checks] contrast = false`。
 """
 
 from __future__ import annotations
@@ -21,15 +27,13 @@ import re
 import zipfile
 from pathlib import Path
 
-from ..base.colour import Palette, contrast, solid
-from ..base.finding import Finding
+from ..base.colour import Palette, contrast, reading_floor, solid
+from ..base.finding import Finding, Findings
 from ..base.slide import RUN, TEXT, BuiltSlide, Shape, read
 
 NAME = "contrast"
-#: 普通の字と大きい字の明暗差の下限 (= WCAG 2 AA)
-NORMAL, LARGE = 4.5, 3.0
-#: 大きい字の境 (= pt。太字はこの下の値から)
-LARGE_SIZE, LARGE_BOLD = 18.0, 14.0
+#: 通してよい字の色と地の色の組を書く鍵 (= `[checks]` の中)
+ALLOWED = "contrast_allowed"
 
 SHAPE_PROPERTIES = re.compile(r"<p:spPr\b[^>]*>(.*?)</p:spPr>", re.S)
 OUTLINE = re.compile(r"<a:ln\b.*?</a:ln>", re.S)
@@ -40,6 +44,7 @@ CELL_PROPERTIES = re.compile(r"<a:tcPr\b[^>]*>(.*?)</a:tcPr>", re.S)
 RUN_PROPERTIES = re.compile(r"<a:rPr\b[^>]*/>|<a:rPr\b[^>]*>.*?</a:rPr>", re.S)
 SIZE = re.compile(r'<a:rPr\b[^>]*\bsz="(\d+)"')
 BOLD = re.compile(r'<a:rPr\b[^>]*\bb="1"')
+HEX = re.compile(r"#?([0-9A-Fa-f]{6})")
 
 UNKNOWN = "?"  # 地が在るが色を決められない (= その下は探さない)
 
@@ -100,8 +105,7 @@ def _runs(xml: str, palette: Palette):
             continue
         size = SIZE.search(properties.group(0))
         points = int(size.group(1)) / 100 if size else None
-        large = points is None or points >= LARGE_SIZE or (BOLD.search(properties.group(0)) and points >= LARGE_BOLD)
-        yield words, colour, LARGE if large else NORMAL
+        yield words, colour, reading_floor(points, bool(BOLD.search(properties.group(0))))
 
 
 def _palette(deck: Path) -> Palette:
@@ -113,14 +117,37 @@ def _palette(deck: Path) -> Palette:
                        archive.read(master).decode("utf-8") if master else "")
 
 
+def _allowed(config: dict) -> set[tuple[str, str]]:
+    """The pairs the project lets through: (the words' colour, the ground's colour), as 6 hex digits."""
+    entries = config.get(ALLOWED, [])
+    if not isinstance(entries, list):
+        entries = [entries]
+    pairs = set()
+    for entry in entries:
+        found = [HEX.fullmatch(entry.get(key, "")) if isinstance(entry, dict) and isinstance(entry.get(key), str)
+                 else None for key in ("words", "ground")]
+        if not all(found):
+            raise ValueError(
+                f"[checks] {ALLOWED}: each pair is {{ words = \"FFFFFF\", ground = \"2E9E5B\" }} "
+                f"(= the colour of the words and of the ground they sit on, 6 hex digits each), not {entry!r}")
+        pairs.add(tuple(match.group(1).upper() for match in found))
+    return pairs
+
+
 def run(deck: Path, config: dict | None = None) -> list[Finding]:
+    allowed = _allowed(config or {})
     if (config or {}).get(NAME, True) is False:
-        return []
+        return Findings()
     palette = _palette(Path(deck))
     findings: list[Finding] = []
+    #: 通した組ごとに、通した所 (= 頁と図形・セル) と明暗差
+    passed: dict[tuple[str, str], tuple[set, float]] = {}
 
-    def judge(page: int, words: str, colour: str, floor: float, ground: str) -> bool:
+    def judge(page: int, words: str, colour: str, floor: float, ground: str, place) -> bool:
         ratio = contrast(colour, ground)
+        if ratio < floor and (colour, ground) in allowed:
+            passed.setdefault((colour, ground), (set(), ratio))[0].add((page, place))
+            return False
         if ratio < floor:
             findings.append(Finding(
                 NAME, page, f"{words[:40]!r} #{colour} on #{ground}",
@@ -132,12 +159,12 @@ def run(deck: Path, config: dict | None = None) -> list[Finding]:
         shapes = page.shapes()
         for index, shape in enumerate(shapes):
             if shape.kind == "graphicFrame":
-                for cell in CELL.findall(shape.xml):
+                for number, cell in enumerate(CELL.findall(shape.xml)):
                     properties = CELL_PROPERTIES.search(cell)
                     ground = _fill(properties.group(1), palette) if properties else None
                     if not ground or ground == UNKNOWN:
                         continue
-                    if any(judge(page.number, *found, ground) for found in _runs(cell, palette)):
+                    if any(judge(page.number, *found, ground, (index, number)) for found in _runs(cell, palette)):
                         continue
                 continue
             if shape.kind != "sp":
@@ -147,6 +174,14 @@ def run(deck: Path, config: dict | None = None) -> list[Finding]:
                 ground = ground or _ground(shape, shapes[:index], page, palette)
                 if not ground:
                     break
-                if judge(page.number, words, colour, floor, ground):
+                if judge(page.number, words, colour, floor, ground, index):
                     break  # 1 つの図形は 1 度だけ言う
-    return findings
+    return Findings(findings, [
+        (NAME, f"#{colour} on #{ground} (contrast {ratio:.1f}): {len(places)} "
+               f"{'place' if len(places) == 1 else 'places'} on {_pages(places)} — let through by [checks] {ALLOWED}")
+        for (colour, ground), (places, ratio) in sorted(passed.items())])
+
+
+def _pages(places: set) -> str:
+    pages = sorted({page for page, _ in places})
+    return ("page " if len(pages) == 1 else "pages ") + ", ".join(str(page) for page in pages)
