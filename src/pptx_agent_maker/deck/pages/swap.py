@@ -148,8 +148,12 @@ def describe(deck: Path, page_number: int) -> str:
 # -- the swaps -------------------------------------------------------------
 
 
-def swap_pictures(archive, slide: str, files: list[Path]) -> None:
-    """Put `files` into the page's pictures, in reading order."""
+def swap_pictures(archive, slide: str, files: list[Path], *, refit: bool = True) -> None:
+    """Put `files` into the page's pictures, in reading order.
+
+    `refit` は、絵をその縦横比のまま枠の中央に置き直す (= 案件の絵は枠と比が違う)。仮の絵は枠と同じ比で
+    作るので置き直さない (= `blank_pictures`)。
+    """
     path = archive.slide(slide)
     tree = etree.parse(str(path))
     found = pictures(tree)
@@ -180,7 +184,8 @@ def swap_pictures(archive, slide: str, files: list[Path]) -> None:
         blip.set(EMBED, rid)
         for crop in pic.findall(".//a:srcRect", NS):
             crop.getparent().remove(crop)
-        _fit(pic, aspect(source))
+        if refit:
+            _fit(pic, aspect(source))
 
     # 使われなくなった関係を外す (= 残すと、載せないと決めた絵が file の中を運ばれる)
     text = etree.tostring(tree).decode("utf-8")
@@ -282,7 +287,7 @@ def _copy(element, tag: str | None = None):
 #: 仮の絵の色 (= 枠が在ることは見えるが、何かの絵には見えない薄い灰)
 PLACEHOLDER_GREY = (217, 217, 217)
 def blank_pictures(archive, slide: str, scratch: Path) -> int:
-    """Every picture on the page becomes a plain grey one of the same proportions.
+    """Every picture on the page becomes a plain grey one of the same proportions, in the same frame.
 
     ⚠ **案件の絵は、それ自体が案件の中身。**テンプレートに上げる頁は形だけを渡すもので、
     絵は次の案件が `pictures` で入れ替える。
@@ -300,5 +305,6 @@ def blank_pictures(archive, slide: str, scratch: Path) -> int:
         Image.new("RGB", (width, height), PLACEHOLDER_GREY).save(path)
         files.append(path)
     if files:
-        swap_pictures(archive, slide, files)
+        # ⚠ 枠は動かさない: 仮の絵の比は画素の丸めで枠とわずかに違い、置き直すと絵が縮んで中央に寄る
+        swap_pictures(archive, slide, files, refit=False)
     return len(files)

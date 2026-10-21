@@ -136,6 +136,25 @@ class Lifting(unittest.TestCase):
         self.assertNotIn("dot.png", xml, "the alt text still names the project's file")
         self.assertEqual(untyped_parts.run(specimen), [])
 
+    def test_a_stand_in_picture_keeps_the_frame_of_the_picture_it_replaces(self) -> None:
+        """⚠ 仮の絵は元の枠と同じ比で作るので、枠に合わせ直さない。
+
+        合わせ直すと、絵の画素の丸めで縦横比がわずかに違い、絵が縮んで中央に寄る (= 絵の下の名前と
+        左端が 0.05 mm ずれ、検査 `near_alignment` が止める)。
+        """
+        built = self.project / "w1.pptx"
+        deck = Presentation(str(built))
+        picture = next(s for s in deck.slides[0].shapes if s.shape_type == 13)
+        # 300 画素の高さでは幅を割り切れない比 (= 丸めが出る枠)
+        picture.width, picture.height = Emu(3141593), Emu(1000003)
+        frame = (picture.left, picture.top, picture.width, picture.height)
+        deck.save(str(built))
+        code, said = self._lift("--page", "w1.pptx:1")
+        self.assertEqual(code, 0, said)
+        page = Presentation(str(self.template / "specimen.pptx")).slides[1]
+        lifted = next(s for s in page.shapes if s.shape_type == 13)
+        self.assertEqual((lifted.left, lifted.top, lifted.width, lifted.height), frame)
+
     def test_the_templates_own_pages_stay_as_they_were(self) -> None:
         texts = lambda path: [s.text_frame.text for s in Presentation(str(path)).slides[0].shapes  # noqa: E731
                               if s.has_text_frame]

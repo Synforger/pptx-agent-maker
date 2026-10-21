@@ -1,0 +1,15 @@
+# A stand-in picture keeps the frame of the picture it replaces; a project's own picture is still fitted into it.
+
+tests = ["tests/test_lift.py", "tests/test_swap.py"]
+
+[[mutant]]
+name = "a stand-in picture is fitted into its frame again"
+file = "src/pptx_agent_maker/deck/pages/swap.py"
+old = "        swap_pictures(archive, slide, files, refit=False)"
+new = "        swap_pictures(archive, slide, files)"
+
+[[mutant]]
+name = "no picture is fitted into its frame any more"
+file = "src/pptx_agent_maker/deck/pages/swap.py"
+old = "        if refit:"
+new = "        if False:"
