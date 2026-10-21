@@ -217,12 +217,13 @@ SIZED = ("title", "heading", "stage", "body", "caption")
 DERIVED = ("band", "display", "tag")
 #: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
 #: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
-TIGHTENED = ("gap_s", "gap_m", "gap_l", "pad", "cell_pad_y", "cell_pad_x", "text_inset", "bar_pad_x", "bar_pad_y",
-             "bar_gap", "row_gap", "mark", "icon", "chevron_point", "swatch")
+TIGHTENED = ("gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap", "pad", "cell_pad_y", "cell_pad_x",
+             "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap", "row_gap", "mark", "icon", "chevron_point", "swatch")
 #: 案件の名前付きの使い方が 1 つずつ決められる余白と間隔 (= `[theme.uses.<名前>.spacing]`、cm で書く)。
 #: 条件の帯 (= `band_height`) と結論の帯 (= `conclusion_height`) の高さは、書けば字に比例しない
-SPACED = ("margin_x", "margin_top", "margin_bottom", "gap_s", "gap_m", "gap_l", "pad", "cell_pad_y", "cell_pad_x",
-          "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap", "row_gap", "band_height", "conclusion_height")
+SPACED = ("margin_x", "margin_top", "margin_bottom", "gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap",
+          "pad", "cell_pad_y", "cell_pad_x", "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap",
+          "row_gap", "band_height", "conclusion_height")
 
 
 #: 道具が持つ色の役 (= 頁の `tone` にいつでも書ける名前)。案件はこのほかに、意味の名前を付けた
@@ -397,6 +398,13 @@ class Spacing:
     gap_s: int = cm(0.3)
     gap_m: int = cm(0.6)
     gap_l: int = cm(1.0)
+    #: `compose` の、同じ段のマスとマスの間 (= `gap_x`) と、段と段の間 (= `gap_y`)。使い方が `gap_m` だけ書けば
+    #: 両方がそれに従う (= 書かなければ `gap_m` と同じ)。横の間だけ広げ、縦は詰める頁のための口
+    gap_x: int = cm(0.6)
+    gap_y: int = cm(0.6)
+    #: 題の帯・条件の帯・結論の帯・足元の帯と、本体のあいだ。使い方が `gap_m` だけ書けばそれに従う。
+    #: 物どうしの間を詰めても、帯と本体の間は詰めない頁のための口
+    band_gap: int = cm(0.6)
     pad: int = cm(0.35)
     #: 題の帯 (= 題の上の小さい字の段 + 題の段)。小さい字の在る頁も無い頁も、帯はこの高さ
     title_height: int = cm(1.5)
@@ -1048,7 +1056,12 @@ def _furniture(type: Type) -> Spacing:
     base, read = Spacing(), USES["read"]
     if type.tight != 1:
         base = replace(base, **{name: round(getattr(base, name) * type.tight) for name in TIGHTENED})
-    base = replace(base, **dict(type.spaced))
+    distances = dict(type.spaced)
+    if "gap_m" in distances:
+        # `gap_m` だけ書いた使い方では、段とマスの間も帯と本体の間も同じ距離のまま (= 今まで)。別に書けば別
+        distances = {"gap_x": distances["gap_m"], "gap_y": distances["gap_m"], "band_gap": distances["gap_m"],
+                     **distances}
+    base = replace(base, **distances)
     kicker = round(base.kicker_height * type.caption / read.caption)
     said = dict(type.spaced)
     # 帯の高さは、書いた使い方では書いた値のまま ― 字に比例しない帯 (= 上と下で字の大きさが違う) を書くための口。

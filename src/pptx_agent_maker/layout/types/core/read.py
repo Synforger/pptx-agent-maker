@@ -5,7 +5,9 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
+from numbers import Real
 from pathlib import Path
 from typing import Callable
 
@@ -154,6 +156,17 @@ def only_keys(item, allowed: set, what: str, hint: str = "") -> None:
         raise PageTypeError(
             f"{what} does not take {', '.join(unknown)} (= it accepts "
             f"{', '.join(sorted(allowed))}).{hint}")
+
+
+def read_weight(item: dict, what: str) -> float:
+    """The share a row, a cell or a stage takes (= 1 when it says nothing; a number above 0).
+
+    段・マス・道のりの段のどれの `weight` も、読むのはここ 1 か所 (= 文面も 1 つ)。
+    """
+    value = item.get("weight", 1)
+    if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(value) or value <= 0:
+        raise PageTypeError(f"{what}: `weight` is a number above 0 (= a share), not {value!r}")
+    return float(value)
 
 
 def read_tone(spec: Spec, item: dict, what: str, unsaid: str) -> str:

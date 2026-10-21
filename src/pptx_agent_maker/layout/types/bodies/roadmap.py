@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from numbers import Real
-
 from ...base.geometry import Rect
 from ...parts.page import Page, PageFullError
-from ..core.read import LOOK_KEYS, only_keys, read_style, Spec
+from ..core.read import LOOK_KEYS, only_keys, read_style, read_weight, Spec
 from ..core.registry import PageTypeError, register
 from ..core.stack import aligned_rows, fill_stacks, place_stack, stage_stacks
 
@@ -45,7 +43,7 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
             raise PageTypeError(
                 f"{what} is marked as the goal, but the goal is where the road ends — "
                 "only the last stage takes `goal = true`")
-    weights = [_weight(stage, f"roadmap: stage {number}") for number, stage in enumerate(stages, start=1)]
+    weights = [read_weight(stage, f"roadmap: stage {number}") for number, stage in enumerate(stages, start=1)]
     aligned = aligned_rows(spec, "roadmap")
     goal = bool(stages[-1].get("goal"))
 
@@ -90,11 +88,3 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
                      shape=shape, size=size)
         _head, rest = column.split_top(head_height, gap=gap)
         place_stack(page, rest.split_top(stack)[0], column_nodes)
-
-
-def _weight(stage: dict, what: str) -> float:
-    """The share of the width a stage takes (= 1 when it says nothing)."""
-    value = stage.get("weight", 1)
-    if isinstance(value, bool) or not isinstance(value, Real) or value <= 0:
-        raise PageTypeError(f"{what}: `weight` is a number above 0 (= a share of the width), not {value!r}")
-    return float(value)

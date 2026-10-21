@@ -1,0 +1,275 @@
+# A compose page sets the gap across a row and the gap down apart (`gap_x`, `gap_y`; unsaid, both follow `gap_m`), a
+# cell of no words takes no height and draws nothing, a picture is ruled at shares of its height (`guides`,
+# `guide_tone`), and the share of a row, a cell or a stage is read in one place.
+
+tests = ["tests/test_compose_gaps.py", "tests/test_compose.py", "tests/test_roadmap.py", "tests/test_uses.py"]
+
+[[mutant]]
+name = "the rows of a page are set apart by the gap across a row"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "    gap = page.theme.spacing.gap_y\n    laid = _measure(page, spec, rows, area.width, where)"
+new = "    gap = page.theme.spacing.gap_x\n    laid = _measure(page, spec, rows, area.width, where)"
+
+[[mutant]]
+name = "the rows of a page are set apart by the gap between boxes, not by the gap down"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "    gap = page.theme.spacing.gap_y\n    laid = _measure(page, spec, rows, area.width, where)"
+new = "    gap = page.theme.spacing.gap_m\n    laid = _measure(page, spec, rows, area.width, where)"
+
+[[mutant]]
+name = "the cells of a row are set apart by the gap down"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "    gap = page.theme.spacing.gap_x\n    laid = []"
+new = "    gap = page.theme.spacing.gap_y\n    laid = []"
+
+[[mutant]]
+name = "the cells of a row are set apart by the gap between boxes, not by the gap across"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "    gap = page.theme.spacing.gap_x\n    laid = []"
+new = "    gap = page.theme.spacing.gap_m\n    laid = []"
+
+[[mutant]]
+name = "a panel counts the gap across between its rows"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "(sum(height for _r, _c, height, _w, _g in laid) + s.gap_y * (len(laid) - 1)"
+new = "(sum(height for _r, _c, height, _w, _g in laid) + s.gap_x * (len(laid) - 1)"
+
+[[mutant]]
+name = "rows nested in a cell are counted with the gap across between them"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "return sum(height for _r, _c, height, _w, _g in laid) + s.gap_y * (len(laid) - 1)"
+new = "return sum(height for _r, _c, height, _w, _g in laid) + s.gap_x * (len(laid) - 1)"
+
+[[mutant]]
+name = "a cell of no words takes a line of height"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if part == \"text\" and _blank(cell):\n        return 0"
+new = "if part == \"text\" and False:\n        return 0"
+
+[[mutant]]
+name = "a cell of no words is drawn as an empty text"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "elif part == \"text\" and _blank(cell):\n            pass"
+new = "elif part == \"text\" and False:\n            pass"
+
+[[mutant]]
+name = "the rules are measured on the cell, not on the picture"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "y = placed.top + round(share * placed.height)"
+new = "y = rect.top + round(share * rect.height)"
+
+[[mutant]]
+name = "the rules run the width of the cell, not of the picture"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "page.line((placed.left, y), (placed.right, y), tone=tone)"
+new = "page.line((rect.left, y), (rect.right, y), tone=tone)"
+
+[[mutant]]
+name = "the rules are drawn from the bottom of the picture up"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "y = placed.top + round(share * placed.height)"
+new = "y = placed.bottom - round(share * placed.height)"
+
+[[mutant]]
+name = "the rules are drawn without the colour asked for"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "page.line((placed.left, y), (placed.right, y), tone=tone)"
+new = "page.line((placed.left, y), (placed.right, y))"
+
+[[mutant]]
+name = "the rules are drawn in the band colour unless asked otherwise"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "cell.get(\"guide_tone\", \"accent\")"
+new = "cell.get(\"guide_tone\", \"band\")"
+
+[[mutant]]
+name = "a rule at the very top or bottom of the picture is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "or not 0 < value < 1:"
+new = "or not 0 <= value <= 1:"
+
+[[mutant]]
+name = "a rule that is a string is let through to fail on its own"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "isinstance(value, bool) or not isinstance(value, Real) or not 0 < value < 1"
+new = "isinstance(value, bool) or not 0 < value < 1"
+
+[[mutant]]
+name = "an empty list of rules is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if not isinstance(listed, list) or not listed:\n        raise PageTypeError(f\"{what}: `guides`"
+new = "if not isinstance(listed, list):\n        raise PageTypeError(f\"{what}: `guides`"
+
+[[mutant]]
+name = "a tone for rules that are not there is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if \"guide_tone\" in cell:\n            raise"
+new = "if False:\n            raise"
+
+[[mutant]]
+name = "rules are let through on a cell that holds no figure"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if key in cell and named[0] != \"figure\":"
+new = "if False and key in cell and named[0] != \"figure\":"
+
+[[mutant]]
+name = "rules and marks are let through together"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if \"guides\" in cell and \"marks\" in cell:"
+new = "if False and \"guides\" in cell and \"marks\" in cell:"
+
+[[mutant]]
+name = "the cells of a row are cut equally whatever they weigh"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "weights = [read_weight(cell, f\"{what}, cell {index}\") for index, cell in enumerate(cells, start=1)]"
+new = "weights = [1.0 for index, cell in enumerate(cells, start=1)]"
+
+[[mutant]]
+name = "the rows share the rest equally whatever they weigh"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "read_weight(row, what),"
+new = "1.0,"
+
+[[mutant]]
+name = "the stages of a road are cut equally whatever they weigh"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "weights = [read_weight(stage, f\"roadmap: stage {number}\") for number, stage in enumerate(stages, start=1)]"
+new = "weights = [1.0 for number, stage in enumerate(stages, start=1)]"
+
+[[mutant]]
+name = "a weight that is not a finite number is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "or not isinstance(value, Real) or not math.isfinite(value) or value <= 0:"
+new = "or not isinstance(value, Real) or value <= 0:"
+
+[[mutant]]
+name = "the gap across of a deck is not the gap between its boxes"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    gap_x: int = cm(0.6)\n"
+new = "    gap_x: int = cm(0.5)\n"
+
+[[mutant]]
+name = "the gap down of a deck is not the gap between its boxes"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    gap_y: int = cm(0.6)\n"
+new = "    gap_y: int = cm(0.5)\n"
+
+[[mutant]]
+name = "a cell may not say guides"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "\"marks\", \"guides\", \"guide_tone\", \"valign\", \"id\","
+new = "\"marks\", \"valign\", \"id\","
+
+[[mutant]]
+name = "a cell may not say valign"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "\"guide_tone\", \"valign\", \"id\","
+new = "\"guide_tone\", \"id\","
+
+[[mutant]]
+name = "the gaps across and down do not follow the scale"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"pad\""
+new = "\"gap_l\", \"band_gap\", \"pad\""
+
+[[mutant]]
+name = "the gap under a band does not follow the scale"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"pad\", \"cell_pad_y\""
+new = "\"gap_l\", \"gap_x\", \"gap_y\", \"pad\", \"cell_pad_y\""
+
+[[mutant]]
+name = "a use may not write the gap across or the gap down"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\",\n          \"pad\""
+new = "\"gap_l\", \"band_gap\",\n          \"pad\""
+
+[[mutant]]
+name = "a use may not write the gap under a band"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\",\n          \"pad\""
+new = "\"gap_l\", \"gap_x\", \"gap_y\",\n          \"pad\""
+
+[[mutant]]
+name = "a use that says only gap_m leaves the gap across at the deck's"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
+new = "{\"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
+
+[[mutant]]
+name = "a use that says only gap_m leaves the gap down at the deck's"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
+new = "{\"gap_x\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
+
+[[mutant]]
+name = "a use that says only gap_m leaves the gap under a band at the deck's"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
+new = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"],\n                     **distances}"
+
+[[mutant]]
+name = "gap_m overrides a gap written apart"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
+new = "{**distances, \"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"]}"
+
+[[mutant]]
+name = "the gap under a band of a deck is not the gap between its boxes"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    band_gap: int = cm(0.6)\n"
+new = "    band_gap: int = cm(0.5)\n"
+
+[[mutant]]
+name = "a title is set off the body by the gap between boxes"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        gap = self.theme.spacing.band_gap\n        self._remaining = Rect(rest.left, band.bottom + gap, rest.width,"
+new = "        gap = self.theme.spacing.gap_m\n        self._remaining = Rect(rest.left, band.bottom + gap, rest.width,"
+
+[[mutant]]
+name = "a title the layout places is set off the body by the gap between boxes"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        gap = self.theme.spacing.band_gap\n        if top + height + gap >= rest.bottom:"
+new = "        gap = self.theme.spacing.gap_m\n        if top + height + gap >= rest.bottom:"
+
+[[mutant]]
+name = "a band at the foot is set off the body by the gap between boxes"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "self._remaining.height - height - self.theme.spacing.band_gap)"
+new = "self._remaining.height - height - self.theme.spacing.gap_m)"
+
+[[mutant]]
+name = "a picture lower than its cell stands at the top whatever it asks"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "top = rect.top + {\"top\": 0, \"middle\": spare // 2, \"bottom\": spare}[cell.get(\"valign\", \"top\")]"
+new = "top = rect.top"
+
+[[mutant]]
+name = "a picture asked to stand in the middle stands at the bottom"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "\"middle\": spare // 2, \"bottom\": spare}"
+new = "\"middle\": spare, \"bottom\": spare}"
+
+[[mutant]]
+name = "a picture asked to stand at the bottom stands in the middle"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "\"middle\": spare // 2, \"bottom\": spare}"
+new = "\"middle\": spare // 2, \"bottom\": spare // 2}"
+
+[[mutant]]
+name = "a picture asked for no place stands in the middle"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "[cell.get(\"valign\", \"top\")]"
+new = "[cell.get(\"valign\", \"middle\")]"
+
+[[mutant]]
+name = "a place that is none of the three is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if cell[\"valign\"] not in VALIGNS:"
+new = "if False:"
+
+[[mutant]]
+name = "a place for a figure that holds marks is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "        if \"marks\" in cell:\n            raise PageTypeError(f\"{what}: a figure with `marks`"
+new = "        if False:\n            raise PageTypeError(f\"{what}: a figure with `marks`"

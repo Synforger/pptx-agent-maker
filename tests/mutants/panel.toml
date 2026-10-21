@@ -176,7 +176,7 @@ new = "inside = width"
 [[mutant]]
 name = "the height of a panel leaves out the gaps between its rows"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "+ s.gap_m * (len(laid) - 1)\n                + page.panel_head"
+old = "+ s.gap_y * (len(laid) - 1)\n                + page.panel_head"
 new = "+ page.panel_head"
 
 [[mutant]]

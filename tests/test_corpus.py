@@ -227,6 +227,26 @@ class TheCorpusUsesEverything(unittest.TestCase):
                     picked.add(use["table_look"])
         self.assertEqual(set(TABLE_LOOKS), picked)
 
+    def test_every_key_that_rules_a_picture_and_every_gap_a_use_sets_apart(self) -> None:
+        """A picture is ruled in the default colour and in one asked for; a use sets the gap across and the gap down."""
+        figures = [cell for cell in CELLS if "figure" in cell and "guides" in cell]
+        self.assertEqual({"guides", "guide_tone"}, {key for cell in figures for key in cell} & {"guides", "guide_tone"})
+        self.assertTrue(any("guide_tone" not in cell for cell in figures), "no picture is ruled in the default colour")
+        self.assertTrue(any("caption" in cell for cell in figures), "no ruled picture carries a name")
+        uses = _toml(CORPUS / "workspace.toml")["theme"]["uses"]
+        apart = [name for name, use in uses.items() if {"gap_x", "gap_y", "band_gap"} <= set(use.get("spacing", {}))]
+        self.assertTrue(apart, "no use sets the gap across, the gap down and the gap under a band")
+        self.assertEqual(set(apart), {page.get("use") for page in DECLARED} & set(apart))
+
+    def test_every_place_a_picture_may_stand_in_its_cell(self) -> None:
+        from pptx_agent_maker.layout.types.bodies.compose import VALIGNS
+        self.assertEqual(set(VALIGNS), {cell["valign"] for cell in CELLS if "figure" in cell and "valign" in cell})
+
+    def test_a_row_of_cells_with_no_words(self) -> None:
+        rows = [row for page in DECLARED if page["type"] == "compose" for row in page["rows"]]
+        self.assertTrue(any(all("text" in cell and not cell["text"].strip() for cell in row["cells"]) for row in rows),
+                        "no row is empty from end to end")
+
     def test_every_tone_and_every_ground_the_corpus_names(self) -> None:
         named = set(_toml(CORPUS / "workspace.toml")["theme"]["grounds"])
         self.assertTrue(named, "the corpus names no ground of its own")

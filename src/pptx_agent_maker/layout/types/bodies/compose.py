@@ -22,6 +22,11 @@
   **残りの高さを等しく受ける** (= 字の分の高さに足す。字の多い段は字の少ない段より高いまま)。絵や型の段と
   `weight` を書いた段が残りを取るなら、カードの段は字の分のまま。カードは、置かれたマスの高さを使い切る。
   文章・表・要点は、自分の高さのまま上に寄る
+* 図のマスの絵がマスより低い時は、`valign` (= `"top"` `"middle"` `"bottom"`。書かなければ上端) で縦の位置を決める
+* 同じ段のマスとマスの間は使い方の `gap_x`、段と段の間は `gap_y` (= 書かなければどちらも `gap_m`)。
+  横の間だけ広げ、縦は詰める頁に使う。入れ物の中の段とマスも同じ 2 つを使う
+* **空の文章 (`text = ""`) のマスは高さを取らない** (= 段の高さは同じ段のほかのマスで決まる。段の全部が空なら 0)。
+  何も描かず、矢印が横切れる空きになる
 * **入れ物 (`panel`)** は、中の段を同じ決まりで割る (= 中は自分の段とマスの入れ子)。入れ物の高さは、
   見出しの分と中の段の高さの合計。中に絵や型の段が在れば、入れ物は残りを取る。頁の高さを使う資料では、
   入れ物もカードと同じに、置かれたマスの高さを使い切り、中のカードはその中の高さを使う
@@ -38,7 +43,7 @@ from ...base.geometry import Rect
 from ...parts.look import Style
 from ...parts.page import CARD_ALIGNS, Card, Page, PageFullError, Panel, Voice
 from ..core.registry import TYPES, PageTypeError, register
-from ..core.read import Spec, read_card, read_panel, read_table, read_tone, only_keys
+from ..core.read import Spec, read_card, read_panel, read_table, read_tone, read_weight, only_keys
 from ..core.stack import card_height, spread
 from . import arrange
 from .chart import place_chart
@@ -50,6 +55,8 @@ PARTS = ("card", "panel", "figure", "table", "text", "points", "chart", "voices"
 ROLES = ("display", "label", "note", "mono")
 #: 文章が読むキーのうち、字の見え方 (= 色の役と寄せ。`mono` は枠の中に等幅で置くので読まない)
 TEXT_LOOKS = ("tone", "align")
+#: 絵がマスより低い時に、マスの中で縦に置く位置 (= `valign`。書かなければ上端)
+VALIGNS = ("top", "middle", "bottom")
 #: 声 1 つが読むキー
 VOICE_KEYS = ("text", "who", "tone")
 #: マスに丸ごと入れられる型 (= その型の書き方のまま)。`cards` はマスごとの `card` で、
@@ -76,7 +83,7 @@ def _compose(page: Page, spec: Spec, area: Rect) -> None:
 
 def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> None:
     """Lay rows down inside `area`: natural rows at their own height, the rest sharing what is left."""
-    gap = page.theme.spacing.gap_m
+    gap = page.theme.spacing.gap_y
     laid = _measure(page, spec, rows, area.width, where)
     fixed = sum(height for _row, _cells, height, _weight, _g in laid if height is not None)
     shares = sum(weight for _row, _cells, height, weight, _g in laid if height is None)
@@ -128,7 +135,7 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
     """Each row with its cells, the row's own height (None = it shares the rest), its share, and whether it grows."""
     if not isinstance(rows, list) or not rows:
         raise PageTypeError(f"{where}: `rows` is empty — write at least one [[…rows]] with its cells")
-    gap = page.theme.spacing.gap_m
+    gap = page.theme.spacing.gap_x
     laid = []
     for number, row in enumerate(rows, start=1):
         what = f"{where}: row {number}"
@@ -137,24 +144,17 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
         if not isinstance(cells, list) or not cells:
             raise PageTypeError(f"{what} has no cells — write [[…cells]] under it, one per part")
         for index, cell in enumerate(cells, start=1):
-            only_keys(cell, {"weight", "rows", "caption", "role", "marks", "id", *TEXT_LOOKS, *PARTS, *BODIES},
-                      f"{what}, cell {index}")
-        weights = [_weight(cell, f"{what}, cell {index}") for index, cell in enumerate(cells, start=1)]
+            only_keys(cell, {"weight", "rows", "caption", "role", "marks", "guides", "guide_tone", "valign", "id",
+                             *TEXT_LOOKS, *PARTS, *BODIES}, f"{what}, cell {index}")
+        weights = [read_weight(cell, f"{what}, cell {index}") for index, cell in enumerate(cells, start=1)]
         columns = Rect(0, 0, width, 1).columns(weights, gap=gap)
         measured = [(cell, column, _natural(page, spec, cell, column.width, f"{what}, cell {index}"))
                     for index, (cell, column) in enumerate(zip(cells, columns), start=1)]
         shares = "weight" in row
         naturals = [natural for _cell, _column, natural in measured]
         height = None if shares or None in naturals else max(naturals)
-        laid.append((row, measured, height, _weight(row, what), any(_grows(page, cell) for cell in cells)))
+        laid.append((row, measured, height, read_weight(row, what), any(_grows(page, cell) for cell in cells)))
     return laid
-
-
-def _weight(item: dict, what: str) -> float:
-    value = item.get("weight", 1)
-    if isinstance(value, bool) or not isinstance(value, Real) or value <= 0:
-        raise PageTypeError(f"{what}: `weight` is a number above 0 (= a share), not {value!r}")
-    return float(value)
 
 
 def _part(cell: dict, what: str) -> str:
@@ -170,6 +170,19 @@ def _part(cell: dict, what: str) -> str:
         raise PageTypeError(f"{what}: `caption` belongs to a figure, and this cell holds {named[0]}")
     if "marks" in cell and named[0] != "figure":
         raise PageTypeError(f"{what}: `marks` belong to a figure, and this cell holds {named[0]}")
+    for key in ("guides", "guide_tone", "valign"):
+        if key in cell and named[0] != "figure":
+            raise PageTypeError(f"{what}: `{key}` belongs to a figure, and this cell holds {named[0]}")
+    if "valign" in cell:
+        if cell["valign"] not in VALIGNS:
+            raise PageTypeError(
+                f"{what}: `valign` is {' or '.join(repr(name) for name in VALIGNS)}, not {cell['valign']!r}")
+        if "marks" in cell:
+            raise PageTypeError(f"{what}: a figure with `marks` stands where its names put it — "
+                                "`valign` is for a figure without them")
+    if "guides" in cell and "marks" in cell:
+        raise PageTypeError(f"{what}: a figure carries `marks` or `guides`, not both — the names beside the picture "
+                            "and the rules across it are two ways to read the same height")
     if "role" in cell:
         if named[0] != "text":
             raise PageTypeError(f"{what}: `role` belongs to a text, and this cell holds {named[0]}")
@@ -185,6 +198,27 @@ def _part(cell: dict, what: str) -> str:
     return named[0]
 
 
+def _guides(spec: Spec, cell: dict, what: str) -> tuple[tuple[float, ...], str]:
+    """The heights a figure is ruled at (= shares of the picture's height, from its top) and the tone of the rules.
+
+    線の色の役は `guide_tone` (= 書かなければ `accent`)。色の決まりは `Page.tone_ink` が読む。
+    """
+    if "guides" not in cell:
+        if "guide_tone" in cell:
+            raise PageTypeError(f"{what}: `guide_tone` is the colour of the rules `guides` draws, and this cell has none")
+        return (), ""
+    listed = cell["guides"]
+    if not isinstance(listed, list) or not listed:
+        raise PageTypeError(f"{what}: `guides` is a list of numbers between 0 and 1 (= how far down the picture "
+                            "each rule falls), as in [0.25, 0.5, 0.75]")
+    for value in listed:
+        if isinstance(value, bool) or not isinstance(value, Real) or not 0 < value < 1:
+            raise PageTypeError(f"{what}: `guides` holds {value!r} — a rule falls at a share of the picture's "
+                                "height, a number above 0 and below 1")
+    tone = read_tone(spec, {"tone": cell.get("guide_tone", "accent")}, f"{what}: `guide_tone`", "accent")
+    return tuple(float(value) for value in listed), tone
+
+
 def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int | None:
     """How tall a cell is for its own words, or None when it takes whatever room it is given."""
     part = _part(cell, what)
@@ -197,7 +231,7 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
         laid = _measure(page, spec, cell["panel"]["rows"], inside, f"{what}, panel")
         if any(height is None for _row, _cells, height, _weight, _g in laid):
             return None
-        return (sum(height for _r, _c, height, _w, _g in laid) + s.gap_m * (len(laid) - 1)
+        return (sum(height for _r, _c, height, _w, _g in laid) + s.gap_y * (len(laid) - 1)
                 + page.panel_head(panel, inside) + 2 * s.pad)
     if part == "table":
         rows = _table(cell, what)
@@ -207,6 +241,8 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
             return page.code_height(width, str(cell["text"]))
         except PageFullError as reason:
             raise PageFullError(f"{what}: {reason}") from reason
+    if part == "text" and _blank(cell):
+        return 0                                  # 空のマスは字の 1 行ぶんも取らない
     if part == "text":
         size, bold = page.text_face(cell.get("role"))
         return theme.wrapped_height(str(cell["text"]), max(width - 2 * s.text_inset, 1), size, bold=bold)
@@ -223,7 +259,9 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
         laid = _measure(page, spec, cell["rows"], width, what)
         if any(height is None for _row, _cells, height, _weight, _g in laid):
             return None
-        return sum(height for _r, _c, height, _w, _g in laid) + s.gap_m * (len(laid) - 1)
+        return sum(height for _r, _c, height, _w, _g in laid) + s.gap_y * (len(laid) - 1)
+    if part == "figure":
+        _guides(spec, cell, what)                 # 線の書き方の誤りは、置く前の測りで止める
     return None                                   # 絵と型は、渡された高さをそのまま使う
 
 
@@ -253,6 +291,8 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             page.table(fitted, _table(cell, what))
         elif part == "text" and cell.get("role") == "mono":
             page.code(fitted, str(cell["text"]))
+        elif part == "text" and _blank(cell):
+            pass                                  # 空のマスは何も描かない (= 高さも無い)
         elif part == "text":
             tone = read_tone(spec, cell, what, "box") if "tone" in cell else None
             page.text(fitted, str(cell["text"]), role=cell.get("role"), tone=tone, align=cell.get("align", "left"))
@@ -272,7 +312,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
         elif part == "chart":
             place_chart(page, spec, cell["chart"], rect, f"{what}, chart")
         elif part == "figure":
-            # 絵は横幅いっぱいで上に寄る (= 同じ段の表や文章と上端が揃う)。縦が足りなければ縮む
+            # 絵は横幅いっぱいで、`valign` を書かなければ上に寄る (= 同じ段の表や文章と上端が揃う)。縦が足りなければ縮む
             source, aspect = Spec({"figure": cell["figure"]}, spec.asset, spec.aspect, spec.theme).figure()
             caption = str(cell.get("caption", ""))
             if "marks" in cell:
@@ -283,8 +323,14 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             wanted = round(rect.width / aspect) + (
                 s.gap_s + page.theme.wrapped_height(caption, max(rect.width - 2 * s.text_inset, 1),
                                                     ty.caption) if caption else 0)
-            page.figure(Rect(rect.left, rect.top, rect.width, min(wanted, rect.height)), source,
-                        aspect, caption=caption)
+            block = min(wanted, rect.height)
+            spare = rect.height - block                 # 絵がマスより低い時の余り (= 絵が縦に詰められた時は 0)
+            top = rect.top + {"top": 0, "middle": spare // 2, "bottom": spare}[cell.get("valign", "top")]
+            placed = page.figure(Rect(rect.left, top, rect.width, block), source, aspect, caption=caption)
+            shares, tone = _guides(spec, cell, what)
+            for share in shares:
+                y = placed.top + round(share * placed.height)
+                page.line((placed.left, y), (placed.right, y), tone=tone)
         else:
             if not isinstance(cell[part], dict):
                 raise PageTypeError(f"{what}: `{part}` is a table of that type's own keys")

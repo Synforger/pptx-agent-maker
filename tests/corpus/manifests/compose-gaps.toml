@@ -1,0 +1,55 @@
+# The space between the cells of a row and between the rows, set apart; a cell of no words that takes no height;
+# a picture ruled at the heights it is read at, and set in the middle or at the bottom of its cell.
+
+specimen = "specimen.pptx"
+out = "compose-gaps.pptx"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+use = "apart"
+title = "Cells far apart across, rows close together down"
+condition = "The use sets the gap across a row and the gap between rows apart from each other"
+conclusion = "A cell with no words takes no height, so the row of empty cells below leaves only its gaps"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = { heading = "First", body = "Stands at the left of its row" }
+[[pages.rows.cells]]
+card = { heading = "Second", body = "A wide gap lies between the two" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = ""
+[[pages.rows.cells]]
+text = " "
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = { heading = "Third", body = "The row above is empty" }
+[[pages.rows.cells]]
+card = { heading = "Fourth", body = "and holds nothing but its gaps" }
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A picture read at three heights"
+condition = "Each rule runs the whole width of the picture, at a share of its height from the top"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 2
+figure = "wide.png"
+guides = [0.2, 0.5, 0.8]
+valign = "middle"
+[[pages.rows.cells]]
+weight = 1
+figure = "square.png"
+guides = [0.25, 0.75]
+guide_tone = "bad"
+valign = "bottom"
+caption = "Rules over a picture with a name under it"
+[[pages.rows.cells]]
+weight = 1
+figure = "circle.png"
+valign = "top"

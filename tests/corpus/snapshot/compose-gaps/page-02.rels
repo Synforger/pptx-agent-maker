@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image2.png"/>
+<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image3.png"/>
+</Relationships>
+<!-- image1.png sha256 995940a9c00603e71f8ee895565a8d44ddc6a57a73e000bc420890cc68aca043 -->
+<!-- image2.png sha256 8c223b2b46fad2c278e611e3e34a06c0111b41e9d018e451cfca0ea5cf77fedc -->
+<!-- image3.png sha256 d1c6057fe74cb8048a5a0a2576174220c3529b812753019efb3d677e0c51d196 -->
