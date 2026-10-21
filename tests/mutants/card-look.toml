@@ -1,0 +1,285 @@
+# What a card and a band may be written with: their own sizes, no heading, a tag, a list of bullets.
+
+tests = ["tests/test_card_look.py"]
+
+# -- the size of the band and of the big number (layout/base/tokens.py) ----------
+
+[[mutant]]
+name = "a band written under theme.type is not read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.heading if self.band_set is None else self.band_set"
+new = "return self.heading"
+
+[[mutant]]
+name = "a display written under theme.type is not read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.title * 2 if self.display_set is None else self.display_set"
+new = "return self.title * 2"
+
+[[mutant]]
+name = "a band left unsaid is the title and not the heading"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.heading if self.band_set is None else self.band_set"
+new = "return self.title if self.band_set is None else self.band_set"
+
+[[mutant]]
+name = "a display left unsaid is the same size as the title"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.title * 2 if self.display_set is None else self.display_set"
+new = "return self.title if self.display_set is None else self.display_set"
+
+[[mutant]]
+name = "the height of a band is still cut from the heading"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "band_height=round(base.band_height * type.band / read.band),"
+new = "band_height=round(base.band_height * type.heading / read.heading),"
+
+[[mutant]]
+name = "a band or a display under the floor is let through"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    for name in (*SIZED, *DERIVED):\n        value = getattr(sized, name)"
+new = "    for name in SIZED:\n        value = getattr(sized, name)"
+
+[[mutant]]
+name = "a band is a role nobody reads"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "set(declared) - {*SIZED, *DERIVED}"
+new = "set(declared) - {*SIZED}"
+
+[[mutant]]
+name = "a use of the project's does not list the two new roles when it refuses one"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = '("like", "floor", "spacing", *SIZED, *DERIVED))'
+new = '("like", "floor", "spacing", *SIZED))'
+
+# -- the band's words (layout/parts/page.py) -------------------------------------
+
+[[mutant]]
+name = "a plain band is set at the size of a heading"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "text, t.band, p.ink, bold=conclusion)"
+new = "text, t.heading, p.ink, bold=conclusion)"
+
+[[mutant]]
+name = "an outlined condition is set at the size of a heading"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "text, t.body if conclusion else t.band,"
+new = "text, t.body if conclusion else t.heading,"
+
+# -- what a card says and how tall it stands (layout/parts/page.py) --------------
+
+[[mutant]]
+name = "a card with no heading still gives a heading's line"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "head = theme.wrapped_height(card.heading, room, t.heading, bold=True) if card.heading else 0"
+new = "head = theme.wrapped_height(card.heading, room, t.heading, bold=True)"
+
+[[mutant]]
+name = "a card with no body still gives a body's line"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return head, theme.wrapped_height(card.body, width, t.body) if card.body else 0"
+new = "return head, theme.wrapped_height(card.body, width, t.body)"
+
+[[mutant]]
+name = "a bullet is counted as wide as a paragraph"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "width = max(room - bullet_indent(t.body), 1) if card.bullets else room"
+new = "width = room"
+
+[[mutant]]
+name = "a tag that would wrap is let through"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "if theme.wraps(card.heading, room, t.heading, bold=True) > 1:"
+new = "if False:"
+
+[[mutant]]
+name = "a tag is as tall as a heading and a body"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return theme.line_height(t.heading), 0"
+new = "return theme.line_height(t.heading), theme.line_height(t.body)"
+
+[[mutant]]
+name = "a tag is on the ground of its tone and not on pale grey"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'Fill("box", card, p.wash, outline=mark.outline,'
+new = 'Fill("box", card, look.fill, outline=mark.outline,'
+
+[[mutant]]
+name = "a tag's words are not in the colour of its tone"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "mark, ink = self.outlined_look(said.style, t.heading, True)"
+new = "mark, _ink = self.outlined_look(said.style, t.heading, True)"
+
+[[mutant]]
+name = "a tag is set to the left"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'align = "center" if said.tag else said.align'
+new = "align = said.align"
+
+[[mutant]]
+name = "the words of an outlined card stay at the top"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "if outlined or said.tag:"
+new = "if said.tag:"
+
+[[mutant]]
+name = "the words of a tag stay at the top of a filled deck"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "if outlined or said.tag:"
+new = "if outlined:"
+
+[[mutant]]
+name = "the middle of the words is the middle of the box, not allowing for the frame's own padding"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "top = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y"
+new = "top = inner.top + max((inner.height - total) // 2, 0)"
+
+[[mutant]]
+name = "words that do not fit are put above the box"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "top = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y"
+new = "top = inner.top + (inner.height - total) // 2 - TEXT_INSET_Y"
+
+[[mutant]]
+name = "the body stands against the heading with no gap"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "rest = Rect(inner.left, head.bottom + (s.gap_s if head_tall else 0), inner.width, body_tall)"
+new = "rest = Rect(inner.left, head.bottom, inner.width, body_tall)"
+
+[[mutant]]
+name = "a card's body ignores the alignment it was given"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "ink, align=align, bullets=said.bullets))"
+new = "ink, bullets=said.bullets))"
+
+[[mutant]]
+name = "a card's heading ignores the alignment it was given"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "head_ink, bold=True, align=align))"
+new = "head_ink, bold=True))"
+
+[[mutant]]
+name = "a card's body is not set as bullets"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "ink, align=align, bullets=said.bullets))"
+new = "ink, align=align))"
+
+# -- reading a card (layout/types/core/read.py) ----------------------------------
+
+[[mutant]]
+name = "a list of lines is read as a paragraph"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'return "\n".join(items), True'
+new = 'return "\n".join(items), False'
+
+[[mutant]]
+name = "an empty list is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if not items:"
+new = "    if False:"
+
+[[mutant]]
+name = "an empty line is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "        if not item:"
+new = "        if False:"
+
+[[mutant]]
+name = "a line break inside one item is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = '        if "\n" in item:'
+new = "        if False:"
+
+[[mutant]]
+name = "a card written as a pair does not take a list"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "        return Card(str(item[0]), body, bullets=bullets)"
+new = "        return Card(str(item[0]), body)"
+
+[[mutant]]
+name = "an alignment nobody knows is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "if not isinstance(align, str) or align not in CARD_ALIGNS:"
+new = "if False:"
+
+[[mutant]]
+name = "a card written as a table loses its alignment"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "return Card(heading, body, style, tag=tag, align=align, bullets=bullets)"
+new = "return Card(heading, body, style, tag=tag, bullets=bullets)"
+
+[[mutant]]
+name = "a card written as a table loses its tag"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "return Card(heading, body, style, tag=tag, align=align, bullets=bullets)"
+new = "return Card(heading, body, style, align=align, bullets=bullets)"
+
+[[mutant]]
+name = "a card written as a table loses its bullets"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "return Card(heading, body, style, tag=tag, align=align, bullets=bullets)"
+new = "return Card(heading, body, style, tag=tag, align=align)"
+
+[[mutant]]
+name = "a tag with no heading is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "            if not heading.strip():"
+new = "            if False:"
+
+[[mutant]]
+name = "a tag with a body or an icon is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "            if body.strip() or style.icon:"
+new = "            if False:"
+
+[[mutant]]
+name = "a tag that is not true or false is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'tag = _flag(item, "tag", what)'
+new = 'tag = bool(item.get("tag", False))'
+
+[[mutant]]
+name = "the new keys of a card are refused"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "only_keys(item, set(CARD_KEYS), what)"
+new = 'only_keys(item, {"heading", "body", *LOOK_KEYS}, what)'
+
+# -- stacking cards (layout/types/core/stack.py) ---------------------------------
+
+[[mutant]]
+name = "a card with only one of heading and body still has a gap in it"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "tall = head + (s.gap_s if head and body else 0) + body"
+new = "tall = head + s.gap_s + body"
+
+# -- what is written (layout/parts/elements.py, write/pptx.py) --------------------
+
+[[mutant]]
+name = "a bullet stands in by nothing"
+file = "src/pptx_agent_maker/layout/parts/elements.py"
+old = "    return pt(size)"
+new = "    return 0"
+
+[[mutant]]
+name = "a bulleted paragraph is written as a plain one"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        if element.bullets:\n            _bulleted(paragraph, element.size)"
+new = "        if False:\n            _bulleted(paragraph, element.size)"
+
+[[mutant]]
+name = "a bullet's first line does not hang"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = 'properties.set("indent", str(-indent))'
+new = 'properties.set("indent", str(indent))'
+
+[[mutant]]
+name = "a bullet's wrapped lines do not stand in"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = 'properties.set("marL", str(indent))'
+new = 'properties.set("marL", "0")'
+
+[[mutant]]
+name = "a bullet is not a dot"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '{"char": "\u2022"}'
+new = '{"char": "-"}'

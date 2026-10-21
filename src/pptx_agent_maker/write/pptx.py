@@ -31,16 +31,13 @@ from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls, qn
 from pptx.util import Emu, Pt
 
-from ..layout.parts.elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Table, Text
+from ..layout.parts.elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Table, Text, TEXT_INSET_Y, bullet_indent
 from ..layout.base.tokens import DEFAULT, MARK_FACE, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
 #: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)
 PRESET = {"rect": MSO_SHAPE.RECTANGLE, "home": MSO_SHAPE.PENTAGON, "chevron": MSO_SHAPE.CHEVRON,
           "voice": MSO_SHAPE.ROUNDED_RECTANGULAR_CALLOUT}
-
-#: 文字の枠が上下に自分で取る余白 (= pptx の既定。左右は `Spacing.text_inset`)
-TEXT_INSET_Y = 45720
 
 #: 「スタイルなし・罫線なし」。PowerPoint が新しい表に付ける既定のスタイルは
 #: **テーマの accent1 で見出しを塗る**ので、色の出どころが palette と 2 つに割れる。
@@ -308,6 +305,8 @@ def _text(slide, element: Text, theme: Theme) -> None:
     for index, line in enumerate(element.text.split("\n")):
         paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
         paragraph.alignment = ALIGN[element.align]
+        if element.bullets:
+            _bulleted(paragraph, element.size)
         run = paragraph.add_run()
         run.text = line
         run.font.size = Pt(element.size)
@@ -318,6 +317,19 @@ def _text(slide, element: Text, theme: Theme) -> None:
         run.font.name = element.family or theme.type.family
     if titled:
         _as_title(box, theme)
+
+
+def _bulleted(paragraph, size: float) -> None:
+    """Make a paragraph a bullet: a dot in front, and the lines it wraps onto stand in with the words.
+
+    ⚠ **点は段落の書式で書く** (= 字で入れない)。字で入れた点は、折り返した行が点の下へ回り込み、人が
+    PowerPoint で行を足しても点が付かない。字下げの幅は数える側と同じ (= `bullet_indent`)。
+    """
+    properties = paragraph._p.get_or_add_pPr()
+    indent = bullet_indent(size)
+    properties.set("marL", str(indent))
+    properties.set("indent", str(-indent))
+    properties.append(properties.makeelement(qn("a:buChar"), {"char": "\u2022"}))
 
 
 def _as_title(box, theme: Theme) -> None:

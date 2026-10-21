@@ -90,7 +90,6 @@ class ATone(unittest.TestCase):
 
     def test_a_node_is_a_pair_or_a_table_of_keys_it_reads(self):
         for node, message in (({"heading": "Node", "colour": "red"}, "does not take colour"),
-                              ({"body": "no heading"}, "has no `heading`"),
                               (["one", "two", "three"], "write it as"),
                               ("just words", "write it as")):
             with self.subTest(node=node):

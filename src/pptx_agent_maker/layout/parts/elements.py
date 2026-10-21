@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..base.geometry import Rect
+from ..base.geometry import Rect, pt
 
 
 @dataclass(frozen=True)
@@ -28,6 +28,21 @@ class Text(Element):
     align: str = "left"
     #: この字だけの書体 (= 等幅の行)。空なら案件の書体
     family: str = ""
+    #: 行ごとに「•」を付ける (= 段落の書式。折り返した行は点の分だけ字下げされる。`bullet_indent`)
+    bullets: bool = False
+
+
+#: 文字の枠が上下に自分で取る余白 (= pptx の既定。左右は `Spacing.text_inset`)。字を縦の中央に置く側 (= `Page.boxes`)
+#: と、枠を書く側 (= `write/pptx.py`) が同じ値を使う。枠の上端から字の頭までの距離
+TEXT_INSET_Y = 45720
+
+
+def bullet_indent(size: float) -> int:
+    """How far the words of a bullet stand in from the edge: one em, the bullet's own width and the gap after it.
+
+    数える側 (= 折り返しの幅) と書く側 (= 段落の字下げ) が同じ値を使う。
+    """
+    return pt(size)
 
 
 @dataclass(frozen=True)

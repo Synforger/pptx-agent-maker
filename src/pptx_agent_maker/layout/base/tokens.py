@@ -128,15 +128,28 @@ class Type:
     tight: float = 1.0
     #: 余白と間隔のうち、1 つずつ決めた物 (= 名前と EMU。倍率より勝つ)。書けるのは案件の名前付きの使い方だけ
     spaced: tuple[tuple[str, int], ...] = ()
+    #: 案件が書いた `band` と `display` (= 書かなければ None で、下の 2 つが他の役から出す)
+    band_set: float | None = None
+    display_set: float | None = None
+
+    @property
+    def band(self) -> float:
+        """条件と結論の帯の字。**書かなければ見出し。**
+
+        帯の字と、カードの見出しは別の役 ― 見出しを 10.5 に下げる頁でも、帯は 16 のまま置ける。帯の高さは
+        この大きさから割る (= `_furniture`)。
+        """
+        return self.heading if self.band_set is None else self.band_set
 
     @property
     def display(self) -> float:
-        """特大の字 (= 頁の主役の数字。`compose` の文章の `role = "display"`)。**題の 2 倍。**
+        """特大の字 (= 頁の主役の数字。`compose` の文章の `role = "display"`)。**書かなければ題の 2 倍。**
 
         人が 1 番に選んだ資料 (= 見本の集まり) では、頁の主役の数字は題のおよそ 2〜3 倍で置かれていた。
-        題から出すので、案件が題の大きさを変えれば付いて行き、使い方 (= `present` / `sheet`) の比も保つ。
+        書かなければ題から出すので、案件が題の大きさを変えれば付いて行き、使い方 (= `present` / `sheet`) の
+        比も保つ。
         """
-        return self.title * 2
+        return self.title * 2 if self.display_set is None else self.display_set
 
     @property
     def plan(self) -> tuple[float, ...]:
@@ -175,6 +188,9 @@ CARD_LOOKS = ("filled", "outlined")
 BAND_LOOKS = ("plain", "outlined")
 #: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
 SIZED = ("title", "heading", "stage", "body", "caption")
+#: そのほか、案件が書ける役 (= `[theme.type]`)。書かなければ他の役から出る (= `Type.band` は見出し、
+#: `Type.display` は題の 2 倍)。書いた値は `Type` の `<名前>_set` に入る
+DERIVED = ("band", "display")
 #: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
 #: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
 TIGHTENED = ("gap_s", "gap_m", "gap_l", "pad", "cell_pad_y", "cell_pad_x", "text_inset", "bar_pad_x", "bar_pad_y",
@@ -822,7 +838,7 @@ def _choice(settings: dict, key: str, options: tuple[str, ...], what: str) -> st
     return value
 
 
-def _sizes(what: str, base: Type, declared, where: str, takes: tuple[str, ...] = SIZED) -> Type:
+def _sizes(what: str, base: Type, declared, where: str, takes: tuple[str, ...] = (*SIZED, *DERIVED)) -> Type:
     """The sizes of one use, with what the project wrote for it laid over them.
 
     `what` は、誤りを言う時のその使い方の呼び方 (= `a deck made to be present`)、`where` は書かれた場所
@@ -835,12 +851,12 @@ def _sizes(what: str, base: Type, declared, where: str, takes: tuple[str, ...] =
     declared = declared or {}
     if not isinstance(declared, dict):
         raise ThemeError(f"{where} is a table of sizes in points, as in body = 14")
-    _refuse_unknown(sorted(set(declared) - set(SIZED)), where, takes)
+    _refuse_unknown(sorted(set(declared) - {*SIZED, *DERIVED}), where, takes)
     for name, value in declared.items():
         if isinstance(value, bool) or not isinstance(value, (int, float)):
             raise ThemeError(f"{where}.{name} is {value!r} — a size is a number of points, as in 14")
-    sized = replace(base, **declared)
-    for name in SIZED:
+    sized = replace(base, **{f"{name}_set" if name in DERIVED else name: value for name, value in declared.items()})
+    for name in (*SIZED, *DERIVED):
         value = getattr(sized, name)
         if value < sized.minimum:
             said = f"{where}.{name} is" if name in declared else f"{where} leaves {name} at"
@@ -881,7 +897,7 @@ def _uses(declared) -> dict[str, Type]:
                 f"{' or '.join(repr(use) for use in USES)}")
         base = _spaced(_floored(USES[like], said.get("floor"), where), said.get("spacing"), f"{where}.spacing")
         sizes = {key: value for key, value in said.items() if key not in ("like", "floor", "spacing")}
-        found[name] = _sizes(f"the use {name!r}", base, sizes, where, ("like", "floor", "spacing", *SIZED))
+        found[name] = _sizes(f"the use {name!r}", base, sizes, where, ("like", "floor", "spacing", *SIZED, *DERIVED))
     return found
 
 
@@ -940,7 +956,7 @@ def _furniture(type: Type) -> Spacing:
         base,
         kicker_height=kicker,
         title_height=kicker + round((base.title_height - base.kicker_height) * type.title / read.title),
-        band_height=round(base.band_height * type.heading / read.heading),
+        band_height=round(base.band_height * type.band / read.band),
         footer_height=round(base.footer_height * type.caption / read.caption),
     )
 

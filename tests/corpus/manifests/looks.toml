@@ -167,3 +167,17 @@ bars = [
 [[pages.rows.cells]]
 [pages.rows.cells.board]
 table = [["Look", "Key"], ["dashed", "tentative"], ["heavy", "strong"]]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "What a card may leave out, and how it sets its words"
+card_columns = 3
+cards = [
+  { body = "no heading: only its words", align = "center" },
+  { heading = "Stage 1", tag = true, tone = "bad" },
+  { heading = "A list", body = ["the first line", "a second line, long enough to wrap onto another line of the card", "the third"], tone = "accent" },
+  { tone = "tint" },
+  { heading = "Centered", body = "heading and body", align = "center" },
+  { heading = "Tag, strong", tag = true, strong = true },
+]

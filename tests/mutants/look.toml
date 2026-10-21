@@ -33,8 +33,8 @@ new = "strong=False"
 [[mutant]]
 name = "a card written as a table loses its looks"
 file = "src/pptx_agent_maker/layout/types/core/read.py"
-old = 'str(item.get("body", "")), read_style(spec, item, what, TONES[0]))'
-new = 'str(item.get("body", "")))'
+old = "return Card(heading, body, style, tag=tag, align=align, bullets=bullets)"
+new = "return Card(heading, body, tag=tag, align=align, bullets=bullets)"
 
 # -- how a look is painted (layout/parts/page.py) -------------------------------
 
