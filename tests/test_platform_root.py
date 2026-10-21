@@ -26,6 +26,7 @@ from pptx import Presentation  # noqa: E402
 from pptx_agent_maker.project.files.places import PlacesError, default_places_file, load  # noqa: E402
 from pptx_live_preview.cache import cache_root  # noqa: E402
 from pptx_live_preview.platform_root import ROOT_VARIABLE, tool_folder  # noqa: E402
+from pptx_live_preview.render import page_count, to_pdf, xdg_environment  # noqa: E402
 
 SCENARIO = REPO / "tests" / "support" / "platform_root_scenario.py"
 TOOL = "pptx-agent-maker"
@@ -105,6 +106,60 @@ class WithARoot(Machine):
         self.assertEqual([{"name": "a", "path": "~/decks"}], load()["folder"])
 
 
+XDG_VARIABLES = ("XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME")
+
+
+class TheCommandsItStarts(Machine):
+    """LibreOffice and poppler write to $HOME/.cache and $HOME/.config on Linux unless told where else."""
+
+    def test_with_a_root_their_cache_and_settings_go_under_the_tools_cache(self) -> None:
+        os.environ[ROOT_VARIABLE] = str(self.dir / "platform")
+        home = cache_root() / "_poppler-xdg"
+        environment = xdg_environment(home)
+        for variable, leaf in zip(XDG_VARIABLES, ("cache", "config", "data")):
+            self.assertEqual(str(home / leaf), environment[variable])
+            self.assertTrue((home / leaf).is_dir())
+
+    def test_without_a_root_they_inherit_the_environment_as_before(self) -> None:
+        self.assertIsNone(xdg_environment(self.dir / "xdg"))
+        self.assertFalse((self.dir / "xdg").exists())
+
+    def test_every_command_the_preview_starts_is_given_that_environment(self) -> None:
+        os.environ[ROOT_VARIABLE] = str(self.dir / "platform")
+        deck, pdf = self.dir / "a.pptx", self.dir / "a.pdf"
+        deck.write_bytes(b"not a zip: the conversion is stubbed, the deck is only passed along")
+        pdf.write_bytes(b"%PDF")
+        asked = []
+
+        def run(command, **options):
+            asked.append((Path(command[0]).name, options.get("env")))
+            return subprocess.CompletedProcess(command, 0, stdout="Pages: 1\n", stderr="")
+
+        profile = cache_root() / "_libreoffice" / "profile-0"
+        with mock.patch("pptx_live_preview.render.subprocess.run", run), \
+                mock.patch("pptx_live_preview.render.soffice_bin", return_value="soffice"), \
+                mock.patch("pptx_live_preview.render.pdfinfo_bin", return_value="pdfinfo"):
+            (self.dir / "work").mkdir()
+            (self.dir / "work" / "a.pdf").write_bytes(b"%PDF")
+            to_pdf(deck, self.dir / "work", profile)
+            page_count(pdf)
+        self.assertEqual(["soffice", "pdfinfo"], [name for name, _ in asked])
+        for name, environment in asked:
+            for variable in XDG_VARIABLES:
+                self.assertTrue(Path(environment[variable]).is_relative_to(cache_root()), (name, variable))
+        # 変換は 1 つのプロファイルに 1 本。設定と cache もそのプロファイルのものだけ
+        self.assertEqual(str(cache_root() / "_libreoffice" / "profile-0-xdg" / "cache"),
+                         asked[0][1]["XDG_CACHE_HOME"])
+
+
+#: Linux の LibreOffice と poppler の真似 (= XDG の変数が無ければ HOME の `.cache` と `.config` に書く)
+LINUX_LIKE = """#!/bin/sh
+# Writes where Linux would when XDG_* is not set, then runs the real {name}.
+mkdir -p "${{XDG_CACHE_HOME:-$HOME/.cache}}/fontconfig" "${{XDG_CONFIG_HOME:-$HOME/.config}}"
+exec "{real}" "$@"
+"""
+
+
 @unittest.skipUnless(shutil.which("soffice") and shutil.which("pdftoppm"),
                      "bakes a deck for real: needs LibreOffice (soffice) and poppler (pdftoppm)")
 class NothingIsWrittenOutsideTheRoot(Machine):
@@ -116,6 +171,12 @@ class NothingIsWrittenOutsideTheRoot(Machine):
         self.cwd = self.dir / "cwd"
         self.tmp.mkdir()
         self.cwd.mkdir()
+        self.bin = self.dir / "bin"
+        self.bin.mkdir()
+        for name in ("soffice", "pdftoppm", "pdfinfo"):
+            wrapper = self.bin / name
+            wrapper.write_text(LINUX_LIKE.format(name=name, real=shutil.which(name)), encoding="utf-8")
+            wrapper.chmod(0o755)
         deck = Presentation()
         deck.slides.add_slide(deck.slide_layouts[5]).shapes.title.text = "a page"
         self.deck = self.dir / "work" / "a.pptx"
@@ -130,7 +191,7 @@ class NothingIsWrittenOutsideTheRoot(Machine):
         (examples / "slides-align" / "decks.json").write_text("[]", encoding="utf-8")
 
     def run_scenario(self, root: Path | None) -> None:
-        environ = {"PATH": os.environ.get("PATH", ""), "HOME": str(self.home), "TMPDIR": str(self.tmp)}
+        environ = {"PATH": f"{self.bin}{os.pathsep}{os.environ.get('PATH', '')}", "HOME": str(self.home), "TMPDIR": str(self.tmp)}
         if root is not None:
             environ[ROOT_VARIABLE] = str(root)
         result = subprocess.run([sys.executable, str(SCENARIO), str(self.deck)], env=environ,

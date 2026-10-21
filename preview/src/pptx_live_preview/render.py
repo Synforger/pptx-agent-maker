@@ -23,6 +23,9 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
+from .cache import cache_root
+from .platform_root import tool_folder
+
 # 本画像の解像度。13.33 x 7.5 インチのスライドで 200dpi = 2667 x 1500 px になり、
 # Retina で幅 1280px に置いたときの物理 2560px をちょうど満たす。110dpi (= 1467px) では
 # 引き伸ばしになり、220dpi 以上は等倍を超えるので容量の払い損。
@@ -86,9 +89,33 @@ def pdfinfo_bin() -> str:
     return _resolve("pdfinfo", [])
 
 
+def xdg_environment(home: Path) -> dict[str, str] | None:
+    """The environment that keeps a started command's cache, settings and data under `home`.
+
+    Linux の LibreOffice (= その下の dconf・fontconfig) と poppler は、XDG の変数が無いと HOME 直下の
+    `.cache` と `.config` に書く。器の根が渡された時は根の外へ書かない約束なので、置き場の下へ向ける。
+    根が無い時は今まで通り環境を引き継ぐ (= None)。
+    """
+    if tool_folder("cache") is None:
+        return None
+    environment = dict(os.environ)
+    for variable, leaf in (("XDG_CACHE_HOME", "cache"), ("XDG_CONFIG_HOME", "config"),
+                           ("XDG_DATA_HOME", "data")):
+        folder = home / leaf
+        folder.mkdir(parents=True, exist_ok=True)
+        environment[variable] = str(folder)
+    return environment
+
+
+def poppler_environment() -> dict[str, str] | None:
+    """`xdg_environment` for pdfinfo and pdftoppm, which share one folder (= they only read fonts)."""
+    return xdg_environment(cache_root() / "_poppler-xdg")
+
+
 def page_count(pdf: Path) -> int:
     """How many pages the PDF has, so the work can be split across processes."""
-    result = subprocess.run([pdfinfo_bin(), str(pdf)], capture_output=True, text=True)
+    result = subprocess.run([pdfinfo_bin(), str(pdf)], capture_output=True, text=True,
+                            env=poppler_environment())
     if result.returncode != 0:
         raise RenderError(f"pdfinfo failed: {result.stderr.strip()}")
     for line in result.stdout.splitlines():
@@ -203,6 +230,8 @@ def to_pdf(pptx: Path, work_dir: Path, profile: Path) -> Path:
         ],
         capture_output=True,
         text=True,
+        # 1 つのプロファイルは 1 本の変換だけが借りる。その設定と cache もプロファイルごとに分ける
+        env=xdg_environment(profile.with_name(f"{profile.name}-xdg")),
     )
     if result.returncode != 0:
         raise RenderError(
@@ -236,7 +265,7 @@ def _run_pdftoppm(pdf: Path, out_dir: Path, dpi: int, prefix: str,
     if first is not None:
         cmd += ["-f", str(first), "-l", str(last)]
     cmd += [str(pdf), str(out_dir / prefix)]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, env=poppler_environment())
     if result.returncode != 0:
         raise RenderError(f"pdftoppm failed: {result.stderr.strip()}")
 
