@@ -3,8 +3,9 @@
 # =============================================================================
 # Language-neutral quality machinery: docs freshness, toolchain floor,
 # aggregate audit, release driver, GitHub settings. Language-specific tasks
-# (setup / lint / test / build / run) are intentionally thin stubs — fill
-# them in with your stack's commands after deriving. A `Taskfile.local.yml`
+# (lint / test / build / run) are intentionally thin — every one of them runs
+# through `uv run`, which builds the environment (.venv from .python-version
+# and uv.lock) the first time, so there is no setup step. A `Taskfile.local.yml`
 # include is honoured if you prefer keeping your stack's tasks separate.
 # =============================================================================
 
@@ -22,57 +23,51 @@ tasks:
       - task --list
 
   # ---------------------------------------------------------------------------
-  # Stack stubs — replace each echo with your project's real command (or
-  # define them in Taskfile.local.yml, which is included when present).
-  # Keeping the task names stable means every derived repo answers to the
-  # same verbs regardless of language.
+  # Stack tasks — keeping the task names stable means every derived repo
+  # answers to the same verbs regardless of language. Define more in
+  # Taskfile.local.yml, which is included when present.
   # ---------------------------------------------------------------------------
-  setup:
-    desc: Create the virtualenv and install the toolkit with the vendored preview
-    cmds:
-      # --clear: a .venv made earlier by another python3 is rebuilt, never half-overlaid (= python one version, pip another)
-      - python3 -m venv --clear .venv
-      - .venv/bin/python -m pip install -q -e .
-      - .venv/bin/python -m pip install -q -e "preview[dev]"
-      - .venv/bin/python -m pip install -q build
-
   update:
-    desc: Reinstall both packages so a changed dependency is picked up
+    desc: Move every dependency to the newest version the constraints allow, and rewrite uv.lock
     cmds:
-      - .venv/bin/pip install -q -U -e .
-      - .venv/bin/pip install -q -U -e "preview[dev]"
+      - uv sync --upgrade
 
   lint:
     desc: Compile every source file (= the syntax gate this repo declares; no linter is configured)
     cmds:
-      - .venv/bin/python -m compileall -q src preview/src
+      - uv run python -m compileall -q src preview/src
+
+  lint:lock:
+    desc: Fail when uv.lock does not match pyproject.toml (= a changed dependency was not locked)
+    cmds:
+      - uv lock --check
 
   test:unit:
     desc: Run the toolkit's own suite
     cmds:
-      - .venv/bin/python -m unittest discover -s tests -v
+      - uv run python -m unittest discover -s tests -v
 
   test:integration:
     desc: Run the vendored preview's suite (= server, cache and notes against real files)
     cmds:
-      - .venv/bin/python -m pytest preview/tests -q
+      - uv run python -m pytest preview/tests -q
 
   build:
     desc: Build the wheel and the source archive
     cmds:
       # PEP 517 の標準の口。wheel だけでは、pyproject が宣言した file が本当に
       # 配られるかを誰も見ていない (= sdist はそれを組み立てる側から確かめる)。
-      - .venv/bin/python -m build --outdir dist .
+      - uv run python -m build --outdir dist .
 
   run:
     desc: Show the toolkit's commands
     cmds:
-      - .venv/bin/python -m pptx_agent_maker --help
+      - uv run python -m pptx_agent_maker --help
 
   preview:
     desc: Watch a project's built decks in a browser
     cmds:
-      - .venv/bin/python -m pptx_agent_maker preview {{.CLI_ARGS}}
+      - uv run python -m pptx_agent_maker preview {{.CLI_ARGS}}
 
   # ---------------------------------------------------------------------------
   # Language-neutral quality gates (no delegation).
@@ -81,6 +76,7 @@ tasks:
     desc: Full quality-gate suite (lint + tests + docs freshness + version drift) — same entry point locally and in CI
     cmds:
       - task: lint
+      - task: lint:lock
       - task: test:unit
       - task: docs:check
       - task: lint:versions
@@ -114,27 +110,27 @@ tasks:
   gen-notices:
     desc: Regenerate THIRD_PARTY_NOTICES.md from the installed dep tree (python + node)
     cmds:
-      - python3 scripts/generate/gen-third-party-notices.py
+      - uv run --with pip-licenses python scripts/generate/gen-third-party-notices.py
 
   specimen:
     desc: Re-bake the specimen and picture the project template ships with (after a token change)
     cmds:
-      - .venv/bin/python3 scripts/generate/bake-template.py
+      - uv run python scripts/generate/bake-template.py
 
   snapshot:
     desc: Bake the corpus and rewrite the slide XML kept under tests/corpus/snapshot (= after a change meant to move a page)
     cmds:
-      - .venv/bin/python scripts/check/snapshot.py
+      - uv run python scripts/check/snapshot.py
 
   snapshot:check:
     desc: Bake the corpus and compare it with the slide XML that is kept (= a refactor leaves every byte as it was)
     cmds:
-      - .venv/bin/python scripts/check/snapshot.py --check
+      - uv run python scripts/check/snapshot.py --check
 
   mutate:
     desc: Break the code the ways a table lists and see the tests go red (= task mutate -- tests/mutants/_example.toml)
     cmds:
-      - .venv/bin/python scripts/check/mutate.py {{.CLI_ARGS}}
+      - uv run python scripts/check/mutate.py {{.CLI_ARGS}}
 
   audit:
     desc: Aggregate security audit (anon-scan + gitleaks full history + pip-audit + npm audit)

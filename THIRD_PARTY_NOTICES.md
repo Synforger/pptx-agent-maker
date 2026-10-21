@@ -11,7 +11,7 @@ this file by hand; re-run `task gen-notices` and commit the diff.
 GitHub Actions + npm registries + PyPI all change license metadata
 asynchronously, so a snapshot in-tree is the only stable artefact for
 downstream review. Anyone reading the repo can confirm what they will
-be installing without first running `task setup`.
+be installing without first building the environment.
 
 ## Regeneration
 

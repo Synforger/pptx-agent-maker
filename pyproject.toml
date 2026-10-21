@@ -5,10 +5,16 @@ description = "Build slide decks by declaring structure, not coordinates."
 requires-python = ">=3.11"
 dependencies = ["python-pptx>=1.0"]
 
+# `uv run` / `uv sync` が既定で入れる group。プレビューは下の packages.find が本体と一緒に入れるので、
+# ここに足すのはプレビューの試験 (pytest) と sdist / wheel を組む build だけ。
+[dependency-groups]
+dev = ["pytest>=7", "build"]
+
 # 案件の folder から名前で呼べるようにする。`python -m ...` だけだと、ツールが
 # どの python に入っているかを人が覚えていないと 1 頁も焼けない。
 [project.scripts]
 pptx-agent-maker = "pptx_agent_maker.__main__:main"
+pptx-live-preview = "pptx_live_preview.__main__:main"
 
 [build-system]
 requires = ["setuptools>=68"]

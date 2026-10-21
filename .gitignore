@@ -36,6 +36,5 @@ dist/
 .venv/
 venv/
 .envrc
-.python-version
 .idea/
 .DS_Store
