@@ -77,20 +77,20 @@ new = "zip(stack.split_top(stack.height * 3 // 4)[0].rows(len(buckets), gap=s.ga
 [[mutant]]
 name = "the items of the list are greyed like their marks"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "rows.append((ITEM_MARK, entry, t.body, p.accent if picked else p.ink, picked, indent, s.row_gap))"
-new = "rows.append((ITEM_MARK, entry, t.body, p.accent if picked else p.muted, picked, indent, s.row_gap))"
+old = "entry, t.body, p.accent if picked else p.ink,"
+new = "entry, t.body, p.accent if picked else p.muted,"
 
 [[mutant]]
 name = "the mark of the item in hand stays grey"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "                                      p.accent if bold else p.muted))"
-new = "                                      p.muted))"
+old = "rows.append((ITEM_MARK, p.accent if picked else p.muted,"
+new = "rows.append((ITEM_MARK, p.muted,"
 
 [[mutant]]
 name = "the chapters of the list are set as small as their items"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = '{title.split(SUMMARY, 1)[0]}", t.stage,'
-new = '{title.split(SUMMARY, 1)[0]}", t.body,'
+old = "title.split(SUMMARY, 1)[0], t.stage,"
+new = "title.split(SUMMARY, 1)[0], t.body,"
 
 [[mutant]]
 name = "true is read as the first item"
@@ -103,3 +103,15 @@ name = "the cards take the tone and the numbering of the boxes without a word"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
 old = "            if spec.get(taken) is not None:"
 new = "            if False:"
+
+[[mutant]]
+name = "the mark of a chapter is grey like the marks of items"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "rows.append((CHAPTER_MARK, colour,"
+new = "rows.append((CHAPTER_MARK, p.muted,"
+
+[[mutant]]
+name = "the mark of a chapter goes back into the chapter's words"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "rows.append((CHAPTER_MARK, colour, title.split(SUMMARY, 1)[0], t.stage,"
+new = "rows.append((CHAPTER_MARK, colour, CHAPTER_MARK + \" \" + title.split(SUMMARY, 1)[0], t.stage,"

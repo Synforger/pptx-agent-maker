@@ -433,22 +433,30 @@ class WhatTheTypesRefuse(unittest.TestCase):
         self.assertTrue(all(e.bold for e in self._kind(page, "agenda_chapter")))
 
     def test_the_list_marks_the_chapter_in_hand_and_greys_only_the_marks_of_items(self):
-        """骨組みの左の一覧は、 今の章だけ差し色の太字。 ほかの章と小項目は本文の色で、 小項目の印だけ灰。"""
+        """骨組みの左の一覧は、 今の章だけ差し色の太字。 ほかの章と小項目は本文の色で、 小項目の印だけ灰。
+
+        ⚠ **章の印を章の名前と同じ run に入れていた。**頁を複製して章の名前を差し替えると、 右のカードは
+        替わり、 左の一覧は替わらなかった (= 差し替えは run の文言全体が一致した時だけ)。 印は別の箱に置く。
+        """
         page, p, t = build(self.CARDS), DEFAULT.palette, DEFAULT.type
         rows = self._kind(page, "agenda_item")
-        self.assertEqual(["\u2022 しょう 1", "こうもく", "\u2022 しょう 2", "こうもく", "つぎ", "\u2022 しょう 3"],
-                         [e.text for e in rows])
+        self.assertEqual(["しょう 1", "こうもく", "しょう 2", "こうもく", "つぎ", "しょう 3"], [e.text for e in rows])
+        self.assertEqual(sorted(e.text for e in self._kind(page, "agenda_chapter")),
+                         sorted(e.text for e in rows if e.size == t.stage), "a chapter is named alike on both sides")
         self.assertEqual([p.ink, p.ink, p.accent, p.ink, p.ink, p.ink], [e.colour for e in rows])
         self.assertEqual([False, False, True, False, False, False], [e.bold for e in rows])
         self.assertEqual([t.stage, t.body, t.stage, t.body, t.body, t.stage], [e.size for e in rows])
-        self.assertEqual({p.muted}, {e.colour for e in self._kind(page, "agenda_mark")})
+        marks = self._kind(page, "agenda_mark")
+        self.assertEqual(["\u2022", "\u2013", "\u2022", "\u2013", "\u2013", "\u2022"], [e.text for e in marks])
+        self.assertEqual([p.ink, p.muted, p.accent, p.muted, p.muted, p.ink], [e.colour for e in marks])
+        self.assertFalse(any(e.bold for e in marks))
 
     def test_an_item_of_the_chapter_in_hand_can_be_marked(self):
         """章の途中から入り直す頁は、 今の章の小項目を 1 つ差し色の太字にする (= 印も差し色)。"""
         page, p = build({**self.CARDS, "highlight_item": 2}), DEFAULT.palette
         picked = [e for e in self._kind(page, "agenda_item") if e.bold]
-        self.assertEqual(["\u2022 しょう 2", "つぎ"], [e.text for e in picked])
-        self.assertEqual([p.muted, p.accent], [e.colour for e in self._kind(page, "agenda_mark")][1:])
+        self.assertEqual(["しょう 2", "つぎ"], [e.text for e in picked])
+        self.assertEqual([p.accent, p.muted, p.accent], [e.colour for e in self._kind(page, "agenda_mark")][2:5])
 
     def test_what_the_cards_cannot_take_is_refused(self):
         for spec, word in (({**self.CARDS, "look": "tiles"}, "look"),

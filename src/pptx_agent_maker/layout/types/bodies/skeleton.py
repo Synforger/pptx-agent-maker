@@ -60,8 +60,9 @@ SUMMARY = " ― "
 
 #: `cards` の左の列と右の列の幅の比 (= 案件の資料の目次は、 一覧の側が少し広い)
 CARDS_COLUMNS = (11, 10)
-#: 左の一覧の小項目の印 (= 字は本文の色、 印だけ灰)
-ITEM_MARK = "\u2013"
+#: 左の一覧の章の印 (= 章の字と同じ色) と小項目の印 (= 字は本文の色、 印だけ灰)。 どちらも字とは別の箱に置く
+#: (= 印を字と同じ run に入れると、 頁を複製して章の名前を差し替える時に、 印付きの文言を別に書くことになる)
+CHAPTER_MARK, ITEM_MARK = "\u2022", "\u2013"
 
 
 def _agenda_cards(page: Page, area: Rect, buckets: list[tuple[str, list[str]]], here: int, item: int) -> None:
@@ -78,31 +79,32 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[tuple[str, list[str]]], 
     listing, right = area.columns(list(CARDS_COLUMNS), gap=s.gap_l)
     # 印の箱は余白なしで、 印と空白 1 つ分の幅 (= 字の箱の左の余白が印と字の間になる。 余白のある箱を印と空白
     # の幅にすると、 LibreOffice は印を次の行へ折って隠す)
-    indent, mark = s.gap_l + s.gap_m, theme.width(f"{ITEM_MARK} ", t.body)
-    # (印, 字, 字の大きさ, 字の色, 太字, 字下げ, 前の間)。 章の印は章の字と同じ色、 小項目の印は灰
-    rows: list[tuple[str, str, int, str, bool, int, int]] = []
+    indent = s.gap_l + s.gap_m
+    # (印, 印の色, 字, 字の大きさ, 字の色, 太字, 字下げ, 前の間)。 章の印は章の字と同じ色、 小項目の印は灰
+    rows: list[tuple[str, str, str, int, str, bool, int, int]] = []
     for number, (title, items) in enumerate(buckets, start=1):
         marked = number == here
-        rows.append(("", f"\u2022 {title.split(SUMMARY, 1)[0]}", t.stage, p.accent if marked else p.ink, marked, 0,
+        colour = p.accent if marked else p.ink
+        rows.append((CHAPTER_MARK, colour, title.split(SUMMARY, 1)[0], t.stage, colour, marked, 0,
                      s.gap_s if rows else 0))
         for index, entry in enumerate(items, start=1):
             picked = marked and index == item
-            rows.append((ITEM_MARK, entry, t.body, p.accent if picked else p.ink, picked, indent, s.row_gap))
-    heights = [theme.wrapped_height(text, max(listing.width - indent - (mark if sign else 0) - 2 * s.text_inset, 1),
-                                    size, bold=bold)
-               for sign, text, size, _colour, bold, indent, _before in rows]
+            rows.append((ITEM_MARK, p.accent if picked else p.muted, entry, t.body, p.accent if picked else p.ink,
+                         picked, indent, s.row_gap))
+    marks = [theme.width(f"{sign} ", size) for sign, _shade, _text, size, *_rest in rows]
+    heights = [theme.wrapped_height(text, max(listing.width - indent - mark - 3 * s.text_inset, 1), size, bold=bold)
+               for (_sign, _shade, text, size, _colour, bold, indent, _before), mark in zip(rows, marks)]
     if sum(heights) + sum(row[-1] for row in rows) > listing.height:
         raise PageFullError(
             f"agenda: the list of items needs {sum(heights) + sum(row[-1] for row in rows)} EMU of height and has "
             f"{listing.height} — fewer items, or two pages; it will not shrink")
     top = listing.top
-    for (sign, text, size, colour, bold, indent, before), tall in zip(rows, heights):
+    for (sign, shade, text, size, colour, bold, indent, before), mark, tall in zip(rows, marks, heights):
         top += before
-        left = listing.left + indent
-        if sign:
-            page.elements.append(Text("agenda_mark", Rect(left, top, mark, theme.line_height(size)), sign, size,
-                                      p.accent if bold else p.muted))
-            left += mark
+        # 印は、 字の箱の左の余白と同じだけ一覧の端から下げる (= 印の箱は余白なし。 揃えないと印が列の外へ出る)
+        left = listing.left + indent + s.text_inset
+        page.elements.append(Text("agenda_mark", Rect(left, top, mark, theme.line_height(size)), sign, size, shade))
+        left += mark
         page.elements.append(Text("agenda_item", Rect(left, top, listing.right - left, tall), text, size, colour,
                                   bold=bold))
         top += tall
