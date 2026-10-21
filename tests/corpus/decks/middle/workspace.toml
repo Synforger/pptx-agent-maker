@@ -1,0 +1,19 @@
+# A third made-up project, whose boxes are as tall as their words and whose body stands in the middle of the page
+# (= `box_height = "middle"`). The main corpus keeps boxes as tall as their words at the top, and the outlined
+# deck keeps boxes that take the page; the height of the boxes is one per project, so this look is kept here.
+
+root = "."
+
+[paths]
+assets = "assets"
+
+[theme]
+box_height = "middle"
+
+# A use of the project's own that puts its boxes back at the top, as tall as their words.
+[theme.uses.topped]
+like = "read"
+box_height = "text"
+
+[checks]
+unsourced = false

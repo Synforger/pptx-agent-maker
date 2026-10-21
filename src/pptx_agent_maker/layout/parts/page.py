@@ -293,7 +293,7 @@ class Page:
         持ち帰らせる言葉で、下は本文の大きさ (= 上より一段小さい)。
         """
         p, t, s = self.theme.palette, self.theme.type, self.theme.spacing
-        rect = self._take_bottom(s.band_height) if conclusion else self._take_top(s.band_height)
+        rect = self._take_bottom(s.conclusion_height) if conclusion else self._take_top(s.band_height)
         if self.theme.band_look == "outlined":
             hue = p.muted if conclusion else p.accent
             self.elements.append(Fill("band", rect, p.thinned(p.BAND_WASH, hue), outline=hue, rounded=True))

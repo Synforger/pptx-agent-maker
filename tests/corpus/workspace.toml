@@ -46,6 +46,25 @@ caption = 7
 scale = 0.5
 pad = 0.1
 
+# A use whose bands are a height of their own, not the height of the type in them: the band over a page and
+# the one under it are not alike.
+[theme.uses.ruled]
+like = "read"
+band = 14
+
+[theme.uses.ruled.spacing]
+band_height = 1.5
+conclusion_height = 0.9
+
+# Uses that pick how tall their boxes stand, whatever the deck says (= this deck's boxes are as tall as their words).
+[theme.uses.filled]
+like = "read"
+box_height = "page"
+
+[theme.uses.centred]
+like = "read"
+box_height = "middle"
+
 # The pictures here are made up to exercise the layout, so there is no source to name:
 # the corpus builds with the check for unsourced pages switched off, the way a project may.
 [checks]

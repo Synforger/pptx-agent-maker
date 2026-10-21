@@ -110,3 +110,42 @@ role = "display"
 [[pages.rows.cells]]
 weight = 2
 card = { heading = "Display", body = "forty points, said by the use" }
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "ruled"
+title = "A band is as tall as its use says, the one over a page and the one under it apart"
+condition = "This band is 1.5 cm tall at 14 points"
+conclusion = "This one is 0.9 cm, whatever the type in it"
+card_columns = 3
+cards = [
+  { heading = "Over", body = "the band of a condition" },
+  { heading = "Under", body = "the band of a conclusion" },
+  { heading = "Apart", body = "each says its own height" },
+]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "filled"
+title = "A use whose boxes take the page, in a deck whose boxes do not"
+card_columns = 1
+cards = [
+  { heading = "Page", body = "the boxes share the height of the body" },
+  { heading = "Use", body = "said by the use, not by the deck" },
+]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "centred"
+title = "A use whose boxes stand in the middle of the body"
+condition = "The boxes are as tall as their words"
+conclusion = "What is left of the body is above them and below them alike"
+card_columns = 1
+cards = [
+  { heading = "Middle", body = "the cards as one block, in the middle of the body" },
+  { heading = "Gaps", body = "the gaps between the cards are the ones there always were" },
+  { heading = "Bands", body = "the bands and the title stay where they are" },
+]
