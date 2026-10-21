@@ -36,24 +36,26 @@ def stood(heights: list[int], gap: int) -> int:
     return sum(heights) + gap * (len(heights) - 1) if heights else 0
 
 
-def stage_stacks(page: Page, spec: Spec, stages: list, wide: int, aligned: bool,
+def stage_stacks(page: Page, spec: Spec, stages: list, wide: int | list[int], aligned: bool,
             what: str, bare: bool = False) -> tuple[list[list[tuple[Card, int]]], int]:
     """Each stage's nodes with the height each takes, and how tall the tallest stage stands.
 
-    流れ図と道のりが同じ数え方で積む (= 段の下のノードは、どちらでも同じ箱)。
+    流れ図と道のりが同じ数え方で積む (= 段の下のノードは、どちらでも同じ箱)。`wide` は全部の段が
+    同じ幅なら 1 つの数、段ごとに幅が違えば段の順の幅の並び (= 折り返しは自分の列の幅で数える)。
 
     ⚠ **ノードの無い段は、`bare` の型 (= 道のり) にだけ許す。**流れ図の段は中身が要る型なので、
     `bare` を書かない呼び手は今までどおり止まる。許した段の下は空の列で、高さは 0
     (= 全部の段が空なら、積んだ高さも 0)。
     """
     gap = page.theme.spacing.gap_s
+    widths = wide if isinstance(wide, list) else [wide] * len(stages)
     stacks = []
-    for number, stage in enumerate(stages, start=1):
+    for number, (stage, width) in enumerate(zip(stages, widths), start=1):
         nodes = [read_card(spec, node, f"{what}: stage {number}, node {index}")
                  for index, node in enumerate(stage.get("nodes", []), start=1)]
         if not nodes and not bare:
             raise PageTypeError(f"{what}: stage {stage['name']!r} has no nodes")
-        stacks.append([(node, card_height(page, [node], wide, 1)) for node in nodes])
+        stacks.append([(node, card_height(page, [node], width, 1)) for node in nodes])
     if aligned:
         # 行ごとに、その行で一番高いノードへ揃える (= 同じ順番のノードが同じ高さに並ぶ)
         rows = [max(column[index][1] for column in stacks if index < len(column))

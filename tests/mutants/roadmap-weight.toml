@@ -1,0 +1,63 @@
+# A roadmap whose stages may say `weight`: the columns are cut by it, and the nodes under a stage break over their own column.
+
+tests = ["tests/test_roadmap.py"]
+
+[[mutant]]
+name = "the columns of a road are cut equally whatever the stages weigh"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "columns = area.columns(weights, gap=s.gap_m)"
+new = "columns = area.columns(len(stages), gap=s.gap_m)"
+
+[[mutant]]
+name = "a stage may not say its weight"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = '{"name", "nodes", "goal", "weight", *LOOK_KEYS}'
+new = '{"name", "nodes", "goal", *LOOK_KEYS}'
+
+[[mutant]]
+name = "a stage that says nothing weighs nothing"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = 'value = stage.get("weight", 1)'
+new = 'value = stage.get("weight", 0.5)'
+
+[[mutant]]
+name = "a weight of nothing is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "or not isinstance(value, Real) or value <= 0:"
+new = "or not isinstance(value, Real) or value < 0:"
+
+[[mutant]]
+name = "a weight that is true or false is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "    if isinstance(value, bool) or not isinstance(value, Real) or value <= 0:"
+new = "    if not isinstance(value, Real) or value <= 0:"
+
+[[mutant]]
+name = "a weight that is a string is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "or not isinstance(value, Real) or value <= 0:"
+new = "or value <= 0:"
+
+[[mutant]]
+name = "the nodes of every stage break over the width of the first column"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "[column.width for column in columns]"
+new = "[columns[0].width] * len(columns)"
+
+[[mutant]]
+name = "the nodes of every stage break over the width of the last column"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "[column.width for column in columns]"
+new = "[columns[-1].width] * len(columns)"
+
+[[mutant]]
+name = "a list of widths is read as one width, the first"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "widths = wide if isinstance(wide, list) else [wide] * len(stages)"
+new = "widths = [wide[0] if isinstance(wide, list) else wide] * len(stages)"
+
+[[mutant]]
+name = "a node is counted over the width of the stage before it"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "for number, (stage, width) in enumerate(zip(stages, widths), start=1):"
+new = "for number, (stage, width) in enumerate(zip(stages, widths[:1] + widths), start=1):"
