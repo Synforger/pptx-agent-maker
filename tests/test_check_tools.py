@@ -158,6 +158,17 @@ class ASnapshot(unittest.TestCase):
         code, said = quietly(snapshot.main, *corpus, "--check")
         self.assertEqual(1, code, "the deck's own look is part of what is kept")
 
+    def test_a_deck_named_like_a_manifest_of_the_corpus_stops_instead_of_mixing_their_pages(self) -> None:
+        deck = self.corpus / "decks" / "deck"
+        (deck / "manifests").mkdir(parents=True)
+        (deck / "workspace.toml").write_text('root = "."\n', encoding="utf-8")
+        (deck / "manifests" / "look.toml").write_text(
+            'specimen = "specimen.pptx"\nout = "look.pptx"\n' + CARDS, encoding="utf-8")
+        code, said = quietly(snapshot.main, "--corpus", str(self.corpus))
+        self.assertEqual(1, code, "a deck and a manifest of one name were kept in one folder")
+        self.assertIn("has the name of a manifest", said)
+        self.assertFalse((self.corpus / "snapshot").exists(), "a stopped bake left a snapshot behind")
+
     def test_a_corpus_that_does_not_build_stops_instead_of_keeping_less(self) -> None:
         (self.corpus / "manifests" / "deck.toml").write_text(
             'specimen = "specimen.pptx"\nout = "deck.pptx"\n'

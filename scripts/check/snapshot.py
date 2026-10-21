@@ -68,6 +68,9 @@ def bake(corpus: Path, out: Path) -> list[Path]:
         found = sorted((deck.parent / "manifests").glob("*.toml"))
         if not found:
             raise SnapshotError(f"no manifests under {deck.parent / 'manifests'}")
+        # 資料の名前は頁の folder の名前になる (= 本線の manifest と同じ名前だと、頁が同じ folder に混ざる)
+        if deck.parent.name in {manifest.stem for manifest in manifests}:
+            raise SnapshotError(f"the deck {deck.parent.name!r} has the name of a manifest of the corpus — rename one")
         written += _bake_project(corpus, deck, found, out / deck.parent.name)
     return written
 
