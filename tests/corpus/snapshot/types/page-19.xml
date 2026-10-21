@@ -861,7 +861,7 @@
 <a:r>
 <a:rPr sz="1600" b="1">
 <a:solidFill>
-<a:srgbClr val="6B6B6B"/>
+<a:srgbClr val="1A1A1A"/>
 </a:solidFill>
 <a:latin typeface="Meiryo"/>
 </a:rPr>
@@ -1195,7 +1195,7 @@
 <a:r>
 <a:rPr sz="1600" b="1">
 <a:solidFill>
-<a:srgbClr val="6B6B6B"/>
+<a:srgbClr val="1A1A1A"/>
 </a:solidFill>
 <a:latin typeface="Meiryo"/>
 </a:rPr>

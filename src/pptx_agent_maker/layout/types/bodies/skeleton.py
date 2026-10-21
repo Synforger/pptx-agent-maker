@@ -70,8 +70,8 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[tuple[str, list[str]]], 
     左の一覧は章を `•` で章の大きさの字に、 小項目を一段下げた `–` で本文の字にし、 今の章だけ差し色の太字に
     する (= `highlight_item` は今の章の小項目を 1 つ差し色の太字にする。 章の途中から入り直す頁のため)。 ほかは
     本文の色で、 小項目の印だけ灰。 右のカードは列の高さを章の数で等分し、 番号は塗りの丸に置く。 今の章は
-    差し色の丸に紙の色の数字、 差し色のごく薄い地、 差し色の題。 ほかの章は灰の丸に灰の数字、 灰の地、 灰の題
-    (= 灰の丸に白の数字は読めない)。 枠は引かない。
+    差し色の丸に紙の色の数字、 差し色のごく薄い地、 差し色の題。 ほかの章は灰の丸に本文の色の数字、 灰の地、
+    灰の題 (= 灰の丸の上の白や灰の数字は読めない)。 枠は引かない。
     """
     theme = page.theme
     t, s, p = theme.type, theme.spacing, theme.palette
@@ -127,8 +127,10 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[tuple[str, list[str]]], 
                 f"share of the page is {band.height} — fewer chapters, or shorter names; it will not shrink")
         page.elements.append(Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash, rounded=True))
         page.elements.append(Ellipse("agenda_disc", circle, p.accent if marked else p.rule))
+        # ほかの章の番号は本文の色 (= 灰の丸の上の灰の字は、テンプレートによって読めない。 案件のテンプレートで
+        # 丸 E7E6E6 に字 8B8B8B が比 2.7 になり、 contrast の検査が赤にした)
         page.elements.append(Text("agenda_number", circle, str(number), t.heading,
-                                  p.paper if marked else p.muted, bold=True, align="center"))
+                                  p.paper if marked else p.ink, bold=True, align="center"))
         top = words.top + (words.height - named - said) // 2
         page.elements.append(Text("agenda_chapter", Rect(words.left, top, words.width, named), name, t.stage,
                                   colour, bold=True))

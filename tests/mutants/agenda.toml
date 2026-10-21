@@ -51,10 +51,16 @@ old = 'Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash, round
 new = 'Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash)'
 
 [[mutant]]
-name = "the number of the chapter in hand is set in grey on the accent"
+name = "the number of the chapter in hand is set in the ink on the accent"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = 'p.paper if marked else p.muted, bold=True, align="center"))'
-new = 'p.muted, bold=True, align="center"))'
+old = 'p.paper if marked else p.ink, bold=True, align="center"))'
+new = 'p.ink, bold=True, align="center"))'
+
+[[mutant]]
+name = "the numbers of the other chapters are grey on a grey circle"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = 'p.paper if marked else p.ink, bold=True, align="center"))'
+new = 'p.paper if marked else p.muted, bold=True, align="center"))'
 
 [[mutant]]
 name = "a chapter's summary stays on its name's line"

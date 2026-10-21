@@ -516,6 +516,12 @@ def main(argv: list[str] | None = None) -> int:
         manifest = Manifest.load(workspace.manifest(args.manifest))
         built_deck = build(workspace, manifest)
         print(f"built {built_deck} ({len(manifest.entries)} pages)")
+        # 案件に写した手順書と task が、このツールの物と違えば言う (= 古い手順で組んだまま気づかない)
+        from .project.commands.refresh import stale
+
+        if differ := stale(workspace.root):
+            print(f"note: {len(differ)} of the toolkit's files in this project differ from this toolkit's "
+                  f"(the deck skill, the Taskfile) — `task refresh` takes them, keeping the ones it replaces")
         if args.skip_checks:
             return 0
         # 焼いた deck を読み直す検査と、manifest を読む検査を、1 つの報告に並べる
