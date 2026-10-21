@@ -1,0 +1,69 @@
+# A panel in a deck of outlined boxes: the colour goes to the line and the heading over a faint ground, the corners
+# are round, and the box fills the height of its cell with the cards inside filling the height of the panel.
+
+specimen = "specimen.pptx"
+out = "panels.pptx"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Panels in colours, with the words and the numbers standing straight on them"
+condition = "A colour is carried by the line and the heading; what is set inside reads in the ink of the body"
+conclusion = "A panel fills its cell, and so do the cards it holds"
+links = [
+  { from = "a", to = "b", tone = "accent" },
+  { from = "b", to = "c" },
+]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "a"
+[pages.rows.cells.panel]
+tone = "bad"
+heading = "A reading"
+rule = true
+rows = [
+  { cells = [ { text = "A heading over a line", role = "label", tone = "bad" } ] },
+  { cells = [ { text = "Words stand straight on an outlined panel, in any tone." } ] },
+  { cells = [ { points = ["first", "second"] } ] },
+]
+[[pages.rows.cells]]
+id = "b"
+[pages.rows.cells.panel]
+tone = "accent"
+heading = "A count"
+rule = true
+rows = [
+  { cells = [ { text = "92%", role = "display", tone = "accent" } ] },
+  { cells = [ { card = { heading = "Both cards", body = "fill the panel" } } ] },
+  { cells = [ { card = { heading = "Together", body = "and share the rest" } } ] },
+]
+[[pages.rows.cells]]
+id = "c"
+[pages.rows.cells.panel]
+tone = "good"
+heading = "A table and a chart"
+rows = [
+  { cells = [ { table = [["Run", "Result"], ["one", "kept"], ["two", "dropped"]] } ] },
+  { cells = [ { chart = { kind = "column", categories = ["a", "b", "c"], series = [{ name = "Count", values = [3, 5, 4] }] } } ] },
+]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Little panels in a panel on a pale ground the project named"
+condition = "A deep ground the project named is carried by the line, as a colour is"
+conclusion = "The panels in the row stand as tall as the tallest"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+[pages.rows.cells.panel]
+tone = "Inside"
+heading = "A pale named ground, and little panels in it"
+rows = [
+  { cells = [
+    { panel = { tone = "bad", heading = "One", rows = [ { cells = [ { text = "a small panel" } ] } ] } },
+    { panel = { tone = "Late", heading = "Two", strong = true, rows = [ { cells = [ { text = "a deep named ground" } ] } ] } },
+    { panel = { tentative = true, heading = "Three", rows = [ { cells = [ { text = "not decided" } ] } ] } },
+  ] },
+]

@@ -12,6 +12,7 @@
 * **絵の上の印 (`marks`)** ― 写真や図の 1 点を指して名前を付ける (= 製品の各部、画面の各所)。点の位置だけは
   絵に対する割合で書く (= 頁の座標ではないので、絵の外へは出ない)。名前は絵の左右の列に並び、点まで線が引かれる
 * **マスどうしの線 (`links`)** ― `compose` の頁で、`id` を付けたマスからマスへ矢印を引く (= 隣り合うマスだけ)。
+  入れ物 (`panel`) の中のマスと外のマスも結べ、入れ物そのものも端になる (= 入れ物とその中身は結べない)。
   色の役 (`tone`) と、矢印のそばに置く言葉 (`text`) も書ける
 
 ⚠ **収まらなければ縮めずに止まる** (= どの並べ方も、箱か字を小さくして押し込むことはしない)。
@@ -371,6 +372,10 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
             raise PageTypeError(f"{where}: `text` is the words set beside the arrow, not {words!r} — "
                                 "drop the key for an arrow without words")
         a, b = cells[ends[0]], cells[ends[1]]
+        if a.contains(b) or b.contains(a):
+            holder, held = (ends[0], ends[1]) if a.contains(b) else (ends[1], ends[0])
+            raise PageTypeError(f"{where}: {holder!r} holds {held!r} — a link joins two cells side by side or one "
+                                "above the other, not a cell and what stands inside it")
         if a.top < b.bottom and b.top < a.bottom:                       # 横に向き合う
             y = (max(a.top, b.top) + min(a.bottom, b.bottom)) // 2
             start, end = ((a.right, y), (b.left, y)) if a.right <= b.left else ((a.left, y), (b.right, y))

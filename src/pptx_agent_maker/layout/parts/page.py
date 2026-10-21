@@ -9,6 +9,7 @@
 * `title_bar` ― その頁が何の頁か (= 題と、その上か左に置く小さい字)
 * `band` ― 条件の宣言 (= 上) と結論 (= 下)
 * `box` ― 並ぶカード
+* `panel` ― 他の箱を中に持つ箱 (= 見出しと線を左上に置く。中の割り方は呼ぶ側)
 * `figure` ― 実物の絵。縦横比は必ず保つ
 * `table` ― 小さい表 (= 頁の主役にはしない)
 * `note` ― 表や図の読み方 1〜2 行
@@ -72,6 +73,21 @@ class Card:
     align: str = "left"
     #: `body` の各行を「•」の行にする (= 本文は行ごとに改行で区切って持つ)
     bullets: bool = False
+
+
+@dataclass(frozen=True)
+class Panel:
+    """A box that holds other boxes: a ground and an edge, and a heading in its top left corner.
+
+    中身 (= 段とマス) は持たない。持つのは箱としての見た目だけで、中の割り方は `compose` が自分の段とマスの
+    組み方をそのまま使う (= 別の並べ方を作らない)。
+    """
+
+    heading: str = ""
+    #: 地の色の役・点線・強調 (= カードと同じ読み方。アイコンは持たない)
+    style: Style = Style()
+    #: 見出しの下の細い線 (= 見出しが在る時だけ)
+    rule: bool = False
 
 
 #: カードの字の寄せ
@@ -473,6 +489,69 @@ class Page:
                 self.elements.append(Text("box_body", rest, body, t.body, ink, align=align, bullets=said.bullets))
             if heading:
                 self.elements.append(Text("box_heading", head, heading, t.heading, head_ink, bold=True, align=align))
+
+    def _panel_heading_height(self, panel: Panel, width: int) -> int:
+        """How tall the heading of a panel stands at this width of its inside (= 0 without one)."""
+        if not panel.heading:
+            return 0
+        room = max(width - 2 * self.theme.spacing.text_inset, 1)
+        return self.theme.wrapped_height(panel.heading, room, self.theme.type.heading, bold=True)
+
+    def panel_head(self, panel: Panel, width: int) -> int:
+        """How far under the top of a panel's inside the rows it holds begin (= 0 for a panel without a heading).
+
+        `width` は箱の中の幅 (= 箱の幅から左右の `pad` を引いた幅)。置く側 (= `panel`) と、段の高さを数える側
+        (= `compose`) が同じ数を使う。線は字の塊のすぐ下に引く (= 字の頭は枠の上端から `TEXT_INSET_Y` 下がる)。
+        """
+        tall = self._panel_heading_height(panel, width)
+        if not tall:
+            return 0
+        s = self.theme.spacing
+        return tall + (TEXT_INSET_Y + s.hairline if panel.rule else 0) + s.gap_s
+
+    def reads_ink(self, style: Style) -> bool:
+        """Whether words in the body's ink read straight on the ground a box of this style paints.
+
+        濃い地の箱 (= 塗りのカードの資料で、差し色などの役の箱) は、字を紙の色で置く。箱が自分で持つ字は
+        それで読めるが、箱の中へ直に置かれる別の字は本文の色なので、読めない。
+        """
+        if self.theme.card_look == "outlined" or style.tentative:
+            return True
+        return self.look(style, self.theme.type.body).ink == self.theme.palette.ink
+
+    def panel(self, rect: Rect, panel: Panel) -> Rect:
+        """A box that holds others, with its heading in the top left corner; the room left inside it.
+
+        見た目は資料の `card_look` に従い、カードと同じ決まりを読む (= `outlined_look` / `look`)。
+        `outlined` の資料では、色を運ぶ役の箱は色のごく薄い地に色の枠と見出し、角は丸い。塗りの資料では、
+        役の地を塗る。見出しは大きさがカードの見出しの役で太字、色は箱の字の色。`rule` の線は見出しの色で、
+        太さは細い線。返すのは中に段を割る枠 (= 見出しと線の下)。
+
+        ⚠ **箱の中の字の色は、箱の地で決まらない。**ここで返す枠に置かれる字が読めるかは `reads_ink` が言う。
+        """
+        t, s = self.theme.type, self.theme.spacing
+        outlined = self.theme.card_look == "outlined"
+        # 見出しの下に字が置かれる箱なので、地は本文の大きさの字で決める (= 同じ地の字は小さい方で渡す)
+        look, head_ink = (self.outlined_look(panel.style, t.body, False) if outlined
+                          else (self.look(panel.style, t.body, False), None))
+        if head_ink is None:
+            head_ink = look.ink
+        self.elements.append(Fill("panel", rect, look.fill, outline=look.outline,
+                                  dashed=look.dashed, heavy=look.heavy, rounded=outlined))
+        inner = rect.inset(s.pad)
+        tall = self._panel_heading_height(panel, inner.width)
+        head = self.panel_head(panel, inner.width)
+        if head >= inner.height:
+            raise PageFullError(
+                f"a panel has {inner.height} EMU of height inside and its heading takes {head} — nothing is "
+                "left for what it holds; a taller cell, a shorter heading, or no heading; nothing will shrink")
+        if tall:
+            self.elements.append(Text("panel_heading", Rect(inner.left, inner.top, inner.width, tall),
+                                      panel.heading, t.heading, head_ink, bold=True))
+            if panel.rule:
+                self.elements.append(Fill("rule", Rect(inner.left, inner.top + TEXT_INSET_Y + tall,
+                                                       inner.width, s.hairline), head_ink))
+        return inner.inset(top=head)
 
     def figure(self, rect: Rect, source: Path | str, aspect: float, *, caption: str = "") -> Rect:
         """An image, kept at its own aspect ratio inside the area given.

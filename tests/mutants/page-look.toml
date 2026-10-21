@@ -51,8 +51,10 @@ new = "ink"
 [[mutant]]
 name = "an outlined card is square"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "dashed=look.dashed, heavy=look.heavy, rounded=outlined))"
-new = "dashed=look.dashed, heavy=look.heavy, rounded=False))"
+old = '''dashed=look.dashed, heavy=look.heavy, rounded=outlined))
+            inner = card.inset(s.pad)'''
+new = '''dashed=look.dashed, heavy=look.heavy, rounded=False))
+            inner = card.inset(s.pad)'''
 
 [[mutant]]
 name = "an outlined card's colour is not on its line"
@@ -185,8 +187,8 @@ new = "    if False:\n        return False\n    return \"card\" in cell"
 [[mutant]]
 name = "a cell of rows holding a card is not counted as growing"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = '''    return "card" in cell or any(_grows(page, inner) for row in cell.get("rows", []) for inner in row["cells"])'''
-new = '''    return "card" in cell'''
+old = '''    return "card" in cell or "panel" in cell or any(_grows(page, inner) for row in cell.get("rows", []) for inner in row["cells"])'''
+new = '''    return "card" in cell or "panel" in cell'''
 
 [[mutant]]
 name = "a row that grows takes no share of what is left"

@@ -23,7 +23,7 @@ from pptx_agent_maker.layout.types.bodies.compose import BODIES, PARTS, ROLES, T
 from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import TYPES, EXTRA_KEYS, FRAME_KEYS  # noqa: E402
 from pptx_agent_maker.layout.base.tokens import DERIVED  # noqa: E402
-from pptx_agent_maker.layout.types.core.read import CARD_KEYS, HARVEY, LOOK_KEYS, MARKS  # noqa: E402
+from pptx_agent_maker.layout.types.core.read import CARD_KEYS, HARVEY, LOOK_KEYS, MARKS, PANEL_KEYS  # noqa: E402
 from pptx_agent_maker.project.files.manifest import KINDS  # noqa: E402
 
 CORPUS = REPO / "tests" / "corpus"
@@ -51,6 +51,7 @@ def cells(rows: list) -> list[dict]:
         for cell in row["cells"]:
             found.append(cell)
             found += cells(cell.get("rows", []))
+            found += cells(cell.get("panel", {}).get("rows", []))
     return found
 
 
@@ -110,6 +111,28 @@ class TheCorpusUsesEverything(unittest.TestCase):
         self.assertEqual(set(LINK_KEYS), {key for link in linked for key in link})
         self.assertTrue(any("text" in link and "tone" not in link for link in linked), "no words on a grey arrow")
         self.assertTrue(any("text" in link and "tone" in link for link in linked), "no words on a coloured arrow")
+
+    def test_every_key_of_a_panel_in_both_looks_and_a_panel_in_a_panel(self) -> None:
+        """A panel is painted by the look of the deck, so each look of the corpus writes every key a panel reads."""
+        decks = {"the main project": CORPUS / "manifests",
+                 **{path.parent.name: path.parent / "manifests" for path in DECKS
+                    if _toml(path).get("theme", {}).get("card_look") == "outlined"}}
+        for name, folder in decks.items():
+            with self.subTest(name):
+                pages = [page for manifest in sorted(folder.glob("*.toml")) for page in _toml(manifest)["pages"]]
+                written = [cell["panel"] for page in pages if page.get("type") == "compose"
+                           for cell in cells(page["rows"]) if "panel" in cell]
+                self.assertEqual(set(PANEL_KEYS), {key for panel in written for key in panel})
+                self.assertTrue(any("panel" in cell for panel in written for row in panel["rows"]
+                                    for cell in row["cells"]), f"{name}: no panel holds a panel")
+                linked = [page for page in pages if page.get("type") == "compose" and page.get("links")]
+                inside = {cell["id"] for page in linked for cell in cells(page["rows"]) if "id" in cell}
+                self.assertTrue(inside, f"{name}: no cell has an id a link can use")
+
+    def test_a_panel_holds_each_kind_of_part_the_corpus_can_lay_in_a_cell_of_it(self) -> None:
+        held = {key for page in DECLARED if page["type"] == "compose" for cell in cells(page["rows"])
+                if "panel" in cell for row in cell["panel"]["rows"] for inner in row["cells"] for key in inner}
+        self.assertLessEqual({"text", "points", "table", "chart", "card", "figure", "panel"}, held)
 
     def test_every_look_on_everything_shaped_like_a_box(self) -> None:
         bars = [bar for body in bodies("timeline") for lane in body["lanes"] for bar in lane.get("bars", [])]

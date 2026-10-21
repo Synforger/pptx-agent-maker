@@ -1,0 +1,76 @@
+# A panel in the filled look: a box that holds rows of cells of its own. Its ground is painted, a heading and a
+# rule stand in its top left corner, a panel nests in a panel, and an arrow joins cells inside a panel to cells
+# outside it, or the panels themselves.
+
+specimen = "specimen.pptx"
+out = "panels.pptx"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Three panels side by side, each holding what it says and the arrows between them"
+condition = "A panel is painted in the ground of its tone; a pale one holds words, a deep one holds cards"
+conclusion = "Panels nest, and the rows inside them are laid the way the rows of a page are"
+links = [
+  { from = "first", to = "second", tone = "accent" },
+  { from = "second", to = "third" },
+]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "first"
+[pages.rows.cells.panel]
+tone = "tint"
+heading = "What was seen"
+rule = true
+rows = [
+  { cells = [ { text = "A label over the words", role = "label" } ] },
+  { cells = [ { text = "The words a pale panel holds are set straight on its ground, and they fold onto a few lines." } ] },
+  { cells = [ { points = ["a first reading", "a second reading"] } ] },
+]
+[[pages.rows.cells]]
+id = "second"
+[pages.rows.cells.panel]
+tone = "accent"
+heading = "What follows from it"
+rows = [
+  { cells = [ { card = { heading = "A card", body = "A card keeps its own ground inside a deep panel" } } ] },
+  { cells = [ { card = { heading = "A second card", body = "and so does every card", tone = "bad" } } ] },
+]
+[[pages.rows.cells]]
+id = "third"
+[pages.rows.cells.panel]
+tentative = true
+heading = "Not decided"
+rows = [
+  { cells = [ { text = "A tentative panel is the paper with a dotted line." } ] },
+]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A panel in a panel, a picture and a table in a panel, a strong panel and a named ground"
+condition = "The rows of a panel are the rows of a page: weights, nested rows, any part a cell can hold"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 2
+[pages.rows.cells.panel]
+tone = "Inside"
+heading = "The outer panel"
+rule = true
+rows = [
+  { cells = [
+    { panel = { tone = "band", heading = "Left", rows = [ { cells = [ { text = "A small panel inside a large one" } ] } ] } },
+    { panel = { tone = "box", heading = "Right", strong = true, rows = [ { cells = [ { card = { heading = "A card", body = "inside the small panel" } } ] } ] } },
+  ] },
+  { cells = [ { table = [["Part", "Is"], ["panel", "a box with rows"], ["cell", "one part"]] } ] },
+]
+[[pages.rows.cells]]
+[pages.rows.cells.panel]
+tone = "Late"
+heading = "A deep ground the project named"
+rows = [
+  { cells = [ { figure = "square.png" } ] },
+  { cells = [ { card = { heading = "A card under it", body = "in the ink of the body, on its own ground" } } ] },
+]
