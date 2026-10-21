@@ -91,7 +91,7 @@ when a piece or an arrangement is missing, and those are few, so it stops growin
 A project stands on its own — its `Taskfile.yml` is the door to the toolkit.
 
 ```bash
-pipx install --editable .               # install the toolkit, once: a pull of this checkout updates it
+pipx install --editable .               # install the toolkit and its live preview, once: a pull of this checkout updates both
 pptx-agent-maker init <project-dir> --specimen <look.pptx | a folder holding one>
 cd <project-dir> && task build -- example
 ```
@@ -154,7 +154,7 @@ src/pptx_agent_maker/
 ├── review/    keeping a person's edit, and taking it back into the manifest
 └── project/   pointing at a deck project that lives outside this repo
 templates/     the skeleton a deck project is created from (it ships with a specimen)
-preview/       the live preview, vendored with its own history (git subtree)
+preview/       the live preview, installed with the toolkit (vendored with its own history, git subtree)
 ```
 
 A project is created outside the repo and the toolkit is pointed at it:

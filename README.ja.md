@@ -67,7 +67,7 @@
 案件の folder はそれ自体で完結する (= `Taskfile.yml` がツールへの口を持つ)。
 
 ```bash
-pipx install --editable .             # ツールを機械に入れる (= 1 度だけ。この checkout を pull すれば新しくなる)
+pipx install --editable .             # ツールとライブプレビューを機械に入れる (= 1 度だけ。この checkout を pull すれば両方新しくなる)
 pptx-agent-maker init <案件のフォルダ> --specimen <テンプレート.pptx or それを置いた folder>
 cd <案件のフォルダ> && task build -- example
 ```
@@ -110,7 +110,7 @@ src/pptx_agent_maker/
 ├── review/    人の直しを守り、manifest に取り込む
 └── project/   repo の外の案件を指す
 templates/     案件を作るときのプロジェクトテンプレート (= 見た目の見本を 1 枚持つ)
-preview/       ライブプレビュー (= 履歴ごと取り込み、git subtree)
+preview/       ライブプレビュー (= ツールと一緒に入る。履歴ごと取り込み、git subtree)
 ```
 
 案件は repo の外に作り、ツールをそこへ向ける:
