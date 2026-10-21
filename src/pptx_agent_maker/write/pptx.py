@@ -139,9 +139,12 @@ def _edge(shape, outline: str, theme: Theme, *, dashed: bool = False, heavy: boo
 
 def _fill(slide, element: Fill, theme: Theme) -> None:
     shape = slide.shapes.add_shape(
-        MSO_SHAPE.RECTANGLE, Emu(element.rect.left), Emu(element.rect.top),
-        Emu(element.rect.width), Emu(element.rect.height),
+        MSO_SHAPE.ROUNDED_RECTANGLE if element.rounded else MSO_SHAPE.RECTANGLE,
+        Emu(element.rect.left), Emu(element.rect.top), Emu(element.rect.width), Emu(element.rect.height),
     )
+    if element.rounded:
+        # 角の丸みは短い辺に対する比で書く (= 既定のままだと、背の高いカードほど丸みが大きくなる)
+        shape.adjustments[0] = min(theme.spacing.gap_s / min(element.rect.width, element.rect.height), 0.5)
     shape.fill.solid()
     shape.fill.fore_color.rgb = _colour(element.colour)
     _edge(shape, element.outline, theme, dashed=element.dashed, heavy=element.heavy)
@@ -296,7 +299,7 @@ def _text(slide, element: Text, theme: Theme) -> None:
         # 読ませる資料の値) のままで、字の入る幅が道具の数えた幅より狭く、狭い箱で見積もりより 1 行多く折れた
         frame.margin_left = frame.margin_right = Emu(theme.spacing.text_inset)
     frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.kind in {
-        "band_text", "title", "caption", "label", "lane", "stage", "marker", "kicker_beside"} else MSO_ANCHOR.TOP
+        "band_text", "title", "caption", "label", "lane", "stage", "marker", "kicker_beside", "agenda_number"} else MSO_ANCHOR.TOP
     # 題は、乗るレイアウトに題の枠が在れば、その枠として書く (= 色・書体・太さはテンプレートのもの)
     titled = element.kind == "title" and theme.under.title
     for index, line in enumerate(element.text.split("\n")):

@@ -38,6 +38,8 @@ class Fill(Element):
     dashed: bool = False
     #: 太い枠 (= 強調)
     heavy: bool = False
+    #: 角を丸める (= 目次の章のカード)
+    rounded: bool = False
 
 
 @dataclass(frozen=True)

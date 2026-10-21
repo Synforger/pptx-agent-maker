@@ -234,10 +234,16 @@ class Palette:
 
     def shade(self, level: int) -> str:
         """The accent thinned toward the paper: `level` parts of `SHADES` are accent (= 0 is the paper)."""
+        return self.thinned(level / self.SHADES)
+
+    #: 目次の今の章の地 (= 差し色のごく薄い色)。差し色をこの割合だけ紙に混ぜる
+    FAINT: ClassVar[float] = 0.12
+
+    def thinned(self, share: float) -> str:
+        """The accent mixed into the paper: `share` of it is accent (= 0 is the paper, 1 the accent)."""
         paper, accent = ([int(colour[index:index + 2], 16) for index in (0, 2, 4)]
                          for colour in (self.paper, self.accent))
-        return "".join(f"{round(low + (high - low) * level / self.SHADES):02X}"
-                       for low, high in zip(paper, accent))
+        return "".join(f"{round(low + (high - low) * share):02X}" for low, high in zip(paper, accent))
 
     def edge(self, ground: str) -> str:
         """The colour of the line round a light ground: the same hue, further from white."""
