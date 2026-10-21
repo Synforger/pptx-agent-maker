@@ -208,7 +208,7 @@ class HowLargeTheTypeIsTest(unittest.TestCase):
     def test_the_margins_and_the_gaps_do_not_move(self) -> None:
         read, shown = DEFAULT.spacing, theme_from({"use": "present", "type": {"body": 22}}).spacing
         moved = {name for name in vars(read) if getattr(read, name) != getattr(shown, name)}
-        self.assertEqual({"title_height", "kicker_height", "band_height", "footer_height"}, moved)
+        self.assertEqual({"title_height", "kicker_height", "band_height", "conclusion_height", "footer_height"}, moved)
         self.assertEqual(DEFAULT.frame(), theme_from({"use": "present"}).frame())
 
     def test_every_type_builds_a_page_to_be_shown_with_nothing_under_its_floor(self) -> None:

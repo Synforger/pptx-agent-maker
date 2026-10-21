@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from dataclasses import fields, is_dataclass, replace
+
 from ...base.geometry import Rect
+from ...parts.elements import Line
 from ...parts.page import Page, PageFullError
 from .read import Spec
 from .registry import PageTypeError
@@ -51,6 +54,37 @@ def used_bottom(page: Page, area: Rect) -> int:
     """
     return max((element.rect.bottom for element in page.elements
                 if area.top <= element.rect.top <= area.bottom), default=area.top)
+
+
+def _lowered(value, by: int):
+    """`value` moved down by `by` EMU: every rectangle in it, and the ends of a line."""
+    if isinstance(value, Rect):
+        return Rect(value.left, value.top + by, value.width, value.height)
+    if isinstance(value, Line):
+        value = replace(value, start=(value.start[0], value.start[1] + by), end=(value.end[0], value.end[1] + by))
+    if is_dataclass(value):
+        return replace(value, **{field.name: _lowered(getattr(value, field.name), by) for field in fields(value)})
+    if isinstance(value, tuple) and any(is_dataclass(each) for each in value):
+        return tuple(_lowered(each, by) for each in value)
+    return value
+
+
+def centre_body(page: Page, area: Rect, first: int) -> None:
+    """Move what the body placed (= `page.elements[first:]`) down so it stands in the middle of `area`.
+
+    `box_height = "middle"` の資料の本体を組んだ後に 1 度だけ呼ぶ。置かれた物の上端から下端までを 1 つの塊と
+    して数え、`area` に対する余りを上と下に半分ずつ配る (= 塊の中の間隔は動かない)。余りが無い時、塊が
+    `area` からはみ出している時は、何も動かさない ― 上へは動かさない。題・帯・足元は `first` より前に
+    置かれているので動かない。
+    """
+    placed = page.elements[first:]
+    if not placed:
+        return
+    top = min(element.rect.top for element in placed)
+    bottom = max(element.rect.bottom for element in placed)
+    by = area.top + (area.height - (bottom - top)) // 2 - top
+    if by > 0:
+        page.elements[first:] = [_lowered(element, by) for element in placed]
 
 
 def place_legend(page: Page, names: list[str] | None, area: Rect) -> None:
@@ -157,7 +191,9 @@ def place_trailing(page: Page, spec: Spec, area: Rect | None) -> None:
         elif what == "points":
             page.points(rect, _point_lines(spec))
         else:
-            # 読み方はいつも最後で、残りを全部使う (= 本体が枠を使い切らなかった頁では、取ったより広い)
-            rect = Rect(rect.left, rect.top, rect.width, max(area.bottom - rect.top, tall))
+            # 読み方はいつも最後で、残りを全部使う (= 本体が枠を使い切らなかった頁では、取ったより広い)。
+            # 本体を縦の中央に置く資料では、字の分だけ (= 塊の下端が読み方の字の下端になる)
+            reach = tall if page.theme.box_height == "middle" else max(area.bottom - rect.top, tall)
+            rect = Rect(rect.left, rect.top, rect.width, reach)
             page.note(rect, spec.text("note"))
         top = rect.bottom

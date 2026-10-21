@@ -131,6 +131,9 @@ class Type:
     #: 案件が書いた `band` と `display` (= 書かなければ None で、下の 2 つが他の役から出す)
     band_set: float | None = None
     display_set: float | None = None
+    #: この使い方が選んだ本体の箱の高さ (= `BOX_HEIGHTS`)。書かなければ None で、資料の `[theme] box_height`
+    #: に倣う。案件が読み込む時 (= `theme_from`) に、書かなかった使い方へ資料の値が入る
+    box_height_set: str | None = None
 
     @property
     def band(self) -> float:
@@ -177,9 +180,11 @@ USES = {
 #: 同じ行で、差し色の太字で置く。資料全体の見た目なので案件が `[theme] kicker` で決め、頁ごとには変えられない
 KICKERS = ("above", "beside")
 #: 本体の箱の高さ。`text` は箱ごとに字の分の高さ (= 既定。頁の下が空くことがある)、`page` は本体が持つ高さを
-#: 箱の数で分け合って使い切る (= 字の分を超えたぶんを、同じ列の箱が等しく受ける)。資料全体の見た目なので
-#: 案件が `[theme] box_height` で決め、頁ごとには変えられない
-BOX_HEIGHTS = ("text", "page")
+#: 箱の数で分け合って使い切る (= 字の分を超えたぶんを、同じ列の箱が等しく受ける)、`middle` は箱の高さは
+#: `text` と同じで、本体に置いた物の塊を本体の縦の中央に置く (= 余りが上と下に半分ずつ)。資料全体の見た目
+#: なので案件が `[theme] box_height` で決め、使い方ごと (= `[theme.uses.<名前>]`) にも選べるが、頁ごとには
+#: 変えられない
+BOX_HEIGHTS = ("text", "page", "middle")
 #: カードの見た目。`filled` は地を色で塗る (= 既定)、`outlined` は地をほぼ紙の色にして、色は枠と見出しの字が
 #: 持つ (= 色の役が同じなら、枠と見出しの色も同じ)。案件が `[theme] card_look` で決める
 CARD_LOOKS = ("filled", "outlined")
@@ -199,9 +204,10 @@ DERIVED = ("band", "display")
 #: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
 TIGHTENED = ("gap_s", "gap_m", "gap_l", "pad", "cell_pad_y", "cell_pad_x", "text_inset", "bar_pad_x", "bar_pad_y",
              "bar_gap", "row_gap", "mark", "icon", "chevron_point", "swatch")
-#: 案件の名前付きの使い方が 1 つずつ決められる余白と間隔 (= `[theme.uses.<名前>.spacing]`、cm で書く)
+#: 案件の名前付きの使い方が 1 つずつ決められる余白と間隔 (= `[theme.uses.<名前>.spacing]`、cm で書く)。
+#: 条件の帯 (= `band_height`) と結論の帯 (= `conclusion_height`) の高さは、書けば字に比例しない
 SPACED = ("margin_x", "margin_top", "margin_bottom", "gap_s", "gap_m", "gap_l", "pad", "cell_pad_y", "cell_pad_x",
-          "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap", "row_gap")
+          "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap", "row_gap", "band_height", "conclusion_height")
 
 
 #: 道具が持つ色の役 (= 頁の `tone` にいつでも書ける名前)。案件はこのほかに、意味の名前を付けた
@@ -385,7 +391,9 @@ class Spacing:
     cell_pad_x: int = cm(0.18)
     #: 文字の枠が左右に自分で取る余白 (= pptx の既定)。文字が使える幅は、枠の幅からこの 2 つぶん狭い
     text_inset: int = cm(0.254)
+    #: 条件の帯 (= 題の下) と結論の帯 (= 足元の上) の高さ。書かなければどちらも、帯の字から割った高さ
     band_height: int = cm(1.1)
+    conclusion_height: int = cm(1.1)
     footer_height: int = cm(0.7)
     #: 区切りの細い線 (= 題の下、線表の目盛り) と、箱と棒の枠
     hairline: int = pt(1)
@@ -481,7 +489,8 @@ class Theme:
     def using(self, use: str | None) -> "Theme":
         """This look in the sizes of another use the project knows (= what a deck or a page names with `use`).
 
-        変わるのは字の大きさと、それに付いて行く帯の高さだけ。書体・色・余白・下敷きは同じ資料のまま。
+        変わるのは字の大きさと、それに付いて行く帯の高さ、使い方が選んだ箱の高さ (= `box_height`) だけ。
+        書体・色・余白・下敷きは同じ資料のまま。
 
         ⚠ **選べるのは使い方の名前だけ** (= 大きさを 1 つずつは書けない)。役ごとの大きさが頁に書けると、同じ
         役の字が頁によって違う大きさになる。名前で選ぶなら、同じ使い方の頁どうしは必ず揃う。
@@ -494,7 +503,8 @@ class Theme:
                 f"`use` is {use!r} — this project knows {', '.join(repr(name) for name in known)} "
                 "(= the toolkit's own, and the ones named under [theme.uses])")
         type = replace(known[use], family=self.type.family)
-        return replace(self, use=use, type=type, spacing=_furniture(type))
+        box_height = type.box_height_set or self.box_height
+        return replace(self, use=use, type=type, spacing=_furniture(type), box_height=box_height)
 
     def ground_names(self) -> tuple[str, ...]:
         return tuple(name for name, _colour in self.grounds)
@@ -833,7 +843,9 @@ def theme_from(settings: dict | None) -> Theme:
             f"theme.layout_of_page is {on!r} — it is the number of a specimen page (= 1, 2, ...), and the "
             "declared pages sit on the layout that page sits on")
 
-    scales = {**USES, **_uses(settings.get("uses"))}
+    # 使い方が自分の箱の高さを書いていなければ、資料の値に倣う (= 頁が名指した使い方の箱の高さは、そこから読める)
+    scales = {name: replace(sized, box_height_set=sized.box_height_set or box_height)
+              for name, sized in {**USES, **_uses(settings.get("uses"))}.items()}
     use = settings.get("use", "read")
     if not isinstance(use, str) or use not in scales:
         raise ThemeError(
@@ -850,7 +862,7 @@ def theme_from(settings: dict | None) -> Theme:
         spacing=_furniture(type),
         grounds=_grounds(settings.get("grounds")),
         kicker=kicker,
-        box_height=box_height,
+        box_height=type.box_height_set,
         card_look=card_look,
         band_look=band_look,
         table_look=table_look,
@@ -905,6 +917,7 @@ def _uses(declared) -> dict[str, Type]:
 
     ⚠ **道具は幅を持たせ、使い方は道具が配る skill が縛る。**下限と余白を動かせる口は、ここ 1 か所 (= 名前を
     付けた使い方) にだけ在る ― 頁や資料は名前で選ぶだけなので、同じ名前の頁はどこでも同じ形になる。
+    本体の箱の高さ (= `box_height`) も同じ口で選べる (= 書かなければ資料の `[theme] box_height`)。
 
     ⚠ **道具の使い方と同じ名前は拒む。**`read` や `present` をここで書き換えられると、その大きさを決める
     口が `[theme.type]` と 2 つに割れる。
@@ -927,9 +940,22 @@ def _uses(declared) -> dict[str, Type]:
                 f"{where}.like is {like!r} — a use of the project's own starts from "
                 f"{' or '.join(repr(use) for use in USES)}")
         base = _spaced(_floored(USES[like], said.get("floor"), where), said.get("spacing"), f"{where}.spacing")
-        sizes = {key: value for key, value in said.items() if key not in ("like", "floor", "spacing")}
-        found[name] = _sizes(f"the use {name!r}", base, sizes, where, ("like", "floor", "spacing", *SIZED, *DERIVED))
+        base = replace(base, box_height_set=_boxed(said.get("box_height"), where))
+        sizes = {key: value for key, value in said.items() if key not in ("like", "floor", "spacing", "box_height")}
+        found[name] = _sizes(f"the use {name!r}", base, sizes, where,
+                             ("like", "floor", "spacing", "box_height", *SIZED, *DERIVED))
     return found
+
+
+def _boxed(height, where: str) -> str | None:
+    """The height of the boxes a use asks for (= `box_height`; unsaid, that of the deck)."""
+    if height is None:
+        return None
+    if not isinstance(height, str) or height not in BOX_HEIGHTS:
+        raise ThemeError(
+            f"{where}.box_height is {height!r} — the height of a page's boxes is "
+            f"{' or '.join(repr(name) for name in BOX_HEIGHTS)}")
+    return height
 
 
 def _floored(base: Type, floor, where: str) -> Type:
@@ -975,6 +1001,9 @@ def _furniture(type: Type) -> Spacing:
     今までの値のまま。紙 1 枚で読ませる頁は字と同じ比で詰まる)。字だけ小さくして間隔をそのままにすると、
     どの箱も中身の倍の高さを取る。使い方が 1 つずつ決めた距離 (= `Type.spaced`) は、倍率より勝つ。
 
+    条件の帯 (= `band_height`) と結論の帯 (= `conclusion_height`) の高さは、使い方が書けば字に比例せず、書いた
+    値のまま置く。結論の帯は、書かなければ条件の帯と同じ高さ。
+
     ⚠ **題の帯は 2 段で、段ごとに自分の字の大きさに比例する** (= 題の上の小さい字の段と、題の段)。
     帯を題の大きさだけで決めていた間は、小さい字だけを大きくした案件で、小さい字が題の頭に乗った。
     """
@@ -983,11 +1012,16 @@ def _furniture(type: Type) -> Spacing:
         base = replace(base, **{name: round(getattr(base, name) * type.tight) for name in TIGHTENED})
     base = replace(base, **dict(type.spaced))
     kicker = round(base.kicker_height * type.caption / read.caption)
+    said = dict(type.spaced)
+    # 帯の高さは、書いた使い方では書いた値のまま ― 字に比例しない帯 (= 上と下で字の大きさが違う) を書くための口。
+    # 結論の帯は、書かなければ上の帯と同じ高さ
+    band = said["band_height"] if "band_height" in said else round(base.band_height * type.band / read.band)
     return replace(
         base,
         kicker_height=kicker,
         title_height=kicker + round((base.title_height - base.kicker_height) * type.title / read.title),
-        band_height=round(base.band_height * type.band / read.band),
+        band_height=band,
+        conclusion_height=said.get("conclusion_height", band),
         footer_height=round(base.footer_height * type.caption / read.caption),
     )
 

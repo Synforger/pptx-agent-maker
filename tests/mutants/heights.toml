@@ -1,0 +1,117 @@
+# How tall the bands are and how tall the boxes of one use are, and a body that stands in the middle of the page.
+
+tests = ["tests/test_heights.py"]
+
+# -- the band of a conclusion and the band of a condition (layout/base/tokens.py, layout/parts/page.py) -----------
+
+[[mutant]]
+name = "a use cannot write the height of a band"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = '"bar_gap", "row_gap", "band_height", "conclusion_height")'
+new = '"bar_gap", "row_gap")'
+
+[[mutant]]
+name = "a height a use writes for the band over a page is cut from its type all the same"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = 'said["band_height"] if "band_height" in said else '
+new = ""
+
+[[mutant]]
+name = "a height a use writes for the band under a page is not read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = 'conclusion_height=said.get("conclusion_height", band),'
+new = "conclusion_height=base.conclusion_height,"
+
+[[mutant]]
+name = "the band under a page, left unsaid, is not as tall as the one over it"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = 'conclusion_height=said.get("conclusion_height", band),'
+new = 'conclusion_height=said.get("conclusion_height", base.conclusion_height),'
+
+[[mutant]]
+name = "the band under a page is as tall as the one over it"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "self._take_bottom(s.conclusion_height)"
+new = "self._take_bottom(s.band_height)"
+
+# -- the height of the boxes a use picks (layout/base/tokens.py) --------------------------------------------------
+
+[[mutant]]
+name = "the height of the boxes a use writes is not read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        base = replace(base, box_height_set=_boxed(said.get(\"box_height\"), where))\n"
+new = ""
+
+[[mutant]]
+name = "a name nobody knows is let through as the height of a use's boxes"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    if not isinstance(height, str) or height not in BOX_HEIGHTS:"
+new = "    if False:"
+
+[[mutant]]
+name = "a use that says nothing takes the toolkit's height, not the deck's"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "box_height_set=sized.box_height_set or box_height)"
+new = 'box_height_set=sized.box_height_set or "text")'
+
+[[mutant]]
+name = "a look in another use keeps the height of the first"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        box_height = type.box_height_set or self.box_height\n"
+new = "        box_height = self.box_height\n"
+
+[[mutant]]
+name = "a deck made in a use of its own does not take that use's height"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        box_height=type.box_height_set,\n"
+new = "        box_height=box_height,\n"
+
+[[mutant]]
+name = "a deck cannot pick the middle"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = 'BOX_HEIGHTS = ("text", "page", "middle")'
+new = 'BOX_HEIGHTS = ("text", "page")'
+
+# -- the body in the middle (layout/types/__init__.py, layout/types/core/frame.py) ----------------------------------
+
+[[mutant]]
+name = "a body is never moved to the middle"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = "    if theme.box_height == \"middle\":\n        centre_body(page, whole, first)\n"
+new = ""
+
+[[mutant]]
+name = "the title and the bands are moved with the body"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = "    first = len(page.elements)\n"
+new = "    first = 0\n"
+
+[[mutant]]
+name = "the body is moved by all of what is left, not half"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "(area.height - (bottom - top)) // 2"
+new = "(area.height - (bottom - top))"
+
+[[mutant]]
+name = "a body that overruns its area is moved up"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if by > 0:\n"
+new = "    if by != 0:\n"
+
+[[mutant]]
+name = "the ends of a line are left where they were"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "        value = replace(value, start=(value.start[0], value.start[1] + by), end=(value.end[0], value.end[1] + by))\n"
+new = ""
+
+[[mutant]]
+name = "the frame and the words of a chart are left where they were"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if isinstance(value, tuple) and any(is_dataclass(each) for each in value):"
+new = "    if False:"
+
+[[mutant]]
+name = "the reading under a body in the middle keeps the rest of the body for itself"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = 'reach = tall if page.theme.box_height == "middle" else max(area.bottom - rect.top, tall)'
+new = "reach = max(area.bottom - rect.top, tall)"

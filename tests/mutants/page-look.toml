@@ -7,7 +7,7 @@ tests = ["tests/test_page_look.py"]
 [[mutant]]
 name = "the project says page and the boxes stay as tall as their words"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        box_height=box_height,\n"
+old = "        box_height=type.box_height_set,\n"
 new = ""
 
 [[mutant]]

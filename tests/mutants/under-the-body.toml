@@ -59,5 +59,5 @@ new = "    top = area.top\n    for what, gap, tall in _below"
 [[mutant]]
 name = "the reading stops at its own lines instead of taking what is left"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
-old = "rect = Rect(rect.left, rect.top, rect.width, max(area.bottom - rect.top, tall))"
-new = "pass"
+old = "else max(area.bottom - rect.top, tall)"
+new = "else tall"

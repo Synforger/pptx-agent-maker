@@ -45,7 +45,7 @@ from typing import Callable
 from ..base.geometry import Rect
 from ..base.tokens import DEFAULT, Theme
 from ..parts.page import Page
-from .core.frame import place_cards, place_legend, place_trailing, reserve_legend, reserve_trailing
+from .core.frame import centre_body, place_cards, place_legend, place_trailing, reserve_legend, reserve_trailing
 from .core.read import MARKS, Spec
 from .core.registry import check_keys, EXTRA_KEYS, FRAME_KEYS, PageTypeError, TYPES
 from . import bodies  # noqa: F401 (= 本体の file を読むと、その型が登録される)
@@ -98,6 +98,7 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
     )
     spec = Spec(data, asset, aspect, theme)
     whole = page.body
+    first = len(page.elements)
     if name == "cards" and theme.box_height == "page":
         # カードが本体そのもの: 表・読み方・凡例が要る高さを先に取り、残りをカードが使い切る
         area, trailing = reserve_trailing(page, spec, whole)
@@ -110,6 +111,8 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
     filler(page, spec, area)
     place_legend(page, legend, Rect(area.left, whole.top, area.width, area.bottom - whole.top))
     place_trailing(page, spec, trailing)
+    if theme.box_height == "middle":
+        centre_body(page, whole, first)
     return page
 
 

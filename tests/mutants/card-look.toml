@@ -31,8 +31,8 @@ new = "return self.title if self.display_set is None else self.display_set"
 [[mutant]]
 name = "the height of a band is still cut from the heading"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "band_height=round(base.band_height * type.band / read.band),"
-new = "band_height=round(base.band_height * type.heading / read.heading),"
+old = "round(base.band_height * type.band / read.band)"
+new = "round(base.band_height * type.heading / read.heading)"
 
 [[mutant]]
 name = "a band or a display under the floor is let through"
@@ -49,8 +49,8 @@ new = "set(declared) - {*SIZED}"
 [[mutant]]
 name = "a use of the project's does not list the two new roles when it refuses one"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = '("like", "floor", "spacing", *SIZED, *DERIVED))'
-new = '("like", "floor", "spacing", *SIZED))'
+old = '("like", "floor", "spacing", "box_height", *SIZED, *DERIVED))'
+new = '("like", "floor", "spacing", "box_height", *SIZED))'
 
 # -- the band's words (layout/parts/page.py) -------------------------------------
 

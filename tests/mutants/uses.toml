@@ -17,8 +17,8 @@ new = "        add_page(deck, page.build(), theme)"
 [[mutant]]
 name = "a look in another use keeps the bands of the first"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        return replace(self, use=use, type=type, spacing=_furniture(type))"
-new = "        return replace(self, use=use, type=type)"
+old = "        return replace(self, use=use, type=type, spacing=_furniture(type), box_height=box_height)"
+new = "        return replace(self, use=use, type=type, box_height=box_height)"
 
 [[mutant]]
 name = "a look in another use takes the toolkit's typeface"
@@ -29,8 +29,8 @@ new = "        type = known[use]"
 [[mutant]]
 name = "a look in another use forgets which use it is in"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        return replace(self, use=use, type=type, spacing=_furniture(type))"
-new = "        return replace(self, type=type, spacing=_furniture(type))"
+old = "        return replace(self, use=use, type=type, spacing=_furniture(type), box_height=box_height)"
+new = "        return replace(self, type=type, spacing=_furniture(type), box_height=box_height)"
 
 [[mutant]]
 name = "a use the project does not know is not refused"
@@ -65,8 +65,8 @@ new = "    scales = {name: _sizes(f\"a deck made to be {use}\", sizes, settings.
 [[mutant]]
 name = "the uses a project names are not read"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    scales = {**USES, **_uses(settings.get(\"uses\"))}"
-new = "    scales = dict(USES)"
+old = "{**USES, **_uses(settings.get(\"uses\"))}.items()"
+new = "dict(USES).items()"
 
 [[mutant]]
 name = "the deck's use is not read from the manifest"

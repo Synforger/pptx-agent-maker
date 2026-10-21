@@ -1,0 +1,74 @@
+# What a deck whose boxes stand in the middle does to a page: the body is moved as one block, whatever it holds
+# (cards, a flow, rows of a compose, a table and a reading under them); a page in a use of its own is at the top.
+
+specimen = "specimen.pptx"
+out = "middle.pptx"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "Three cards in the middle of the body"
+condition = "The cards are as tall as their words"
+conclusion = "The rest of the body is above and below them"
+card_columns = 1
+cards = [
+  { heading = "One", body = "a card as tall as its words" },
+  { heading = "Two", body = "the gaps between the cards do not grow" },
+  { heading = "Three", body = "only the block of them moves" },
+]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "Cards with a table and a reading under them"
+card_columns = 3
+cards = [
+  { heading = "Cards", body = "above" },
+  { heading = "Table", body = "under the cards" },
+  { heading = "Reading", body = "last of all" },
+]
+table = [
+  ["Item", "Cost"],
+  { band = "First", tone = "accent" },
+  ["Design", "1"],
+  { band = "Then" },
+  ["Build", "3"],
+]
+note = "The table and the reading stand with the cards, as one block."
+
+[[pages]]
+kind = "declare"
+type = "flow"
+title = "A flow in the middle of the body"
+stages = [
+  { name = "Collect", nodes = [["Raw", "what comes in"]] },
+  { name = "Clean", nodes = [["Tidy", "what stays"]] },
+  { name = "Use", nodes = [["Result", "what goes out"]] },
+]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Rows of a compose in the middle of the body"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = { heading = "Goal", body = "one thing to reach" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = { heading = "Left", body = "holds it up" }
+[[pages.rows.cells]]
+card = { heading = "Right", body = "holds it too" }
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "topped"
+title = "A use that puts its boxes back at the top"
+condition = "Said by the use, not by the deck"
+card_columns = 1
+cards = [
+  { heading = "Top", body = "as tall as the words, from the top of the body" },
+  { heading = "Back", body = "the way a deck with no height said does it" },
+]

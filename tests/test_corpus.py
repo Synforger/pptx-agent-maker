@@ -174,6 +174,19 @@ class TheCorpusUsesEverything(unittest.TestCase):
         uses = _toml(CORPUS / "workspace.toml")["theme"]["uses"]
         self.assertEqual(set(), set(DERIVED) - {key for use in uses.values() for key in use})
 
+    def test_every_height_a_band_may_have_and_every_height_a_use_may_pick_for_its_boxes(self) -> None:
+        from pptx_agent_maker.layout.base.tokens import BOX_HEIGHTS
+        uses = [use for path in (CORPUS / "workspace.toml", *DECKS)
+                for use in _toml(path).get("theme", {}).get("uses", {}).values()]
+        spacing = {key for use in uses for key in use.get("spacing", {})}
+        self.assertEqual({"band_height", "conclusion_height"}, {"band_height", "conclusion_height"} & spacing)
+        self.assertEqual(set(BOX_HEIGHTS), {use["box_height"] for use in uses if "box_height" in use})
+        pages = [page for manifest in MANIFESTS for page in _toml(manifest)["pages"]]
+        named = {use for use, body in ((page.get("use"), page) for page in pages) if use}
+        self.assertEqual(set(), {name for path in (CORPUS / "workspace.toml", *DECKS)
+                                 for name, use in _toml(path).get("theme", {}).get("uses", {}).items()
+                                 if "box_height" in use or "band_height" in use.get("spacing", {})} - named)
+
     def test_every_tone_and_every_ground_the_corpus_names(self) -> None:
         named = set(_toml(CORPUS / "workspace.toml")["theme"]["grounds"])
         self.assertTrue(named, "the corpus names no ground of its own")
