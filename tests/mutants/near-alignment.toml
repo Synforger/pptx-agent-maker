@@ -1,4 +1,5 @@
-# Siblings that miss by a hair: words in a card and words on the page are not siblings.
+# Siblings that miss by a hair: words in a card and words on the page are not siblings, and a miss
+# that shows as 0.00 mm is no miss.
 
 tests = ["tests/test_checks.py"]
 
@@ -13,3 +14,15 @@ name = "every shape is taken to sit in a box"
 file = "src/pptx_agent_maker/checks/rules/near_alignment.py"
 old = "        boxed = {id(shape): _boxed(shape, boxes) for shape in shapes}"
 new = "        boxed = {id(shape): True for shape in shapes}"
+
+[[mutant]]
+name = "a miss that shows as 0.00 mm is reported"
+file = "src/pptx_agent_maker/checks/rules/near_alignment.py"
+old = "                if miss and round(miss[1] / MM, PLACES) > 0 and miss[1] < MM:"
+new = "                if miss and miss[1] > 0 and miss[1] < MM:"
+
+[[mutant]]
+name = "the floor is taken from a coarser place than the finding shows"
+file = "src/pptx_agent_maker/checks/rules/near_alignment.py"
+old = "                if miss and round(miss[1] / MM, PLACES) > 0 and miss[1] < MM:"
+new = "                if miss and round(miss[1] / MM, PLACES - 1) > 0 and miss[1] < MM:"
