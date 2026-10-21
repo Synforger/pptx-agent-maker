@@ -7,8 +7,8 @@ tests = ["tests/test_heights.py"]
 [[mutant]]
 name = "a use cannot write the height of a band"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = '"row_gap", "band_height", "conclusion_height")'
-new = '"row_gap")'
+old = '"row_gap", "band_height", "conclusion_height", "figure_floor")'
+new = '"row_gap", "figure_floor")'
 
 [[mutant]]
 name = "a height a use writes for the band over a page is cut from its type all the same"

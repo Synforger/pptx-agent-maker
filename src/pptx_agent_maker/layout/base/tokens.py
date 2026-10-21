@@ -218,12 +218,12 @@ DERIVED = ("band", "display", "tag")
 #: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
 #: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
 TIGHTENED = ("gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap", "title_gap", "pad", "cell_pad_y", "cell_pad_x",
-             "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap", "row_gap", "mark", "icon", "chevron_point", "swatch")
+             "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap", "row_gap", "mark", "icon", "figure_floor", "chevron_point", "swatch")
 #: 案件の名前付きの使い方が 1 つずつ決められる余白と間隔 (= `[theme.uses.<名前>.spacing]`、cm で書く)。
 #: 条件の帯 (= `band_height`) と結論の帯 (= `conclusion_height`) の高さは、書けば字に比例しない
 SPACED = ("margin_x", "margin_top", "margin_bottom", "gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap", "title_gap",
           "pad", "cell_pad_y", "cell_pad_x", "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap",
-          "row_gap", "band_height", "conclusion_height")
+          "row_gap", "band_height", "conclusion_height", "figure_floor")
 
 
 #: 道具が持つ色の役 (= 頁の `tone` にいつでも書ける名前)。案件はこのほかに、意味の名前を付けた
@@ -432,6 +432,9 @@ class Spacing:
     mark: int = cm(0.4)
     #: 箱の左上に置くアイコンの一辺 (= 絵はこの正方形に縦横比を保って収める)
     icon: int = cm(1.2)
+    #: 高さで詰められた絵が、ここより低くなるなら止まる (= 書かなければアイコンの一辺)。小さくても読める線画を
+    #: 置く頁の使い方でだけ下げる口
+    figure_floor: int = cm(1.2)
     #: 道のりの矢羽根の、尖った先 (と次の段の切り欠き) の深さ
     chevron_point: int = cm(0.6)
     #: 凡例の色見本の一辺
