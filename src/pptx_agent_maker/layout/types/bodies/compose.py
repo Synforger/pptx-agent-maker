@@ -23,6 +23,8 @@
   `weight` を書いた段が残りを取るなら、カードの段は字の分のまま。カードは、置かれたマスの高さを使い切る。
   文章・表・要点は、自分の高さのまま上に寄る
 * 図のマスの絵がマスより低い時は、`valign` (= `"top"` `"middle"` `"bottom"`。書かなければ上端) で縦の位置を決める
+* 図のマスの `inset` (= cm) は、絵の左右に取る内側の余白 (= 書かなければ 0 で、絵はマスの横幅いっぱい)。
+  隣のマスとの間は変えずに、絵だけを細くする
 * 同じ段のマスとマスの間は使い方の `gap_x`、段と段の間は `gap_y` (= 書かなければどちらも `gap_m`)。
   横の間だけ広げ、縦は詰める頁に使う。入れ物の中の段とマスも同じ 2 つを使う
 * **空の文章 (`text = ""`) のマスは高さを取らない** (= 段の高さは同じ段のほかのマスで決まる。段の全部が空なら 0)。
@@ -39,7 +41,7 @@ from __future__ import annotations
 
 from numbers import Real
 
-from ...base.geometry import Rect
+from ...base.geometry import Rect, cm
 from ...parts.look import Style
 from ...parts.page import CARD_ALIGNS, Card, Page, PageFullError, Panel, Voice
 from ..core.registry import TYPES, PageTypeError, register
@@ -144,7 +146,7 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
         if not isinstance(cells, list) or not cells:
             raise PageTypeError(f"{what} has no cells — write [[…cells]] under it, one per part")
         for index, cell in enumerate(cells, start=1):
-            only_keys(cell, {"weight", "rows", "caption", "role", "marks", "guides", "guide_tone", "valign", "id",
+            only_keys(cell, {"weight", "rows", "caption", "role", "marks", "guides", "guide_tone", "valign", "inset", "id",
                              *TEXT_LOOKS, *PARTS, *BODIES}, f"{what}, cell {index}")
         weights = [read_weight(cell, f"{what}, cell {index}") for index, cell in enumerate(cells, start=1)]
         columns = Rect(0, 0, width, 1).columns(weights, gap=gap)
@@ -170,16 +172,22 @@ def _part(cell: dict, what: str) -> str:
         raise PageTypeError(f"{what}: `caption` belongs to a figure, and this cell holds {named[0]}")
     if "marks" in cell and named[0] != "figure":
         raise PageTypeError(f"{what}: `marks` belong to a figure, and this cell holds {named[0]}")
-    for key in ("guides", "guide_tone", "valign"):
+    for key in ("guides", "guide_tone", "valign", "inset"):
         if key in cell and named[0] != "figure":
             raise PageTypeError(f"{what}: `{key}` belongs to a figure, and this cell holds {named[0]}")
     if "valign" in cell:
         if cell["valign"] not in VALIGNS:
             raise PageTypeError(
                 f"{what}: `valign` is {' or '.join(repr(name) for name in VALIGNS)}, not {cell['valign']!r}")
-        if "marks" in cell:
+    if "inset" in cell:
+        inset = cell["inset"]
+        if isinstance(inset, bool) or not isinstance(inset, Real) or inset < 0:
+            raise PageTypeError(f"{what}: `inset` is the room left and right of the picture in cm, "
+                                f"0 or more, not {inset!r}")
+    for key in ("valign", "inset"):
+        if key in cell and "marks" in cell:
             raise PageTypeError(f"{what}: a figure with `marks` stands where its names put it — "
-                                "`valign` is for a figure without them")
+                                f"`{key}` is for a figure without them")
     if "guides" in cell and "marks" in cell:
         raise PageTypeError(f"{what}: a figure carries `marks` or `guides`, not both — the names beside the picture "
                             "and the rules across it are two ways to read the same height")
@@ -320,13 +328,18 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
                                       caption, what)
                 return
             s, ty = page.theme.spacing, page.theme.type
-            wanted = round(rect.width / aspect) + (
-                s.gap_s + page.theme.wrapped_height(caption, max(rect.width - 2 * s.text_inset, 1),
+            inset = cm(cell.get("inset", 0))
+            if 2 * inset >= rect.width:
+                raise PageFullError(f"{what}: `inset` leaves {inset} EMU on each side of a cell {rect.width} EMU "
+                                    "wide, and no room for the picture — a smaller `inset`, or a wider cell")
+            frame = rect.inset(x=inset)
+            wanted = round(frame.width / aspect) + (
+                s.gap_s + page.theme.wrapped_height(caption, max(frame.width - 2 * s.text_inset, 1),
                                                     ty.caption) if caption else 0)
-            block = min(wanted, rect.height)
-            spare = rect.height - block                 # 絵がマスより低い時の余り (= 絵が縦に詰められた時は 0)
-            top = rect.top + {"top": 0, "middle": spare // 2, "bottom": spare}[cell.get("valign", "top")]
-            placed = page.figure(Rect(rect.left, top, rect.width, block), source, aspect, caption=caption)
+            block = min(wanted, frame.height)
+            spare = frame.height - block                # 絵がマスより低い時の余り (= 絵が縦に詰められた時は 0)
+            top = frame.top + {"top": 0, "middle": spare // 2, "bottom": spare}[cell.get("valign", "top")]
+            placed = page.figure(Rect(frame.left, top, frame.width, block), source, aspect, caption=caption)
             shares, tone = _guides(spec, cell, what)
             for share in shares:
                 y = placed.top + round(share * placed.height)

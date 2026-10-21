@@ -23,7 +23,7 @@ from pptx_agent_maker import DEFAULT, cm  # noqa: E402
 from pptx_agent_maker.layout.base.geometry import Rect  # noqa: E402
 from pptx_agent_maker.layout.base.tokens import SPACED, TIGHTENED, ThemeError, Under, theme_from  # noqa: E402
 from pptx_agent_maker.layout.parts.elements import Figure, Line, Text  # noqa: E402
-from pptx_agent_maker.layout.parts.page import Page  # noqa: E402
+from pptx_agent_maker.layout.parts.page import Page, PageFullError  # noqa: E402
 from pptx_agent_maker.layout.types.core.read import read_weight  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
@@ -324,6 +324,46 @@ class AFigureStandsWhereItsCellPutsIt(Refusing):
     def test_a_figure_with_marks_stands_where_its_names_put_it(self) -> None:
         self.refused([row({"figure": WIDE, "valign": "middle", "marks": [{"at": [0.5, 0.5], "text": "here"}]})],
                      "`valign` is for a figure without them")
+
+
+class AFigureKeepsRoomBesideIt(Refusing):
+    """`inset` narrows a picture by the same room on its left and its right; the cell and its neighbours stay put."""
+
+    @staticmethod
+    def stood(*beside, **more):
+        built = compose([row({"figure": WIDE, **more}, *beside)]).build()
+        picture = next(e for e in built if isinstance(e, Figure) and e.kind == "figure").rect
+        return picture, [e.rect for e in built if isinstance(e, Text) and e.text == "beside"]
+
+    def test_unsaid_or_zero_the_picture_is_as_wide_as_its_cell(self) -> None:
+        self.assertEqual(self.stood()[0], self.stood(inset=0)[0])
+
+    def test_the_picture_is_narrowed_on_both_sides(self) -> None:
+        wide, _ = self.stood()
+        kept, _ = self.stood(inset=0.28)
+        self.assertAlmostEqual(wide.left + cm(0.28), kept.left, delta=1)
+        self.assertAlmostEqual(wide.right - cm(0.28), kept.right, delta=1)
+        self.assertLess(kept.height, wide.height, "a narrower picture keeps its shape, so it is lower")
+        low, _ = self.stood(inset=0.28, valign="bottom")
+        self.assertAlmostEqual(Page("A page", DEFAULT).body.bottom, low.bottom, delta=1)
+
+    def test_the_cell_beside_it_does_not_move(self) -> None:
+        _, plain = self.stood({"text": "beside"})
+        _, kept = self.stood({"text": "beside"}, inset=0.5)
+        self.assertEqual(plain, kept)
+
+    def test_what_inset_cannot_be(self) -> None:
+        for inset in (-0.1, "0.3", True):
+            with self.subTest(inset=inset):
+                self.refused([row({"figure": WIDE, "inset": inset})], "`inset` is the room left and right")
+        self.refused([row({"text": "words", "inset": 0.3})], "`inset` belongs to a figure")
+        self.refused([row({"figure": WIDE, "inset": 0.3, "marks": [{"at": [0.5, 0.5], "text": "here"}]})],
+                     "`inset` is for a figure without them")
+
+    def test_an_inset_that_leaves_no_picture_stops(self) -> None:
+        with self.assertRaises(PageFullError) as stopped:
+            compose([row({"figure": WIDE, "inset": 20})]).build()
+        self.assertIn("no room for the picture", str(stopped.exception))
 
 
 class TheGapBetweenABandAndTheBody(unittest.TestCase):
