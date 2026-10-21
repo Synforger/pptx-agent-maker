@@ -1,0 +1,70 @@
+# A project may point at a template folder: its settings are read with the project's laid over them, and its
+# specimen is used when the project holds none; the preview lists such a project.
+
+tests = ["tests/test_project.py", "tests/test_preview_projects.py"]
+
+[[mutant]]
+name = "the template is not read"
+file = "src/pptx_agent_maker/project/files/workspace.py"
+old = 'if "template" in data:'
+new = 'if False:'
+
+[[mutant]]
+name = "the template's settings replace the project's"
+file = "src/pptx_agent_maker/project/files/workspace.py"
+old = "data = _laid_over({key: value for key, value in inherited.items() if key not in OWN_KEYS}, data)"
+new = "data = _laid_over(data, {key: value for key, value in inherited.items() if key not in OWN_KEYS})"
+
+[[mutant]]
+name = "a table of the template is replaced, not merged"
+file = "src/pptx_agent_maker/project/files/workspace.py"
+old = "laid[key] = (_laid_over(laid[key], value) if isinstance(value, dict) and isinstance(laid.get(key), dict)"
+new = "laid[key] = (_laid_over({}, value) if isinstance(value, dict) and isinstance(laid.get(key), dict)"
+
+[[mutant]]
+name = "the template's paths come along"
+file = "src/pptx_agent_maker/project/files/workspace.py"
+old = 'OWN_KEYS = ("root", "paths", "template")'
+new = 'OWN_KEYS = ("root", "template")'
+
+[[mutant]]
+name = "a template without settings is taken"
+file = "src/pptx_agent_maker/project/files/workspace.py"
+old = "            if not shared.is_file():\n"
+new = "            if False:\n"
+
+[[mutant]]
+name = "a template pointing at a template is taken"
+file = "src/pptx_agent_maker/project/files/workspace.py"
+old = 'if "template" in inherited:'
+new = 'if False:'
+
+[[mutant]]
+name = "the specimen is always the project's"
+file = "src/pptx_agent_maker/project/files/workspace.py"
+old = "        return self.template / name\n"
+new = "        return own\n"
+
+[[mutant]]
+name = "the template's specimen wins over the project's own"
+file = "src/pptx_agent_maker/project/files/workspace.py"
+old = "if own.is_file() or self.template is None"
+new = "if self.template is None"
+
+[[mutant]]
+name = "the build reads the specimen from the project only"
+file = "src/pptx_agent_maker/deck/build.py"
+old = "    specimen = workspace.specimen(manifest.specimen).resolve()\n\n    destination"
+new = "    specimen = (workspace.root / manifest.specimen).resolve()\n\n    destination"
+
+[[mutant]]
+name = "the preview does not list a project pointing at a template"
+file = "src/pptx_agent_maker/project/files/places.py"
+old = 'and not _points_at_a_template(settings):'
+new = 'and not False:'
+
+[[mutant]]
+name = "the preview lists a project whose template holds no specimen"
+file = "src/pptx_agent_maker/project/files/places.py"
+old = 'return template is not None and (settings.parent / Path(str(template)).expanduser() / "specimen.pptx").is_file()'
+new = 'return template is not None'

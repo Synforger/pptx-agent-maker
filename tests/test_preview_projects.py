@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
@@ -33,6 +34,18 @@ class FindingProjects(unittest.TestCase):
         create(self.parent / "one" / "_edits" / "stray")
         found = [p.relative_to(self.parent).as_posix() for p in _projects_under(self.parent)]
         self.assertEqual(found, ["client-b/deck", "one"])
+
+    def test_a_project_pointing_at_a_template_is_a_deck_project(self) -> None:
+        """テンプレートを写さずに指す案件は自分の specimen を持たない ― 指した先にそろっていれば案件。"""
+        create(self.parent / "template")
+        project = self.parent / "deck"
+        project.mkdir()
+        (project / "workspace.toml").write_text('template = "../template"\n', encoding="utf-8")
+        found = [p.relative_to(self.parent).as_posix() for p in _projects_under(self.parent)]
+        self.assertEqual(found, ["deck", "template"])
+        (project / "workspace.toml").write_text('template = "../nowhere"\n', encoding="utf-8")
+        found = [p.relative_to(self.parent).as_posix() for p in _projects_under(self.parent)]
+        self.assertEqual(found, ["template"])
 
     def test_another_tools_workspace_is_not_a_deck_project(self) -> None:
         """⚠ `workspace.toml` はほかの道具も使う名前 ― テンプレートの無い folder を案件と読んでいた。"""
@@ -140,3 +153,42 @@ class ReadingThePlaces(unittest.TestCase):
                     load(self._places(text))
         with self.assertRaises(PlacesError):
             load(self.base / "missing.toml")
+
+
+class _Stop(Exception):
+    """Ends the watching loop from inside a test."""
+
+
+class StartingAgainWhenTheToolkitMoves(unittest.TestCase):
+    """The standing preview starts itself again once the toolkit on disk has changed and settled."""
+
+    def _watch(self, prints: list) -> tuple[mock.Mock, int]:
+        """(the stand-in for starting again, how many times the toolkit was looked at)."""
+        from pptx_agent_maker import __main__ as entry
+        with mock.patch.object(entry.time, "sleep"), \
+                mock.patch.object(entry, "_fingerprint", side_effect=prints) as looked, \
+                mock.patch.object(entry.os, "execv", side_effect=_Stop) as execv, \
+                self.assertRaises(_Stop):
+            entry._restart_when_changed("start")
+        return execv, looked.call_count
+
+    def test_it_starts_again_with_the_same_arguments_once_the_change_settles(self) -> None:
+        execv, looked = self._watch(["writing", "written", "written"])
+        execv.assert_called_once_with(sys.executable, sys.orig_argv)
+        self.assertEqual(3, looked, "not while the files were still moving")
+
+    def test_it_does_not_start_again_while_nothing_has_changed(self) -> None:
+        execv, _looked = self._watch(["start", "start", _Stop()])
+        execv.assert_not_called()
+
+    def test_the_preview_s_own_files_count(self) -> None:
+        from pptx_agent_maker import __main__ as entry
+        with tempfile.TemporaryDirectory() as folder:
+            module = Path(folder) / "pptx_live_preview" / "__init__.py"
+            module.parent.mkdir()
+            module.write_text("", encoding="utf-8")
+            spec = mock.Mock(origin=str(module))
+            with mock.patch.object(entry.importlib.util, "find_spec", return_value=spec):
+                before = entry._fingerprint()
+                module.write_text("changed = True\n", encoding="utf-8")
+                self.assertNotEqual(before, entry._fingerprint())

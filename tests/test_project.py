@@ -204,3 +204,66 @@ class TheCommandLineReachesTheProject(unittest.TestCase):
             parts = line.split()
             if len(parts) == 2 and parts[1].startswith("/"):
                 self.assertTrue(Path(parts[1]).exists(), f"{parts[0]} points nowhere")
+
+
+class ATemplatePointedAt(unittest.TestCase):
+    """A project may point at a template folder instead of copying its specimen and its settings."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = Path(self.tmp.name)
+        self.template = self.base / "template"
+        create(self.template)
+        shared = self.template / "workspace.toml"
+        shared.write_text('root = "."\n\n[paths]\nassets = "pictures"\n\n[theme]\nfont = "Shared"\n\n'
+                          '[theme.palette]\naccent = "123456"\n', encoding="utf-8")
+        self.project = self.base / "deck"
+        self.project.mkdir()
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def _project(self, more: str = "") -> Workspace:
+        (self.project / "workspace.toml").write_text(f'template = "../template"\n{more}', encoding="utf-8")
+        return Workspace.load(self.project)
+
+    def test_the_templates_settings_are_read_and_the_projects_laid_over_them(self) -> None:
+        workspace = self._project('\n[theme]\nfont = "Own"\n')
+        self.assertEqual(workspace.template, self.template.resolve())
+        self.assertEqual("Own", workspace.look["font"])
+        self.assertEqual("123456", workspace.look["palette"]["accent"], "a table is merged key by key")
+
+    def test_where_the_project_keeps_its_things_is_its_own(self) -> None:
+        workspace = self._project()
+        self.assertEqual(self.project.resolve(), workspace.root)
+        self.assertEqual(self.project.resolve() / "assets", workspace.assets, "the template's `paths` stay with it")
+
+    def test_the_specimen_is_the_templates_unless_the_project_holds_one(self) -> None:
+        workspace = self._project()
+        self.assertEqual(self.template.resolve() / "specimen.pptx", workspace.specimen("specimen.pptx"))
+        shutil.copy(self.template / "specimen.pptx", self.project / "specimen.pptx")
+        self.assertEqual(self.project.resolve() / "specimen.pptx", workspace.specimen("specimen.pptx"))
+
+    def test_a_project_pointing_at_a_template_builds(self) -> None:
+        from pptx_agent_maker.deck.build import build
+        from pptx_agent_maker.project.files.manifest import Manifest
+        workspace = self._project()
+        shutil.copy(self.template / "example.toml", self.project / "example.toml")
+        shutil.copytree(self.template / "assets", self.project / "assets", dirs_exist_ok=True)
+        built = build(workspace, Manifest.load(workspace.manifest("example")))
+        self.assertTrue(built.is_file())
+        self.assertFalse((self.project / "specimen.pptx").exists(), "nothing is copied from the template")
+
+    def test_a_template_that_is_not_one_is_said(self) -> None:
+        (self.base / "empty").mkdir()
+        (self.project / "workspace.toml").write_text('template = "../empty"\n', encoding="utf-8")
+        with self.assertRaises(WorkspaceError) as refused:
+            Workspace.load(self.project)
+        self.assertIn("holds no workspace.toml", str(refused.exception))
+
+    def test_a_template_points_at_no_template_of_its_own(self) -> None:
+        shared = self.template / "workspace.toml"
+        shared.write_text('template = "../elsewhere"\n' + shared.read_text(encoding="utf-8"), encoding="utf-8")
+        with self.assertRaises(WorkspaceError) as refused:
+            self._project()
+        self.assertIn("points at a template of its own", str(refused.exception))

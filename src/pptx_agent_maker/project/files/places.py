@@ -104,11 +104,21 @@ def projects_under(parent: Path, depth: int = 3) -> list[Path]:
                 continue
             # ⚠ `workspace.toml` はほかの道具も使う名前 (= 納品の雛形の作業場もこの名前で持つ)。
             # デッキの案件は `init` が必ず置くテンプレートも持つので、両方そろった folder だけにする
-            if not (settings.parent / "specimen.pptx").is_file():
+            # (= テンプレートを写さずに指す案件は、指した先にそろっている)
+            if not (settings.parent / "specimen.pptx").is_file() and not _points_at_a_template(settings):
                 continue
             found.append(settings.parent)
     return sorted(found)
 
+
+def _points_at_a_template(settings: Path) -> bool:
+    """Whether a workspace.toml points at a template folder that holds the specimen."""
+    try:
+        with settings.open("rb") as handle:
+            template = tomllib.load(handle).get("template")
+    except (OSError, tomllib.TOMLDecodeError):
+        return False
+    return template is not None and (settings.parent / Path(str(template)).expanduser() / "specimen.pptx").is_file()
 
 def discover(places: dict, skip_of) -> dict[str, Offer]:
     """Name → what is offered under it, for everything the places file offers.

@@ -793,6 +793,15 @@ layout_of_page = 3     # 見本の 3 枚目の頁と同じレイアウトに乗�
 
 ## 見た目 (= `workspace.toml`)
 
+**テンプレートは写さずに指せる。**`template = "<folder>"` (= この `workspace.toml` からの相対か絶対) を書くと、
+その folder の `workspace.toml` を読み、この案件の設定をその上に重ねる (= 同じ表は鍵ごとに案件の値が勝つ。
+`root`・`paths` は案件の物のまま)。`specimen.pptx` も、案件の folder に無ければテンプレートの物を使う。
+テンプレートが上げ直されても、案件の側は替え直さなくてよい。指せるのは 1 段だけ。
+
+```toml
+template = "~/templates/company"
+```
+
 ```toml
 [theme]
 font = "Arial"

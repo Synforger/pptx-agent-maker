@@ -1,0 +1,34 @@
+# The standing preview starts itself again, with the same arguments, once the toolkit or the preview has changed
+# on disk and the change has settled.
+
+tests = ["tests/test_preview_projects.py"]
+
+[[mutant]]
+name = "the preview starts again while the files are still being written"
+file = "src/pptx_agent_maker/__main__.py"
+old = "if now != started and now == seen:"
+new = "if now != started:"
+
+[[mutant]]
+name = "the preview starts again when nothing changed"
+file = "src/pptx_agent_maker/__main__.py"
+old = "if now != started and now == seen:"
+new = "if now == seen:"
+
+[[mutant]]
+name = "the preview starts again with other arguments"
+file = "src/pptx_agent_maker/__main__.py"
+old = "os.execv(sys.executable, sys.orig_argv)"
+new = "os.execv(sys.executable, sys.orig_argv[:1])"
+
+[[mutant]]
+name = "the preview's own files are not watched"
+file = "src/pptx_agent_maker/__main__.py"
+old = "        packages.append(Path(found.origin).resolve().parent)\n"
+new = "        pass\n"
+
+[[mutant]]
+name = "what was seen is never moved on"
+file = "src/pptx_agent_maker/__main__.py"
+old = "        seen = now\n"
+new = "        pass\n"

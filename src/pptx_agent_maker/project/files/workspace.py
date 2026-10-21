@@ -23,6 +23,11 @@
 ⚠ **回を folder で仕切らない。**開いて確かめるのは焼いたデッキなので、それが
 マニフェストの隣に在るのがいちばん短い。素材だけは数が多いので回ごとに分ける。
 
+⚠ **テンプレートは写さずに指せる。**`template = "<folder>"` を書くと、その folder の `workspace.toml` を
+読み、この案件の設定をその上に重ねる (= 同じ表は鍵ごとに案件の値が勝つ)。`specimen.pptx` も、案件の folder に
+無ければテンプレートの folder の物を使う。テンプレートが上げ直されても、案件の側は替え直さなくてよい。
+指せるのは 1 段だけ (= テンプレートの `workspace.toml` は、さらに別のテンプレートを指せない)。
+
 守っているのは 2 つ:
 
 * **案件が repo の中を指していたら拒む** ― 中に置けば commit に入り、push に入る
@@ -43,6 +48,8 @@ FILENAME = "workspace.toml"
 FOLDERS = ("assets",)
 #: root 直下でツールが使う名前 (= マニフェストに使えない)
 RESERVED = (FILENAME, "recipes.toml")
+#: 案件だけが持つ鍵 (= テンプレートの値を受け継がない。在処はその `workspace.toml` からの相対)
+OWN_KEYS = ("root", "paths", "template")
 
 
 class WorkspaceError(RuntimeError):
@@ -58,6 +65,8 @@ class Workspace:
     settings: dict = field(default_factory=dict)
     #: この案件が宣言した見た目 (= 書体と色と文字の大きさ。書体と色は、無ければテンプレートのもの)
     look: dict = field(default_factory=dict)
+    #: 指しているテンプレートの folder (= `template`。写して持つ案件は None)
+    template: Path | None = None
 
     @classmethod
     def load(cls, path: Path | str) -> "Workspace":
@@ -68,12 +77,23 @@ class Workspace:
         if not path.is_file():
             raise WorkspaceError(f"no {FILENAME} at {path}")
 
-        with path.open("rb") as handle:
-            data = tomllib.load(handle)
+        data = cls._read(path)
 
         root = Path(str(data.get("root", path.parent))).expanduser()
         root = (path.parent / root).resolve() if not root.is_absolute() else root.resolve()
         cls._refuse_inside_the_repo(root, path)
+
+        template = None
+        if "template" in data:
+            template = (path.parent / Path(str(data["template"])).expanduser()).resolve()
+            shared = template / FILENAME
+            if not shared.is_file():
+                raise WorkspaceError(f"{path.name}: `template` points at {template}, which holds no {FILENAME}")
+            inherited = cls._read(shared)
+            if "template" in inherited:
+                raise WorkspaceError(f"{path.name}: the template at {template} points at a template of its own — "
+                                     "a project points at one template, and that template at none")
+            data = _laid_over({key: value for key, value in inherited.items() if key not in OWN_KEYS}, data)
 
         folders = data.get("paths", {})
         look = data.get("theme") or {}
@@ -87,8 +107,21 @@ class Workspace:
             root=root,
             settings=data,
             look=look,
+            template=template,
             **{name: root / str(folders.get(name, name)) for name in FOLDERS},
         )
+
+    def specimen(self, name: str) -> Path:
+        """The specimen a manifest names: the project's own, or else the template's it points at."""
+        own = self.root / name
+        if own.is_file() or self.template is None or not (self.template / name).is_file():
+            return own
+        return self.template / name
+
+    @staticmethod
+    def _read(path: Path) -> dict:
+        with path.open("rb") as handle:
+            return tomllib.load(handle)
 
     @staticmethod
     def _refuse_inside_the_repo(root: Path, source: Path) -> None:
@@ -138,3 +171,12 @@ class Workspace:
         if not path.exists():
             raise WorkspaceError(f"{what} not found: {path}")
         return path
+
+
+def _laid_over(under: dict, over: dict) -> dict:
+    """`over` laid on `under`: a table is merged key by key, anything else is replaced."""
+    laid = dict(under)
+    for key, value in over.items():
+        laid[key] = (_laid_over(laid[key], value) if isinstance(value, dict) and isinstance(laid.get(key), dict)
+                     else value)
+    return laid
