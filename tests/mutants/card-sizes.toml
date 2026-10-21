@@ -53,8 +53,8 @@ new = "t.tag, head_ink,"
 [[mutant]]
 name = "the look of the tables a use writes is not read"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "                       table_look_set=_picked(said, \"table_look\", TABLE_LOOKS, \"the look of a table\", where))"
-new = "                       table_look_set=None)"
+old = "                       table_look_set=_picked(said, \"table_look\", TABLE_LOOKS, \"the look of a table\", where),"
+new = "                       table_look_set=None,"
 
 [[mutant]]
 name = "a look nobody pictured is let through as the look of a use's tables"
@@ -65,14 +65,14 @@ new = 'table_look_set=_picked(said, "table_look", (*TABLE_LOOKS, "outlined", "fi
 [[mutant]]
 name = "table_look is not a key a use may write"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = '_USE_KEYS = ("like", "floor", "spacing", "box_height", "table_look")'
-new = '_USE_KEYS = ("like", "floor", "spacing", "box_height")'
+old = '_USE_KEYS = ("like", "floor", "spacing", "box_height", "table_look", "leading")'
+new = '_USE_KEYS = ("like", "floor", "spacing", "box_height", "leading")'
 
 [[mutant]]
 name = "a use that says nothing takes the toolkit's look, not the deck's"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "table_look_set=sized.table_look_set or table_look)"
-new = 'table_look_set=sized.table_look_set or "accent")'
+old = "table_look_set=sized.table_look_set or table_look,"
+new = 'table_look_set=sized.table_look_set or "accent",'
 
 [[mutant]]
 name = "a look in another use keeps the look of the tables of the first"

@@ -138,6 +138,9 @@ class Type:
     #: この使い方が選んだ表の見た目 (= `TABLE_LOOKS`)。`box_height_set` と同じ作りで、書かなければ資料の
     #: `[theme] table_look` に倣う
     table_look_set: str | None = None
+    #: この使い方の行の高さ (= 字の大きさに対する倍率)。書いた時だけ、見積りと書き出しの行間の両方がこの値に
+    #: なる (= 描かれる行間が書体に依らない)。書かなければ見積りは `LEADING`、行間は書体任せ (= 今まで)
+    leading_set: float | None = None
 
     @property
     def band(self) -> float:
@@ -215,6 +218,10 @@ SIZED = ("title", "heading", "stage", "body", "caption")
 #: そのほか、案件が書ける役 (= `[theme.type]`)。書かなければ他の役から出る (= `Type.band` と `Type.tag` は
 #: 見出し、`Type.display` は題の 2 倍)。書いた値は `Type` の `<名前>_set` に入る
 DERIVED = ("band", "display", "tag")
+#: 行の高さの見積り (= 字の大きさに対する倍率)。案件が `leading` を書かなければ、これで数え、行間は書体に任せる
+LEADING = 1.45
+#: 案件が書ける `leading` の幅 (= 1 より詰めると行が重なり、2 を越えると行の間が段落の間に見える)
+LEADINGS = (1.0, 2.0)
 #: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
 #: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
 TIGHTENED = ("gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap", "title_gap", "pad", "cell_pad_y", "cell_pad_x",
@@ -570,7 +577,7 @@ class Theme:
 
     def line_height(self, size: float | None = None) -> int:
         """One line of type, including its leading."""
-        return round(pt(self.type.body if size is None else size) * 1.45)
+        return round(pt(self.type.body if size is None else size) * (self.type.leading_set or LEADING))
 
     def lines(self, text: str, width: int, size: float | None = None) -> int:
         """How many lines this text takes at that width.
@@ -828,7 +835,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "band_look",
+_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "band_look", "leading",
          "table_look", "layout_of_page")
 
 
@@ -889,8 +896,10 @@ def theme_from(settings: dict | None) -> Theme:
             "declared pages sit on the layout that page sits on")
 
     # 使い方が自分の箱の高さと表の見た目を書いていなければ、資料の値に倣う (= 頁が名指した使い方のそれは、そこから読める)
+    leading = _leading(settings, "theme")
     scales = {name: replace(sized, box_height_set=sized.box_height_set or box_height,
-                            table_look_set=sized.table_look_set or table_look)
+                            table_look_set=sized.table_look_set or table_look,
+                            leading_set=sized.leading_set or leading)
               for name, sized in {**USES, **_uses(settings.get("uses"))}.items()}
     use = settings.get("use", "read")
     if not isinstance(use, str) or use not in scales:
@@ -953,7 +962,7 @@ def _sizes(what: str, base: Type, declared, where: str, takes: tuple[str, ...] =
 
 
 #: 使い方が大きさの役のほかに書けるキー (= 倣う先、下限、余白、資料の見た目のうち使い方ごとに選べる物)
-_USE_KEYS = ("like", "floor", "spacing", "box_height", "table_look")
+_USE_KEYS = ("like", "floor", "spacing", "box_height", "table_look", "leading")
 
 
 def _uses(declared) -> dict[str, Type]:
@@ -990,10 +999,22 @@ def _uses(declared) -> dict[str, Type]:
         base = _spaced(_floored(USES[like], said.get("floor"), where), said.get("spacing"), f"{where}.spacing")
         base = replace(base,
                        box_height_set=_picked(said, "box_height", BOX_HEIGHTS, "the height of a page's boxes", where),
-                       table_look_set=_picked(said, "table_look", TABLE_LOOKS, "the look of a table", where))
+                       table_look_set=_picked(said, "table_look", TABLE_LOOKS, "the look of a table", where),
+                       leading_set=_leading(said, where))
         sizes = {key: value for key, value in said.items() if key not in _USE_KEYS}
         found[name] = _sizes(f"the use {name!r}", base, sizes, where, (*_USE_KEYS, *SIZED, *DERIVED))
     return found
+
+
+def _leading(said: dict, where: str) -> float | None:
+    """The line height a deck or a use writes (= `leading`, a multiple of the type size); unsaid, None."""
+    if "leading" not in said:
+        return None
+    value = said["leading"]
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not LEADINGS[0] <= value <= LEADINGS[1]:
+        raise ThemeError(f"{where}.leading is {value!r} — the height of a line as a multiple of the type size, "
+                         f"from {LEADINGS[0]} to {LEADINGS[1]} (= 1.2 is a single line of most typefaces)")
+    return float(value)
 
 
 def _picked(said: dict, key: str, options: tuple[str, ...], what: str, where: str) -> str | None:

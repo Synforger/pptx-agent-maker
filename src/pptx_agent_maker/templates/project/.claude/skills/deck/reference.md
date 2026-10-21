@@ -867,9 +867,10 @@ box_height = "page"      # "text" (= 既定。箱は字の分の高さ)、"page"
 card_look = "outlined"   # "filled" (= 既定。地を塗る) か "outlined" (= 地はほぼ白、色は枠と見出しの字)
 band_look = "outlined"   # "plain" (= 既定。枠の無い灰の帯) か "outlined" (= 枠と色を持つ帯)
 table_look = "plain"     # "accent" (= 既定。見出しの行が差し色の地) か "plain" (= 見出しの行が灰の地、罫線が灰)
+leading = 1.2            # 任意。行の高さ (= 字の大きさの倍率、1.0〜2.0)。書くと見積りも書き出しの行間もこの値になる
 ```
 
-`box_height` と `table_look` は、使い方ごと (= `[theme.uses.<名前>]`) にも選べる。`card_look` と `band_look` は資料で 1 つ。
+`box_height` と `table_look` と `leading` は、使い方ごと (= `[theme.uses.<名前>]`) にも選べる。`card_look` と `band_look` は資料で 1 つ。
 
 - **`box_height = "page"`** は、箱が字の分の高さのまま頁の下半分が空く頁を、下端まで使う形にする。箱は
   自分の字の分の高さに、残りの高さの**等しい取り分**を足す (= 字の多い箱は字の少ない箱より高いまま)。
