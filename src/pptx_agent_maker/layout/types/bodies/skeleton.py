@@ -58,46 +58,66 @@ CARDS_HEADING = "アジェンダ"
 SUMMARY = " ― "
 
 
+#: `cards` の左の列と右の列の幅の比 (= 案件の資料の目次は、 一覧の側が少し広い)
+CARDS_COLUMNS = (11, 10)
+#: 左の一覧の小項目の印 (= 字は本文の色、 印だけ灰)
+ITEM_MARK = "\u2013"
+
+
 def _agenda_cards(page: Page, area: Rect, buckets: list[tuple[str, list[str]]], here: int, item: int) -> None:
     """The agenda drawn as cards: the list on the left, a heading and one card per chapter on the right.
 
-    左の一覧は章を `•`、小項目を一段下げた `–` で書き、今の章だけ差し色の太字にする (= `highlight_item`
-    は今の章の小項目を 1 つ差し色の太字にする。章の途中から入り直す頁のため)。右のカードは列の高さを
-    章の数で等分し、番号は塗りの丸に置く。今の章は差し色の丸に紙の色の数字、差し色のごく薄い地、
-    差し色の題。ほかの章は灰の丸に灰の数字、灰の地、灰の題 (= 灰の丸に白の数字は読めない)。枠は引かない。
+    左の一覧は章を `•` で章の大きさの字に、 小項目を一段下げた `–` で本文の字にし、 今の章だけ差し色の太字に
+    する (= `highlight_item` は今の章の小項目を 1 つ差し色の太字にする。 章の途中から入り直す頁のため)。 ほかは
+    本文の色で、 小項目の印だけ灰。 右のカードは列の高さを章の数で等分し、 番号は塗りの丸に置く。 今の章は
+    差し色の丸に紙の色の数字、 差し色のごく薄い地、 差し色の題。 ほかの章は灰の丸に灰の数字、 灰の地、 灰の題
+    (= 灰の丸に白の数字は読めない)。 枠は引かない。
     """
     theme = page.theme
     t, s, p = theme.type, theme.spacing, theme.palette
-    listing, right = area.columns([1, 1], gap=s.gap_l)
-    rows: list[tuple[str, str, bool, int]] = []
+    listing, right = area.columns(list(CARDS_COLUMNS), gap=s.gap_l)
+    # 印の箱は余白なしで、 印と空白 1 つ分の幅 (= 字の箱の左の余白が印と字の間になる。 余白のある箱を印と空白
+    # の幅にすると、 LibreOffice は印を次の行へ折って隠す)
+    indent, mark = s.gap_l + s.gap_m, theme.width(f"{ITEM_MARK} ", t.body)
+    # (印, 字, 字の大きさ, 字の色, 太字, 字下げ, 前の間)。 章の印は章の字と同じ色、 小項目の印は灰
+    rows: list[tuple[str, str, int, str, bool, int, int]] = []
     for number, (title, items) in enumerate(buckets, start=1):
         marked = number == here
-        rows.append((f"\u2022 {title.split(SUMMARY, 1)[0]}", p.accent if marked else p.muted, marked, 0))
+        rows.append(("", f"\u2022 {title.split(SUMMARY, 1)[0]}", t.stage, p.accent if marked else p.ink, marked, 0,
+                     s.gap_s if rows else 0))
         for index, entry in enumerate(items, start=1):
             picked = marked and index == item
-            rows.append((f"\u2013 {entry}", p.accent if picked else p.muted, picked, s.gap_m))
-    heights = [theme.wrapped_height(text, max(listing.width - indent - 2 * s.text_inset, 1), t.body, bold=bold)
-               for text, _colour, bold, indent in rows]
-    if sum(heights) > listing.height:
+            rows.append((ITEM_MARK, entry, t.body, p.accent if picked else p.ink, picked, indent, s.row_gap))
+    heights = [theme.wrapped_height(text, max(listing.width - indent - (mark if sign else 0) - 2 * s.text_inset, 1),
+                                    size, bold=bold)
+               for sign, text, size, _colour, bold, indent, _before in rows]
+    if sum(heights) + sum(row[-1] for row in rows) > listing.height:
         raise PageFullError(
-            f"agenda: the list of items needs {sum(heights)} EMU of height and has {listing.height} — "
-            "fewer items, or two pages; it will not shrink")
+            f"agenda: the list of items needs {sum(heights) + sum(row[-1] for row in rows)} EMU of height and has "
+            f"{listing.height} — fewer items, or two pages; it will not shrink")
     top = listing.top
-    for (text, colour, bold, indent), tall in zip(rows, heights):
-        page.elements.append(Text("agenda_item", Rect(listing.left + indent, top, listing.width - indent, tall),
-                                  text, t.body, colour, bold=bold))
+    for (sign, text, size, colour, bold, indent, before), tall in zip(rows, heights):
+        top += before
+        left = listing.left + indent
+        if sign:
+            page.elements.append(Text("agenda_mark", Rect(left, top, mark, theme.line_height(size)), sign, size,
+                                      p.accent if bold else p.muted))
+            left += mark
+        page.elements.append(Text("agenda_item", Rect(left, top, listing.right - left, tall), text, size, colour,
+                                  bold=bold))
         top += tall
-    head, stack = right.split_top(theme.line_height(t.heading), gap=s.gap_s)
-    page.elements.append(Text("agenda_heading", head, CARDS_HEADING, t.heading, p.ink, bold=True))
-    disc = theme.line_height(t.heading) + s.gap_s
+    head, stack = right.split_top(theme.line_height(t.stage), gap=s.gap_m)
+    page.elements.append(Text("agenda_heading", head, CARDS_HEADING, t.stage, p.ink, bold=True))
+    # 番号の丸は見出しの行 2 つ分 (= 案件の資料の丸の大きさ)
+    disc = 2 * theme.line_height(t.heading)
     for band, (number, (title, _items)) in zip(stack.rows(len(buckets), gap=s.gap_s),
                                                 enumerate(buckets, start=1)):
         marked = number == here
         colour = p.accent if marked else p.muted
         name, _, summary = title.partition(SUMMARY)
-        circle = Rect(band.left + s.pad, band.top + (band.height - disc) // 2, disc, disc)
-        words = Rect(circle.right + s.gap_s, band.top + s.pad,
-                     max(band.right - s.pad - circle.right - s.gap_s, 1), max(band.height - 2 * s.pad, 1))
+        circle = Rect(band.left + s.gap_m, band.top + (band.height - disc) // 2, disc, disc)
+        words = Rect(circle.right + s.gap_m, band.top + s.pad,
+                     max(band.right - s.pad - circle.right - s.gap_m, 1), max(band.height - 2 * s.pad, 1))
         width = max(words.width - 2 * s.text_inset, 1)
         named = theme.wrapped_height(name, width, t.stage, bold=True)
         said = theme.wrapped_height(summary, width, t.body) if summary else 0
@@ -148,7 +168,8 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     if item is not None:
         if look != "cards":
             raise PageTypeError("agenda: `highlight_item` marks an item of the list `look = \"cards\"` draws")
-        if not here or not isinstance(item, int) or not 1 <= item <= len(buckets[here - 1][1]):
+        if (not here or isinstance(item, bool) or not isinstance(item, int)
+                or not 1 <= item <= len(buckets[here - 1][1])):
             raise PageTypeError(
                 f"agenda: `highlight_item` is {item!r} — the number of an item of the chapter `highlight` names")
     if look == "cards":

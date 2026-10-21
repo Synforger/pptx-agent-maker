@@ -41,8 +41,8 @@ new = "        if False:"
 [[mutant]]
 name = "every depth is the same ground"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = 'return "".join(f"{round(low + (high - low) * level / self.SHADES):02X}"'
-new = 'return "".join(f"{round(low + (high - low) * 1 / self.SHADES):02X}"'
+old = "return self.thinned(level / self.SHADES)"
+new = "return self.thinned(1 / self.SHADES)"
 
 [[mutant]]
 name = "a shaded cell keeps the ground of its row"

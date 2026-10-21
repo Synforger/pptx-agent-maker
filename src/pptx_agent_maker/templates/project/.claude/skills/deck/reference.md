@@ -81,7 +81,7 @@ pptx-agent-maker lift <案件> <テンプレートの folder> \
 | `chart` | `chart` | ― | 数字から描くグラフを 1 つ (= 棒・縦棒・折れ線・積み上げ・滝グラフ。PowerPoint で数字を直せる) |
 | `cards` | ― | ― | 札だけの頁 (= 図が要らない骨格) |
 | `board` | `table` | ― | 表が主役の頁 (= 同上) |
-| `agenda` | `buckets` | `highlight` `highlight_tone` `numbers` | 章立て (= 同上。`highlight` = 強調する章の番号。`highlight_tone = "accent"` でその章の箱を地の色で強調し (= 書かなければ `◀ この章` の言葉)、`numbers = "circled"` で番号を丸の数字にする) |
+| `agenda` | `buckets` | `highlight` `highlight_tone` `numbers` `look` `highlight_item` | 章立て (= 同上。`highlight` = 強調する章の番号。`highlight_tone = "accent"` でその章の箱を地の色で強調し (= 書かなければ `◀ この章` の言葉)、`numbers = "circled"` で番号を丸の数字にする。`look = "cards"` は、右に「アジェンダ」 の見出しと、列の高さを章の数で等分した角丸のカードを置き、番号を塗りの丸にする (= 章の名前を `名前 ― 要旨` と書くと、要旨がカードの 2 行目に入る。`highlight_tone` と `numbers` は書けない)。`highlight_item` は `cards` の時だけ、今の章の小項目を 1 つ差し色の太字にする (= 章の途中から入り直す頁)) |
 
 ### 箱・棒・矢羽根の見た目 (= どれも同じ 4 つのキー)
 

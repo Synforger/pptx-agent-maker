@@ -294,6 +294,9 @@ def _text(slide, element: Text, theme: Theme) -> None:
         frame.auto_size = MSO_AUTO_SIZE.NONE
     if element.kind in {"label", "lane", "marker", "kicker_beside"}:
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(0)
+    elif element.kind == "agenda_mark":
+        # 目次の小項目の印は、 隣の字の箱と同じ高さに乗るよう上下の余白を残し、 左右だけ 0 にする
+        frame.margin_left = frame.margin_right = Emu(0)
     elif theme.spacing.text_inset != DEFAULT.spacing.text_inset:
         # ⚠ **詰めた使い方では、枠の左右の余白を数えたとおりに書く。**書かなければ pptx の既定 (= 手元で
         # 読ませる資料の値) のままで、字の入る幅が道具の数えた幅より狭く、狭い箱で見積もりより 1 行多く折れた

@@ -213,6 +213,23 @@ class ChecksFireTest(unittest.TestCase):
         self.assertEqual([], near_alignment.run(self._boxes("other.pptx", 10800, height=600000), {}),
                          "boxes of a different height are not siblings in a row")
 
+    def _words_beside_a_card(self, name: str, drop: int, *, both_boxed: bool) -> Path:
+        """A card holding one line, and a line of the same height beside it (= on the page, or in a card)."""
+        def place(slide):
+            for left in ((500000, 3000000) if both_boxed else (500000,)):
+                card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Emu(left), Emu(800000),
+                                              Emu(2000000), Emu(1400000))
+                card.fill.solid()
+            slide.shapes.add_textbox(Emu(600000), Emu(1000000), Emu(1800000), Emu(300000)).text_frame.text = "カードの中"
+            slide.shapes.add_textbox(Emu(3100000), Emu(1000000 + drop), Emu(1800000), Emu(300000)).text_frame.text = "となり"
+        return raw_deck(self.dir / name, place)
+
+    def test_words_in_a_card_and_words_on_the_page_are_not_siblings(self) -> None:
+        """⚠ 目次の右のカードの中の 1 行と、左の一覧の 1 行が、0.21 mm のずれで当たった (= 列ごとに別の割り方)。"""
+        self.assertEqual([], near_alignment.run(self._words_beside_a_card("beside.pptx", 7560, both_boxed=False), {}))
+        self.assertTrue(near_alignment.run(self._words_beside_a_card("cards.pptx", 7560, both_boxed=True), {}),
+                        "the headings of two cards side by side that miss by a hair went through")
+
     def test_every_check_has_a_fixture_that_fires_it(self) -> None:
         """A check nobody proved is a check nobody can trust."""
         proven = {off_page.NAME, overlap.NAME, type_floor.NAME, empty_cells.NAME,

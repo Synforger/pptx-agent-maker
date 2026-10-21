@@ -14,6 +14,7 @@ from pathlib import Path
 
 from pptx_agent_maker.layout import types
 from pptx_agent_maker.layout.parts.elements import Figure, Fill, Table, Text
+from pptx_agent_maker import Page
 from pptx_agent_maker.layout.base.tokens import DEFAULT
 from pptx_agent_maker.layout.parts.page import PageFullError
 from pptx_agent_maker.layout.types.core.registry import PageTypeError
@@ -394,6 +395,77 @@ class WhatTheTypesRefuse(unittest.TestCase):
             with self.subTest(numbers=numbers), self.assertRaises(PageTypeError) as refused:
                 build({**self.AGENDA, "numbers": numbers})
             self.assertIn("numbers", str(refused.exception))
+
+    CARDS = {"type": "agenda", "title": "だい", "look": "cards", "highlight": 2,
+             "buckets": [["しょう 1 ― ようし", ["こうもく"]], ["しょう 2 ― ようし", ["こうもく", "つぎ"]],
+                         ["しょう 3", []]]}
+
+    @staticmethod
+    def _kind(page, kind: str) -> list:
+        return [e for e in page.build() if e.kind == kind]
+
+    def test_the_cards_share_the_height_of_their_column(self):
+        """骨組みの目次は、 右のカードが列の高さを章の数で等分して使い切る (= 字の高さに縮まない)。"""
+        page = build(self.CARDS)
+        cards = sorted(self._kind(page, "agenda_card"), key=lambda e: e.rect.top)
+        self.assertEqual(3, len(cards))
+        tall = [card.rect.height for card in cards]
+        self.assertLessEqual(max(tall) - min(tall), 1, "the column is shared equally (= one EMU left over at most)")
+        self.assertTrue(all(card.rounded for card in cards))
+        self.assertEqual(Page("だい", DEFAULT).body.bottom, cards[-1].rect.bottom)
+        self.assertEqual(["アジェンダ"], [e.text for e in self._kind(page, "agenda_heading")])
+
+    def test_the_chapter_in_hand_is_drawn_in_the_accent_and_the_others_in_grey(self):
+        page, p = build(self.CARDS), DEFAULT.palette
+        cards = sorted(self._kind(page, "agenda_card"), key=lambda e: e.rect.top)
+        discs = sorted(self._kind(page, "agenda_disc"), key=lambda e: e.rect.top)
+        numbers = sorted(self._kind(page, "agenda_number"), key=lambda e: e.rect.top)
+        self.assertEqual([p.wash, p.thinned(p.FAINT), p.wash], [card.colour for card in cards])
+        self.assertEqual([p.rule, p.accent, p.rule], [disc.colour for disc in discs])
+        self.assertEqual([("1", p.muted), ("2", p.paper), ("3", p.muted)], [(n.text, n.colour) for n in numbers])
+        self.assertTrue(all(disc.rect.width == disc.rect.height for disc in discs), "a number sits in a circle")
+
+    def test_a_chapter_name_and_its_summary_are_two_lines(self):
+        """`名前 ― 要旨` は、 名前を太字の 1 行目、 要旨を 2 行目にする。 要旨の無い章は名前だけ。"""
+        page = build(self.CARDS)
+        self.assertEqual(["しょう 1", "しょう 2", "しょう 3"], [e.text for e in self._kind(page, "agenda_chapter")])
+        self.assertEqual(["ようし", "ようし"], [e.text for e in self._kind(page, "agenda_summary")])
+        self.assertTrue(all(e.bold for e in self._kind(page, "agenda_chapter")))
+
+    def test_the_list_marks_the_chapter_in_hand_and_greys_only_the_marks_of_items(self):
+        """骨組みの左の一覧は、 今の章だけ差し色の太字。 ほかの章と小項目は本文の色で、 小項目の印だけ灰。"""
+        page, p, t = build(self.CARDS), DEFAULT.palette, DEFAULT.type
+        rows = self._kind(page, "agenda_item")
+        self.assertEqual(["\u2022 しょう 1", "こうもく", "\u2022 しょう 2", "こうもく", "つぎ", "\u2022 しょう 3"],
+                         [e.text for e in rows])
+        self.assertEqual([p.ink, p.ink, p.accent, p.ink, p.ink, p.ink], [e.colour for e in rows])
+        self.assertEqual([False, False, True, False, False, False], [e.bold for e in rows])
+        self.assertEqual([t.stage, t.body, t.stage, t.body, t.body, t.stage], [e.size for e in rows])
+        self.assertEqual({p.muted}, {e.colour for e in self._kind(page, "agenda_mark")})
+
+    def test_an_item_of_the_chapter_in_hand_can_be_marked(self):
+        """章の途中から入り直す頁は、 今の章の小項目を 1 つ差し色の太字にする (= 印も差し色)。"""
+        page, p = build({**self.CARDS, "highlight_item": 2}), DEFAULT.palette
+        picked = [e for e in self._kind(page, "agenda_item") if e.bold]
+        self.assertEqual(["\u2022 しょう 2", "つぎ"], [e.text for e in picked])
+        self.assertEqual([p.muted, p.accent], [e.colour for e in self._kind(page, "agenda_mark")][1:])
+
+    def test_what_the_cards_cannot_take_is_refused(self):
+        for spec, word in (({**self.CARDS, "look": "tiles"}, "look"),
+                           ({**self.CARDS, "highlight_item": 9}, "highlight_item"),
+                           ({**self.CARDS, "highlight_item": True}, "highlight_item"),
+                           ({**self.AGENDA, "highlight_item": 1}, "highlight_item"),
+                           ({**self.CARDS, "highlight_tone": "accent"}, "highlight_tone"),
+                           ({**self.CARDS, "numbers": "circled"}, "numbers")):
+            with self.subTest(word=word, spec=spec), self.assertRaises(PageTypeError) as refused:
+                build(spec)
+            self.assertIn(word, str(refused.exception))
+
+    def test_cards_with_more_items_than_fit_stop(self):
+        items = [f"こうもく {number}" for number in range(1, 16)]
+        with self.assertRaises(PageFullError) as stopped:
+            build({**self.CARDS, "buckets": [["しょう 1", items], ["しょう 2", items]]})
+        self.assertIn("agenda: the list of items needs", str(stopped.exception))
 
     def test_only_the_agenda_takes_its_looks(self):
         for key, value in (("highlight_tone", "accent"), ("numbers", "circled")):

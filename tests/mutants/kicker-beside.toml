@@ -59,8 +59,8 @@ new = "        if False and right - left - lead"
 [[mutant]]
 name = "the small words beside a title are anchored at the top of their box"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = '"band_text", "title", "caption", "label", "lane", "stage", "marker", "kicker_beside"} else MSO_ANCHOR.TOP'
-new = '"band_text", "title", "caption", "label", "lane", "stage", "marker"} else MSO_ANCHOR.TOP'
+old = '"band_text", "title", "caption", "label", "lane", "stage", "marker", "kicker_beside", "agenda_number"} else MSO_ANCHOR.TOP'
+new = '"band_text", "title", "caption", "label", "lane", "stage", "marker", "agenda_number"} else MSO_ANCHOR.TOP'
 
 [[mutant]]
 name = "the small words beside a title keep the insets of a text box"

@@ -113,7 +113,7 @@
 
 | 作りたい頁 | 型 | 要点 |
 |---|---|---|
-| 章立て (= 章の頭ごとに 1 枚、今の章だけ強調) | `agenda` | `highlight` に章の番号。`highlight_tone` で地の色、`numbers = "circled"` で丸の数字 |
+| 章立て (= 章の頭ごとに 1 枚、今の章だけ強調) | `agenda` | `highlight` に章の番号。`highlight_tone` で地の色、`numbers = "circled"` で丸の数字。`look = "cards"` で右の章を列の高さいっぱいのカードに (= `highlight_item` で章の途中の小項目も強調) |
 | 実物の絵 1 枚と読み方 | `figure` | 絵は縦横比を保つ。`caption` に読み方 |
 | 絵を並べて比べる | `figures` | 2 つ以上を横に。名前は絵の下 |
 | 行 × 列の実物の比較 (= 手法 × 条件) | `figure_grid` | 絵は先に、行ごとに共通の枠で切っておく。名前と数字は絵に焼かず、頁の文字で置く |

@@ -237,7 +237,7 @@ class Palette:
         return self.thinned(level / self.SHADES)
 
     #: 目次の今の章の地 (= 差し色のごく薄い色)。差し色をこの割合だけ紙に混ぜる
-    FAINT: ClassVar[float] = 0.12
+    FAINT: ClassVar[float] = 0.07
 
     def thinned(self, share: float) -> str:
         """The accent mixed into the paper: `share` of it is accent (= 0 is the paper, 1 the accent)."""
