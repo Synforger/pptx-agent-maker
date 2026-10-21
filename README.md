@@ -91,10 +91,15 @@ when a piece or an arrangement is missing, and those are few, so it stops growin
 A project stands on its own — its `Taskfile.yml` is the door to the toolkit.
 
 ```bash
-pipx install .                          # install the toolkit, once
+pipx install --editable .               # install the toolkit, once: a pull of this checkout updates it
 pptx-agent-maker init <project-dir> --specimen <look.pptx | a folder holding one>
 cd <project-dir> && task build -- example
 ```
+
+Installed without `--editable`, the machine runs the copy made at install time, and a pull of the
+checkout changes nothing until the toolkit is installed again. A project keeps the copies of the
+toolkit's tasks and deck skill `init` made; `build` says when they differ from the toolkit's, and
+`task refresh` takes the new ones.
 
 ## The look belongs to the project, the layout to the toolkit
 

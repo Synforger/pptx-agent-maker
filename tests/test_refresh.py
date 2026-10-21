@@ -65,6 +65,20 @@ class Refreshing(unittest.TestCase):
         self.assertIn("already up to date", self._run())
         self.assertFalse((self.root / ".pptx-agent-maker" / "replaced").exists())
 
+    def _build(self) -> str:
+        out = io.StringIO()
+        with redirect_stdout(out):
+            main(["build", str(self.root), "example"])
+        return out.getvalue()
+
+    def test_a_build_says_when_the_project_holds_an_older_skill(self) -> None:
+        """⚠ 案件の手順書が古いまま組まれた。build も check も何も言わず、版の文字も同じだった。"""
+        self.assertNotIn("task refresh", self._build())
+        (self.root / ".claude/skills/deck/craft.md").write_text("# an older craft", encoding="utf-8")
+        self.assertIn("note: 1 of the toolkit's files in this project differ", self._build())
+        self._run()
+        self.assertNotIn("task refresh", self._build())
+
 
 if __name__ == "__main__":
     unittest.main()

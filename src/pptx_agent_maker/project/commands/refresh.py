@@ -23,8 +23,12 @@ TOOL_OWNED = ("Taskfile.yml", "_README.md", ".claude/skills/deck")
 STATE = ".pptx-agent-maker"
 
 
-def refresh(root: Path | str) -> tuple[list[str], Path | None]:
-    """Replace the toolkit's own files in a project; return what changed and where the old ones went."""
+def stale(root: Path | str) -> list[str]:
+    """The toolkit's own files the project holds in another version, or lacks (= what `refresh` would replace).
+
+    ⚠ **版の文字では比べない。**ツールの中身が変わっても版の文字は同じことがあり、案件の手順書が古いまま
+    「up to date」と言った。比べるのは中身。
+    """
     root = Path(root)
     changed: list[str] = []
     for owned in TOOL_OWNED:
@@ -35,6 +39,13 @@ def refresh(root: Path | str) -> tuple[list[str], Path | None]:
             target = root / relative
             if not target.is_file() or not filecmp.cmp(file, target, shallow=False):
                 changed.append(relative)
+    return changed
+
+
+def refresh(root: Path | str) -> tuple[list[str], Path | None]:
+    """Replace the toolkit's own files in a project; return what changed and where the old ones went."""
+    root = Path(root)
+    changed = stale(root)
     if not changed:
         return [], None
 

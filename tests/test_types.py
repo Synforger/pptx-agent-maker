@@ -422,7 +422,7 @@ class WhatTheTypesRefuse(unittest.TestCase):
         numbers = sorted(self._kind(page, "agenda_number"), key=lambda e: e.rect.top)
         self.assertEqual([p.wash, p.thinned(p.FAINT), p.wash], [card.colour for card in cards])
         self.assertEqual([p.rule, p.accent, p.rule], [disc.colour for disc in discs])
-        self.assertEqual([("1", p.muted), ("2", p.paper), ("3", p.muted)], [(n.text, n.colour) for n in numbers])
+        self.assertEqual([("1", p.ink), ("2", p.paper), ("3", p.ink)], [(n.text, n.colour) for n in numbers])
         self.assertTrue(all(disc.rect.width == disc.rect.height for disc in discs), "a number sits in a circle")
 
     def test_a_chapter_name_and_its_summary_are_two_lines(self):

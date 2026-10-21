@@ -67,10 +67,14 @@
 案件の folder はそれ自体で完結する (= `Taskfile.yml` がツールへの口を持つ)。
 
 ```bash
-pipx install .                        # ツールを機械に入れる (= 1 度だけ)
+pipx install --editable .             # ツールを機械に入れる (= 1 度だけ。この checkout を pull すれば新しくなる)
 pptx-agent-maker init <案件のフォルダ> --specimen <テンプレート.pptx or それを置いた folder>
 cd <案件のフォルダ> && task build -- example
 ```
+
+`--editable` を付けずに入れると、機械は入れた時の写しで動き、checkout を pull しても入れ直すまで変わらない。
+案件は、`init` が写した task と deck の手順書を持つ。それがツールの物と違うと `build` が 1 行で言い、
+`task refresh` で新しい物を取り込む。
 
 ## 見た目は案件のもの、頁の割り方はツールのもの
 
