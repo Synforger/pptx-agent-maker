@@ -35,7 +35,9 @@ from ..base.slide import RUN, TEXT, BuiltSlide, Shape, read
 NAME = "contrast"
 
 SHAPE_PROPERTIES = re.compile(r"<p:spPr\b[^>]*>(.*?)</p:spPr>", re.S)
-OUTLINE = re.compile(r"<a:ln\b.*?</a:ln>", re.S)
+# ⚠ A cell's rules are `lnL` / `lnR` / `lnT` / `lnB`, and `\b` does not stand between `ln` and `L`: matching `<a:ln\b`
+# alone left them in, and the colour of a rule was read as the ground of the cell.
+OUTLINE = re.compile(r"<a:(ln[LRTB]?)\b.*?</a:\1>", re.S)
 UNREADABLE = re.compile(r"<a:(gradFill|blipFill|pattFill)\b")
 BACKGROUND = re.compile(r"<p:bg>(.*?)</p:bg>", re.S)
 CELL = re.compile(r"<a:tc[ >](.*?)</a:tc>", re.S)

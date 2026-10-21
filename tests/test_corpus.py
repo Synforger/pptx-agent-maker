@@ -139,11 +139,12 @@ class TheCorpusUsesEverything(unittest.TestCase):
 
     def test_the_look_a_deck_sets_for_all_its_pages_is_kept_in_a_deck_of_its_own(self) -> None:
         """⚠ 見た目は案件に 1 つなので、既定の見た目の資料は、別の見た目が頁に何をするかを守れない。"""
-        from pptx_agent_maker.layout.base.tokens import BAND_LOOKS, BOX_HEIGHTS, CARD_LOOKS
+        from pptx_agent_maker.layout.base.tokens import BAND_LOOKS, BOX_HEIGHTS, CARD_LOOKS, TABLE_LOOKS
         main = _toml(CORPUS / "workspace.toml").get("theme", {})
         looks = {key: {main.get(key)} | {_toml(path).get("theme", {}).get(key) for path in DECKS}
-                 for key in ("card_look", "band_look", "box_height")}
-        for key, options in (("card_look", CARD_LOOKS), ("band_look", BAND_LOOKS), ("box_height", BOX_HEIGHTS)):
+                 for key in ("card_look", "band_look", "box_height", "table_look")}
+        for key, options in (("card_look", CARD_LOOKS), ("band_look", BAND_LOOKS), ("box_height", BOX_HEIGHTS),
+                             ("table_look", TABLE_LOOKS)):
             with self.subTest(key):
                 self.assertEqual(set(options), {value or options[0] for value in looks[key]},
                                  f"{key}: a look no project of the corpus is set in")
@@ -157,6 +158,17 @@ class TheCorpusUsesEverything(unittest.TestCase):
         self.assertTrue(any(card.get("heading") and not card.get("body") and not card.get("tag") for card in written),
                         "no card of a heading only")
         self.assertTrue(any(not card.get("heading") and not card.get("body") for card in written), "no empty card")
+
+    def test_a_row_that_divides_a_table_is_written_in_every_look_with_a_tone_and_without_one(self) -> None:
+        """A band may be written whatever the look of the tables, so each look of the corpus has its own."""
+        decks = {"the main project": CORPUS / "manifests",
+                 **{path.parent.name: path.parent / "manifests" for path in DECKS}}
+        for name, folder in decks.items():
+            with self.subTest(name):
+                bands = [row for manifest in sorted(folder.glob("*.toml")) for page in _toml(manifest)["pages"]
+                         for row in tables(page) if "band" in row]
+                self.assertTrue(any(row.get("tone") for row in bands), f"{name}: no band says its tone")
+                self.assertTrue(any(not row.get("tone") for row in bands), f"{name}: every band says its tone")
 
     def test_every_role_a_use_of_the_project_sizes_apart_from_the_others(self) -> None:
         uses = _toml(CORPUS / "workspace.toml")["theme"]["uses"]

@@ -122,6 +122,8 @@ class Table(Element):
     marks: frozenset[tuple[int, int]] = frozenset()
     #: 地の濃さを言ったセル: (行, 列) → 4 分の幾つか (= 0 は持たない)
     shades: dict[tuple[int, int], int] = field(default_factory=dict)
+    #: 全部の列をまたぐ区切りの行: 行 → (地の色, 字の色)。行の中身は、区切りの字だけの 1 つのセル
+    bands: dict[int, tuple[str, str]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

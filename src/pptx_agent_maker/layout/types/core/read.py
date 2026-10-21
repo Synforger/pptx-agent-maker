@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from ...base.tokens import DEFAULT, Palette, Theme
+from ...base.tokens import DEFAULT, Band, Palette, Theme
 from ...parts.elements import Mark, Shade
 from ...parts.look import Style, TONES
 from ...parts.page import CARD_ALIGNS, Card
@@ -107,12 +107,42 @@ def read_cell(value, what: str) -> str:
         f"its value ({{ text = …, shade = 0 to {Palette.SHADES} }})")
 
 
+def read_band(item: dict, what: str) -> Band:
+    """A row that divides a table: `{ band = "…", tone = "accent" }` (= `tone` may be left out).
+
+    表の幅いっぱいに立つ見出しの行で、見た目 (= `table_look`) を問わず書ける。色の役か案件の地の名前かは、
+    地を引ける所 (= `Page.table`) が確かめる ― ここは書き方だけ。
+    """
+    only_keys(item, {"band", "tone"}, what)
+    words, tone = item.get("band"), item.get("tone", "")
+    if not isinstance(words, (str, int, float)) or isinstance(words, bool) or not str(words).strip():
+        raise PageTypeError(f"{what}: a band says its words in `band`, and this one says none")
+    if not isinstance(tone, str):
+        raise PageTypeError(f"{what}: `tone` is a colour's role, as in tone = \"accent\", not {tone!r}")
+    return Band(str(words), tone)
+
+
 def read_table(rows, what: str) -> list[list[str]]:
-    """A table as written: rows of cells, each cell read by `read_cell`."""
-    if not isinstance(rows, list) or not rows or not all(isinstance(row, list) and row for row in rows):
-        raise PageTypeError(f"{what}: a table is a list of rows, each a list of cells")
-    return [[read_cell(cell, f"{what}: row {r}, column {c}") for c, cell in enumerate(row, start=1)]
-            for r, row in enumerate(rows, start=1)]
+    """A table as written: rows of cells, each cell read by `read_cell`, and bands that divide it.
+
+    ⚠ **見出しの行は、列のセルで書く。**区切りは見出しの下の行を分ける物で、その下に行が 1 つも無い区切りは
+    何も分けない (= 書き忘れ)。
+    """
+    if not isinstance(rows, list) or not rows or not all(isinstance(row, (list, dict)) and row for row in rows):
+        raise PageTypeError(f"{what}: a table is a list of rows, each a list of cells "
+                            "(or a band that divides it: { band = \"…\" })")
+    read = []
+    for r, row in enumerate(rows, start=1):
+        where = f"{what}: row {r}"
+        if isinstance(row, dict):
+            if r == 1:
+                raise PageTypeError(f"{where}: the heading row is cells in columns; a band divides the rows under it")
+            if r == len(rows):
+                raise PageTypeError(f"{where}: a band divides the rows under it, and nothing stands under this one")
+            read.append([read_band(row, where)])
+        else:
+            read.append([read_cell(cell, f"{where}, column {c}") for c, cell in enumerate(row, start=1)])
+    return read
 
 
 def only_keys(item, allowed: set, what: str, hint: str = "") -> None:
