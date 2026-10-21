@@ -21,6 +21,8 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+from .platform_root import tool_folder
+
 
 def digest(data: bytes) -> str:
     """Short content hash used for both file names and cache-busting URLs."""
@@ -38,10 +40,15 @@ def deck_key(pptx: Path) -> str:
 
 
 def cache_root() -> Path:
-    """Base cache directory, honouring XDG_CACHE_HOME when set."""
+    """Base cache directory: XDG_CACHE_HOME if set, else the platform root's, else ~/.cache."""
+    # 個別の変数 (= XDG_CACHE_HOME) が在る時は、それが根より強い。
     base = os.environ.get("XDG_CACHE_HOME")
-    root = Path(base) if base else Path.home() / ".cache"
-    return root / "pptx-live-preview"
+    if base:
+        return Path(base) / "pptx-live-preview"
+    pages = tool_folder("cache")
+    if pages is not None:
+        return pages / "pages"
+    return Path.home() / ".cache" / "pptx-live-preview"
 
 
 @dataclass(frozen=True)

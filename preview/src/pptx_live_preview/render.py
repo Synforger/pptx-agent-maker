@@ -17,6 +17,7 @@ import re
 import shutil
 import subprocess
 import zipfile
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -108,20 +109,22 @@ class ProfilePool:
     置く (= 普通に開いている裏で描画が走っても衝突しない)。
     """
 
-    def __init__(self, root: Path, size: int) -> None:
+    def __init__(self, root: Callable[[], Path], size: int) -> None:
+        # 置き場は借りる時に引く (= import の時に固定すると、後から渡された根や環境変数が効かない)
         self.root = root
-        self._free: queue.Queue[Path] = queue.Queue()
-        for i in range(max(1, size)):
-            self._free.put(root / f"profile-{i}")
+        self._free: queue.Queue[int] = queue.Queue()
+        for number in range(max(1, size)):
+            self._free.put(number)
 
     @contextmanager
     def lease(self):
-        profile = self._free.get()
+        number = self._free.get()
         try:
+            profile = self.root() / f"profile-{number}"
             profile.parent.mkdir(parents=True, exist_ok=True)
             yield profile
         finally:
-            self._free.put(profile)
+            self._free.put(number)
 
 
 _FIRST_NUMBER = re.compile(rb'<p:presentation\b[^>]*\bfirstSlideNum="(\d+)"')

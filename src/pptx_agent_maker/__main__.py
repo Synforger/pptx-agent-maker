@@ -17,10 +17,15 @@ FOLDERS = ("assets",)
 PREVIEW = Path(__file__).resolve().parents[2] / "preview" / "src"
 
 
-def _preview_package():
-    """The live preview's modules, from this checkout or from the installed package."""
+def _use_checkout_preview() -> None:
+    """Put the preview that sits in this checkout on the import path (= only a checkout has one)."""
     if PREVIEW.is_dir() and str(PREVIEW) not in sys.path:
         sys.path.insert(0, str(PREVIEW))
+
+
+def _preview_package():
+    """The live preview's modules, from this checkout or from the installed package."""
+    _use_checkout_preview()
     import pptx_live_preview.__main__ as entry
     import pptx_live_preview.state as state
     return entry, state
@@ -93,8 +98,7 @@ def _preview(workspace, port: int, no_open: bool) -> int:
     マニフェストの隣に在るので、見るのは案件の folder そのもの。
     """
     # ⚠ repo から動かしたときだけ在る path。入れたツールでは、プレビューはツールと一緒に入っている。
-    if PREVIEW.is_dir() and str(PREVIEW) not in sys.path:
-        sys.path.insert(0, str(PREVIEW))
+    _use_checkout_preview()
     try:
         from pptx_live_preview.__main__ import main as preview_main
     except ImportError as error:  # pragma: no cover - depends on the environment
@@ -259,7 +263,8 @@ def main(argv: list[str] | None = None) -> int:
                          help="the project folder, or a folder holding several projects "
                               "(= left out: what the places file offers)")
     watched.add_argument("--places", default=None, metavar="FILE",
-                         help="the file listing what to offer (default ~/.config/pptx-agent-maker/preview.toml)")
+                         help="the file listing what to offer (default: config/pptx-agent-maker/preview.toml under "
+                              "$AGENT_PLATFORM_ROOT when set, else ~/.config/pptx-agent-maker/preview.toml)")
     watched.add_argument("--port", type=int, default=0, help="0 picks a free port")
     watched.add_argument("--no-open", action="store_true", help="do not launch a browser")
 
@@ -290,13 +295,14 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "preview" and (
                 args.path is None or args.places or not (Path(args.path) / "workspace.toml").is_file()):
-            from .project.files.places import DEFAULT, PlacesError, load
+            _use_checkout_preview()  # places が根の置き場をプレビューの部品から引く
+            from .project.files.places import PlacesError, load
 
             if args.path is not None and not args.places:
                 places = {"search": [{"path": str(Path(args.path).expanduser().resolve())}]}
             else:
                 try:
-                    places = load(args.places or DEFAULT)
+                    places = load(args.places or None)
                 except PlacesError as error:
                     print(f"error: {error}", file=sys.stderr)
                     return 1

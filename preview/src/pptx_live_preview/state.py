@@ -26,7 +26,7 @@ MAX_RENDER_WORKERS = 4
 
 # LibreOffice のプロファイル置き場。デッキの絵と同じくプロセスの寿命から切り離す
 # (= 使い回さないと 1 本ごとに初期化の分だけ遅い、理由は render.ProfilePool)。
-PROFILES = ProfilePool(cache_root() / "_libreoffice", MAX_RENDER_WORKERS)
+PROFILES = ProfilePool(lambda: cache_root() / "_libreoffice", MAX_RENDER_WORKERS)
 
 
 class DeckState:
