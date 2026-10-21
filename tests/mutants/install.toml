@@ -1,0 +1,15 @@
+# What an installed toolkit carries: the live preview is installed with it.
+
+tests = ["tests/test_install.py"]
+
+[[mutant]]
+name = "the preview is left out of the toolkit's package search"
+file = "pyproject.toml"
+old = 'where = ["src", "preview/src"]'
+new = 'where = ["src"]'
+
+[[mutant]]
+name = "the page the preview serves is left out of the wheel"
+file = "pyproject.toml"
+old = 'pptx_live_preview = ["assets/*"]'
+new = 'pptx_live_preview = []'
