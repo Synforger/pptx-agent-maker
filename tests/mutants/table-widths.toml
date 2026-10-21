@@ -1,0 +1,34 @@
+# A table's width is shared by what each column's longest cell needs on one line, and its rows are counted by
+# where the words really break.
+
+tests = ["tests/test_table_widths.py", "tests/test_table_plain.py", "tests/test_types.py"]
+
+[[mutant]]
+name = "the columns are shared by the number of characters again"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        want = [max((self.width(str(row[i]), bold=row is heading) if i < len(row) else 0) for row in rows) + pad"
+new = "        want = [max((len(str(row[i])) if i < len(row) else 0) for row in rows) + pad"
+
+[[mutant]]
+name = "a table whose words fit is shared with a floor all the same"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if scale <= total:"
+new = "        if False:"
+
+[[mutant]]
+name = "the cells' padding is left out of what a column needs"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        pad = 2 * self.spacing.cell_pad_x"
+new = "        pad = 0"
+
+[[mutant]]
+name = "the heading is measured as plain as the cells"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        heading = rows[0] if rows and not divides(rows[0]) else None"
+new = "        heading = None"
+
+[[mutant]]
+name = "a row is counted a full-width character to a letter again"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "                tallest = max(tallest, self.wraps(str(cell), max(usable, 1), bold=bold))"
+new = "                tallest = max(tallest, self.lines(cell, max(usable, 1)))"

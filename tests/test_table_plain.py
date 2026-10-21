@@ -190,7 +190,7 @@ class WhatABandIsMeasuredAs(unittest.TestCase):
         widths = [1_000_000, 1_000_000]
         words = "ab " * 60
         rows = [["Name", "Year"], [Band(words, "")], ["a", "b"]]
-        lines = theme.lines(words, sum(widths) - 2 * theme.spacing.cell_pad_x)
+        lines = theme.wraps(words, sum(widths) - 2 * theme.spacing.cell_pad_x, bold=True)
         self.assertGreater(lines, 1)
         flat = [["Name", "Year"], ["a", "b"]]
         self.assertEqual(theme.table_height(flat, widths) + lines * theme.line_height() + 2 * theme.spacing.cell_pad_y,
