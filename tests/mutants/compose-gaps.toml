@@ -157,13 +157,13 @@ new = "    gap_y: int = cm(0.5)\n"
 [[mutant]]
 name = "a cell may not say guides"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "\"marks\", \"guides\", \"guide_tone\", \"valign\", \"id\","
-new = "\"marks\", \"valign\", \"id\","
+old = "\"marks\", \"guides\", \"guide_tone\", \"valign\", \"inset\", \"id\","
+new = "\"marks\", \"valign\", \"inset\", \"id\","
 
 [[mutant]]
 name = "a cell may not say valign"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "\"guide_tone\", \"valign\", \"id\","
+old = "\"guide_tone\", \"valign\", \"inset\", \"id\","
 new = "\"guide_tone\", \"id\","
 
 [[mutant]]
@@ -235,8 +235,8 @@ new = "self._remaining.height - height - self.theme.spacing.gap_m)"
 [[mutant]]
 name = "a picture lower than its cell stands at the top whatever it asks"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "top = rect.top + {\"top\": 0, \"middle\": spare // 2, \"bottom\": spare}[cell.get(\"valign\", \"top\")]"
-new = "top = rect.top"
+old = "top = frame.top + {\"top\": 0, \"middle\": spare // 2, \"bottom\": spare}[cell.get(\"valign\", \"top\")]"
+new = "top = frame.top"
 
 [[mutant]]
 name = "a picture asked to stand in the middle stands at the bottom"
@@ -265,5 +265,59 @@ new = "if False:"
 [[mutant]]
 name = "a place for a figure that holds marks is let through"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "        if \"marks\" in cell:\n            raise PageTypeError(f\"{what}: a figure with `marks`"
-new = "        if False:\n            raise PageTypeError(f\"{what}: a figure with `marks`"
+old = "if key in cell and \"marks\" in cell:"
+new = "if False:"
+
+[[mutant]]
+name = "a cell may not say inset"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "\"valign\", \"inset\", \"id\","
+new = "\"valign\", \"id\","
+
+[[mutant]]
+name = "inset may stand on a cell that holds no figure"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "for key in (\"guides\", \"guide_tone\", \"valign\", \"inset\"):"
+new = "for key in (\"guides\", \"guide_tone\", \"valign\"):"
+
+[[mutant]]
+name = "an inset below 0 is taken"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "or not isinstance(inset, Real) or inset < 0:"
+new = "or not isinstance(inset, Real) or inset < -1:"
+
+[[mutant]]
+name = "an inset written as words is taken"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if isinstance(inset, bool) or not isinstance(inset, Real) or inset < 0:"
+new = "if isinstance(inset, bool) or inset < 0 if isinstance(inset, Real) else False:"
+
+[[mutant]]
+name = "a figure with marks may say inset"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "for key in (\"valign\", \"inset\"):"
+new = "for key in (\"valign\",):"
+
+[[mutant]]
+name = "the inset is left out of the picture"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "frame = rect.inset(x=inset)"
+new = "frame = rect"
+
+[[mutant]]
+name = "the inset is taken on the left only"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "frame = rect.inset(x=inset)"
+new = "frame = rect.inset(left=inset, right=0)"
+
+[[mutant]]
+name = "the picture keeps the height of the full cell width"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "wanted = round(frame.width / aspect) + ("
+new = "wanted = round(rect.width / aspect) + ("
+
+[[mutant]]
+name = "an inset that leaves no picture goes on"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if 2 * inset >= rect.width:"
+new = "if False:"
