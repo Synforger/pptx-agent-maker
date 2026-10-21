@@ -582,11 +582,12 @@ class Page:
                     f"a picture has {rect.height} EMU of height and its name alone takes {tall + s.gap_s} — "
                     "nothing is left for the picture; take something off the page, or drop the name")
             area, _rest = rect.split_top(rect.height - tall - s.gap_s)
-        # ⚠ **高さで詰められた絵が、アイコンより低くなるなら止まる。**縮むのは絵の性質だが、アイコンの
+        # ⚠ **高さで詰められた絵が、`figure_floor` (= 書かなければアイコンの一辺) より低くなるなら止まる。**縮むのは絵の性質だが、アイコンの
         # 一辺より低い絵は、もう図として読めない。横に長い絵が幅いっぱいで低いのは、詰められたのではない
-        if area.height < s.icon and area.width > area.height * aspect:
+        if area.height < s.figure_floor and area.width > area.height * aspect:
             raise PageFullError(
-                f"a picture is left {area.height} EMU of height, less than the {s.icon} an icon stands — "
+                f"a picture is left {area.height} EMU of height, less than the {s.figure_floor} a picture stands "
+                "(= `figure_floor`) — "
                 "too small to read as a picture; take something off the page, or split it in two")
         placed = area.fit(aspect)
         self.elements.append(Figure("figure", placed, Path(source), aspect))

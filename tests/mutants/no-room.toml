@@ -1,6 +1,6 @@
 # A part that knows how tall it stands is not placed in less room: the page stops instead.
 
-tests = ["tests/test_page.py", "tests/test_types.py", "tests/test_compose.py"]
+tests = ["tests/test_page.py", "tests/test_types.py", "tests/test_compose.py", "tests/test_figure_floor.py"]
 
 [[mutant]]
 name = "a picture is placed although its name took all the room"
@@ -53,17 +53,23 @@ new = "return sum(self.theme.wrapped_height(str(item).strip(), room) for item in
 [[mutant]]
 name = "a picture squeezed lower than an icon is placed"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if area.height < s.icon and area.width > area.height * aspect:"
+old = "        if area.height < s.figure_floor and area.width > area.height * aspect:"
 new = "        if False:"
 
 [[mutant]]
 name = "a picture that is short only because it is wide is refused"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if area.height < s.icon and area.width > area.height * aspect:"
-new = "        if area.height < s.icon:"
+old = "        if area.height < s.figure_floor and area.width > area.height * aspect:"
+new = "        if area.height < s.figure_floor:"
 
 [[mutant]]
 name = "the floor of a picture is a line of type, not an icon"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if area.height < s.icon and area.width > area.height * aspect:"
+old = "        if area.height < s.figure_floor and area.width > area.height * aspect:"
 new = "        if area.height < self.theme.line_height() and area.width > area.height * aspect:"
+
+[[mutant]]
+name = "a use may not lower the floor of a picture"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = '"conclusion_height", "figure_floor")'
+new = '"conclusion_height")'
