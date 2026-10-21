@@ -30,10 +30,11 @@ tasks:
   setup:
     desc: Create the virtualenv and install the toolkit with the vendored preview
     cmds:
-      - python3 -m venv .venv
-      - .venv/bin/pip install -q -e .
-      - .venv/bin/pip install -q -e "preview[dev]"
-      - .venv/bin/pip install -q build
+      # --clear: a .venv made earlier by another python3 is rebuilt, never half-overlaid (= python one version, pip another)
+      - python3 -m venv --clear .venv
+      - .venv/bin/python -m pip install -q -e .
+      - .venv/bin/python -m pip install -q -e "preview[dev]"
+      - .venv/bin/python -m pip install -q build
 
   update:
     desc: Reinstall both packages so a changed dependency is picked up
