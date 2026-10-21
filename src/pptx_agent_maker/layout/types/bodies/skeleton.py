@@ -214,5 +214,6 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
             raise PageFullError(
                 f"agenda: chapter {number} needs {tall} EMU of height and its share of the page is "
                 f"{band.height} — fewer chapters, or shorter names; it will not shrink")
-        cell, _rest = band.split_top(tall)
+        # 頁の高さを使う資料 (= `box_height = "page"`) では、章の箱は列の等分を使い切る
+        cell = band if page.theme.box_height == "page" else band.split_top(tall)[0]
         page.boxes(cell, [card])

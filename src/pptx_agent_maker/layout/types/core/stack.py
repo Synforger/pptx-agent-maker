@@ -57,6 +57,41 @@ def stage_stacks(page: Page, spec: Spec, stages: list, wide: int, aligned: bool,
                        for column in stacks)
 
 
+def spread(extra: int, count: int) -> list[int]:
+    """`extra` shared out equally among `count` boxes, the last taking what rounding leaves.
+
+    `box_height = "page"` の資料で、字の分の高さを超えたぶんを箱へ配る 1 か所 (= 流れ・道のり・カード・
+    組み立ての段のどれも、同じ配り方)。字の分に等しく足すので、字の多い箱は字の少ない箱より高いまま。
+    """
+    share, left = divmod(max(extra, 0), count)
+    return [share] * (count - 1) + [share + left]
+
+
+def grown(heights: list[int], room: int, gap: int) -> list[int]:
+    """Boxes of these heights, stacked with `gap` between, grown by an equal share each until they fill `room`."""
+    return [tall + more for tall, more in zip(heights, spread(room - sum(heights) - gap * (len(heights) - 1),
+                                                               len(heights)))]
+
+
+def fill_stacks(page: Page, stacks: list[list[tuple[Card, int]]], stack: int, room: int,
+                aligned: bool) -> tuple[list[list[tuple[Card, int]]], int]:
+    """The stacks of a flow or a roadmap grown to fill `room` (= when the deck says `box_height = "page"`).
+
+    箱は自分の字の分の高さに、余った高さの等しい取り分を足す (= どの段も下端が揃う)。`aligned` は行ごとに
+    足すので、段をまたいで同じ順番のノードの高さが揃ったまま。字の分で `room` に収まらない時と、字の分の
+    高さの資料では、何も変えない (= 収まらないのを止めるのは呼ぶ側)。
+    """
+    if page.theme.box_height != "page" or room <= stack:
+        return stacks, stack
+    gap = page.theme.spacing.gap_s
+    if aligned:
+        rows = grown([max(column[index][1] for column in stacks if index < len(column))
+                      for index in range(max(len(column) for column in stacks))], room, gap)
+        return [[(node, rows[index]) for index, (node, _tall) in enumerate(column)] for column in stacks], room
+    return [[(node, tall) for (node, _own), tall in zip(column, grown([own for _node, own in column], room, gap))]
+            for column in stacks], room
+
+
 def aligned_rows(spec: Spec, what: str) -> bool:
     aligned = spec.get("align_rows", False)
     if not isinstance(aligned, bool):

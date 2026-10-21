@@ -257,9 +257,20 @@ class Page:
                 sticker, t.body, p.muted, outline=p.muted))
 
     def _band(self, text: str, *, conclusion: bool = False) -> None:
-        """A declared condition (top) or the reading to take away (bottom)."""
+        """A declared condition (top) or the reading to take away (bottom).
+
+        `band_look = "outlined"` の帯は枠と色を持つ。上 (= 条件) は差し色のごく薄い地に差し色の枠と太字、
+        下 (= 結論) は灰のごく薄い地に灰の枠と本文の色の太字 ― 上は頁が前提にする読み、下は読み手に
+        持ち帰らせる言葉で、下は本文の大きさ (= 上より一段小さい)。
+        """
         p, t, s = self.theme.palette, self.theme.type, self.theme.spacing
         rect = self._take_bottom(s.band_height) if conclusion else self._take_top(s.band_height)
+        if self.theme.band_look == "outlined":
+            hue = p.muted if conclusion else p.accent
+            self.elements.append(Fill("band", rect, p.thinned(p.BAND_WASH, hue), outline=hue, rounded=True))
+            self.elements.append(Text("band_text", rect.inset(s.pad), text, t.body if conclusion else t.heading,
+                                      p.ink if conclusion else hue, bold=True))
+            return
         self.elements.append(Fill("band", rect, p.rule if conclusion else p.band))
         self.elements.append(
             Text("band_text", rect.inset(s.pad), text, t.heading, p.ink, bold=conclusion)
@@ -319,6 +330,25 @@ class Page:
             outline = ink if style.tentative else p.ink
         return Look(fill, ink, outline, dashed=style.tentative, heavy=style.strong)
 
+    def outlined_look(self, style: Style, points: float | None = None, bold: bool = False) -> tuple[Look, str]:
+        """How a card is painted when its colour goes to its line (= `card_look = "outlined"`): the look, and the heading's colour.
+
+        色を運ぶ役 (= `accent` / `good` / `bad`、濃い地に名前を付けた物) は、地を色のごく薄い色にし、その色が
+        枠と見出しの字を持つ (= 本文は本文の色のまま)。色が意味を言う物は、塗らずに線と字で言う。
+        意味を持たない薄い地 (= `box` / `band` / `tint`、薄い地に名前を付けた物) は、もう「ほぼ紙の色に枠」
+        なので今までのまま。`tentative` (= 内容未定) は本文の色の線と字 (= 色の役の外にある「まだ決まって
+        いない」を、黒で言う。点線にはしない ― 色が言う)。`strong` は線を太くする (= 色は変えない)。
+        `points` と `bold` は、地に載る字の大きさと太さ (= `ground` と同じ。今までのままの地の判定に使う)。
+        """
+        p = self.theme.palette
+        if style.tentative:
+            return Look(p.paper, p.ink, p.ink, heavy=style.strong), p.ink
+        fill, _words, edge = self.ground(style.tone, points, bold)
+        if style.tone in LIGHT or (style.tone not in TONES and edge):
+            look = self.look(style, points, bold)
+            return look, look.ink
+        return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill, heavy=style.strong), fill
+
     def _lead(self, icon: tuple[Path, float] | None, size: float) -> int:
         """How much room the words give an icon set in front of them (= none without one)."""
         return self.theme.line_height(size) + self.theme.spacing.gap_s if icon else 0
@@ -347,7 +377,8 @@ class Page:
         """Cards side by side inside an area you already divided off.
 
         地の色は箱ごとの `tone` (= `TONES`)。薄い地の箱は枠を持つ (= `ground`)。アイコンの
-        在る箱は、左上にアイコン、文字はその右に置く。
+        在る箱は、左上にアイコン、文字はその右に置く。`card_look = "outlined"` の資料では、色を運ぶ箱は
+        地ではなく枠と見出しの字で色を言い、角を丸める (= `outlined_look`)。
 
         ⚠ **見出しの高さは字数で決める。**比で割っていた間は、2 行に折り返した見出しが
         本文の上に乗った (= 焼いて初めて出た。枠の中に収まっているので検査は通る)。
@@ -357,10 +388,12 @@ class Page:
         for card, said in zip(columns, cards):
             heading, body = said.heading, said.body
             # 見出しと本文は同じ色の字 ― 本文があれば本文 (= 小さい方、太字でない)、無ければ太字の見出し
-            look = self.look(said.style, *((t.body, False) if body else (t.heading, True)))
+            size = (t.body, False) if body else (t.heading, True)
+            outlined = self.theme.card_look == "outlined"
+            look, head_ink = self.outlined_look(said.style, *size) if outlined else (self.look(said.style, *size), None)
             ink = look.ink
             self.elements.append(Fill("box", card, look.fill, outline=look.outline,
-                                      dashed=look.dashed, heavy=look.heavy))
+                                      dashed=look.dashed, heavy=look.heavy, rounded=outlined))
             inner = card.inset(s.pad)
             if said.style.icon:
                 # ⚠ アイコンは頁の図解に数えない (= 図の要る頁が、アイコンだけで通らないように)
@@ -376,7 +409,7 @@ class Page:
                 self.elements.append(Text("box_body", rest, body, t.body, ink))
             else:
                 head = inner
-            self.elements.append(Text("box_heading", head, heading, t.heading, ink, bold=True))
+            self.elements.append(Text("box_heading", head, heading, t.heading, ink if head_ink is None else head_ink, bold=True))
 
     def figure(self, rect: Rect, source: Path | str, aspect: float, *, caption: str = "") -> Rect:
         """An image, kept at its own aspect ratio inside the area given.

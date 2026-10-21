@@ -1,0 +1,207 @@
+# Three looks a project picks for its pages: how tall the boxes stand, how a card is painted, how the bands are.
+
+tests = ["tests/test_page_look.py"]
+
+# -- reading what the project wrote -------------------------------------------
+
+[[mutant]]
+name = "the project says page and the boxes stay as tall as their words"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        box_height=box_height,\n"
+new = ""
+
+[[mutant]]
+name = "the project says outlined for its cards and they stay filled"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        card_look=card_look,\n"
+new = ""
+
+[[mutant]]
+name = "the project says outlined for its bands and they stay plain"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        band_look=band_look,\n"
+new = ""
+
+[[mutant]]
+name = "a name nobody knows is read as the look there always was"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    if not isinstance(value, str) or value not in options:"
+new = "    if False:"
+
+[[mutant]]
+name = "a colour thinned into the paper is always the accent"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "self.accent if hue is None else hue"
+new = "self.accent"
+
+[[mutant]]
+name = "a card's ground is no longer nearly paper"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "CARD_WASH: ClassVar[float] = 0.03"
+new = "CARD_WASH: ClassVar[float] = 0.3"
+
+# -- how a card and a band are painted ----------------------------------------
+
+[[mutant]]
+name = "an outlined card keeps the heading in the body's colour"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "ink if head_ink is None else head_ink"
+new = "ink"
+
+[[mutant]]
+name = "an outlined card is square"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "dashed=look.dashed, heavy=look.heavy, rounded=outlined))"
+new = "dashed=look.dashed, heavy=look.heavy, rounded=False))"
+
+[[mutant]]
+name = "an outlined card's colour is not on its line"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill, heavy=style.strong), fill"
+new = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, p.ink, heavy=style.strong), fill"
+
+[[mutant]]
+name = "a strong outlined card is not heavier"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill, heavy=style.strong), fill"
+new = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill), fill"
+
+[[mutant]]
+name = "a tentative outlined card is dashed"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return Look(p.paper, p.ink, p.ink, heavy=style.strong), p.ink"
+new = "return Look(p.paper, p.ink, p.ink, dashed=True, heavy=style.strong), p.ink"
+
+[[mutant]]
+name = "a ground with no meaning is outlined in a colour like a reading"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if style.tone in LIGHT or (style.tone not in TONES and edge):"
+new = "        if False:"
+
+[[mutant]]
+name = "a pale ground a project named is drawn like a deep one"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if style.tone in LIGHT or (style.tone not in TONES and edge):"
+new = "        if style.tone in LIGHT:"
+
+[[mutant]]
+name = "the conclusion band is drawn in the accent like the condition"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "hue = p.muted if conclusion else p.accent"
+new = "hue = p.accent"
+
+[[mutant]]
+name = "the conclusion is set at the size of a heading"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "text, t.body if conclusion else t.heading,"
+new = "text, t.heading,"
+
+[[mutant]]
+name = "an outlined band is square"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "outline=hue, rounded=True))"
+new = "outline=hue, rounded=False))"
+
+# -- sharing out the height ---------------------------------------------------
+
+[[mutant]]
+name = "what rounding leaves is lost, and the last box stops short of the page's end"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "return [share] * (count - 1) + [share + left]"
+new = "return [share] * count"
+
+[[mutant]]
+name = "the gaps between boxes are not counted when the height is shared"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "room - sum(heights) - gap * (len(heights) - 1)"
+new = "room - sum(heights)"
+
+[[mutant]]
+name = "a flow in a deck of words' height grows all the same"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = '    if page.theme.box_height != "page" or room <= stack:'
+new = "    if room <= stack:"
+
+[[mutant]]
+name = "aligned rows are grown one stage at a time"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "    if aligned:\n        rows = grown("
+new = "    if False:\n        rows = grown("
+
+[[mutant]]
+name = "a flow does not take the rest of the page"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = "    stacks, stack = fill_stacks(page, stacks, stack, area.height - (wanted - stack), aligned)\n"
+new = ""
+
+[[mutant]]
+name = "a flow that runs down does not take the rest of the page"
+file = "src/pptx_agent_maker/layout/types/bodies/flow.py"
+old = '    if theme.box_height == "page" and wanted < area.height:'
+new = "    if False:"
+
+[[mutant]]
+name = "a roadmap does not take the rest of the page"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "    stacks, stack = fill_stacks(page, stacks, stack, area.height - head_height - gap, aligned)\n"
+new = ""
+
+[[mutant]]
+name = "a cards page does not fill its body"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = '    if name == "cards" and theme.box_height == "page":'
+new = "    if False:"
+
+[[mutant]]
+name = "cards above another body fill the page and leave the body no room"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = '    if name == "cards" and theme.box_height == "page":'
+new = '    if theme.box_height == "page":'
+
+[[mutant]]
+name = "the cards fill the area but do not leave the table its room"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = "        area, trailing = reserve_trailing(page, spec, whole)\n        area, legend = reserve_legend(page, spec, area)\n        area = place_cards(page, spec, area, fill=True)"
+new = "        trailing, legend = None, None\n        area = place_cards(page, spec, whole, fill=True)"
+
+[[mutant]]
+name = "a cards page that fills its body is a page of text height"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if fill and wanted <= area.height:"
+new = "    if False:"
+
+[[mutant]]
+name = "the chapters of an agenda stay as tall as their words"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = '        cell = band if page.theme.box_height == "page" else band.split_top(tall)[0]'
+new = "        cell = band.split_top(tall)[0]"
+
+[[mutant]]
+name = "a compose of text height grows"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "    if page.theme.box_height != \"page\":\n        return False\n    return \"card\" in cell"
+new = "    if False:\n        return False\n    return \"card\" in cell"
+
+[[mutant]]
+name = "a cell of rows holding a card is not counted as growing"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''    return "card" in cell or any(_grows(page, inner) for row in cell.get("rows", []) for inner in row["cells"])'''
+new = '''    return "card" in cell'''
+
+[[mutant]]
+name = "a row that grows takes no share of what is left"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "            tall = height + (next(more) if grows and not shares else 0)"
+new = "            tall = height"
+
+[[mutant]]
+name = "a row of cards grows even when a picture wants the rest"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "            tall = height + (next(more) if grows and not shares else 0)"
+new = "            tall = height + (next(more) if grows else 0)"
+
+[[mutant]]
+name = "a card in a row that shares the rest stands at its words' height"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '            page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)])'
+new = "            page.boxes(rect if own_row else fitted, [_the_card(spec, cell, what)])"

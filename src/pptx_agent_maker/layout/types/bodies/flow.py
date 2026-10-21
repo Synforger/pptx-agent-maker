@@ -6,7 +6,7 @@ from ...base.geometry import Rect
 from ...parts.page import Page, PageFullError
 from ..core.read import Spec, read_card
 from ..core.registry import PageTypeError, register
-from ..core.stack import aligned_rows, card_height, place_stack, stage_stacks
+from ..core.stack import aligned_rows, card_height, fill_stacks, place_stack, spread, stage_stacks
 
 #: 流れの向き。`right` は段を左から右 (= 既定)、`down` は段を上から下
 DIRECTIONS = ("right", "down")
@@ -63,6 +63,9 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
             f"this flow needs {wanted} EMU of height and the body has {area.height} — "
             "shorten the nodes or split the stages across two pages; it will not shrink"
         )
+
+    # 字の高さの資料では、ここは何もしない。頁の高さを使う資料では、ノードが残りの高さを分け合う
+    stacks, stack = fill_stacks(page, stacks, stack, area.height - (wanted - stack), aligned)
 
     page.drew_a_diagram()  # 段とノードで組んだ流れ図そのものが、この頁の図解
     for index, (stage, column_nodes) in enumerate(zip(stages, stacks)):
@@ -121,6 +124,11 @@ def _down(page: Page, spec: Spec, stages: list, area: Rect) -> None:
         raise PageFullError(
             f"this flow needs {wanted} EMU of height and the body has {area.height} — "
             "fewer stages, shorter nodes, or two pages; it will not shrink")
+
+    if theme.box_height == "page" and wanted < area.height:
+        # 頁の高さを使う資料では、段が残りの高さを分け合う (= 字の分の高さに、等しい取り分を足す)
+        rows = [(name, nodes, tall + more, settled, under)
+                for (name, nodes, tall, settled, under), more in zip(rows, spread(area.height - wanted, len(rows)))]
 
     page.drew_a_diagram()  # 段とノードで組んだ流れ図そのものが、この頁の図解
     top = area.top

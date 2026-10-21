@@ -163,6 +163,16 @@ USES = {
 #: 題の上の小さい字 (= 章の番号と名前) の置き場。`above` は題の上に小さく (= 既定)、`beside` は題の左に
 #: 同じ行で、差し色の太字で置く。資料全体の見た目なので案件が `[theme] kicker` で決め、頁ごとには変えられない
 KICKERS = ("above", "beside")
+#: 本体の箱の高さ。`text` は箱ごとに字の分の高さ (= 既定。頁の下が空くことがある)、`page` は本体が持つ高さを
+#: 箱の数で分け合って使い切る (= 字の分を超えたぶんを、同じ列の箱が等しく受ける)。資料全体の見た目なので
+#: 案件が `[theme] box_height` で決め、頁ごとには変えられない
+BOX_HEIGHTS = ("text", "page")
+#: カードの見た目。`filled` は地を色で塗る (= 既定)、`outlined` は地をほぼ紙の色にして、色は枠と見出しの字が
+#: 持つ (= 色の役が同じなら、枠と見出しの色も同じ)。案件が `[theme] card_look` で決める
+CARD_LOOKS = ("filled", "outlined")
+#: 条件の帯と結論の帯の見た目。`plain` は枠の無い帯 (= 既定)、`outlined` は枠と色を持つ (= 上は差し色、
+#: 下は灰)。案件が `[theme] band_look` で決める
+BAND_LOOKS = ("plain", "outlined")
 #: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
 SIZED = ("title", "heading", "stage", "body", "caption")
 #: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
@@ -315,12 +325,19 @@ class Palette:
 
     #: 目次の今の章の地 (= 差し色のごく薄い色)。差し色をこの割合だけ紙に混ぜる
     FAINT: ClassVar[float] = 0.07
+    #: 枠を色で描くカードの地 (= `card_look = "outlined"`) と、枠を持つ帯の地 (= `band_look = "outlined"`)。
+    #: 色をこの割合だけ紙に混ぜる ― カードはほぼ白、帯はそれより一段濃い (= 案件の資料の見本の透け方)
+    CARD_WASH: ClassVar[float] = 0.03
+    BAND_WASH: ClassVar[float] = 0.12
 
-    def thinned(self, share: float) -> str:
-        """The accent mixed into the paper: `share` of it is accent (= 0 is the paper, 1 the accent)."""
-        paper, accent = ([int(colour[index:index + 2], 16) for index in (0, 2, 4)]
-                         for colour in (self.paper, self.accent))
-        return "".join(f"{round(low + (high - low) * share):02X}" for low, high in zip(paper, accent))
+    def thinned(self, share: float, hue: str | None = None) -> str:
+        """A colour mixed into the paper: `share` of it is the colour (= 0 is the paper, 1 the colour).
+
+        色を言わなければ差し色 (= `hue` は、読みの色や灰のように、差し色でない色を薄めたい時)。
+        """
+        paper, colour = ([int(colour[index:index + 2], 16) for index in (0, 2, 4)]
+                         for colour in (self.paper, self.accent if hue is None else hue))
+        return "".join(f"{round(low + (high - low) * share):02X}" for low, high in zip(paper, colour))
 
     def edge(self, ground: str) -> str:
         """The colour of the line round a light ground: the same hue, further from white."""
@@ -408,6 +425,11 @@ class Theme:
     under: Under = field(default_factory=Under)
     #: 題の上の小さい字の置き場 (= `KICKERS`。案件が `[theme] kicker` で決める)
     kicker: str = "above"
+    #: 本体の箱の高さ (= `BOX_HEIGHTS`)、カードの見た目 (= `CARD_LOOKS`)、帯の見た目 (= `BAND_LOOKS`)。
+    #: どれも既定は今までの見た目で、案件が `[theme]` で選ぶ
+    box_height: str = "text"
+    card_look: str = "filled"
+    band_look: str = "plain"
     #: この見た目の使い方の名前 (= 道具の `read` / `present` か、案件が `[theme.uses]` で名付けたもの)
     use: str = "read"
     #: この案件が知っている使い方と、それぞれの字の大きさ (= 資料と頁が `use` で名指す先。`using`)
@@ -706,7 +728,8 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "layout_of_page")
+_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "band_look",
+         "layout_of_page")
 
 
 class ThemeError(ValueError):
@@ -754,6 +777,9 @@ def theme_from(settings: dict | None) -> Theme:
         raise ThemeError(
             f"theme.kicker is {kicker!r} — the small words above a title stand "
             f"{' or '.join(repr(place) for place in KICKERS)} it")
+    box_height = _choice(settings, "box_height", BOX_HEIGHTS, "the height of a page's boxes")
+    card_look = _choice(settings, "card_look", CARD_LOOKS, "the look of a card")
+    band_look = _choice(settings, "band_look", BAND_LOOKS, "the look of the bands over and under a page")
     # 型の頁を乗せるレイアウトは、見本を読む所が使う (= `deck/base/under.py`)。ここは書き方だけ確かめる
     on = settings.get("layout_of_page")
     if on is not None and (isinstance(on, bool) or not isinstance(on, int) or on < 1):
@@ -778,7 +804,22 @@ def theme_from(settings: dict | None) -> Theme:
         spacing=_furniture(type),
         grounds=_grounds(settings.get("grounds")),
         kicker=kicker,
+        box_height=box_height,
+        card_look=card_look,
+        band_look=band_look,
     )
+
+
+def _choice(settings: dict, key: str, options: tuple[str, ...], what: str) -> str:
+    """One of a few looks a project picks by name (= `[theme] <key>`); the first is the one left unsaid.
+
+    ⚠ **知らない名前は拒む。**綴り違いを既定へ落とすと、書いた人は見た目を変えたつもりで、焼いた頁は
+    今までのまま出る。
+    """
+    value = settings.get(key, options[0])
+    if not isinstance(value, str) or value not in options:
+        raise ThemeError(f"theme.{key} is {value!r} — {what} is {' or '.join(repr(name) for name in options)}")
+    return value
 
 
 def _sizes(what: str, base: Type, declared, where: str, takes: tuple[str, ...] = SIZED) -> Type:
