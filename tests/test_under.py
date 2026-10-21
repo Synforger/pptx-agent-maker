@@ -288,14 +288,15 @@ class TheRestGoesOnUnderTheLine(unittest.TestCase):
             with self.subTest(name):
                 self.assertEqual(Page(ONE).elements, Page(ONE, self.over(line)).elements)
 
-    def test_what_reaches_the_lower_half_of_the_page_changes_nothing(self) -> None:
+    def test_what_reaches_the_lower_half_of_the_page_does_not_move_the_start(self) -> None:
+        """(下半分の物が本文の終わる所を決めるのは `ThePageEndsAboveTheLayoutsFoot`)"""
         low = Rect(0, DEFAULT.slide.height - cm(1.2), DEFAULT.slide.width, 12700)          # 出所の上の罫線
         ground = Rect(0, 0, DEFAULT.slide.width, DEFAULT.slide.height)                     # 頁を丸ごと覆う地
         tall = Rect(0, DEFAULT.frame().top + DEFAULT.spacing.title_height + cm(0.2), DEFAULT.slide.width,
                     DEFAULT.slide.height // 2)                                             # 上半分から下半分へ届く物
         for name, thing in (("a rule above the source", low), ("a ground over the page", ground), ("tall", tall)):
             with self.subTest(name):
-                self.assertEqual(Page(ONE).body, Page(ONE, self.over(thing)).body)
+                self.assertEqual(Page(ONE).body.top, Page(ONE, self.over(thing)).body.top)
 
     def test_a_short_line_at_one_side_changes_nothing_below(self) -> None:
         short = Rect(LOGO.left, DEFAULT.frame().top + DEFAULT.spacing.title_height + cm(0.4), LOGO.width, 12700)
@@ -314,6 +315,87 @@ class TheRestGoesOnUnderTheLine(unittest.TestCase):
         band = DEFAULT.spacing.title_height + DEFAULT.line_height(DEFAULT.type.title)
         line = self.line(band + cm(0.3))
         self.assertEqual(line.bottom + DEFAULT.spacing.gap_s, Page(folded, self.over(line)).body.top)
+
+
+class ThePageEndsAboveTheLayoutsFoot(unittest.TestCase):
+    """頁の下半分に、レイアウトが頁を横切って印字する物 (= 頁番号と注記の上の線) が在れば、本文はその手前で
+    頁の縁の余白を残して終わる。
+
+    頁の下端から余白を取っていた間は、線が余白の中に在るテンプレートで、本文の下端 (= 目次のカードの列) が線の
+    0.2cm 手前まで下りた。テンプレートから複製した頁は、線の手前に 1cm ほど空けている。
+    """
+
+    #: 頁の下端から 0.67cm に引かれた線 (= 道具の下の余白 0.9cm の中)
+    FOOT = Rect(0, 6611038, DEFAULT.slide.width, 12700)
+
+    @staticmethod
+    def over(*prints: Rect, theme=DEFAULT):
+        from pptx_agent_maker.layout.base.tokens import Under
+        return replace(theme, under=Under(prints=tuple(prints)))
+
+    def test_the_body_ends_a_margin_above_a_line_at_the_foot(self) -> None:
+        inside = Rect(0, DEFAULT.slide.height - cm(1.2), DEFAULT.slide.width, 12700)      # 余白より上の線
+        for name, line in (("in the margin", self.FOOT), ("above the margin", inside)):
+            with self.subTest(name):
+                page = Page(ONE, self.over(line))
+                self.assertEqual(line.top - DEFAULT.spacing.margin_bottom, page.body.bottom)
+                self.assertEqual(Page(ONE).body.top, page.body.top, "only the end of what is left moves")
+
+    def test_the_source_and_the_reading_stand_above_it_too(self) -> None:
+        page = Page(ONE, self.over(self.FOOT), footer="出所 (= 見本)", conclusion="読み取り")
+        lowest = max(e.rect.bottom for e in page.elements)
+        self.assertEqual(self.FOOT.top - DEFAULT.spacing.margin_bottom, lowest)
+
+    def test_the_margin_is_the_same_whatever_the_deck_is_for(self) -> None:
+        """頁の縁の余白は使い方の倍率に付いて行かない (= レイアウトの線も動かない)。"""
+        for use in ("read", "present", "sheet"):
+            with self.subTest(use=use):
+                theme = DEFAULT.using(use)
+                self.assertEqual(self.FOOT.top - DEFAULT.spacing.margin_bottom,
+                                 Page(ONE, self.over(self.FOOT, theme=theme)).body.bottom)
+
+    def test_the_highest_of_several_decides(self) -> None:
+        higher = Rect(0, self.FOOT.top - cm(0.4), DEFAULT.slide.width, 12700)
+        page = Page(ONE, self.over(self.FOOT, higher))
+        self.assertEqual(higher.top - DEFAULT.spacing.margin_bottom, page.body.bottom)
+
+    def test_what_is_not_the_foot_of_the_page_changes_nothing(self) -> None:
+        ground = Rect(0, 0, DEFAULT.slide.width, DEFAULT.slide.height)                     # 頁を丸ごと覆う地
+        tall = Rect(0, DEFAULT.slide.height // 3, DEFAULT.slide.width, DEFAULT.slide.height // 2)  # 上半分から下りる物
+        rule = Rect(0, DEFAULT.frame().top + DEFAULT.spacing.title_height, DEFAULT.slide.width, 12700)  # 題の下の罫線
+        corner = Rect(DEFAULT.slide.width - cm(3), self.FOOT.top - cm(0.5), cm(2.5), cm(1))  # 右下のロゴ
+        past = Rect(0, DEFAULT.slide.height + cm(0.5), DEFAULT.slide.width, 12700)        # 頁の外の線
+        for name, thing in (("a ground over the page", ground), ("tall", tall), ("the rule under the title", rule),
+                            ("a logo at the corner", corner), ("past the foot of the slide", past)):
+            with self.subTest(name):
+                self.assertEqual(Page(ONE).body.bottom, Page(ONE, self.over(thing)).body.bottom)
+
+    def test_the_requested_case_the_agenda_cards_stop_short_of_the_line(self) -> None:
+        """実際に出た形: 目次をカードで描くと (= `look = "cards"`)、右の列のカードが下の線の手前まで下りた。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "project"
+            create(root, specimen=a_template(Path(tmp) / "t.pptx", line=Rect(0, self.FOOT.top, DEFAULT.slide.width, 0)))
+            (root / "deck.toml").write_text(
+                'specimen = "specimen.pptx"\nout = "deck.pptx"\n\n'
+                '[[pages]]\nkind = "declare"\ntype = "agenda"\ntitle = "目次"\nlook = "cards"\n'
+                'buckets = [["背景 ― なぜ今", ["a", "b"]], ["方針", ["c"]], ["計画", ["d"]]]\nhighlight = 1\n',
+                encoding="utf-8")
+            said = io.StringIO()
+            with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
+                code = main(["build", str(root), "deck"])
+            self.assertEqual(0, code, said.getvalue())
+            self.assertNotIn("FAIL", said.getvalue())
+            with zipfile.ZipFile(root / "deck.pptx") as archive:
+                page = next(archive.read(name).decode("utf-8") for name in archive.namelist()
+                            if re.fullmatch(r"ppt/slides/slide\d+\.xml", name)
+                            and "目次" in archive.read(name).decode("utf-8"))
+        bottoms = [int(top) + int(tall) for top, tall in
+                   re.findall(r'<a:off x="-?\d+" y="(-?\d+)"/><a:ext cx="\d+" cy="(\d+)"/>', page)]
+        self.assertTrue(bottoms)
+        # 線は太さのぶん上下に広がる (= 線の上端は、引いた高さより太さの半分だけ上)
+        self.assertLessEqual(max(bottoms), self.FOOT.top - DEFAULT.spacing.margin_bottom)
+        self.assertGreater(max(bottoms), self.FOOT.top - DEFAULT.spacing.margin_bottom - cm(0.1),
+                           "the cards still run down to the margin, not short of it")
 
 
 class TheTitleIsTheLayoutsTitle(unittest.TestCase):

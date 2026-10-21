@@ -315,3 +315,47 @@ name = "the page the project names is not read, and the declared pages sit on th
 file = "src/pptx_agent_maker/deck/build.py"
 old = 'under = under_of(specimen, (workspace.look or {}).get("layout_of_page"))'
 new = "under = under_of(specimen)"
+
+# -- the page ends above what the layout prints across its foot ---------------------
+
+[[mutant]]
+name = "the page ends a margin above the slide's edge, whatever the layout prints at its foot"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "bottom=self.slide.bottom - self.foot() + s.margin_bottom)"
+new = "bottom=s.margin_bottom)"
+
+[[mutant]]
+name = "the page ends at the layout's foot with no margin above it"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "bottom=self.slide.bottom - self.foot() + s.margin_bottom)"
+new = "bottom=self.slide.bottom - min(self.foot(), self.slide.bottom - s.margin_bottom))"
+
+[[mutant]]
+name = "the margin above the foot is a gap that tightens with the use"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "bottom=self.slide.bottom - self.foot() + s.margin_bottom)"
+new = "bottom=self.slide.bottom - self.foot() + (s.gap_l if self.foot() < self.slide.bottom else s.margin_bottom))"
+
+[[mutant]]
+name = "the lowest of several things at the foot decides"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        return min((thing.top for thing in self.under.prints"
+new = "        return max((thing.top for thing in self.under.prints"
+
+[[mutant]]
+name = "a logo at a corner of the foot counts as the foot"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "if thing.left < middle < thing.right and half <= thing.top < self.slide.bottom),"
+new = "if half <= thing.top < self.slide.bottom),"
+
+[[mutant]]
+name = "what starts in the upper half counts as the foot"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "if thing.left < middle < thing.right and half <= thing.top < self.slide.bottom),"
+new = "if thing.left < middle < thing.right and thing.top < self.slide.bottom),"
+
+[[mutant]]
+name = "what is printed past the slide's edge counts as the foot"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "if thing.left < middle < thing.right and half <= thing.top < self.slide.bottom),"
+new = "if thing.left < middle < thing.right and half <= thing.top),"
