@@ -22,6 +22,9 @@
   **残りの高さを等しく受ける** (= 字の分の高さに足す。字の多い段は字の少ない段より高いまま)。絵や型の段と
   `weight` を書いた段が残りを取るなら、カードの段は字の分のまま。カードは、置かれたマスの高さを使い切る。
   文章・表・要点は、自分の高さのまま上に寄る
+* **入れ物 (`panel`)** は、中の段を同じ決まりで割る (= 中は自分の段とマスの入れ子)。入れ物の高さは、
+  見出しの分と中の段の高さの合計。中に絵や型の段が在れば、入れ物は残りを取る。頁の高さを使う資料では、
+  入れ物もカードと同じに、置かれたマスの高さを使い切り、中のカードはその中の高さを使う
 
 ⚠ **この型は図を要らない頁として扱う。**カードだけで組む頁 (= 目標と柱) を拒むと、また指定を
 曲げて組むことになる。
@@ -33,15 +36,15 @@ from numbers import Real
 
 from ...base.geometry import Rect
 from ...parts.look import Style
-from ...parts.page import CARD_ALIGNS, Card, Page, PageFullError, Voice
+from ...parts.page import CARD_ALIGNS, Card, Page, PageFullError, Panel, Voice
 from ..core.registry import TYPES, PageTypeError, register
-from ..core.read import Spec, read_card, read_table, read_tone, only_keys
+from ..core.read import Spec, read_card, read_panel, read_table, read_tone, only_keys
 from ..core.stack import card_height, spread
 from . import arrange
 from .chart import place_chart
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
-PARTS = ("card", "figure", "table", "text", "points", "chart", "voices", "ring", "tree", "overlap")
+PARTS = ("card", "panel", "figure", "table", "text", "points", "chart", "voices", "ring", "tree", "overlap")
 #: 文章の役 (= `role`)。書かなければ本文の色と大きさ。`display` = 頁の主役の数字を特大で、`label` = 列や行の
 #: 見出しを太字で、`note` = 添える小さい字を灰で、`mono` = コード・コマンド・数式の行を等幅で、折らずに薄い地の枠に
 ROLES = ("display", "label", "note", "mono")
@@ -94,8 +97,12 @@ def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> 
             tall = height + (next(more) if grows and not shares else 0)
         for index, (cell, column, natural) in enumerate(cells, start=1):
             rect = Rect(area.left + column.left, top, column.width, tall)
+            at = len(seen)
             seen.append((str(cell["id"]) if "id" in cell else None, rect, _blank(cell)))
-            _place(page, spec, cell, rect, natural, height is not None, f"{where}: row {number}, cell {index}", seen)
+            drawn = _place(page, spec, cell, rect, natural, height is not None, f"{where}: row {number}, cell {index}", seen)
+            if drawn is not None:
+                # 矢印は描かれた矩形どうしで引く (= 入れ物が字の分の高さで止まる時は、マスより低い)
+                seen[at] = (seen[at][0], drawn, seen[at][2])
         top += tall + gap
 
 
@@ -108,13 +115,13 @@ def _blank(cell: dict) -> bool:
 
 
 def _grows(page: Page, cell: dict) -> bool:
-    """Whether a cell holds boxes that take the height their row has (= a card, or rows with one inside).
+    """Whether a cell holds boxes that take the height their row has (= a card, a panel, or rows with one inside).
 
-    頁の高さを使う資料 (= `box_height = "page"`) でだけ、カードは字の分の高さで止まらない。
+    頁の高さを使う資料 (= `box_height = "page"`) でだけ、カードと入れ物は字の分の高さで止まらない。
     """
     if page.theme.box_height != "page":
         return False
-    return "card" in cell or any(_grows(page, inner) for row in cell.get("rows", []) for inner in row["cells"])
+    return "card" in cell or "panel" in cell or any(_grows(page, inner) for row in cell.get("rows", []) for inner in row["cells"])
 
 
 def _measure(page: Page, spec: Spec, rows, width: int, where: str):
@@ -184,6 +191,14 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
     theme, s = page.theme, page.theme.spacing
     if part == "card":
         return card_height(page, [_the_card(spec, cell, what)], width, 1)
+    if part == "panel":
+        panel = _the_panel(spec, cell, what)
+        inside = max(width - 2 * s.pad, 1)
+        laid = _measure(page, spec, cell["panel"]["rows"], inside, f"{what}, panel")
+        if any(height is None for _row, _cells, height, _weight, _g in laid):
+            return None
+        return (sum(height for _r, _c, height, _w, _g in laid) + s.gap_m * (len(laid) - 1)
+                + page.panel_head(panel, inside) + 2 * s.pad)
     if part == "table":
         rows = _table(cell, what)
         return theme.table_height(rows, theme.column_widths(rows, width))
@@ -213,18 +228,18 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
 
 
 def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, own_row: bool,
-           what: str, seen: list) -> None:
-    """Put one cell's part in its rect.
+           what: str, seen: list) -> Rect | None:
+    """Put one cell's part in its rect; the rect an enclosure is drawn in when that is not the cell's (= otherwise None).
 
     `own_row` は、段が中身の言葉ぶんの高さの段か (= その段のカードは段の高さに揃える)。
     残りを分け合う段では、自分の高さを持つ部品は自分の高さのまま上に寄る (= 頁の高さを配らない)。
-    頁の高さを使う資料 (= `box_height = "page"`) では、カードはどの段でも置かれたマスを使い切る。
+    頁の高さを使う資料 (= `box_height = "page"`) では、カードと入れ物はどの段でも置かれたマスを使い切る。
 
     ⚠ **分け合う段が、自分の高さを持つ部品より低ければ止まる。**段の高さに切り詰めて置いていた間は、
     カードの字が箱からはみ出し、文章の枠は字より短かった。入れ子の段と表は、自分で同じことを言う。
     """
     part = _part(cell, what)
-    if natural is not None and natural > rect.height and part in ("card", "text", "points", "voices", "tree"):
+    if natural is not None and natural > rect.height and part in ("card", "panel", "text", "points", "voices", "tree"):
         raise PageFullError(
             f"{what}: this {part} needs {natural} EMU of height and its row has {rect.height} — "
             "give the row a larger `weight`, or take something off the page; nothing will shrink")
@@ -232,6 +247,8 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
     try:
         if part == "card":
             page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)])
+        elif part == "panel":
+            return _panel(page, spec, cell, rect if own_row or page.theme.box_height == "page" else fitted, what, seen)
         elif part == "table":
             page.table(fitted, _table(cell, what))
         elif part == "text" and cell.get("role") == "mono":
@@ -280,6 +297,54 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
         raise PageTypeError(f"{what}: {reason}") from reason
 
 
+def _panel(page: Page, spec: Spec, cell: dict, rect: Rect, what: str, seen: list) -> Rect:
+    """A panel in its rect, and the rows it holds divided in what is left inside it (= the rect it was drawn in).
+
+    中の段は、段とマスの組み方をそのまま使う (= `_stack`)。中のマスの `id` も `links` に使える。
+
+    ⚠ **濃い地の箱の中へ、字を直に置かない。**塗りのカードの資料で、差し色などの役の箱は地が濃く、字は紙の色で
+    置く。中へ直に置く文章・要点・表・グラフ・声・並べ方の字は本文の色や灰なので、読めない (= 検査が後から
+    言うことになる)。許すのは、自分の地を持つ物 (= カード・入れ物・コードの枠) と、名の無い絵だけ。
+    """
+    panel = _the_panel(spec, cell, what)
+    where = f"{what}, panel"
+    if not page.reads_ink(panel.style):
+        bare = _bare(cell["panel"]["rows"])
+        if bare:
+            raise PageTypeError(
+                f"{where}: a {bare} stands straight on the ground of this panel, which is deep in this look "
+                f"(= tone {panel.style.tone!r}), and the ink of the body does not read on it — put it in a card, "
+                "give the panel a pale tone, or set the deck's `card_look` to \"outlined\"")
+    _stack(page, spec, cell["panel"]["rows"], page.panel(rect, panel), where, seen)
+    return rect
+
+
+#: 濃い地の箱の中へ直に置いても読める部品 (= 自分の地を持つ物と、字を持たない絵。名や印の付いた絵は下で外す)
+OWN_GROUND = ("card", "panel", "figure")
+
+
+def _bare(rows) -> str:
+    """The first part under these rows that would stand straight on the ground of the box above it (= '' for none).
+
+    入れ子の段は下まで見る。入れ物とカードの中は、その箱の地の上なので見ない。
+    """
+    for row in rows:
+        for cell in row["cells"]:
+            if "rows" in cell:
+                found = _bare(cell["rows"])
+                if found:
+                    return found
+                continue
+            named = next((key for key in (*PARTS, *BODIES) if key in cell), "")
+            if named == "text" and cell.get("role") == "mono":
+                continue
+            if named == "figure" and ("caption" in cell or "marks" in cell):
+                return "figure with its words"
+            if named and named not in OWN_GROUND:
+                return named
+    return ""
+
+
 def _body(page: Page, spec: Spec, name: str, data: dict, rect: Rect, what: str) -> None:
     """A whole page type, laid into one cell, read the way that type reads it."""
     filler, needs, takes, _figure = TYPES[name]
@@ -296,6 +361,10 @@ def _body(page: Page, spec: Spec, name: str, data: dict, rect: Rect, what: str) 
 
 def _the_card(spec: Spec, cell: dict, what: str) -> Card:
     return read_card(spec, cell["card"], f"{what}, card")
+
+
+def _the_panel(spec: Spec, cell: dict, what: str) -> Panel:
+    return read_panel(spec, cell["panel"], f"{what}, panel")
 
 
 def _table(cell: dict, what: str) -> list[list[str]]:

@@ -12,7 +12,7 @@ from typing import Callable
 from ...base.tokens import DEFAULT, Band, Palette, Theme
 from ...parts.elements import Mark, Shade
 from ...parts.look import Style, TONES
-from ...parts.page import CARD_ALIGNS, Card
+from ...parts.page import CARD_ALIGNS, Card, Panel
 from .registry import PageTypeError
 
 
@@ -257,6 +257,30 @@ def read_card(spec: Spec, item, what: str) -> Card:
     raise PageTypeError(
         f"{what} is {item!r} — write it as [\"heading\", \"body\"], or as a table "
         "{ heading = …, body = …, tone = …, icon = … }")
+
+
+#: 入れ物の表に書けるキー (= 見出し・線・中の段、カードと同じ見た目のうちアイコンを除く 3 つ)。中の段 (= `rows`) は
+#: `compose` が自分の段とマスの読み方で読むので、ここでは在ることだけを確かめる
+PANEL_KEYS = ("heading", "rule", "rows", *(key for key in LOOK_KEYS if key != "icon"))
+
+
+def read_panel(spec: Spec, item, what: str) -> Panel:
+    """A panel as written: `{ tone = …, heading = "…", rule = true, rows = [ … ] }` (= all but `rows` may be left out).
+
+    見た目 (= `tone` `tentative` `strong`) はカードと同じ 1 つの読み方 (= `read_style`)。`rule` は見出しの下の線で、
+    見出しが無ければ引く場所が無いので止める。
+    """
+    only_keys(item, set(PANEL_KEYS), what)
+    rows = item.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise PageTypeError(f"{what}: a panel holds rows — write `rows` with at least one row of cells")
+    heading = item.get("heading", "")
+    if not isinstance(heading, str):
+        raise PageTypeError(f"{what}: `heading` is the words in its top left corner, not {heading!r}")
+    rule = _flag(item, "rule", what)
+    if rule and not heading.strip():
+        raise PageTypeError(f"{what}: `rule` is the line under the heading, and this panel has no heading")
+    return Panel(heading.strip(), read_style(spec, item, what, TONES[0]), rule)
 
 
 def _icon(spec: Spec, item: dict, what: str) -> tuple[Path, float] | None:
