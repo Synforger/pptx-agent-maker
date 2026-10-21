@@ -143,6 +143,24 @@ class Series:
     outline: str = ""
     #: 点のグラフ (= `scatter`) の、点ごとの x (= `values` が y)。項目のグラフでは空
     xs: tuple[float, ...] = ()
+    #: 点のグラフの、名前を付けた点の字 (= 点の横に置く言葉)。付けない点は持たない
+    labels: tuple["Label", ...] = ()
+    #: 点の印の大きさ (pt)。0 なら書き出す側の既定
+    mark: float = 0
+
+
+@dataclass(frozen=True)
+class Label:
+    """Words set beside one point of a chart of points (= its name, and its numbers under it)."""
+
+    #: 何番目の点か
+    index: int
+    #: 言葉。改行で行を分ける
+    text: str
+    #: 点の左に置く (= 右に置くと、グラフの縁を越える点)
+    left: bool = False
+    #: 言葉の大きさ (pt)。0 ならグラフの字と同じ
+    size: float = 0
 
 
 @dataclass(frozen=True)
@@ -153,6 +171,11 @@ class Callout:
     words: Rect
     #: 言葉から点へ引く細い線。言葉が点のすぐそばに在れば要らない (= None)
     line: Rect | None = None
+    #: 言葉の寄せ。点を指す言葉は点の真上 (= 中央)、項目の名前の下に添える 1 行は軸に揃える (= 右)
+    align: str = "center"
+    #: 言葉の大きさと色。0 と空はグラフの字と同じ (= 添え書きだけ、小さく灰にする)
+    size: float = 0
+    colour: str = ""
 
 
 @dataclass(frozen=True)
@@ -171,6 +194,26 @@ class Pinned:
     step: float
     #: 項目どうしの間 (= 棒 1 本の幅に対する百分率)
     gap: int = 150
+
+
+@dataclass(frozen=True)
+class Plane:
+    """The plot of a chart of points held in one place, so where a point falls can be worked out beforehand.
+
+    `Pinned` の、2 本とも値の軸のグラフ版 (= 点の横の言葉や、行ごとの言葉の場所を、道具が計算する)。
+    """
+
+    #: 描く範囲 (= 軸の字や凡例を除いた矩形)。グラフの枠に対する比で x, y, 幅, 高さ
+    inner: tuple[float, float, float, float]
+    #: 横の軸と縦の軸の (下限, 上限, 目盛りの間)
+    x: tuple[float, float, float]
+    y: tuple[float, float, float]
+    #: 横の軸を対数 (= 10 の累乗ごとに目盛り) にする
+    log: bool = False
+    #: 縦の軸を上から数える (= 最初の行が上)。横の軸の字は上に出る
+    down: bool = False
+    #: 横の軸の数字の書式 (= 表計算の書式)。空ならそのまま
+    x_format: str = ""
 
 
 #: グラフの描き方 (= 書き出すグラフの種類)。滝グラフは `stacked` で描く
@@ -201,6 +244,10 @@ class Chart(Element):
     #: 値の軸の (下限, 上限, 目盛りの間)。在れば値の軸と目盛りの線を出す (= 無ければ軸は PowerPoint が決め、
     #: 目盛りの線は引かない)
     scale: tuple[float, float, float] | None = None
+    #: 点のグラフの目盛りの線の色。空なら線は引かない
+    grid: str = ""
+    #: 点のグラフの描く範囲と軸を道具が決めて書く時の値 (= 無ければ PowerPoint が決める)
+    plane: Plane | None = None
 
 
 @dataclass(frozen=True)

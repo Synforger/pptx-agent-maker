@@ -369,6 +369,8 @@ def _figure(slide, element: Figure) -> None:
 
 #: 点のグラフの点の差し渡し (= pt。本文の字の半分ほど ― 数十個並んでも重なりが読める大きさ)
 POINT = 7
+#: 白抜きの印の縁の太さ (= 線の太さの倍率)
+RING = 1.5
 
 #: 描き方 → 書き出すグラフの種類と、値の数字を置く所 (= 棒の外の端 / 点の上 / 段の真ん中)
 CHART = {
@@ -431,11 +433,7 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
         _zero_end(chart, element)
     if element.pinned:
         _pin(chart, element)
-    for callout in element.callouts:
-        if callout.line is not None:
-            _fill(holder, Fill("callout", callout.line, element.colour), theme)
-        _text(holder, Text("label", callout.words, callout.text, element.size, element.colour, align="center"),
-              theme)
+    _words(holder, element, theme)
 
     for drawn, series in zip(chart.plots[0].series, element.series):
         if element.plot == "line":
@@ -458,6 +456,15 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
             labels.position = where
             if series.label_colour:
                 labels.font.color.rgb = _colour(series.label_colour)
+
+
+def _words(holder, element: Chart, theme: Theme) -> None:
+    """The words a chart carries (= what points at a point, what is said beside a name), and the thin line to the point."""
+    for callout in element.callouts:
+        if callout.line is not None:
+            _fill(holder, Fill("callout", callout.line, element.colour), theme)
+        _text(holder, Text("label", callout.words, callout.text, callout.size or element.size,
+                           callout.colour or element.colour, align=callout.align), theme)
 
 
 def _zero_end(chart, element: Chart) -> None:
@@ -491,21 +498,31 @@ def _scatter(slide, element: Chart, theme: Theme) -> None:
     """A chart of points: each series its marks, no line between them, both axes named.
 
     点のグラフは、軸が 2 本とも値の軸 (= 項目を持たない)。読むのは軸からなので、軸は 2 本とも出し、
-    それぞれに名前を書く。目盛りの線は引かない (= ほかのグラフと同じ)。
+    それぞれに名前を書く。目盛りの線は引かない (= ほかのグラフと同じ。`grid` を言ったグラフを除く)。
+    名前を付けた点は、点の横にその字を置く。描く範囲を道具が決めたグラフ (= `plane`) は、それを書き出す。
     """
     data = XyChartData()
     for series in element.series:
         drawn = data.add_series(series.name)
         for x, y in zip(series.xs, series.values):
             drawn.add_data_point(x, y)
+    # ⚠ **行ごとの言葉を持つグラフは、言葉と 1 つのグループにまとめる** (= 注記と同じ。別々のままだと、人が
+    # グラフを動かしたとき、言葉が元の場所に置き去りになる)
+    holder = slide if not element.callouts else slide.shapes.add_group_shape()
     frame = element.rect
-    chart = slide.shapes.add_chart(XL_CHART_TYPE.XY_SCATTER, Emu(frame.left), Emu(frame.top),
-                                   Emu(frame.width), Emu(frame.height), data).chart
+    chart = holder.shapes.add_chart(XL_CHART_TYPE.XY_SCATTER, Emu(frame.left), Emu(frame.top),
+                                    Emu(frame.width), Emu(frame.height), data).chart
     _dress(chart, element, theme)
     for axis, name in ((chart.category_axis, element.x_title), (chart.value_axis, element.y_title)):
-        axis.has_major_gridlines = False
+        axis.has_major_gridlines = bool(element.grid)
+        if element.grid:
+            lines = axis.major_gridlines.format.line
+            lines.color.rgb = _colour(element.grid)
+            lines.width = Emu(theme.spacing.hairline)
         axis.major_tick_mark = XL_TICK_MARK.NONE
         axis.format.line.color.rgb = _colour(element.line)
+        if not name:
+            continue
         axis.has_title = True
         words = axis.axis_title.text_frame
         words.text = name
@@ -514,11 +531,75 @@ def _scatter(slide, element: Chart, theme: Theme) -> None:
             run.font.bold = False
             run.font.name = theme.type.family
             run.font.color.rgb = _colour(element.colour)
+    # 縦の軸を出さないグラフ (= 行を並べるグラフ。縦は行の番号で、読み手に見せる数ではない)
+    if not element.axis:
+        chart.value_axis.visible = False
+    if element.plane:
+        _plane(chart, element)
+    _words(holder, element, theme)
     # 点の間に線は引かれない (= この種類のグラフを、python-pptx は線なしで書き出す)
     for drawn, series in zip(chart.plots[0].series, element.series):
         drawn.marker.style = XL_MARKER_STYLE.CIRCLE
-        drawn.marker.size = POINT
-        _solid(drawn.marker.format, series.colour)
+        drawn.marker.size = round(series.mark) or POINT
+        if series.outline:
+            # 縁のある印 (= 色が空なら白抜き。縁は点より太く引く)
+            _solid(drawn.marker.format, series.colour, series.outline, theme)
+            drawn.marker.format.line.width = Emu(round(theme.spacing.hairline * RING))
+        else:
+            _solid(drawn.marker.format, series.colour)
+        for label in series.labels:
+            _name_point(drawn.points[label.index].data_label, label, element, theme)
+
+
+def _name_point(data_label, label, element: Chart, theme: Theme) -> None:
+    """Set one point's words beside it (= its own text, not the number the chart would print)."""
+    frame = data_label.text_frame
+    # ⚠ 折り返さない (= 点の横の言葉は、道具が測った幅で置いた。描く側の折り返しに任せると、言葉が縦に伸びて隣に乗る)
+    frame.word_wrap = False
+    for number, line in enumerate(label.text.split("\n")):
+        paragraph = frame.paragraphs[0] if number == 0 else frame.add_paragraph()
+        run = paragraph.add_run()
+        run.text = line
+        run.font.size = Pt(label.size or element.size)
+        run.font.name = theme.type.family
+        run.font.color.rgb = _colour(element.colour)
+    data_label.position = XL_LABEL_POSITION.LEFT if label.left else XL_LABEL_POSITION.RIGHT
+
+
+def _plane(chart, element: Chart) -> None:
+    """Hold the plot of a chart of points where the page worked it out: its area, and both axes.
+
+    横の軸を対数にするのは、軸の `c:scaling` の頭に底を書くこと (= python-pptx に口が無い)。対数の軸の
+    目盛りの間は、底の倍数 (= 10 なら 10 の累乗ごと)。
+    """
+    plane = element.plane
+    _hold(chart, plane.inner)
+    for axis, (low, high, step) in ((chart.category_axis, plane.x), (chart.value_axis, plane.y)):
+        axis.minimum_scale = low
+        axis.maximum_scale = high
+        axis.major_unit = step
+    if plane.log:
+        scaling = chart.category_axis._element.find(qn("c:scaling"))
+        scaling.insert(0, scaling.makeelement(qn("c:logBase"), {"val": "10"}))
+    if plane.down:
+        chart.value_axis.reverse_order = True
+    if plane.x_format:
+        chart.category_axis.tick_labels.number_format = plane.x_format
+        chart.category_axis.tick_labels.number_format_is_linked = False
+
+
+def _hold(chart, inner: tuple[float, float, float, float]) -> None:
+    """Write where the plot sits: `c:plotArea`'s first child, as fractions of the chart's frame."""
+    area = chart._chartSpace.chart.plotArea
+    layout = area.makeelement(qn("c:layout"), {})
+    manual = layout.makeelement(qn("c:manualLayout"), {})
+    layout.append(manual)
+    for tag, value in (("layoutTarget", "inner"), ("xMode", "edge"), ("yMode", "edge"),
+                       *zip(("x", "y", "w", "h"), (f"{part:.6f}" for part in inner))):
+        manual.append(manual.makeelement(qn(f"c:{tag}"), {"val": value}))
+    for existing in area.findall(qn("c:layout")):
+        area.remove(existing)
+    area.insert(0, layout)
 
 
 def _pin(chart, element: Chart) -> None:
@@ -528,16 +609,7 @@ def _pin(chart, element: Chart) -> None:
     矩形そのもの)。値の軸は端から端と目盛りの間を書く。
     """
     pinned = element.pinned
-    area = chart._chartSpace.chart.plotArea
-    layout = area.makeelement(qn("c:layout"), {})
-    manual = layout.makeelement(qn("c:manualLayout"), {})
-    layout.append(manual)
-    for tag, value in (("layoutTarget", "inner"), ("xMode", "edge"), ("yMode", "edge"),
-                       *zip(("x", "y", "w", "h"), (f"{part:.6f}" for part in pinned.inner))):
-        manual.append(manual.makeelement(qn(f"c:{tag}"), {"val": value}))
-    for existing in area.findall(qn("c:layout")):
-        area.remove(existing)
-    area.insert(0, layout)
+    _hold(chart, pinned.inner)
     chart.value_axis.minimum_scale = pinned.low
     chart.value_axis.maximum_scale = pinned.high
     chart.value_axis.major_unit = pinned.step

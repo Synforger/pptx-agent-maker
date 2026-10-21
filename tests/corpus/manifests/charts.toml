@@ -190,3 +190,92 @@ footer = "Source: the numbers written on this page"
 kind = "column"
 categories = ["A", "B", "C"]
 series = [{ name = "Score", values = [75, 75, 67] }]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Bare bars: no numbers and no value axis, only the heights and the names under them"
+footer = "Source: the numbers written on this page"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = "North"
+[[pages.rows.cells]]
+chart = { kind = "column", bare = true, categories = ["2022", "2023", "2024", "2025"], series = [{ name = "Papers", values = [4, 9, 15, 11] }], highlight = "2024" }
+[[pages.rows.cells]]
+chart = { kind = "column", bare = true, categories = ["2022", "2023", "2024", "2025"], series = [{ name = "Papers", values = [75, 75, 67, 70] }] }
+[[pages.rows.cells]]
+chart = { kind = "bar", bare = true, categories = ["Lab", "Field", "Model"], series = [{ name = "Papers", values = [8, 3, 5] }] }
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "A line of words under the name of each bar: where the numbers came from"
+footer = "Source: the numbers written on this page"
+
+[pages.chart]
+kind = "bar"
+categories = ["Street scenes", "Product shots", "Portraits", "Indoor rooms", "Night views", "Maps", "Sketches"]
+series = [{ name = "Images", values = [120000, 84000, 52000, 30000, 12000, 6000, 2400] }]
+notes = ["from a public archive", "white background", "faces blurred", "mixed lighting", "low light", "", "hand drawn, scanned"]
+unit = " k"
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "Points that carry their names, on a light grid"
+footer = "made up for the corpus"
+why = "a scatter whose points say what they are and what they came to, read against a grid"
+
+[pages.chart]
+kind = "scatter"
+x = "Hours spent"
+y = "Score"
+grid = true
+series = [
+  { name = "With the guide", points = [[1, 2.5, "Alpha study"], [2, 3.5, "Beta study"], [3.5, 5, "Gamma"]] },
+  { name = "Without", points = [[1.5, 1], [4, 2, "Delta"], [5, 2.5]] },
+]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "A strip: a row for each kind, a mark for each file, the median of a row ringed"
+footer = "made up for the corpus"
+why = "points on a log axis, one row to a category, with the median of each row and a line beside it"
+
+[pages.chart]
+kind = "strip"
+axis = "log"
+ticks = [1, 10, 100, 1000, 10000]
+median = true
+highlight = "Small"
+categories = ["Street scenes\nphotographs", "Product shots\nstudio\nwhite background", "Portraits\nfaces blurred", "Night views\nlow light"]
+notes = ["1,200 files", "340 files", "88 files", "2,000 files"]
+series = [
+  { name = "Small", values = [[93.7, 340.5, 560.1, 166.1, 86.1, 238.3, 369.2, 608.6, 94.3, 88.6, 443.7], [92.5, 217.2, 139.3, 58.1, 50.6, 500.8, 50], [84.2, 63.3, 171.2, 178.2, 120], [23.9, 31.3, 43.9, 60.8, 29.7, 5.9, 44.2, 8, 21.9]] },
+  { name = "Medium", values = [[242.2, 795.7, 424.1, 943.8], [2851.7, 191.9, 393.4, 68.7, 158.2, 340.3], [], [73.7, 107, 86.3]] },
+  { name = "Large", values = [[], [559.6, 1982.9], [260.5, 2265.2, 333.6], []] },
+]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A strip in a cell, its series in tones of their own and the legend left to the page beside it"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 3
+[pages.rows.cells.chart]
+kind = "strip"
+axis = "log"
+ticks = [0.1, 1, 10, 100]
+legend = false
+categories = ["Lab", "Field"]
+series = [
+  { name = "Before", tone = "accent", values = [[0.3, 0.8, 2.5, 4], [1.2, 6, 9]] },
+  { name = "After", tone = "bad", values = [[5, 22, 40], [30, 75]] },
+]
+[[pages.rows.cells]]
+weight = 1
+card = { heading = "Before is blue", body = "After is orange" }

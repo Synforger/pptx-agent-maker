@@ -1,0 +1,654 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<c:chart>
+<c:autoTitleDeleted val="1"/>
+<c:plotArea>
+<c:layout>
+<c:manualLayout>
+<c:layoutTarget val="inner"/>
+<c:xMode val="edge"/>
+<c:yMode val="edge"/>
+<c:x val="0.132498"/>
+<c:y val="0.072398"/>
+<c:w val="0.797876"/>
+<c:h val="0.831436"/>
+</c:manualLayout>
+</c:layout>
+<c:scatterChart>
+<c:scatterStyle val="lineMarker"/>
+<c:varyColors val="0"/>
+<c:ser>
+<c:idx val="0"/>
+<c:order val="0"/>
+<c:tx>
+<c:strRef>
+<c:f>Sheet1!$B$1</c:f>
+<c:strCache>
+<c:ptCount val="1"/>
+<c:pt idx="0">
+<c:v>Small</c:v>
+</c:pt>
+</c:strCache>
+</c:strRef>
+</c:tx>
+<c:spPr>
+<a:ln w="47625">
+<a:noFill/>
+</a:ln>
+</c:spPr>
+<c:marker>
+<c:symbol val="circle"/>
+<c:size val="6"/>
+<c:spPr>
+<a:solidFill>
+<a:srgbClr val="1F5FA9"/>
+</a:solidFill>
+<a:ln>
+<a:solidFill>
+<a:srgbClr val="1F5FA9"/>
+</a:solidFill>
+</a:ln>
+</c:spPr>
+</c:marker>
+<c:xVal>
+<c:numRef>
+<c:f>Sheet1!$A$2:$A$33</c:f>
+<c:numCache>
+<c:formatCode>General</c:formatCode>
+<c:ptCount val="32"/>
+<c:pt idx="0">
+<c:v>93.7</c:v>
+</c:pt>
+<c:pt idx="1">
+<c:v>340.5</c:v>
+</c:pt>
+<c:pt idx="2">
+<c:v>560.1</c:v>
+</c:pt>
+<c:pt idx="3">
+<c:v>166.1</c:v>
+</c:pt>
+<c:pt idx="4">
+<c:v>86.1</c:v>
+</c:pt>
+<c:pt idx="5">
+<c:v>238.3</c:v>
+</c:pt>
+<c:pt idx="6">
+<c:v>369.2</c:v>
+</c:pt>
+<c:pt idx="7">
+<c:v>608.6</c:v>
+</c:pt>
+<c:pt idx="8">
+<c:v>94.3</c:v>
+</c:pt>
+<c:pt idx="9">
+<c:v>88.6</c:v>
+</c:pt>
+<c:pt idx="10">
+<c:v>443.7</c:v>
+</c:pt>
+<c:pt idx="11">
+<c:v>92.5</c:v>
+</c:pt>
+<c:pt idx="12">
+<c:v>217.2</c:v>
+</c:pt>
+<c:pt idx="13">
+<c:v>139.3</c:v>
+</c:pt>
+<c:pt idx="14">
+<c:v>58.1</c:v>
+</c:pt>
+<c:pt idx="15">
+<c:v>50.6</c:v>
+</c:pt>
+<c:pt idx="16">
+<c:v>500.8</c:v>
+</c:pt>
+<c:pt idx="17">
+<c:v>50</c:v>
+</c:pt>
+<c:pt idx="18">
+<c:v>84.2</c:v>
+</c:pt>
+<c:pt idx="19">
+<c:v>63.3</c:v>
+</c:pt>
+<c:pt idx="20">
+<c:v>171.2</c:v>
+</c:pt>
+<c:pt idx="21">
+<c:v>178.2</c:v>
+</c:pt>
+<c:pt idx="22">
+<c:v>120</c:v>
+</c:pt>
+<c:pt idx="23">
+<c:v>23.9</c:v>
+</c:pt>
+<c:pt idx="24">
+<c:v>31.3</c:v>
+</c:pt>
+<c:pt idx="25">
+<c:v>43.9</c:v>
+</c:pt>
+<c:pt idx="26">
+<c:v>60.8</c:v>
+</c:pt>
+<c:pt idx="27">
+<c:v>29.7</c:v>
+</c:pt>
+<c:pt idx="28">
+<c:v>5.9</c:v>
+</c:pt>
+<c:pt idx="29">
+<c:v>44.2</c:v>
+</c:pt>
+<c:pt idx="30">
+<c:v>8</c:v>
+</c:pt>
+<c:pt idx="31">
+<c:v>21.9</c:v>
+</c:pt>
+</c:numCache>
+</c:numRef>
+</c:xVal>
+<c:yVal>
+<c:numRef>
+<c:f>Sheet1!$B$2:$B$33</c:f>
+<c:numCache>
+<c:formatCode>General</c:formatCode>
+<c:ptCount val="32"/>
+<c:pt idx="0">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="1">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="2">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="3">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="4">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="5">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="6">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="7">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="8">
+<c:v>0.919324101130733</c:v>
+</c:pt>
+<c:pt idx="9">
+<c:v>1.0806758988692668</c:v>
+</c:pt>
+<c:pt idx="10">
+<c:v>1.0806758988692668</c:v>
+</c:pt>
+<c:pt idx="11">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="12">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="13">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="14">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="15">
+<c:v>2.080675898869267</c:v>
+</c:pt>
+<c:pt idx="16">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="17">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="18">
+<c:v>3.0</c:v>
+</c:pt>
+<c:pt idx="19">
+<c:v>3.0</c:v>
+</c:pt>
+<c:pt idx="20">
+<c:v>3.0</c:v>
+</c:pt>
+<c:pt idx="21">
+<c:v>3.080675898869267</c:v>
+</c:pt>
+<c:pt idx="22">
+<c:v>3.0</c:v>
+</c:pt>
+<c:pt idx="23">
+<c:v>4.0</c:v>
+</c:pt>
+<c:pt idx="24">
+<c:v>4.080675898869267</c:v>
+</c:pt>
+<c:pt idx="25">
+<c:v>4.0</c:v>
+</c:pt>
+<c:pt idx="26">
+<c:v>4.0</c:v>
+</c:pt>
+<c:pt idx="27">
+<c:v>4.0</c:v>
+</c:pt>
+<c:pt idx="28">
+<c:v>4.0</c:v>
+</c:pt>
+<c:pt idx="29">
+<c:v>4.080675898869267</c:v>
+</c:pt>
+<c:pt idx="30">
+<c:v>4.0</c:v>
+</c:pt>
+<c:pt idx="31">
+<c:v>4.0</c:v>
+</c:pt>
+</c:numCache>
+</c:numRef>
+</c:yVal>
+<c:smooth val="0"/>
+</c:ser>
+<c:ser>
+<c:idx val="1"/>
+<c:order val="1"/>
+<c:tx>
+<c:strRef>
+<c:f>Sheet1!$B$35</c:f>
+<c:strCache>
+<c:ptCount val="1"/>
+<c:pt idx="0">
+<c:v>Medium</c:v>
+</c:pt>
+</c:strCache>
+</c:strRef>
+</c:tx>
+<c:spPr>
+<a:ln w="47625">
+<a:noFill/>
+</a:ln>
+</c:spPr>
+<c:marker>
+<c:symbol val="circle"/>
+<c:size val="6"/>
+<c:spPr>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:ln>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+</a:ln>
+</c:spPr>
+</c:marker>
+<c:xVal>
+<c:numRef>
+<c:f>Sheet1!$A$36:$A$48</c:f>
+<c:numCache>
+<c:formatCode>General</c:formatCode>
+<c:ptCount val="13"/>
+<c:pt idx="0">
+<c:v>242.2</c:v>
+</c:pt>
+<c:pt idx="1">
+<c:v>795.7</c:v>
+</c:pt>
+<c:pt idx="2">
+<c:v>424.1</c:v>
+</c:pt>
+<c:pt idx="3">
+<c:v>943.8</c:v>
+</c:pt>
+<c:pt idx="4">
+<c:v>2851.7</c:v>
+</c:pt>
+<c:pt idx="5">
+<c:v>191.9</c:v>
+</c:pt>
+<c:pt idx="6">
+<c:v>393.4</c:v>
+</c:pt>
+<c:pt idx="7">
+<c:v>68.7</c:v>
+</c:pt>
+<c:pt idx="8">
+<c:v>158.2</c:v>
+</c:pt>
+<c:pt idx="9">
+<c:v>340.3</c:v>
+</c:pt>
+<c:pt idx="10">
+<c:v>73.7</c:v>
+</c:pt>
+<c:pt idx="11">
+<c:v>107</c:v>
+</c:pt>
+<c:pt idx="12">
+<c:v>86.3</c:v>
+</c:pt>
+</c:numCache>
+</c:numRef>
+</c:xVal>
+<c:yVal>
+<c:numRef>
+<c:f>Sheet1!$B$36:$B$48</c:f>
+<c:numCache>
+<c:formatCode>General</c:formatCode>
+<c:ptCount val="13"/>
+<c:pt idx="0">
+<c:v>1.0806758988692668</c:v>
+</c:pt>
+<c:pt idx="1">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="2">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="3">
+<c:v>1.0</c:v>
+</c:pt>
+<c:pt idx="4">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="5">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="6">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="7">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="8">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="9">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="10">
+<c:v>4.0</c:v>
+</c:pt>
+<c:pt idx="11">
+<c:v>4.0</c:v>
+</c:pt>
+<c:pt idx="12">
+<c:v>4.0</c:v>
+</c:pt>
+</c:numCache>
+</c:numRef>
+</c:yVal>
+<c:smooth val="0"/>
+</c:ser>
+<c:ser>
+<c:idx val="2"/>
+<c:order val="2"/>
+<c:tx>
+<c:strRef>
+<c:f>Sheet1!$B$50</c:f>
+<c:strCache>
+<c:ptCount val="1"/>
+<c:pt idx="0">
+<c:v>Large</c:v>
+</c:pt>
+</c:strCache>
+</c:strRef>
+</c:tx>
+<c:spPr>
+<a:ln w="47625">
+<a:noFill/>
+</a:ln>
+</c:spPr>
+<c:marker>
+<c:symbol val="circle"/>
+<c:size val="6"/>
+<c:spPr>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:ln>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+</a:ln>
+</c:spPr>
+</c:marker>
+<c:xVal>
+<c:numRef>
+<c:f>Sheet1!$A$51:$A$55</c:f>
+<c:numCache>
+<c:formatCode>General</c:formatCode>
+<c:ptCount val="5"/>
+<c:pt idx="0">
+<c:v>559.6</c:v>
+</c:pt>
+<c:pt idx="1">
+<c:v>1982.9</c:v>
+</c:pt>
+<c:pt idx="2">
+<c:v>260.5</c:v>
+</c:pt>
+<c:pt idx="3">
+<c:v>2265.2</c:v>
+</c:pt>
+<c:pt idx="4">
+<c:v>333.6</c:v>
+</c:pt>
+</c:numCache>
+</c:numRef>
+</c:xVal>
+<c:yVal>
+<c:numRef>
+<c:f>Sheet1!$B$51:$B$55</c:f>
+<c:numCache>
+<c:formatCode>General</c:formatCode>
+<c:ptCount val="5"/>
+<c:pt idx="0">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="1">
+<c:v>2.0</c:v>
+</c:pt>
+<c:pt idx="2">
+<c:v>3.0</c:v>
+</c:pt>
+<c:pt idx="3">
+<c:v>3.0</c:v>
+</c:pt>
+<c:pt idx="4">
+<c:v>3.0</c:v>
+</c:pt>
+</c:numCache>
+</c:numRef>
+</c:yVal>
+<c:smooth val="0"/>
+</c:ser>
+<c:ser>
+<c:idx val="3"/>
+<c:order val="3"/>
+<c:tx>
+<c:strRef>
+<c:f>Sheet1!$B$57</c:f>
+<c:strCache>
+<c:ptCount val="1"/>
+<c:pt idx="0">
+<c:v>Median</c:v>
+</c:pt>
+</c:strCache>
+</c:strRef>
+</c:tx>
+<c:spPr>
+<a:ln w="47625">
+<a:noFill/>
+</a:ln>
+</c:spPr>
+<c:marker>
+<c:symbol val="circle"/>
+<c:size val="9"/>
+<c:spPr>
+<a:noFill/>
+<a:ln w="19050">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+</a:ln>
+</c:spPr>
+</c:marker>
+<c:xVal>
+<c:numRef>
+<c:f>Sheet1!$A$58:$A$61</c:f>
+<c:numCache>
+<c:formatCode>General</c:formatCode>
+<c:ptCount val="4"/>
+<c:pt idx="0">
+<c:v>340.5</c:v>
+</c:pt>
+<c:pt idx="1">
+<c:v>191.9</c:v>
+</c:pt>
+<c:pt idx="2">
+<c:v>174.7</c:v>
+</c:pt>
+<c:pt idx="3">
+<c:v>37.6</c:v>
+</c:pt>
+</c:numCache>
+</c:numRef>
+</c:xVal>
+<c:yVal>
+<c:numRef>
+<c:f>Sheet1!$B$58:$B$61</c:f>
+<c:numCache>
+<c:formatCode>General</c:formatCode>
+<c:ptCount val="4"/>
+<c:pt idx="0">
+<c:v>1</c:v>
+</c:pt>
+<c:pt idx="1">
+<c:v>2</c:v>
+</c:pt>
+<c:pt idx="2">
+<c:v>3</c:v>
+</c:pt>
+<c:pt idx="3">
+<c:v>4</c:v>
+</c:pt>
+</c:numCache>
+</c:numRef>
+</c:yVal>
+<c:smooth val="0"/>
+</c:ser>
+<c:axId val="-2128940872"/>
+<c:axId val="-2129643912"/>
+</c:scatterChart>
+<c:valAx>
+<c:axId val="-2128940872"/>
+<c:scaling>
+<c:logBase val="10"/>
+<c:orientation val="minMax"/>
+<c:max val="10000.0"/>
+<c:min val="1.0"/>
+</c:scaling>
+<c:delete val="0"/>
+<c:axPos val="b"/>
+<c:majorGridlines>
+<c:spPr>
+<a:ln w="12700">
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+</a:ln>
+</c:spPr>
+</c:majorGridlines>
+<c:numFmt formatCode="#,##0" sourceLinked="0"/>
+<c:majorTickMark val="none"/>
+<c:minorTickMark val="none"/>
+<c:tickLblPos val="nextTo"/>
+<c:spPr>
+<a:ln>
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+</a:ln>
+</c:spPr>
+<c:crossAx val="-2129643912"/>
+<c:crosses val="autoZero"/>
+<c:crossBetween val="midCat"/>
+<c:majorUnit val="10.0"/>
+</c:valAx>
+<c:valAx>
+<c:axId val="-2129643912"/>
+<c:scaling>
+<c:orientation val="maxMin"/>
+<c:max val="4.5"/>
+<c:min val="0.5"/>
+</c:scaling>
+<c:delete/>
+<c:axPos val="l"/>
+<c:majorGridlines>
+<c:spPr>
+<a:ln w="12700">
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+</a:ln>
+</c:spPr>
+</c:majorGridlines>
+<c:numFmt formatCode="General" sourceLinked="1"/>
+<c:majorTickMark val="none"/>
+<c:minorTickMark val="none"/>
+<c:tickLblPos val="nextTo"/>
+<c:spPr>
+<a:ln>
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+</a:ln>
+</c:spPr>
+<c:crossAx val="-2128940872"/>
+<c:crosses val="autoZero"/>
+<c:crossBetween val="midCat"/>
+<c:majorUnit val="1.0"/>
+</c:valAx>
+</c:plotArea>
+<c:legend>
+<c:legendPos val="b"/>
+<c:layout/>
+<c:overlay val="0"/>
+</c:legend>
+<c:plotVisOnly val="1"/>
+<c:dispBlanksAs val="gap"/>
+<c:showDLblsOverMax val="0"/>
+</c:chart>
+<c:txPr>
+<a:bodyPr/>
+<a:lstStyle/>
+<a:p>
+<a:pPr>
+<a:defRPr sz="1200">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:defRPr>
+</a:pPr>
+<a:endParaRPr lang="en-US"/>
+</a:p>
+</c:txPr>
+<c:externalData r:id="rId1">
+<c:autoUpdate val="0"/>
+</c:externalData>
+</c:chartSpace>
