@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
+import os
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -15,6 +18,9 @@ FOLDERS = ("assets",)
 
 
 PREVIEW = Path(__file__).resolve().parents[2] / "preview" / "src"
+#: 常駐のプレビューが道具の file を見直す間隔 (= 秒)。変わった指紋を 2 回続けて見てから起動し直すので、
+#: checkout が書き換わっている途中では起動しない
+RESTART_POLL_S = 5.0
 
 
 def _use_checkout_preview() -> None:
@@ -37,13 +43,40 @@ def _skip_of(folder: Path) -> set[str]:
 
 
 def _fingerprint() -> str:
-    """The toolkit's own source as it stands on disk (= moves when the checkout moves)."""
-    package = Path(__file__).resolve().parent
+    """The toolkit's own source and its preview's as they stand on disk (= moves when the checkout moves)."""
+    _use_checkout_preview()
+    found = importlib.util.find_spec("pptx_live_preview")
+    packages = [Path(__file__).resolve().parent]
+    if found is not None and found.origin:
+        packages.append(Path(found.origin).resolve().parent)
     seen = hashlib.sha1()
-    for path in sorted(package.rglob("*.py")):
-        stat = path.stat()
-        seen.update(f"{path.relative_to(package)}:{stat.st_mtime_ns}:{stat.st_size}\n".encode())
+    for package in packages:
+        for path in sorted(package.rglob("*.py")):
+            stat = path.stat()
+            seen.update(f"{package.name}/{path.relative_to(package)}:{stat.st_mtime_ns}:{stat.st_size}\n".encode())
     return seen.hexdigest()
+
+
+def _restart_when_changed(started: str) -> None:
+    """Start this process again with the same arguments once the toolkit on disk has changed and settled.
+
+    ⚠ **常駐は起動した時の道具のまま走り続ける。**checkout が進んでも、走っている process は古い道具で
+    案件を読み、新しい欄を書いた案件を断る。人が画面を開くまで誰も気づかないので、自分で起動し直す
+    (= 同じ process の番号のまま入れ替わる。launchd の下でも端末から起動した時でも同じに効く)。
+    """
+    seen = started
+    while True:
+        time.sleep(RESTART_POLL_S)
+        now = _fingerprint()
+        if now != started and now == seen:
+            print("the toolkit changed on disk; starting the preview again with it", file=sys.stderr, flush=True)
+            os.execv(sys.executable, sys.orig_argv)
+        seen = now
+
+
+def _watch_the_toolkit(started: str) -> None:
+    """Keep an eye on the toolkit's files for the life of the preview."""
+    threading.Thread(target=_restart_when_changed, args=(started,), daemon=True).start()
 
 
 def _offers(places: dict, started: str, since: str):
@@ -87,6 +120,7 @@ def _preview_places(places: dict, port: int, no_open: bool) -> int:
         first[name] = state.DeckSet(offer.folder, skip=offer.skip)
         first[name].set_problem(offer.problem, offer.skip)
     board = state.Switchboard(first, discover=lambda: _offers(places, started, since))
+    _watch_the_toolkit(started)
     return entry.serve(board, port, no_open)
 
 
@@ -114,6 +148,7 @@ def _preview(workspace, port: int, no_open: bool) -> int:
     # ⚠ **テンプレートは焼いた成果ではない。**マニフェストが指している pptx を一覧から外す。
     for name in _specimens(workspace):
         argv += ["--skip", name]
+    _watch_the_toolkit(_fingerprint())
     return preview_main(argv)
 
 
@@ -181,7 +216,7 @@ def _template_media(workspace, manifest=None) -> set[str]:
                 continue  # 読めないマニフェストは build が言う
     found: set[str] = set()
     for specimen in specimens:
-        path = Path(specimen) if Path(specimen).is_absolute() else workspace.root / specimen
+        path = workspace.specimen(specimen)
         if path.is_file():
             found |= media_digests(path)
     return found
