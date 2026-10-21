@@ -1,0 +1,21 @@
+# The gap under the title stands apart from the gap between the bands and the body.
+
+tests = ["tests/test_title_gap.py", "tests/test_compose_gaps.py"]
+
+[[mutant]]
+name = "a title drawn by the toolkit is set off by the gap under a band"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            bar = self._take_top(s.title_height + folded, s.title_gap)"
+new = "            bar = self._take_top(s.title_height + folded)"
+
+[[mutant]]
+name = "a title the layout places is set off by the gap under a band"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "height + above + folded, s.title_gap)"
+new = "height + above + folded)"
+
+[[mutant]]
+name = "the gap under the title no longer follows the gap under a band"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    if \"band_gap\" in distances:"
+new = "    if False:"
