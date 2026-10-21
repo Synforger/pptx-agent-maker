@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from numbers import Real
+
 from ...base.geometry import Rect
 from ...parts.page import Page, PageFullError
 from ..core.read import LOOK_KEYS, only_keys, read_style, Spec
@@ -19,6 +21,9 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
     中身が要る型なので、省けない。**最後の段だけ** `goal = true` を書ける (= 到達点。濃い地で、
     名前を一回り大きく置く)。`align_rows` は flow と同じ。
 
+    `weight` は段の幅の比 (= 0 より大きい数。書かなければ 1 で、全部の段が書かなければ等分。
+    一部の段だけ書いてもよい)。段の下のノードは、自分の列の幅で折り返す。
+
     矢羽根は最初の段が左の平らな形、2 段目からが左の切り欠いた形で、先が次の段の切り欠きに
     噛み合う。向きは矢羽根が示すので、段の間に「→」は置かない。
     """
@@ -30,7 +35,7 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
         if not isinstance(stage, dict):
             raise PageTypeError(f"{what} is {stage!r} — write it as a table "
                                 "{ name = …, nodes = […], goal = … }")
-        only_keys(stage, {"name", "nodes", "goal", *LOOK_KEYS}, what)
+        only_keys(stage, {"name", "nodes", "goal", "weight", *LOOK_KEYS}, what)
         if not str(stage.get("name", "")).strip():
             raise PageTypeError(f"{what} has no `name` — an arrowhead says when it is")
         goal = stage.get("goal", False)
@@ -40,13 +45,16 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
             raise PageTypeError(
                 f"{what} is marked as the goal, but the goal is where the road ends — "
                 "only the last stage takes `goal = true`")
+    weights = [_weight(stage, f"roadmap: stage {number}") for number, stage in enumerate(stages, start=1)]
     aligned = aligned_rows(spec, "roadmap")
     goal = bool(stages[-1].get("goal"))
 
     theme, s, ty = page.theme, page.theme.spacing, page.theme.type
     gap = s.gap_s
-    columns = area.columns(len(stages), gap=s.gap_m)
-    stacks, stack = stage_stacks(page, spec, stages, columns[0].width, aligned, "roadmap", bare=True)
+    columns = area.columns(weights, gap=s.gap_m)
+    # ノードの折り返しは列の幅で決まるので、幅の違う段は段ごとの幅で数える
+    stacks, stack = stage_stacks(page, spec, stages, [column.width for column in columns], aligned,
+                                 "roadmap", bare=True)
 
     # 矢羽根は自分の列から次の列の頭まで伸び、先が次の段の切り欠きに入る (= 最後の段は列の中で
     # 尖る)。文字が使える幅は、プリセットが決めた文字の枠 (= 切り欠きと先を除いた幅) から余白を引く
@@ -82,3 +90,11 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
                      shape=shape, size=size)
         _head, rest = column.split_top(head_height, gap=gap)
         place_stack(page, rest.split_top(stack)[0], column_nodes)
+
+
+def _weight(stage: dict, what: str) -> float:
+    """The share of the width a stage takes (= 1 when it says nothing)."""
+    value = stage.get("weight", 1)
+    if isinstance(value, bool) or not isinstance(value, Real) or value <= 0:
+        raise PageTypeError(f"{what}: `weight` is a number above 0 (= a share of the width), not {value!r}")
+    return float(value)

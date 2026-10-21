@@ -462,3 +462,30 @@ table = [
 ]
 footer = "made up for the corpus"
 why = "a table divided by bands: in the accent, on a named ground, and with no tone at all"
+
+[[pages]]
+kind = "declare"
+type = "roadmap"
+title = "A road whose stages take the width they need"
+why = "a road whose stages say their weight: some wider, one left at 1, the nodes breaking over the width of their own column"
+
+[[pages.stages]]
+name = "Spring | survey"
+weight = 3
+nodes = [
+  ["Interviews", "ten short talks with people who already run a stall, to hear where the day goes"],
+  ["Forms", "the questions that all of them were asked, kept for the next round"],
+]
+
+[[pages.stages]]
+name = "Summer | trial"
+weight = 2
+nodes = [["Pilot", "two markets"]]
+
+[[pages.stages]]
+name = "Autumn"
+nodes = [["Review", "what held"]]
+
+[[pages.stages]]
+name = "Winter | open"
+goal = true

@@ -5,8 +5,8 @@ tests = ["tests/test_roadmap.py"]
 [[mutant]]
 name = "a roadmap asks for the nodes of every stage again"
 file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
-old = 'aligned, "roadmap", bare=True)'
-new = 'aligned, "roadmap")'
+old = '"roadmap", bare=True)'
+new = '"roadmap")'
 
 [[mutant]]
 name = "a flow lets a stage go without nodes"

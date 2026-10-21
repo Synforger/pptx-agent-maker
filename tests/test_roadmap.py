@@ -27,6 +27,7 @@ from pptx_agent_maker.layout.parts.page import Card, Page, PageFullError  # noqa
 from pptx_agent_maker.layout.base.tokens import DEFAULT, theme_from  # noqa: E402
 from pptx_agent_maker.layout.types.core.read import Spec  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import TYPES, PageTypeError  # noqa: E402
+from pptx_agent_maker.layout.types.core.stack import card_height  # noqa: E402
 from pptx_agent_maker.write import add_page, aspect, new_deck, save  # noqa: E402
 
 DATA = REPO / "tests" / "data"
@@ -159,6 +160,98 @@ class WhatARoadRefuses(unittest.TestCase):
 def bare(name, **more):
     """A stage of an arrowhead alone."""
     return {"name": name, **more}
+
+
+class TheWidthOfAStage(unittest.TestCase):
+    """A stage may say `weight`: its share of the width, 1 when it says nothing."""
+
+    def widths(self, stages, **extra):
+        return [a.rect.width for a in arrows(road(stages, **extra))]
+
+    def test_without_a_weight_the_stages_share_the_width_equally(self):
+        plain = road(FOUR).build()
+        ones = road([{**s, "weight": 1} for s in FOUR]).build()
+        self.assertEqual(plain, ones)
+        # 最後の矢羽根は列の幅ちょうど、ほかは列の幅に間の空きを足した幅
+        widths = self.widths(FOUR)
+        self.assertLessEqual(max(widths[:-1]) - min(widths[:-1]), 1)
+        self.assertLessEqual(abs(widths[0] - DEFAULT.spacing.gap_m - widths[-1]), 1)
+
+    def test_the_arrowheads_are_as_wide_as_their_weights_say(self):
+        stages = [stage("One", weight=3), stage("Two", weight=2), stage("Three", weight=1, goal=True)]
+        heads = arrows(road(stages))
+        # 矢羽根は自分の列から次の列の頭まで伸びる (= 列の間の空きは矢羽根が持つ)。最後は列の幅
+        self.assertEqual(heads[1].rect.left, heads[0].rect.right)
+        self.assertEqual(heads[2].rect.left, heads[1].rect.right)
+        last = heads[2].rect.width
+        gap = DEFAULT.spacing.gap_m
+        self.assertAlmostEqual(1.0, (heads[1].rect.width - gap) / (2 * last), delta=0.02)
+        self.assertAlmostEqual(1.0, (heads[0].rect.width - gap) / (3 * last), delta=0.02)
+
+    def test_some_stages_may_say_it_and_the_rest_take_one(self):
+        heads = arrows(road([stage("One", weight=3), stage("Two"), stage("Three")]))
+        rest = heads[1].rect.width - DEFAULT.spacing.gap_m
+        self.assertAlmostEqual(3.0, (heads[0].rect.width - DEFAULT.spacing.gap_m) / rest, delta=0.05)
+        self.assertLessEqual(abs(heads[1].rect.width - heads[2].rect.width), DEFAULT.spacing.gap_m + 2)
+
+    def test_a_weight_may_be_a_fraction(self):
+        heads = arrows(road([stage("One", weight=0.5), stage("Two"), stage("Three", weight=1.5)]))
+        self.assertLess(heads[0].rect.width, heads[1].rect.width)
+        self.assertGreater(heads[2].rect.width, heads[1].rect.width - DEFAULT.spacing.gap_m)
+
+    def test_the_arrowheads_still_nest_and_the_first_and_last_edges_stay_on_the_body(self):
+        built = road([stage("One", weight=1), stage("Two", weight=4), stage("Three", weight=2)])
+        heads = arrows(built)
+        for this, following in zip(heads, heads[1:]):
+            self.assertEqual(following.rect.left, this.rect.right)
+        body = Page("A road").body
+        self.assertEqual(body.left, heads[0].rect.left)
+        self.assertEqual(body.right, heads[-1].rect.right)
+
+    def test_the_nodes_stand_under_the_column_of_their_own_stage(self):
+        built = road([stage("One", ["A", "a"], weight=3), stage("Two", ["B", "b"], weight=1)])
+        heads = arrows(built)
+        self.assertEqual(heads[0].rect.left, box_of(built, "A").rect.left)
+        self.assertEqual(heads[1].rect.left, box_of(built, "B").rect.left)
+        self.assertGreater(box_of(built, "A").rect.width, box_of(built, "B").rect.width)
+
+    def test_a_node_breaks_over_the_width_of_its_own_column(self):
+        """⚠ 幅の違う段のノードを 1 つの段の幅で数えると、細い段は字が箱からあふれ、広い段は空きが残る。"""
+        body = "a body long enough to break over several lines in a narrow column " * 2
+        built = road([stage("Wide", ["Node", body], weight=3), stage("Narrow", ["Node too", body], weight=1)])
+        wide, narrow = box_of(built, "Node"), box_of(built, "Node too")
+        self.assertGreater(narrow.rect.height, wide.rect.height, "the narrow column breaks into more lines")
+        for box, heading in ((wide, "Node"), (narrow, "Node too")):
+            self.assertEqual(card_height(Page("A road"), [Card(heading, body)], box.rect.width, 1),
+                             box.rect.height)
+
+    def test_align_rows_still_lines_up_the_rows_of_stages_of_different_widths(self):
+        body = "a body long enough to break over several lines in a narrow column " * 2
+        built = road([stage("Wide", ["A", body], ["B", "b"], weight=3), stage("Narrow", ["C", body], ["D", "d"])],
+                     align_rows=True)
+        self.assertEqual(box_of(built, "B").rect.top, box_of(built, "D").rect.top)
+        self.assertEqual(box_of(built, "A").rect.height, box_of(built, "C").rect.height)
+        self.assertEqual(card_height(Page("A road"), [Card("C", body)], box_of(built, "C").rect.width, 1),
+                         box_of(built, "C").rect.height)
+
+    def test_a_name_breaks_over_the_width_its_arrowhead_has(self):
+        text = "a stage whose name runs long enough to break over a second line"
+        heads = arrows(road([stage(text, weight=1), stage("Two", weight=3)]))
+        even = arrows(road([stage(text), stage("Two")]))
+        self.assertGreater(heads[0].rect.height, even[0].rect.height)
+
+    def test_a_weight_is_a_number_above_nothing(self):
+        for bad in (0, -1, True, "2", None, [1]):
+            with self.subTest(weight=bad):
+                with self.assertRaises(PageTypeError) as raised:
+                    road([stage("One"), stage("Two", weight=bad)])
+                said = str(raised.exception)
+                self.assertIn("roadmap: stage 2", said)
+                self.assertIn("`weight` is a number above 0", said)
+
+    def test_a_bare_stage_takes_its_width_too(self):
+        heads = arrows(road([bare("One", weight=3), bare("Two"), bare("Three", goal=True)]))
+        self.assertGreater(heads[0].rect.width, 2 * heads[1].rect.width)
 
 
 def boxes(built):
