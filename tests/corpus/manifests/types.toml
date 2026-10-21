@@ -266,6 +266,20 @@ why = "an agenda's two looks: the chapter marked by its ground, the numbers in c
 
 [[pages]]
 kind = "declare"
+type = "agenda"
+title = "The chapters as cards that share the column"
+look = "cards"
+buckets = [
+  ["Pictures ― one, side by side, or on a grid", ["one", "side by side", "on a grid"]],
+  ["Diagrams ― flows, roadmaps and timelines", ["flow", "roadmap", "timeline"]],
+  ["Scaffolding", ["cards", "board"]],
+]
+highlight = 2
+highlight_item = 3
+why = "an agenda drawn as cards: a card per chapter sharing the column, its summary on a second line, and an item of the chapter in hand marked"
+
+[[pages]]
+kind = "declare"
 type = "board"
 title = "Cells that stand on a ground as deep as their value"
 table = [

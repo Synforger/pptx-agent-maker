@@ -37,3 +37,63 @@ name = "a way of numbering nobody knows is read as plain"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
 old = "    if not isinstance(numbers, str) or numbers not in NUMBERS:"
 new = "    if False:"
+
+[[mutant]]
+name = "the chapter in hand keeps the grey ground of the other cards"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = 'Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash, rounded=True)'
+new = 'Fill("agenda_card", band, p.wash, rounded=True)'
+
+[[mutant]]
+name = "the cards have square corners"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = 'Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash, rounded=True)'
+new = 'Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash)'
+
+[[mutant]]
+name = "the number of the chapter in hand is set in grey on the accent"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = 'p.paper if marked else p.muted, bold=True, align="center"))'
+new = 'p.muted, bold=True, align="center"))'
+
+[[mutant]]
+name = "a chapter's summary stays on its name's line"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        name, _, summary = title.partition(SUMMARY)\n"
+new = "        name, summary = title, \"\"\n"
+
+[[mutant]]
+name = "the cards stand as tall as their words and leave the column's foot empty"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "zip(stack.rows(len(buckets), gap=s.gap_s),"
+new = "zip(stack.split_top(stack.height * 3 // 4)[0].rows(len(buckets), gap=s.gap_s),"
+
+[[mutant]]
+name = "the items of the list are greyed like their marks"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "rows.append((ITEM_MARK, entry, t.body, p.accent if picked else p.ink, picked, indent, s.row_gap))"
+new = "rows.append((ITEM_MARK, entry, t.body, p.accent if picked else p.muted, picked, indent, s.row_gap))"
+
+[[mutant]]
+name = "the mark of the item in hand stays grey"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "                                      p.accent if bold else p.muted))"
+new = "                                      p.muted))"
+
+[[mutant]]
+name = "the chapters of the list are set as small as their items"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = '{title.split(SUMMARY, 1)[0]}", t.stage,'
+new = '{title.split(SUMMARY, 1)[0]}", t.body,'
+
+[[mutant]]
+name = "true is read as the first item"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        if (not here or isinstance(item, bool) or not isinstance(item, int)"
+new = "        if (not here or not isinstance(item, int)"
+
+[[mutant]]
+name = "the cards take the tone and the numbering of the boxes without a word"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "            if spec.get(taken) is not None:"
+new = "            if False:"

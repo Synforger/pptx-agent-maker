@@ -8,11 +8,17 @@
 揃うはずの組 = 同じ大きさの兄弟 ― 横に並び (= 左右に重ならず、上下に重なる) 高さが同じなら上端、
 縦に積まれ (= 上下に重ならず、左右に重なる) 幅が同じなら左端。線のように細い物 (= 1 mm 未満) は外す。
 
+⚠ **塗った箱の中の物と、頁の地に置いた物は兄弟ではない。**目次の右のカードの中の 1 行と、左の一覧の
+1 行が、たまたま同じ高さで横に並んで当たった (= 列ごとに別の割り方で置いた物)。片方だけが箱 (= 字を
+持たず、地を塗った図形) の中に在る組は比べない。どちらも箱の中に在る組 (= 並んだカード 2 枚の見出し) と、
+どちらも地に在る組は、今までどおり比べる。
+
 閾値は 1 mm 未満のずれ (= 案件で外すなら `[checks] near_alignment = false`)。
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from ..base.finding import Finding
@@ -38,14 +44,37 @@ def _miss(a: Shape, b: Shape) -> tuple[str, int] | None:
     return None
 
 
+#: 図形の地の指定 (= 枠の線の中の `noFill` は地ではない)
+_SHAPE_PROPERTIES = re.compile(r"<p:spPr\b.*?</p:spPr>", re.S)
+_LINE = re.compile(r"<a:ln\b.*?(?:</a:ln>|/>)", re.S)
+
+
+def _ground(shape: Shape) -> bool:
+    """A box: a shape with no words whose ground is painted (= a card, a band)."""
+    if shape.kind != "sp" or shape.texts():
+        return False
+    found = _SHAPE_PROPERTIES.search(shape.xml)
+    return not found or "<a:noFill/>" not in _LINE.sub("", found.group(0))
+
+
+def _boxed(shape: Shape, boxes: list[Shape]) -> bool:
+    """Whether the shape sits inside a box other than itself."""
+    return any(box is not shape and box.left <= shape.left and box.top <= shape.top
+               and shape.right <= box.right and shape.bottom <= box.bottom for box in boxes)
+
+
 def run(deck: Path, config: dict | None = None) -> list[Finding]:
     if (config or {}).get(NAME, True) is False:
         return []
     findings: list[Finding] = []
     for page in read(deck):
         shapes = [shape for shape in page.shapes() if shape.width >= MM and shape.height >= MM]
+        boxes = [shape for shape in shapes if _ground(shape)]
+        boxed = {id(shape): _boxed(shape, boxes) for shape in shapes}
         for index, one in enumerate(shapes):
             for other in shapes[index + 1:]:
+                if boxed[id(one)] != boxed[id(other)]:
+                    continue
                 miss = _miss(one, other)
                 if miss and 0 < miss[1] < MM:
                     edge, by = miss

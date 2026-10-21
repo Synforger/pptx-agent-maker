@@ -1,0 +1,15 @@
+# Siblings that miss by a hair: words in a card and words on the page are not siblings.
+
+tests = ["tests/test_checks.py"]
+
+[[mutant]]
+name = "words in a card and words on the page are compared as siblings"
+file = "src/pptx_agent_maker/checks/rules/near_alignment.py"
+old = "                if boxed[id(one)] != boxed[id(other)]:\n                    continue\n"
+new = ""
+
+[[mutant]]
+name = "every shape is taken to sit in a box"
+file = "src/pptx_agent_maker/checks/rules/near_alignment.py"
+old = "        boxed = {id(shape): _boxed(shape, boxes) for shape in shapes}"
+new = "        boxed = {id(shape): True for shape in shapes}"
