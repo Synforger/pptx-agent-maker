@@ -1,8 +1,8 @@
 """What a card and a band may be written with: their own sizes, no heading, a tag, a list of bullets.
 
-* `band` and `display` ― the size of the bands over and under a page, and of the big number, each its own
-  role in `[theme.type]` and in a use of the project's (= unsaid, the band is the heading and the number is
-  twice the title, as they were)
+* `band`, `display` and `tag` ― the size of the bands over and under a page, of the big number, and of a tag, each
+  its own role in `[theme.type]` and in a use of the project's (= unsaid, the band and the tag are the heading
+  and the number is twice the title, as they were)
 * a card without a heading, or with nothing in it; `align = "center"`; and, in a deck whose cards are
   `outlined`, words in the middle of the box
 * `tag = true` ― a one-line label on a pale grey ground, its line and its words in the colour of its tone
@@ -93,13 +93,13 @@ class TheBandAndTheBigNumberHaveSizesOfTheirOwn(unittest.TestCase):
                 with self.subTest(key=key, value=value), self.assertRaises(ThemeError):
                     theme_from({"type": {key: value}})
 
-    def test_a_role_nobody_reads_is_still_refused_and_the_two_new_ones_are_listed(self) -> None:
+    def test_a_role_nobody_reads_is_still_refused_and_the_derived_ones_are_listed(self) -> None:
         with self.assertRaises(ThemeError) as refused:
             theme_from({"type": {"bands": 14}})
         for name in (*SIZED, *DERIVED):
             self.assertIn(name, str(refused.exception))
 
-    def test_a_use_of_the_projects_refuses_a_role_nobody_reads_and_lists_the_two_new_ones(self) -> None:
+    def test_a_use_of_the_projects_refuses_a_role_nobody_reads_and_lists_the_derived_ones(self) -> None:
         with self.assertRaises(ThemeError) as refused:
             theme_from({"uses": {"slim": {"like": "read", "bandd": 14}}})
         for name in DERIVED:
@@ -186,13 +186,19 @@ class AlignmentAndTheMiddleOfTheBox(unittest.TestCase):
         return (first.top + TEXT_INSET_Y + (end.bottom - first.top) / 2, box.top + box.height / 2)
 
     def test_in_an_outlined_deck_the_words_stand_in_the_middle_of_the_box(self) -> None:
-        for items in ({"heading": "Head", "body": "words"}, {"heading": "Head"}, {"body": "words"}):
+        built = cards({"heading": "Head", "body": "words", "tone": "accent"}, theme=OUTLINED_PAGE)
+        words, box = self.centre(built, "Head", "words")
+        self.assertAlmostEqual(box, words, delta=2)
+
+    def test_single_words_in_an_outlined_deck_are_set_by_the_middle_of_a_frame_that_is_the_whole_box(self) -> None:
+        """⚠ 字が 1 つだけの枠は、箱の内側いっぱい (= 縦の中央揃えが置く)。字の高さから枠の上端を数えると、隣の箱と
+        字の大きさが違う時に上端が丸めの分ずれる。"""
+        for items in ({"heading": "Head"}, {"body": "words"}):
             built = cards({**items, "tone": "accent"}, theme=OUTLINED_PAGE)
-            first = "Head" if "heading" in items else "words"
-            last = "words" if "body" in items else "Head"
+            words, box = named(built, items.get("heading") or items["body"]), elements(built, "box")[0].rect
             with self.subTest(items=items):
-                words, box = self.centre(built, first, last)
-                self.assertAlmostEqual(box, words, delta=2)
+                self.assertTrue(words.middle)
+                self.assertEqual(box.inset(S.pad), words.rect)
 
     def test_the_words_of_a_box_that_has_no_room_to_spare_start_at_its_top(self) -> None:
         page = Page("T", OUTLINED)
@@ -249,8 +255,8 @@ class ATagIsOneLineOnAPaleGround(unittest.TestCase):
     def test_a_tag_is_one_line_high_and_the_words_stand_in_the_middle(self) -> None:
         for theme in (OUTLINED_PAGE, theme_from({"box_height": "page"})):
             box, words, _built = self.tag(theme)
-            self.assertAlmostEqual(box.rect.top + box.rect.height / 2,
-                                   words.rect.top + TEXT_INSET_Y + words.rect.height / 2, delta=2)
+            self.assertTrue(words.middle)
+            self.assertEqual(box.rect.inset(S.pad), words.rect)
         box, _words, _built = self.tag(DEFAULT)
         self.assertEqual(DEFAULT.line_height(T.heading) + 2 * S.pad, box.rect.height)
 

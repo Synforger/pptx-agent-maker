@@ -39,20 +39,20 @@ new = "self._take_bottom(s.band_height)"
 [[mutant]]
 name = "the height of the boxes a use writes is not read"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        base = replace(base, box_height_set=_boxed(said.get(\"box_height\"), where))\n"
+old = "                       box_height_set=_picked(said, \"box_height\", BOX_HEIGHTS, \"the height of a page's boxes\", where),\n"
 new = ""
 
 [[mutant]]
 name = "a name nobody knows is let through as the height of a use's boxes"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    if not isinstance(height, str) or height not in BOX_HEIGHTS:"
+old = "    if not isinstance(value, str) or value not in options:"
 new = "    if False:"
 
 [[mutant]]
 name = "a use that says nothing takes the toolkit's height, not the deck's"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "box_height_set=sized.box_height_set or box_height)"
-new = 'box_height_set=sized.box_height_set or "text")'
+old = "box_height_set=sized.box_height_set or box_height,"
+new = 'box_height_set=sized.box_height_set or "text",'
 
 [[mutant]]
 name = "a look in another use keeps the height of the first"

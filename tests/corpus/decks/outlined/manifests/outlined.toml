@@ -117,3 +117,18 @@ table = [
 note = "A band stands across every column and says what the rows under it have in common"
 footer = "made up for the corpus"
 why = "a plain table, and the rows that divide it"
+
+[[pages]]
+kind = "declare"
+type = "board"
+use = "blue"
+title = "A use sets its tables in a look of its own"
+table = [
+  ["Bed", "Planted", "Yield"],
+  { band = "Spring", tone = "accent" },
+  ["North", "12 Mar", "48 kg"],
+  ["South", "30 Mar", "71 kg"],
+]
+note = "The deck's tables are plain; this use's have a heading row on the accent"
+footer = "made up for the corpus"
+why = "a table in the look of a use, in a deck whose tables are another"

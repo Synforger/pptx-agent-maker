@@ -7,7 +7,7 @@ tests = ["tests/test_table_plain.py", "tests/test_corpus.py"]
 [[mutant]]
 name = "the project says plain and its tables stay as they were"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        table_look=table_look,\n"
+old = "        table_look=type.table_look_set,\n"
 new = ""
 
 [[mutant]]

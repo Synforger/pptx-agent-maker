@@ -210,6 +210,23 @@ class TheCorpusUsesEverything(unittest.TestCase):
                                  for name, use in _toml(path).get("theme", {}).get("uses", {}).items()
                                  if "box_height" in use or "band_height" in use.get("spacing", {})} - named)
 
+    def test_every_look_a_use_may_pick_for_its_tables_in_a_deck_whose_tables_are_another(self) -> None:
+        """A use's look of tables is told apart from the deck's only where the two differ, so each look is picked by a
+        use in a project whose tables are the other one."""
+        from pptx_agent_maker.layout.base.tokens import TABLE_LOOKS
+        pages = [page for manifest in MANIFESTS for page in _toml(manifest)["pages"]]
+        named = {page["use"] for page in pages if "use" in page}
+        picked = set()
+        for path in (CORPUS / "workspace.toml", *DECKS):
+            theme = _toml(path).get("theme", {})
+            deck = theme.get("table_look", TABLE_LOOKS[0])
+            for name, use in theme.get("uses", {}).items():
+                if "table_look" in use:
+                    self.assertIn(name, named, f"{path.parent.name}: the use {name!r} is named by no page")
+                    self.assertNotEqual(deck, use["table_look"], f"{name!r} picks the look its deck has")
+                    picked.add(use["table_look"])
+        self.assertEqual(set(TABLE_LOOKS), picked)
+
     def test_every_tone_and_every_ground_the_corpus_names(self) -> None:
         named = set(_toml(CORPUS / "workspace.toml")["theme"]["grounds"])
         self.assertTrue(named, "the corpus names no ground of its own")

@@ -102,11 +102,11 @@ def card_text(theme: Theme, card: Card, room: int) -> tuple[int, int]:
     """
     t = theme.type
     if card.tag:
-        if theme.wraps(card.heading, room, t.heading, bold=True) > 1:
+        if theme.wraps(card.heading, room, t.tag, bold=True) > 1:
             raise PageFullError(
                 f"the tag {card.heading!r} does not fit on one line of its box — a tag is a word or two "
                 "(= a stage, a number), not a sentence")
-        return theme.line_height(t.heading), 0
+        return theme.line_height(t.tag), 0
     head = theme.wrapped_height(card.heading, room, t.heading, bold=True) if card.heading else 0
     # 「•」の行は点の分だけ字が内に入る (= 折り返しもその幅で数える)
     width = max(room - bullet_indent(t.body), 1) if card.bullets else room
@@ -457,7 +457,7 @@ class Page:
             ink = look.ink
             if said.tag:
                 # 札: 地は薄い灰、枠と字は色の役の色 (= 塗りのカードの資料でも同じ見た目)
-                mark, ink = self.outlined_look(said.style, t.heading, True)
+                mark, ink = self.outlined_look(said.style, t.tag, True)
                 head_ink = ink
                 self.elements.append(Fill("box", card, p.wash, outline=mark.outline,
                                           heavy=mark.heavy, rounded=outlined))
@@ -474,7 +474,11 @@ class Page:
             head_ink = ink if head_ink is None else head_ink
             align = "center" if said.tag else said.align
             head_tall, body_tall = card_text(self.theme, said, max(inner.width - 2 * s.text_inset, 1))
-            if outlined or said.tag:
+            # 字が 1 つだけ (= 札、本文だけ、見出しだけ) なら、字の枠は箱の内側いっぱいで、縦の中央揃えが置く
+            alone = (outlined or said.tag) and not (heading and body)
+            if alone:
+                head = rest = inner
+            elif outlined:
                 # 字の塊 (= 見出しと本文) の真ん中を、箱の真ん中に置く
                 total = head_tall + (s.gap_s if head_tall and body_tall else 0) + body_tall
                 # 字の頭は枠の上端から `TEXT_INSET_Y` 下がるので、そのぶん枠を上げて塊の真ん中を箱の真ん中に合わせる
@@ -486,9 +490,11 @@ class Page:
             else:
                 head = rest = inner
             if body:
-                self.elements.append(Text("box_body", rest, body, t.body, ink, align=align, bullets=said.bullets))
+                self.elements.append(Text("box_body", rest, body, t.body, ink, align=align, bullets=said.bullets,
+                                          middle=alone))
             if heading:
-                self.elements.append(Text("box_heading", head, heading, t.heading, head_ink, bold=True, align=align))
+                self.elements.append(Text("box_heading", head, heading, t.tag if said.tag else t.heading, head_ink,
+                                          bold=True, align=align, middle=alone))
 
     def _panel_heading_height(self, panel: Panel, width: int) -> int:
         """How tall the heading of a panel stands at this width of its inside (= 0 without one)."""
