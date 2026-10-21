@@ -6,6 +6,8 @@
 暗い色へ変えない。
 ⚠ **ブランドの差し色は、組で通す。**差し色の地に白い字は、テンプレートの側では動かせない。検査ごと外すと
 灰色の字の取りこぼしも見えなくなるので、通してよい字の色と地の色の組を案件が書き、通した組は報告に出す。
+⚠ **検査で通した組は、組む時も寄せない。**組だけで通す検査と、寄せて組む側が別の扱いをすると、型で組んだ表だけ
+見た目が変わる。字の色は、選んだ色とその地の組が通す組に在れば、そのまま置く (= 向きが逆の組は寄せる)。
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ import io
 import re
 import sys
 import tempfile
+from dataclasses import replace
 from types import SimpleNamespace
 import unittest
 import zipfile
@@ -33,12 +36,13 @@ from pptx_agent_maker.__main__ import main  # noqa: E402
 from pptx_agent_maker.checks import report, run_all, run_built  # noqa: E402
 from pptx_agent_maker.checks.rules import contrast as check  # noqa: E402
 from pptx_agent_maker.layout.base.tokens import (  # noqa: E402
-    READABLE, READABLE_LARGE, Palette, contrast, reading_floor)
+    READABLE, READABLE_LARGE, Palette, ThemeError, allowed_pairs, contrast, reading_floor, theme_from)
 from pptx_agent_maker.project import create  # noqa: E402
 
 BRAND = Palette(ink="424242", paper="FFFFFF", accent="2E9E5B")
 #: 白い字を差し色の地に、差し色の字を白い地に (= どちらも 4.5 に届かない)
 WHITE_ON_BRAND = {"words": "FFFFFF", "ground": "2E9E5B"}
+PAIR_TOML = '{ words = "FFFFFF", ground = "2E9E5B" }'
 #: 普通の字の大きさ (= 4.5 で数える。18pt 以上と、太字の 14pt 以上は 3)
 BODY = 12.0
 #: 組んだ資料で字の色を見る語と、その字が載る地 (= 表の見出し行・濃い段のセル・箱・期間の帯・棒・矢羽根)
@@ -97,14 +101,19 @@ class WordsOnEveryShade(unittest.TestCase):
         self.assertNotEqual(BRAND.ink, BRAND.words_on(ground, BODY))
         self.assertEqual(BRAND.ink, BRAND.words_on(ground, 18))
 
-    def _built_words(self, theme: str) -> dict[str, tuple[str, float, bool]]:
-        """(colour, points, bold) of the words each caller sets on the accent (or its deep shade), as written."""
+    def _built_words(self, theme: str, allowed: str = "") -> dict[str, tuple[str, float, bool]]:
+        """(colour, points, bold) of the words each caller sets on the accent (or its deep shade), as written.
+
+        `allowed` is what the project writes under `[checks]` (= the pairs it lets through).
+        """
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder) / "project"
             create(root)
             settings = root / "workspace.toml"
-            settings.write_text(settings.read_text(encoding="utf-8")
-                                + f'\n[theme]\n{theme}\n[theme.palette]\nink = "424242"\npaper = "FFFFFF"\n'
+            text = settings.read_text(encoding="utf-8")
+            if allowed:
+                text = text.replace("\n[checks]\n", f"\n[checks]\n{allowed}\n")
+            settings.write_text(text + f'\n[theme]\n{theme}\n[theme.palette]\nink = "424242"\npaper = "FFFFFF"\n'
                                 'accent = "2E9E5B"\n', encoding="utf-8")
             (root / "w1.toml").write_text('''specimen = "specimen.pptx"
 out = "w1.pptx"
@@ -139,7 +148,7 @@ stages = [{ name = "始", nodes = [["一", "甲"]] }, { name = "終", goal = tru
             with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
                 code = main(["build", str(root), "w1"])
             self.assertEqual(0, code, said.getvalue())
-            self.assertIn("ok    contrast", said.getvalue())
+            self.assertRegex(said.getvalue(), r"(ok|pass)\s+contrast" if allowed else r"ok\s+contrast")
             with zipfile.ZipFile(root / "w1.pptx") as deck:
                 xml = "".join(deck.read(n).decode() for n in deck.namelist() if n.startswith("ppt/slides/slide"))
         built = {}
@@ -173,6 +182,58 @@ stages = [{ name = "始", nodes = [["一", "甲"]] }, { name = "終", goal = tru
         self.assertEqual((BRAND.paper, BRAND.ink), (large["段"][0], large["71%"][0]))
         self.assertNotEqual(BRAND.paper, small["段"][0])
         self.assertEqual(BRAND.paper, small["札A"][0], "a heading of 16pt bold is large")
+
+    def test_a_pair_the_project_lets_through_is_set_as_it_is_not_moved(self) -> None:
+        """White on the accent is let through by the check: the heading row of a table keeps the paper's colour."""
+        kept = self._built_words('use = "read"', f"contrast_allowed = [{PAIR_TOML}]")
+        for words in ("段", "札A", "上期"):
+            with self.subTest(words=words):
+                self.assertEqual(BRAND.paper, kept[words][0])
+        unlisted = self._built_words('use = "read"')
+        self.assertNotEqual(BRAND.paper, unlisted["段"][0], "without the pair the heading row still moves")
+
+    def test_only_the_pair_in_its_own_direction_is_kept(self) -> None:
+        """The pair the other way round, or another pair on the same ground, leaves the words moving."""
+        for written in ('{ words = "2E9E5B", ground = "FFFFFF" }', '{ words = "424242", ground = "2E9E5B" }',
+                        '{ words = "FFFFFF", ground = "62B684" }'):
+            with self.subTest(written=written):
+                moved = self._built_words('use = "read"', f"contrast_allowed = [{written}]")
+                self.assertNotEqual(BRAND.paper, moved["段"][0])
+
+    def test_a_pair_is_kept_only_on_the_ground_it_names(self) -> None:
+        """The deep shade is another ground: the words on it still move to the floor."""
+        kept = self._built_words('use = "read"', f"contrast_allowed = [{PAIR_TOML}]")
+        self.assertEqual(BRAND.words_on(BRAND.shade(3), 12.0), kept["71%"][0])
+        self.assertNotEqual(BRAND.paper, kept["71%"][0])
+
+    def test_the_palette_keeps_what_is_let_through_and_nothing_else(self) -> None:
+        """`words_on` keeps the colour it chose when the pair is let through, and moves the rest as before."""
+        allowing = replace(BRAND, allowed=allowed_pairs({"contrast_allowed": [WHITE_ON_BRAND]}))
+        self.assertEqual(BRAND.paper, allowing.words_on(BRAND.accent, BODY))
+        self.assertEqual(BRAND.paper, allowing.words_on(BRAND.accent, BODY, True))
+        for ground in (BRAND.shade(3), BRAND.shade(2)):
+            self.assertEqual(BRAND.words_on(ground, BODY), allowing.words_on(ground, BODY))
+        other_ground = "38A062"  # the paper reads best here too, and still falls short of the floor
+        self.assertNotEqual(BRAND.paper, allowing.words_on(other_ground, BODY))
+        self.assertEqual(BRAND.words_on(other_ground, BODY), allowing.words_on(other_ground, BODY))
+        other_words = replace(BRAND, allowed=allowed_pairs({"contrast_allowed": [
+            {"words": "FFFFFF", "ground": BRAND.shade(3)}]}))
+        self.assertEqual(BRAND.words_on(BRAND.shade(3), BODY), other_words.words_on(BRAND.shade(3), BODY),
+                         "the ink is what was chosen on that ground: the pair names the paper")
+        backwards = replace(BRAND, allowed=allowed_pairs({"contrast_allowed": [{"words": "2E9E5B", "ground": "FFFFFF"}]}))
+        self.assertEqual(BRAND.words_on(BRAND.accent, BODY), backwards.words_on(BRAND.accent, BODY))
+
+    def test_the_project_cannot_let_a_pair_through_from_the_palette(self) -> None:
+        with self.assertRaises(ThemeError):
+            theme_from({"palette": {"allowed": "FFFFFF"}})
+
+    def test_the_build_and_the_check_read_the_pairs_in_one_way(self) -> None:
+        """A pair written with a hash and in lower case is kept by the build and passed by the check."""
+        written = '{ words = "#ffffff", ground = "2e9e5b" }'
+        kept = self._built_words('use = "read"', f"contrast_allowed = [{written}]")
+        self.assertEqual(BRAND.paper, kept["段"][0])
+        self.assertEqual((("FFFFFF", "2E9E5B"),), allowed_pairs({"contrast_allowed": [{"words": "#ffffff",
+                                                                                      "ground": "2e9e5b"}]}))
 
     def test_a_shaded_table_built_on_that_accent_is_not_called_faded(self) -> None:
         with tempfile.TemporaryDirectory() as folder:

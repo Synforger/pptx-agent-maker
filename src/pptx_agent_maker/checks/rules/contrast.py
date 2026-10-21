@@ -27,13 +27,12 @@ import re
 import zipfile
 from pathlib import Path
 
+from ...layout.base.tokens import ALLOWED, allowed_pairs
 from ..base.colour import Palette, contrast, reading_floor, solid
 from ..base.finding import Finding, Findings
 from ..base.slide import RUN, TEXT, BuiltSlide, Shape, read
 
 NAME = "contrast"
-#: 通してよい字の色と地の色の組を書く鍵 (= `[checks]` の中)
-ALLOWED = "contrast_allowed"
 
 SHAPE_PROPERTIES = re.compile(r"<p:spPr\b[^>]*>(.*?)</p:spPr>", re.S)
 OUTLINE = re.compile(r"<a:ln\b.*?</a:ln>", re.S)
@@ -44,7 +43,6 @@ CELL_PROPERTIES = re.compile(r"<a:tcPr\b[^>]*>(.*?)</a:tcPr>", re.S)
 RUN_PROPERTIES = re.compile(r"<a:rPr\b[^>]*/>|<a:rPr\b[^>]*>.*?</a:rPr>", re.S)
 SIZE = re.compile(r'<a:rPr\b[^>]*\bsz="(\d+)"')
 BOLD = re.compile(r'<a:rPr\b[^>]*\bb="1"')
-HEX = re.compile(r"#?([0-9A-Fa-f]{6})")
 
 UNKNOWN = "?"  # 地が在るが色を決められない (= その下は探さない)
 
@@ -117,25 +115,8 @@ def _palette(deck: Path) -> Palette:
                        archive.read(master).decode("utf-8") if master else "")
 
 
-def _allowed(config: dict) -> set[tuple[str, str]]:
-    """The pairs the project lets through: (the words' colour, the ground's colour), as 6 hex digits."""
-    entries = config.get(ALLOWED, [])
-    if not isinstance(entries, list):
-        entries = [entries]
-    pairs = set()
-    for entry in entries:
-        found = [HEX.fullmatch(entry.get(key, "")) if isinstance(entry, dict) and isinstance(entry.get(key), str)
-                 else None for key in ("words", "ground")]
-        if not all(found):
-            raise ValueError(
-                f"[checks] {ALLOWED}: each pair is {{ words = \"FFFFFF\", ground = \"2E9E5B\" }} "
-                f"(= the colour of the words and of the ground they sit on, 6 hex digits each), not {entry!r}")
-        pairs.add(tuple(match.group(1).upper() for match in found))
-    return pairs
-
-
 def run(deck: Path, config: dict | None = None) -> list[Finding]:
-    allowed = _allowed(config or {})
+    allowed = set(allowed_pairs(config or {}))
     if (config or {}).get(NAME, True) is False:
         return Findings()
     palette = _palette(Path(deck))

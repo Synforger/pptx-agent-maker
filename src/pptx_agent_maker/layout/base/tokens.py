@@ -210,6 +210,34 @@ def reading_floor(points: float | None, bold: bool = False) -> float:
     return READABLE_LARGE if large else READABLE
 
 
+#: 通してよい字の色と地の色の組を書く鍵 (= 案件の `[checks]` の中)
+ALLOWED = "contrast_allowed"
+_PAIR_COLOUR = re.compile(r"#?([0-9A-Fa-f]{6})")
+
+
+def allowed_pairs(config: dict) -> tuple[tuple[str, str], ...]:
+    """The pairs a project lets through: (the words' colour, the ground's colour), as 6 upper-case hex digits.
+
+    `[checks] contrast_allowed` を読む所はここ 1 つ ― 焼いた後の検査 (= `contrast`) は、これで通す組を決め、
+    組む側 (= `Palette.words_on`) は、同じ組なら字の色を寄せない。
+    """
+    entries = config.get(ALLOWED, [])
+    if not isinstance(entries, list):
+        entries = [entries]
+    pairs = []
+    for entry in entries:
+        found = [_PAIR_COLOUR.fullmatch(entry.get(key, "")) if isinstance(entry, dict) and isinstance(entry.get(key), str)
+                 else None for key in ("words", "ground")]
+        if not all(found):
+            raise ValueError(
+                f"[checks] {ALLOWED}: each pair is {{ words = \"FFFFFF\", ground = \"2E9E5B\" }} "
+                f"(= the colour of the words and of the ground they sit on, 6 hex digits each), not {entry!r}")
+        pair = tuple(match.group(1).upper() for match in found)
+        if pair not in pairs:
+            pairs.append(pair)
+    return tuple(pairs)
+
+
 def _towards(colour: str, end: str, share: float) -> str:
     """`colour` moved `share` of the way to `end` (= 0 is `colour`, 1 is `end`)."""
     return "".join(f"{round(low + (high - low) * share):02X}"
@@ -236,6 +264,9 @@ class Palette:
     wash: str = "F3F3F3"
     rule: str = "D9D9D9"
     paper: str = "FFFFFF"
+    #: 検査で通すと決めた字の色と地の色の組 (= `[checks] contrast_allowed`。`allowed_pairs`)。色の役ではなく、
+    #: `[theme.palette]` からは書けない ― 資料を組む時に、検査と同じ設定から渡される
+    allowed: tuple[tuple[str, str], ...] = ()
 
     #: 薄い地 (= `box` / `band` / `tint`) の箱と棒が持つ枠の濃さ ― 地の色が白から離れているぶんを、
     #: この倍だけ離す。薄い地は列の地 (`wash`) とも紙とも近く、枠が無いと端が背景に溶ける
@@ -256,9 +287,14 @@ class Palette:
 
         ⚠ **下限は字の大きさと太さで選ぶ** (= `reading_floor`。検査と同じ決まり)。大きい字と太字は 3 で
         足りるので、3 に届く紙の色は暗い色へ変えない。`points` を書かない字は大きい側で数える。
+
+        ⚠ **検査で通すと決めた組は、組む時も寄せない** (= `allowed`)。選んだ字の色とその地の組が通す組に在れば、
+        その色のまま置く。向きが逆の組や、片方の色だけが同じ組は通さない (= 検査と同じ)。
         """
         floor = reading_floor(points, bold)
         ranked = sorted((self.ink, self.paper), key=lambda colour: contrast(ground, colour), reverse=True)
+        if (ranked[0].upper(), ground.upper()) in self.allowed:
+            return ranked[0]
         for colour in ranked:
             end = "000000" if _luminance(colour) <= _luminance(ground) else "FFFFFF"
             for step in range(self.STEPS + 1):
@@ -704,7 +740,7 @@ def theme_from(settings: dict | None) -> Theme:
         raise ThemeError("theme.font is empty — name a typeface, or leave the key out")
 
     colours = settings.get("palette") or {}
-    known = tuple(f.name for f in fields(Palette))
+    known = tuple(f.name for f in fields(Palette) if f.name != "allowed")
     _refuse_unknown(sorted(set(colours) - set(known)), "theme.palette", known)
     for name, value in colours.items():
         if not _HEX.match(str(value)):

@@ -103,7 +103,7 @@ file = "src/pptx_agent_maker/layout/parts/page.py"
 old = "self.look(said.style, *((t.body, False) if body else (t.heading, True)))"
 new = "self.look(said.style, t.heading, True)"
 
-# -- the pairs a project lets through (= checks/) -----------------------------
+# -- the pairs a project lets through (= read once in tokens.py; the check and the build both use them) --
 
 [[mutant]]
 name = "a pair the project names is still called"
@@ -119,15 +119,15 @@ new = "        if ratio < floor and ((colour, ground) in allowed or (ground, col
 
 [[mutant]]
 name = "a pair that is not two colours is taken"
-file = "src/pptx_agent_maker/checks/rules/contrast.py"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
 old = "        if not all(found):"
 new = "        if False:"
 
 [[mutant]]
 name = "a pair written in lower case never matches"
-file = "src/pptx_agent_maker/checks/rules/contrast.py"
-old = "        pairs.add(tuple(match.group(1).upper() for match in found))"
-new = "        pairs.add(tuple(match.group(1) for match in found))"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        pair = tuple(match.group(1).upper() for match in found)"
+new = "        pair = tuple(match.group(1) for match in found)"
 
 [[mutant]]
 name = "what was let through is not carried out of a run"
@@ -146,3 +146,41 @@ name = "the report lets pairs through silently"
 file = "src/pptx_agent_maker/checks/__init__.py"
 old = "        lines.extend(f\"  {'pass':4}  {name:<16} {what}\" for check, what in getattr(findings, \"allowed\", ())"
 new = "        lines.extend(f\"\" for check, what in ()"
+
+# -- words are kept where the project lets the pair through (= layout/base/tokens.py, deck/build.py) --
+
+[[mutant]]
+name = "words are moved even where the pair is let through"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if (ranked[0].upper(), ground.upper()) in self.allowed:"
+new = "        if False:"
+
+[[mutant]]
+name = "words are kept for the pair the other way round too"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if (ranked[0].upper(), ground.upper()) in self.allowed:"
+new = "        if (ranked[0].upper(), ground.upper()) in self.allowed or (ground.upper(), ranked[0].upper()) in self.allowed:"
+
+[[mutant]]
+name = "words of a colour are kept on every ground"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if (ranked[0].upper(), ground.upper()) in self.allowed:"
+new = "        if ranked[0].upper() in {words for words, _ in self.allowed}:"
+
+[[mutant]]
+name = "words are kept on a ground for every colour"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        if (ranked[0].upper(), ground.upper()) in self.allowed:"
+new = "        if ground.upper() in {on for _, on in self.allowed}:"
+
+[[mutant]]
+name = "the build does not hand the pairs to the palette"
+file = "src/pptx_agent_maker/deck/build.py"
+old = "    look = replace(look, under=under, palette=replace(look.palette, allowed=allowed))"
+new = "    look = replace(look, under=under)"
+
+[[mutant]]
+name = "the pairs can be written under the palette"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = '    known = tuple(f.name for f in fields(Palette) if f.name != "allowed")'
+new = "    known = tuple(f.name for f in fields(Palette))"

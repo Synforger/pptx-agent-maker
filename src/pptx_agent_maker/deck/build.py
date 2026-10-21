@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ..layout import types
 from ..layout.parts.page import PageFullError
-from ..layout.base.tokens import Theme, ThemeError, theme_from
+from ..layout.base.tokens import Theme, ThemeError, allowed_pairs, theme_from
 from ..project.files.manifest import Entry, Manifest, ManifestError
 from ..project.files.workspace import Workspace, WorkspaceError
 from ..review.take.fold import keep_safe
@@ -33,6 +33,9 @@ def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
 
     見本からはもう 1 つ読む ― 型の頁が乗るレイアウトが持つ物 (= 題の枠と、印字される物。`base/under.py`)。
 
+    検査で通すと決めた字と地の色の組 (= `[checks] contrast_allowed`) も渡す ― 組む側は、その組の字の色を
+    寄せない (= `Palette.words_on`。検査と同じ読み方で、読む所は `allowed_pairs` 1 つ)。
+
     字の大きさは、この資料が `use` で名指した使い方のもの (= 書いていなければ案件のもの)。頁が自分の
     使い方を名指す時は、ここで返した見た目から選び直す (= `Theme.using`)。
     """
@@ -43,7 +46,9 @@ def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
         under = under_of(specimen, (workspace.look or {}).get("layout_of_page"))
     except ValueError as reason:
         raise ManifestError(f"workspace.toml: {reason}") from reason
-    look = replace(theme_from(merged(specimen, workspace.look)), under=under)
+    look = theme_from(merged(specimen, workspace.look))
+    allowed = allowed_pairs((workspace.settings or {}).get("checks") or {})
+    look = replace(look, under=under, palette=replace(look.palette, allowed=allowed))
     try:
         return look.using(manifest.use or None)
     except ThemeError as reason:
