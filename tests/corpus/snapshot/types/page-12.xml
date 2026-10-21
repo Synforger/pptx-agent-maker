@@ -92,10 +92,10 @@
 <a:tableStyleId>{2D5ABB26-0587-4C30-8999-92F81FD0307C}</a:tableStyleId>
 </a:tblPr>
 <a:tblGrid>
-<a:gridCol w="1582197"/>
-<a:gridCol w="1475831"/>
-<a:gridCol w="1369465"/>
-<a:gridCol w="6900507"/>
+<a:gridCol w="1367751"/>
+<a:gridCol w="1106704"/>
+<a:gridCol w="985288"/>
+<a:gridCol w="7868257"/>
 </a:tblGrid>
 <a:tr h="278580">
 <a:tc>
@@ -485,8 +485,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="2739300"/>
-<a:ext cx="11328000" cy="3794700"/>
+<a:off x="432000" y="2518320"/>
+<a:ext cx="11328000" cy="4015680"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>

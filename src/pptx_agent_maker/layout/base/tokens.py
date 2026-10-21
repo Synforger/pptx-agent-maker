@@ -596,18 +596,22 @@ class Theme:
 
         行数だけを渡すと 1 行 1 段として数える。中身と列幅を渡すと**折り返しを
         勘定する** ― 長いラベルの列は 2 段にも 3 段にもなる。
+
+        ⚠ **折り返しは描かれる幅で数える** (= `wraps`)。全角 1 字ぶんで数える `lines` では、1 行に収まる
+        全角の名前の列が 2 段と数えられ、入る表が「入らない」で止まった。見出しの行と区切りの行は太字で数える。
         """
         if isinstance(rows, int):
             return rows * self.table_row_height()
         if widths is None:
             return len(rows) * self.table_row_height()
         total = 0
-        for row in rows:
+        for index, row in enumerate(rows):
             tallest = 1
+            bold = index == 0 or divides(row)
             # 区切りの行は全部の列をまたぐ (= 1 列の幅で折ると、長い区切りが何段にも数えられる)
             for cell, width in zip(row, [sum(widths)] if divides(row) else widths):
                 usable = width - 2 * self.spacing.cell_pad_x
-                tallest = max(tallest, self.lines(cell, max(usable, 1)))
+                tallest = max(tallest, self.wraps(str(cell), max(usable, 1), bold=bold))
             total += tallest * self.line_height() + 2 * self.spacing.cell_pad_y
         return total
 
@@ -615,16 +619,26 @@ class Theme:
         """Share the width out by how much each column has to say.
 
         均等に割ると、長いラベルの列だけが折り返して表が縦に伸び、下に置いたはずの
-        読み方を飲み込む。中身の最大の長さに比例させ、どの列にも下限を置く。
+        読み方を飲み込む。列ごとに、いちばん長いセルが 1 行で要る幅 (= 描かれる幅と、セルの左右の余白) を
+        測る。全部の列が折れずに入るなら、まずその幅を配り、余りを同じ比で足す。入らない時は、どの列にも
+        下限を置いて、残りをその比で分ける。
+
+        ⚠ **要る幅は字の数でなく描かれる幅で測る** (= `width`)。字の数の比で配った間は、全角の名前の列が
+        数字の列と同じ割合でしか広がらず、折れて表が倍の高さに数えられた。見出しの行は太字で測る。
         """
+        heading = rows[0] if rows and not divides(rows[0]) else None
         rows = [row for row in rows if not divides(row)] or rows        # 区切りの行は列の幅を決めない
         columns = max(len(row) for row in rows)
-        want = [max((len(str(row[i])) if i < len(row) else 0) for row in rows) or 1
+        pad = 2 * self.spacing.cell_pad_x
+        want = [max((self.width(str(row[i]), bold=row is heading) if i < len(row) else 0) for row in rows) + pad
                 for i in range(columns)]
-        floor = total // (columns * 3)
-        room = total - floor * columns
         scale = sum(want)
-        widths = [floor + round(room * w / scale) for w in want]
+        if scale <= total:
+            widths = [w + round((total - scale) * w / scale) for w in want]
+        else:
+            floor = total // (columns * 3)
+            room = total - floor * columns
+            widths = [floor + round(room * w / scale) for w in want]
         widths[-1] = total - sum(widths[:-1])
         return widths
 
