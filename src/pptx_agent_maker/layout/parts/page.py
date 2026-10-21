@@ -37,7 +37,7 @@ from pathlib import Path
 
 from ..base.geometry import Rect, cm
 from ..base.tokens import DEFAULT, MONO_FACE, Theme
-from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Mark, Shade, Table, Text
+from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Mark, Shade, Table, Text, bullet_indent
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -66,6 +66,40 @@ class Card:
     body: str = ""
     #: 地の色の役・アイコン・点線・強調 (= 棒や矢羽根と同じ 1 組)
     style: Style = Style()
+    #: 札 (= 薄い灰の地に、色の役の色の枠と太字を 1 行・中央寄せで置く。見出しだけを持つ)
+    tag: bool = False
+    #: 字の寄せ (= `CARD_ALIGNS`)。札は常に中央
+    align: str = "left"
+    #: `body` の各行を「•」の行にする (= 本文は行ごとに改行で区切って持つ)
+    bullets: bool = False
+
+
+#: カードの字の寄せ
+CARD_ALIGNS = ("left", "center")
+
+#: pptx の文字の枠が、上下に自分で取る余白 (= 枠の上端から字の頭までの距離)。字を縦の中央に置く時、
+#: この分だけ枠を上へ上げて、字の塊の真ん中を箱の真ん中に合わせる
+TEXT_PAD_Y = 45720
+
+
+def card_text(theme: Theme, card: Card, room: int) -> tuple[int, int]:
+    """(the height of the heading, the height of the body) of a card, at this width for its words.
+
+    カードの高さを数える側 (= `card_height`) と、置く側 (= `Page.boxes`) が同じ数を使う。見出しの無いカードは
+    見出しの高さが 0、本文の無いカードは本文の高さが 0。札は 1 行で、折れるなら止まる。
+    `room` は文字が使える幅 (= 文字の枠は左右に `text_inset` を取る)。
+    """
+    t = theme.type
+    if card.tag:
+        if theme.wraps(card.heading, room, t.heading, bold=True) > 1:
+            raise PageFullError(
+                f"the tag {card.heading!r} does not fit on one line of its box — a tag is a word or two "
+                "(= a stage, a number), not a sentence")
+        return theme.line_height(t.heading), 0
+    head = theme.wrapped_height(card.heading, room, t.heading, bold=True) if card.heading else 0
+    # 「•」の行は点の分だけ字が内に入る (= 折り返しもその幅で数える)
+    width = max(room - bullet_indent(t.body), 1) if card.bullets else room
+    return head, theme.wrapped_height(card.body, width, t.body) if card.body else 0
 
 
 class PageFullError(RuntimeError):
@@ -268,12 +302,12 @@ class Page:
         if self.theme.band_look == "outlined":
             hue = p.muted if conclusion else p.accent
             self.elements.append(Fill("band", rect, p.thinned(p.BAND_WASH, hue), outline=hue, rounded=True))
-            self.elements.append(Text("band_text", rect.inset(s.pad), text, t.body if conclusion else t.heading,
+            self.elements.append(Text("band_text", rect.inset(s.pad), text, t.body if conclusion else t.band,
                                       p.ink if conclusion else hue, bold=True))
             return
         self.elements.append(Fill("band", rect, p.rule if conclusion else p.band))
         self.elements.append(
-            Text("band_text", rect.inset(s.pad), text, t.heading, p.ink, bold=conclusion)
+            Text("band_text", rect.inset(s.pad), text, t.band, p.ink, bold=conclusion)
         )
 
     def ground(self, tone: str, points: float | None = None, bold: bool = False) -> tuple[str, str, str]:
@@ -378,12 +412,15 @@ class Page:
 
         地の色は箱ごとの `tone` (= `TONES`)。薄い地の箱は枠を持つ (= `ground`)。アイコンの
         在る箱は、左上にアイコン、文字はその右に置く。`card_look = "outlined"` の資料では、色を運ぶ箱は
-        地ではなく枠と見出しの字で色を言い、角を丸める (= `outlined_look`)。
+        地ではなく枠と見出しの字で色を言い、角を丸め、字を縦の中央に置く (= `outlined_look`)。
+
+        見出しも本文も省ける (= 本文だけのカード、空のカード)。`align = "center"` は字を中央寄せにし、
+        本文の各行を「•」の行にもできる。札 (= `tag`) は薄い灰の地に、色の役の色の枠と太字を 1 行で置く。
 
         ⚠ **見出しの高さは字数で決める。**比で割っていた間は、2 行に折り返した見出しが
         本文の上に乗った (= 焼いて初めて出た。枠の中に収まっているので検査は通る)。
         """
-        t, s = self.theme.type, self.theme.spacing
+        t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
         columns = rect.columns(len(cards), gap if gap is not None else s.gap_m)
         for card, said in zip(columns, cards):
             heading, body = said.heading, said.body
@@ -392,8 +429,15 @@ class Page:
             outlined = self.theme.card_look == "outlined"
             look, head_ink = self.outlined_look(said.style, *size) if outlined else (self.look(said.style, *size), None)
             ink = look.ink
-            self.elements.append(Fill("box", card, look.fill, outline=look.outline,
-                                      dashed=look.dashed, heavy=look.heavy, rounded=outlined))
+            if said.tag:
+                # 札: 地は薄い灰、枠と字は色の役の色 (= 塗りのカードの資料でも同じ見た目)
+                mark, ink = self.outlined_look(said.style, t.heading, True)
+                head_ink = ink
+                self.elements.append(Fill("box", card, p.wash, outline=mark.outline,
+                                          heavy=mark.heavy, rounded=outlined))
+            else:
+                self.elements.append(Fill("box", card, look.fill, outline=look.outline,
+                                          dashed=look.dashed, heavy=look.heavy, rounded=outlined))
             inner = card.inset(s.pad)
             if said.style.icon:
                 # ⚠ アイコンは頁の図解に数えない (= 図の要る頁が、アイコンだけで通らないように)
@@ -401,15 +445,23 @@ class Page:
                 square = Rect(inner.left, inner.top, s.icon, s.icon)
                 self.elements.append(Figure("icon", square.fit(aspect), Path(source), aspect))
                 inner = inner.inset(left=s.icon + s.gap_s)
-            if body:
-                needed = self.theme.wrapped_height(
-                    heading, max(inner.width - 2 * s.text_inset, 1), t.heading, bold=True)
-                head, rest = inner.split_top(
-                    min(needed, max(inner.height - s.gap_s, 1)), gap=s.gap_s)
-                self.elements.append(Text("box_body", rest, body, t.body, ink))
+            head_ink = ink if head_ink is None else head_ink
+            align = "center" if said.tag else said.align
+            head_tall, body_tall = card_text(self.theme, said, max(inner.width - 2 * s.text_inset, 1))
+            if outlined or said.tag:
+                # 字の塊 (= 見出しと本文) の真ん中を、箱の真ん中に置く
+                total = head_tall + (s.gap_s if head_tall and body_tall else 0) + body_tall
+                top = inner.top + max((inner.height - total) // 2, 0) - TEXT_PAD_Y
+                head = Rect(inner.left, top, inner.width, head_tall)
+                rest = Rect(inner.left, head.bottom + (s.gap_s if head_tall else 0), inner.width, body_tall)
+            elif body and heading:
+                head, rest = inner.split_top(min(head_tall, max(inner.height - s.gap_s, 1)), gap=s.gap_s)
             else:
-                head = inner
-            self.elements.append(Text("box_heading", head, heading, t.heading, ink if head_ink is None else head_ink, bold=True))
+                head = rest = inner
+            if body:
+                self.elements.append(Text("box_body", rest, body, t.body, ink, align=align, bullets=said.bullets))
+            if heading:
+                self.elements.append(Text("box_heading", head, heading, t.heading, head_ink, bold=True, align=align))
 
     def figure(self, rect: Rect, source: Path | str, aspect: float, *, caption: str = "") -> Rect:
         """An image, kept at its own aspect ratio inside the area given.

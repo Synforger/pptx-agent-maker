@@ -21,7 +21,8 @@ from pptx_agent_maker.layout.types.bodies import chart as charts  # noqa: E402
 from pptx_agent_maker.layout.types.bodies.compose import BODIES, PARTS  # noqa: E402
 from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import TYPES, EXTRA_KEYS, FRAME_KEYS  # noqa: E402
-from pptx_agent_maker.layout.types.core.read import HARVEY, LOOK_KEYS, MARKS  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DERIVED  # noqa: E402
+from pptx_agent_maker.layout.types.core.read import CARD_KEYS, HARVEY, LOOK_KEYS, MARKS  # noqa: E402
 from pptx_agent_maker.project.files.manifest import KINDS  # noqa: E402
 
 CORPUS = REPO / "tests" / "corpus"
@@ -105,6 +106,18 @@ class TheCorpusUsesEverything(unittest.TestCase):
             with self.subTest(what):
                 used = {key for box in written if isinstance(box, dict) for key in box}
                 self.assertEqual(set(), set(LOOK_KEYS) - used, f"{what}: looks the corpus never writes")
+
+    def test_every_key_of_a_card_and_every_way_to_write_its_body(self) -> None:
+        written = ([card for page in DECLARED for card in page.get("cards", []) if isinstance(card, dict)]
+                   + [cell["card"] for cell in CELLS if "card" in cell])
+        self.assertEqual(set(), set(CARD_KEYS) - {key for card in written for key in card})
+        self.assertTrue(any(isinstance(card.get("body"), list) for card in written), "no card has a list of bullets")
+        self.assertTrue(any(isinstance(card.get("body"), str) for card in written))
+        self.assertTrue(any(not card.get("heading") for card in written), "no card leaves its heading out")
+
+    def test_every_role_a_use_of_the_project_sizes_apart_from_the_others(self) -> None:
+        uses = _toml(CORPUS / "workspace.toml")["theme"]["uses"]
+        self.assertEqual(set(), set(DERIVED) - {key for use in uses.values() for key in use})
 
     def test_every_tone_and_every_ground_the_corpus_names(self) -> None:
         named = set(_toml(CORPUS / "workspace.toml")["theme"]["grounds"])

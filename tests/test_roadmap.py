@@ -178,7 +178,7 @@ class ItsNodes(unittest.TestCase):
 
     def test_a_bad_node_names_its_stage_and_place(self):
         with self.assertRaises(PageTypeError) as raised:
-            road([stage("One"), stage("Two", ["A", "a"], {"body": "no heading"})])
+            road([stage("One"), stage("Two", ["A", "a"], {"heading": "B", "colour": "red"})])
         self.assertIn("roadmap: stage 2, node 2", str(raised.exception))
 
 
@@ -263,9 +263,9 @@ class AnIcon(unittest.TestCase):
         built = self.cards({"heading": "One", "body": "a", "tone": "tint"})
         self.assertEqual(DEFAULT.palette.tint, box_of(built, "One").colour)
 
-    def test_a_card_written_as_a_table_says_its_heading(self):
+    def test_a_card_written_as_a_table_names_its_place_when_it_is_wrong(self):
         with self.assertRaises(PageTypeError) as raised:
-            self.cards(["One", "a"], {"body": "b"})
+            self.cards(["One", "a"], {"heading": "Two", "colour": "red"})
         self.assertIn("cards: card 2", str(raised.exception))
 
 

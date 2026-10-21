@@ -187,7 +187,7 @@ new = "    if False:"
 [[mutant]]
 name = "a size left alone need not clear a floor that was raised"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    for name in SIZED:\n        value = getattr(sized, name)"
+old = "    for name in (*SIZED, *DERIVED):\n        value = getattr(sized, name)"
 new = "    for name in declared:\n        value = getattr(sized, name)"
 
 [[mutant]]

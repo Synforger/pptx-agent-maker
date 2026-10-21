@@ -20,6 +20,14 @@ like = "read"
 heading = 14
 body = 11
 
+# A use that sets the size of the bands and of the big number apart from the headings.
+[theme.uses.banded]
+like = "read"
+heading = 12
+body = 11
+band = 16
+display = 40
+
 # A use that sets its own floor and spacing (= like the toolkit's sheet, tighter still).
 [theme.uses.proposal]
 like = "sheet"

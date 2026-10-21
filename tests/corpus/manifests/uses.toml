@@ -82,3 +82,31 @@ cards = [
   { heading = "Pad", body = "and one distance written by itself" },
   { heading = "Name", body = "a page picks all of it by one name" },
 ]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "banded"
+title = "The band is set apart from the heading of a card"
+condition = "Headings are 12 points; this band stays at 16"
+conclusion = "The band's height follows the size it is set in"
+card_columns = 3
+cards = [
+  { heading = "Heading", body = "twelve points, as the use says" },
+  { heading = "Band", body = "sixteen points, said on its own" },
+  { heading = "Height", body = "taken from the band, not from the heading" },
+]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+use = "banded"
+title = "The big number is set apart from the title"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = "48"
+role = "display"
+[[pages.rows.cells]]
+weight = 2
+card = { heading = "Display", body = "forty points, said by the use" }

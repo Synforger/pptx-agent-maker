@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ...base.geometry import Rect
-from ...parts.page import Card, Page
+from ...parts.page import Card, Page, card_text
 from .read import read_card, Spec
 from .registry import PageTypeError
 
@@ -25,9 +25,8 @@ def card_height(page: Page, cards, width: int, columns: int) -> int:
     for card in cards:
         # アイコンの在る箱は、文字がアイコンの右に寄るぶん狭く、アイコンより低くはならない
         room = max(inner - (s.icon + s.gap_s if card.style.icon else 0), 1)
-        tall = page.theme.wrapped_height(card.heading, room, ty.heading, bold=True)
-        if card.body:
-            tall += s.gap_s + page.theme.wrapped_height(card.body, room, ty.body)
+        head, body = card_text(page.theme, card, room)
+        tall = head + (s.gap_s if head and body else 0) + body
         tallest = max(tallest, tall, s.icon if card.style.icon else 0)
     return tallest + 2 * s.pad
 

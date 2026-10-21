@@ -233,7 +233,7 @@ class WhatItRefuses(unittest.TestCase):
                 self.refused([row({**card("A"), "weight": value})], "`weight` is a number above 0")
 
     def test_a_card_written_wrong_names_its_cell(self):
-        self.refused([row(card("A"), {"card": {"body": "no heading"}})], "compose: row 1, cell 2, card")
+        self.refused([row(card("A"), {"card": {"heading": "B", "colour": "red"}})], "compose: row 1, cell 2, card")
 
     def test_too_much_stops_the_page_and_nothing_shrinks(self):
         rows = [row(card(f"Card {n}", "a body long enough to break over a line or two " * 3)) for n in range(12)]

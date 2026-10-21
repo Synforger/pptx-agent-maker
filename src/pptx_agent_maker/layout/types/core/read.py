@@ -12,7 +12,7 @@ from typing import Callable
 from ...base.tokens import DEFAULT, Palette, Theme
 from ...parts.elements import Mark, Shade
 from ...parts.look import Style, TONES
-from ...parts.page import Card
+from ...parts.page import CARD_ALIGNS, Card
 from .registry import PageTypeError
 
 
@@ -170,20 +170,60 @@ def read_style(spec: Spec, item: dict, what: str, unsaid: str) -> Style:
 ICON_FORMATS = (".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff")
 
 
+#: カードの表に書けるキー (= 見出しと本文、見た目の 4 つ、札と字の寄せ)。箱の形をした物のうち、これを読むのは
+#: カードと流れ図・道のりのノード (= 同じ箱) だけで、棒と矢羽根は `LOOK_KEYS` だけを読む
+CARD_KEYS = ("heading", "body", *LOOK_KEYS, "tag", "align")
+
+
+def _body(value, what: str) -> tuple[str, bool]:
+    """A card's body, and whether it is a list of bullets.
+
+    文字列は段落のまま。配列は 1 件が「•」の 1 行で、本文は行ごとに改行で区切って持つ。
+
+    ⚠ **1 件の中の改行は拒む。**改行を許すと、1 件が点の付く行 2 つに割れて、書いた件数と点の数が合わない。
+    """
+    if not isinstance(value, (list, tuple)):
+        return str(value), False
+    items = [str(item).strip() for item in value]
+    if not items:
+        raise PageTypeError(f"{what}: `body` is an empty list — write the lines, or leave `body` out")
+    for number, item in enumerate(items, start=1):
+        if not item:
+            raise PageTypeError(f"{what}: line {number} of `body` is empty — a bullet says something")
+        if "\n" in item:
+            raise PageTypeError(f"{what}: line {number} of `body` has a line break — one item is one bullet; "
+                                "write it as two items")
+    return "\n".join(items), True
+
+
 def read_card(spec: Spec, item, what: str) -> Card:
     """One card, or one node of a flow or a roadmap (= the same box, written the same two ways).
 
     書き方は 2 つ ― `["見出し", "本文"]` か、色の役やアイコンを付けるときの
     `{ heading = "…", body = "…", tone = "accent", icon = "device.png", tentative = true,
     strong = true }`。
+
+    表の書き方では見出しも本文も省ける (= 本文だけのカード、相手が書き込む空のカード)。`body` に配列を
+    書くと「•」の行、`align = "center"` で中央寄せ、`tag = true` で札 (= 見出しだけを 1 行で置く)。
     """
     if isinstance(item, dict):
-        only_keys(item, {"heading", "body", *LOOK_KEYS}, what)
-        if not str(item.get("heading", "")).strip():
-            raise PageTypeError(f"{what} has no `heading` — a box says what it is")
-        return Card(str(item["heading"]), str(item.get("body", "")), read_style(spec, item, what, TONES[0]))
+        only_keys(item, set(CARD_KEYS), what)
+        heading = str(item.get("heading", ""))
+        body, bullets = _body(item.get("body", ""), what)
+        align = item.get("align", "left")
+        if not isinstance(align, str) or align not in CARD_ALIGNS:
+            raise PageTypeError(f"{what}: `align` is {' or '.join(repr(name) for name in CARD_ALIGNS)}, not {align!r}")
+        style = read_style(spec, item, what, TONES[0])
+        tag = _flag(item, "tag", what)
+        if tag:
+            if not heading.strip():
+                raise PageTypeError(f"{what}: a tag is its heading — write the words it carries")
+            if body.strip() or style.icon:
+                raise PageTypeError(f"{what}: a tag is one line of its heading — it takes no `body` and no `icon`")
+        return Card(heading, body, style, tag=tag, align=align, bullets=bullets)
     if isinstance(item, (list, tuple)) and len(item) == 2:
-        return Card(str(item[0]), str(item[1]))
+        body, bullets = _body(item[1], what)
+        return Card(str(item[0]), body, bullets=bullets)
     raise PageTypeError(
         f"{what} is {item!r} — write it as [\"heading\", \"body\"], or as a table "
         "{ heading = …, body = …, tone = …, icon = … }")
