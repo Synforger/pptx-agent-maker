@@ -18,6 +18,10 @@
   同じ段のカードは、その段で一番高いカードに揃う
 * 絵や型の入った段、`weight` を書いた段は、**残りの高さを `weight` の比で分け合う**
 * そういう段の中に置いたカードや文章は、自分の高さのまま上に寄る
+* **頁の高さを使う資料** (= `[theme] box_height = "page"`) では、カードを持つ段は、残りを取る段が無ければ、
+  **残りの高さを等しく受ける** (= 字の分の高さに足す。字の多い段は字の少ない段より高いまま)。絵や型の段と
+  `weight` を書いた段が残りを取るなら、カードの段は字の分のまま。カードは、置かれたマスの高さを使い切る。
+  文章・表・要点は、自分の高さのまま上に寄る
 
 ⚠ **この型は図を要らない頁として扱う。**カードだけで組む頁 (= 目標と柱) を拒むと、また指定を
 曲げて組むことになる。
@@ -32,7 +36,7 @@ from ...parts.look import Style
 from ...parts.page import Card, Page, PageFullError, Voice
 from ..core.registry import TYPES, PageTypeError, register
 from ..core.read import Spec, read_card, read_table, read_tone, only_keys
-from ..core.stack import card_height
+from ..core.stack import card_height, spread
 from . import arrange
 from .chart import place_chart
 
@@ -68,17 +72,23 @@ def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> 
     """Lay rows down inside `area`: natural rows at their own height, the rest sharing what is left."""
     gap = page.theme.spacing.gap_m
     laid = _measure(page, spec, rows, area.width, where)
-    fixed = sum(height for _row, _cells, height, _weight in laid if height is not None)
-    shares = sum(weight for _row, _cells, height, weight in laid if height is None)
+    fixed = sum(height for _row, _cells, height, _weight, _g in laid if height is not None)
+    shares = sum(weight for _row, _cells, height, weight, _g in laid if height is None)
     left_over = area.height - fixed - gap * (len(laid) - 1)
     if left_over < 0 or (shares and left_over <= 0):
         raise PageFullError(
             f"{where}: the rows need {fixed + gap * (len(laid) - 1)} EMU of height before any "
             f"picture or diagram gets room, and there are {area.height} — fewer or shorter "
             "parts, or two pages; nothing will shrink")
+    # 残りを取る段 (= 絵や型) が無ければ、カードを持つ段が残りを等しく受ける (= `weight` を書いた段は取る側)
+    growing = sum(1 for _row, _cells, height, _weight, grows in laid if grows and height is not None)
+    more = iter(spread(left_over, growing) if growing else [])
     top = area.top
-    for number, (row, cells, height, weight) in enumerate(laid, start=1):
-        tall = height if height is not None else int(left_over * weight / shares)
+    for number, (row, cells, height, weight, grows) in enumerate(laid, start=1):
+        if height is None:
+            tall = int(left_over * weight / shares)
+        else:
+            tall = height + (next(more) if grows and not shares else 0)
         for index, (cell, column, natural) in enumerate(cells, start=1):
             rect = Rect(area.left + column.left, top, column.width, tall)
             seen.append((str(cell["id"]) if "id" in cell else None, rect))
@@ -86,8 +96,18 @@ def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> 
         top += tall + gap
 
 
+def _grows(page: Page, cell: dict) -> bool:
+    """Whether a cell holds boxes that take the height their row has (= a card, or rows with one inside).
+
+    頁の高さを使う資料 (= `box_height = "page"`) でだけ、カードは字の分の高さで止まらない。
+    """
+    if page.theme.box_height != "page":
+        return False
+    return "card" in cell or any(_grows(page, inner) for row in cell.get("rows", []) for inner in row["cells"])
+
+
 def _measure(page: Page, spec: Spec, rows, width: int, where: str):
-    """Each row with its cells, the row's own height (None = it shares the rest) and its share."""
+    """Each row with its cells, the row's own height (None = it shares the rest), its share, and whether it grows."""
     if not isinstance(rows, list) or not rows:
         raise PageTypeError(f"{where}: `rows` is empty — write at least one [[…rows]] with its cells")
     gap = page.theme.spacing.gap_m
@@ -107,7 +127,7 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
         shares = "weight" in row
         naturals = [natural for _cell, _column, natural in measured]
         height = None if shares or None in naturals else max(naturals)
-        laid.append((row, measured, height, _weight(row, what)))
+        laid.append((row, measured, height, _weight(row, what), any(_grows(page, cell) for cell in cells)))
     return laid
 
 
@@ -167,9 +187,9 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
             raise PageFullError(f"{what}: {reason}") from reason
     if part == "rows":
         laid = _measure(page, spec, cell["rows"], width, what)
-        if any(height is None for _row, _cells, height, _weight in laid):
+        if any(height is None for _row, _cells, height, _weight, _g in laid):
             return None
-        return sum(height for _r, _c, height, _w in laid) + s.gap_m * (len(laid) - 1)
+        return sum(height for _r, _c, height, _w, _g in laid) + s.gap_m * (len(laid) - 1)
     return None                                   # 絵と型は、渡された高さをそのまま使う
 
 
@@ -179,6 +199,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
 
     `own_row` は、段が中身の言葉ぶんの高さの段か (= その段のカードは段の高さに揃える)。
     残りを分け合う段では、自分の高さを持つ部品は自分の高さのまま上に寄る (= 頁の高さを配らない)。
+    頁の高さを使う資料 (= `box_height = "page"`) では、カードはどの段でも置かれたマスを使い切る。
 
     ⚠ **分け合う段が、自分の高さを持つ部品より低ければ止まる。**段の高さに切り詰めて置いていた間は、
     カードの字が箱からはみ出し、文章の枠は字より短かった。入れ子の段と表は、自分で同じことを言う。
@@ -191,7 +212,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
     fitted = rect if natural is None else Rect(rect.left, rect.top, rect.width, min(natural, rect.height))
     try:
         if part == "card":
-            page.boxes(rect if own_row else fitted, [_the_card(spec, cell, what)])
+            page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)])
         elif part == "table":
             page.table(fitted, _table(cell, what))
         elif part == "text" and cell.get("role") == "display":

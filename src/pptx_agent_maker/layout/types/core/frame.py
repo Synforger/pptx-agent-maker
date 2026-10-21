@@ -62,8 +62,12 @@ def place_legend(page: Page, names: list[str] | None, area: Rect) -> None:
     page.legend(Rect(area.left, used + page.theme.spacing.gap_s, area.width, height), names)
 
 
-def place_cards(page: Page, spec: Spec, area: Rect) -> Rect:
-    """Cards above the body, only as tall as their own words."""
+def place_cards(page: Page, spec: Spec, area: Rect, *, fill: bool = False) -> Rect:
+    """Cards above the body, only as tall as their own words.
+
+    `fill` は、カードが頁の本体そのもの (= `cards` の型。`box_height = "page"` の資料) の時 ― 字の分の
+    高さを超えたぶんは、カードの行が等しく受けて、`area` を使い切る (= 残りは、高さの無い枠)。
+    """
     if spec.get("cards") is None:
         return area
     cards = spec.cards()
@@ -75,6 +79,11 @@ def place_cards(page: Page, spec: Spec, area: Rect) -> Rect:
     lines = -(-len(cards) // columns)
     tall = card_height(page, cards, area.width, columns)
     wanted = tall * lines + page.theme.spacing.gap_m * (lines - 1)
+    if fill and wanted <= area.height:
+        rest = Rect(area.left, area.bottom, area.width, 0)
+        for index, row in enumerate(area.rows(lines, gap=page.theme.spacing.gap_m)):
+            page.boxes(row, cards[index * columns:(index + 1) * columns])
+        return rest
     if wanted >= area.height:
         raise PageFullError(
             f"the cards alone need {wanted} EMU and the body has {area.height} — "

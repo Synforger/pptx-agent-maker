@@ -98,9 +98,15 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
     )
     spec = Spec(data, asset, aspect, theme)
     whole = page.body
-    area = place_cards(page, spec, whole)
-    area, trailing = reserve_trailing(page, spec, area)
-    area, legend = reserve_legend(page, spec, area)
+    if name == "cards" and theme.box_height == "page":
+        # カードが本体そのもの: 表・読み方・凡例が要る高さを先に取り、残りをカードが使い切る
+        area, trailing = reserve_trailing(page, spec, whole)
+        area, legend = reserve_legend(page, spec, area)
+        area = place_cards(page, spec, area, fill=True)
+    else:
+        area = place_cards(page, spec, whole)
+        area, trailing = reserve_trailing(page, spec, area)
+        area, legend = reserve_legend(page, spec, area)
     filler(page, spec, area)
     place_legend(page, legend, Rect(area.left, whole.top, area.width, area.bottom - whole.top))
     place_trailing(page, spec, trailing)

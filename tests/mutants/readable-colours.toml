@@ -100,8 +100,8 @@ new = "        look = self.look(style, size)\n"
 [[mutant]]
 name = "a box takes the colour of its heading, not of its body"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "self.look(said.style, *((t.body, False) if body else (t.heading, True)))"
-new = "self.look(said.style, t.heading, True)"
+old = "size = (t.body, False) if body else (t.heading, True)"
+new = "size = (t.heading, True)"
 
 # -- the pairs a project lets through (= read once in tokens.py; the check and the build both use them) --
 
