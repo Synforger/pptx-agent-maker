@@ -115,3 +115,45 @@ name = "the mark of a chapter goes back into the chapter's words"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
 old = "rows.append((CHAPTER_MARK, colour, title.split(SUMMARY, 1)[0], t.stage,"
 new = "rows.append((CHAPTER_MARK, colour, CHAPTER_MARK + \" \" + title.split(SUMMARY, 1)[0], t.stage,"
+
+[[mutant]]
+name = "the names under an item stand under every chapter, not only the one in hand"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "if not here or number == here else []"
+new = "if True else []"
+
+[[mutant]]
+name = "the names under an item never stand"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "if not here or number == here else []"
+new = "if False else []"
+
+[[mutant]]
+name = "the cards leave out the names under an item"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "s.row_gap) for name in under)"
+new = "s.row_gap) for name in under[:0])"
+
+[[mutant]]
+name = "the names under an item stand one step in, level with the item"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "False, 2 * indent, s.row_gap)"
+new = "False, indent, s.row_gap)"
+
+[[mutant]]
+name = "the boxes list the names under an item one step in, level with the item"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = 'lines.extend(f"        {name}" for name in under)'
+new = 'lines.extend(f"    {name}" for name in under)'
+
+[[mutant]]
+name = "an item holding something deeper under it is read as it stands"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "or any(isinstance(name, (list, tuple)) for name in item[1])):"
+new = "or False):"
+
+[[mutant]]
+name = "an item that is a name and a name is read as a name with names under it"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "or not isinstance(item[1], (list, tuple))"
+new = "or False"

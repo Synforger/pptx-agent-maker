@@ -458,6 +458,50 @@ class WhatTheTypesRefuse(unittest.TestCase):
         self.assertEqual(["しょう 2", "つぎ"], [e.text for e in picked])
         self.assertEqual([p.accent, p.muted, p.accent], [e.colour for e in self._kind(page, "agenda_mark")][2:5])
 
+    NESTED = [["しょう 1", [["なか 1", ["ページ a", "ページ b"]], "こうもく"]],
+              ["しょう 2", [["なか 2", ["ページ c"]], ["なか 3", ["ページ d", "ページ e"]]]]]
+
+    def test_an_item_can_hold_the_names_under_it_and_only_the_chapter_in_hand_shows_them(self):
+        """小項目の下の段は今の章だけ、 小項目よりもう一段下げて並ぶ (= 字は本文の色、 印だけ灰)。"""
+        page, p = build({**self.CARDS, "buckets": self.NESTED, "highlight": 2}), DEFAULT.palette
+        rows = self._kind(page, "agenda_item")
+        self.assertEqual(["しょう 1", "なか 1", "こうもく", "しょう 2", "なか 2", "ページ c", "なか 3", "ページ d",
+                          "ページ e"], [e.text for e in rows])
+        marks = self._kind(page, "agenda_mark")
+        left = [mark.rect.left for mark in marks]
+        self.assertTrue(left[0] < left[1] == left[4] < left[5] == left[7] == left[8], "three steps in, one per level")
+        self.assertEqual([p.muted, p.muted], [marks[7].colour, marks[8].colour])
+        self.assertEqual([p.ink, p.ink], [rows[7].colour, rows[8].colour])
+
+    def test_the_names_under_an_item_stand_in_every_chapter_when_none_is_in_hand(self):
+        spec = {key: value for key, value in self.AGENDA.items() if key != "highlight"}
+        points = self._kind(build({**spec, "buckets": self.NESTED}), "points")[0].text.split("\n")
+        self.assertEqual(["— しょう 1", "    — なか 1", "        — ページ a", "        — ページ b",
+                          "    — こうもく", "— しょう 2", "    — なか 2", "        — ページ c",
+                          "    — なか 3", "        — ページ d", "        — ページ e"], points)
+        folded = self._kind(build({**self.AGENDA, "buckets": self.NESTED, "highlight": 1}), "points")[0].text
+        self.assertIn("ページ b", folded)
+        self.assertNotIn("ページ c", folded)
+
+    def test_an_item_to_mark_is_counted_among_the_items_not_the_names_under_them(self):
+        page = build({**self.CARDS, "buckets": self.NESTED, "highlight": 2, "highlight_item": 2})
+        self.assertEqual(["しょう 2", "なか 3"], [e.text for e in self._kind(page, "agenda_item") if e.bold])
+
+    def test_folding_the_other_chapters_lets_a_long_list_stand(self):
+        """全部の章の下の段を並べると頁に入らない目次が、 今の章の分だけなら入る。"""
+        chapters = [[f"しょう {number}", [[f"なか {number}-{index}", ["ページ 1", "ページ 2"]] for index in (1, 2, 3)]]
+                    for number in (1, 2, 3)]
+        with self.assertRaises(PageFullError):
+            build({**self.CARDS, "buckets": chapters, "highlight": 0})
+        self.assertTrue(build({**self.CARDS, "buckets": chapters, "highlight": 1}).build())
+
+    def test_an_item_written_in_a_shape_the_agenda_does_not_read_is_refused(self):
+        for item in (["なか"], ["なか", "ページ"], [["なか"], ["ページ"]], ["なか", [["ページ"]]],
+                     ["なか", ["ページ"], "あまり"]):
+            with self.subTest(item=item), self.assertRaises(PageTypeError) as refused:
+                build({**self.CARDS, "buckets": [["しょう 1", [item]], ["しょう 2", []]], "highlight": 1})
+            self.assertIn("an item of chapter 1", str(refused.exception))
+
     def test_what_the_cards_cannot_take_is_refused(self):
         for spec, word in (({**self.CARDS, "look": "tiles"}, "look"),
                            ({**self.CARDS, "highlight_item": 9}, "highlight_item"),

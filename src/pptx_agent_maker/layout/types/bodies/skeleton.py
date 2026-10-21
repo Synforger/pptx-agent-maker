@@ -65,13 +65,43 @@ CARDS_COLUMNS = (11, 10)
 CHAPTER_MARK, ITEM_MARK = "\u2022", "\u2013"
 
 
-def _agenda_cards(page: Page, area: Rect, buckets: list[tuple[str, list[str]]], here: int, item: int) -> None:
+#: 章の中身 1 つ (= 小項目の名前と、 その下に並べる名前。 下の段を書かない小項目は空の並び)
+Item = tuple[str, list[str]]
+#: 章 1 つ (= 章の名前と、 その小項目)
+Chapter = tuple[str, list[Item]]
+
+
+def _read_buckets(raw: list, here: int) -> list[Chapter]:
+    """The chapters `buckets` writes, each item with the names under it, folded to the chapter in hand.
+
+    小項目は名前か `["名前", ["下の段", …]]` (= 章 → 小項目 → 下の段の 3 段)。 下の段を出すのは `highlight` の
+    章だけで、 章を名指さない目次は全部の章で出す (= 進行型の目次では、 ほかの章は小項目までで章の形が読める。
+    全部の章の下の段を並べると、 一覧が頁に入らない)。
+    """
+    chapters: list[Chapter] = []
+    for number, (title, items) in enumerate(raw, start=1):
+        read: list[Item] = []
+        for item in items:
+            if not isinstance(item, (list, tuple)):
+                read.append((str(item), []))
+                continue
+            if (len(item) != 2 or isinstance(item[0], (list, tuple)) or not isinstance(item[1], (list, tuple))
+                    or any(isinstance(name, (list, tuple)) for name in item[1])):
+                raise PageTypeError(
+                    f"agenda: an item of chapter {number} is {item!r} — an item is a name, or "
+                    "[name, [the names under it]], and the names under it hold nothing under them")
+            read.append((str(item[0]), [str(name) for name in item[1]] if not here or number == here else []))
+        chapters.append((str(title), read))
+    return chapters
+
+
+def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, item: int) -> None:
     """The agenda drawn as cards: the list on the left, a heading and one card per chapter on the right.
 
-    左の一覧は章を `•` で章の大きさの字に、 小項目を一段下げた `–` で本文の字にし、 今の章だけ差し色の太字に
-    する (= `highlight_item` は今の章の小項目を 1 つ差し色の太字にする。 章の途中から入り直す頁のため)。 ほかは
-    本文の色で、 小項目の印だけ灰。 右のカードは列の高さを章の数で等分し、 番号は塗りの丸に置く。 今の章は
-    差し色の丸に紙の色の数字、 差し色のごく薄い地、 差し色の題。 ほかの章は灰の丸に本文の色の数字、 灰の地、
+    左の一覧は章を `•` で章の大きさの字に、 小項目を一段下げた `–` で本文の字に、 小項目の下の段をもう一段
+    下げた `–` で本文の字にし、 今の章だけ差し色の太字にする (= `highlight_item` は今の章の小項目を 1 つ差し色の
+    太字にする。 章の途中から入り直す頁のため)。 ほかは本文の色で、 小項目と下の段の印だけ灰。 右のカードは列の
+    高さを章の数で等分し、 番号は塗りの丸に置く。 今の章は差し色の丸に紙の色の数字、 差し色のごく薄い地、 差し色の題。 ほかの章は灰の丸に本文の色の数字、 灰の地、
     灰の題 (= 灰の丸の上の白や灰の数字は読めない)。 枠は引かない。
     """
     theme = page.theme
@@ -87,10 +117,11 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[tuple[str, list[str]]], 
         colour = p.accent if marked else p.ink
         rows.append((CHAPTER_MARK, colour, title.split(SUMMARY, 1)[0], t.stage, colour, marked, 0,
                      s.gap_s if rows else 0))
-        for index, entry in enumerate(items, start=1):
+        for index, (entry, under) in enumerate(items, start=1):
             picked = marked and index == item
             rows.append((ITEM_MARK, p.accent if picked else p.muted, entry, t.body, p.accent if picked else p.ink,
                          picked, indent, s.row_gap))
+            rows.extend((ITEM_MARK, p.muted, name, t.body, p.ink, False, 2 * indent, s.row_gap) for name in under)
     marks = [theme.width(f"{sign} ", size) for sign, _shade, _text, size, *_rest in rows]
     heights = [theme.wrapped_height(text, max(listing.width - indent - mark - 3 * s.text_inset, 1), size, bold=bold)
                for (_sign, _shade, text, size, _colour, bold, indent, _before), mark in zip(rows, marks)]
@@ -149,6 +180,9 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     進行型の目次 (= 章の頭ごとに 1 枚置き、その章だけを強調する)。⚠ **実頁の無い
     小項目を書かない** ― 目次に残すと翌週がそれを輸入して持ち越す。
 
+    小項目は `["名前", ["下の段", …]]` と書けば、その下にもう 1 段並ぶ (= 章 → 中の段 → 頁の名前)。下の段が
+    出るのは `highlight` の章だけ (= 章を名指さない目次は全部の章)。
+
     強調は、書かなければ章の名前の下の言葉 (= `◀ この章`)。`highlight_tone` を書けば、その章の箱が
     その地になり、言葉は置かない (= 地が言っていることを、もう 1 度言葉で言わない)。`numbers = "circled"`
     は章の番号を丸の数字で書く。
@@ -156,15 +190,15 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     ⚠ **一覧も章の箱も、自分の言葉ぶんの高さが取れなければ止まる。**取れる高さに切り詰めて置いて
     いた間は、箱の中の字が箱の下の線に乗った (= 狭いマスに入れた目次で、焼いて出た)。
     """
-    buckets = [(str(title), [str(item) for item in items])
-               for title, items in spec.get("buckets")]
-    if not buckets:
+    raw = spec.get("buckets")
+    if not raw:
         raise PageTypeError("agenda: `buckets` is empty — an agenda with no chapters")
     here = int(spec.get("highlight", 0))
-    if here and not 1 <= here <= len(buckets):
+    if here and not 1 <= here <= len(raw):
         raise PageTypeError(
-            f"agenda: `highlight` is {here}, but there are {len(buckets)} buckets"
+            f"agenda: `highlight` is {here}, but there are {len(raw)} buckets"
         )
+    buckets = _read_buckets(raw, here)
     look = spec.get("look", "boxes")
     if not isinstance(look, str) or look not in LOOKS:
         raise PageTypeError(f"agenda: `look` is {look!r} — an agenda is drawn as {' or '.join(map(repr, LOOKS))}")
@@ -195,7 +229,9 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     lines: list[str] = []
     for title, items in buckets:
         lines.append(title)
-        lines.extend(f"    {item}" for item in items)
+        for entry, under in items:
+            lines.append(f"    {entry}")
+            lines.extend(f"        {name}" for name in under)
     listed = page.points_height(listing.width, lines)
     if listed > listing.height:
         raise PageFullError(
