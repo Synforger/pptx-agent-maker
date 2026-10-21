@@ -30,7 +30,7 @@ from pptx_agent_maker.layout import types  # noqa: E402
 from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
 from pptx_agent_maker.layout.parts.elements import Fill, Table, Text  # noqa: E402
 from pptx_agent_maker.layout.parts.page import PageFullError  # noqa: E402
-from pptx_agent_maker.layout.base.tokens import DEFAULT, ThemeError, contrast, theme_from  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DEFAULT, ThemeError, contrast, reading_floor, theme_from  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.project import Workspace, create  # noqa: E402
 from pptx_agent_maker.project.files.manifest import Manifest  # noqa: E402
@@ -101,13 +101,23 @@ class WordsOnThem(unittest.TestCase):
         self.assertEqual("", box_of(built, "Card 1").outline)
 
     def test_the_colour_that_reads_better_wins_at_any_lightness(self):
+        """中ほどの明るさの地 (= 2E9E5B・777777) は墨にも紙にも下限が足りず、届くまで寄せた色になる。
+
+        札の見出しは太字の見出しの大きさ (= 下限は字の大きさと太さで決まる)。
+        """
         palette = DEFAULT.palette
-        for ground in ("0092D1", "777777", "5A9E3A", "FFD400", "1A1A1A", "F3F3F3"):
+        floor = reading_floor(DEFAULT.type.heading, True)
+        for ground in ("2E9E5B", "777777", "5A9E3A", "FFD400", "1A1A1A", "F3F3F3"):
             with self.subTest(ground):
                 built = build({"type": "cards", "cards": [{"heading": "Card", "tone": "Here"}]},
                               theme_from({"grounds": {"Here": ground}}))
-                wanted = max((palette.ink, palette.paper), key=lambda words: contrast(ground, words))
-                self.assertEqual(wanted, named(built, "Card").colour)
+                words = named(built, "Card").colour
+                better = max((palette.ink, palette.paper), key=lambda colour: contrast(ground, colour))
+                if contrast(ground, better) >= floor:
+                    self.assertEqual(better, words)
+                else:
+                    self.assertNotIn(words, (palette.ink, palette.paper))
+                    self.assertGreaterEqual(contrast(ground, words), floor)
 
     def test_the_palettes_own_roles_keep_their_words(self):
         """道具の色の役の字は変えない (= 既に書いてある頁の見た目を動かさない)。"""

@@ -5,20 +5,20 @@ tests = ["tests/test_readable_grounds.py"]
 [[mutant]]
 name = "a table's heading row keeps white words on any accent"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "            ink = theme.palette.words_on(ground)\n"
+old = "            ink = theme.palette.words_on(ground, theme.type.body, heading)\n"
 new = "            ink = theme.palette.paper if heading else theme.palette.ink\n"
 
 [[mutant]]
 name = "a box on the accent keeps white words"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        words = p.words_on(fill)\n"
-new = "        words = p.paper if tone in TONES else p.words_on(fill)\n"
+old = "        words = p.words_on(fill, self.theme.type.body if points is None else points, bold)\n"
+new = "        words = p.paper if tone in TONES else p.words_on(fill, self.theme.type.body)\n"
 
 [[mutant]]
 name = "a timeline's period keeps white words"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = 'Bar("period", rect, name, size, p.words_on(p.accent), fill=p.accent, bold=True)'
-new = 'Bar("period", rect, name, size, p.paper, fill=p.accent, bold=True)'
+old = 'p.words_on(p.accent, size, True),'
+new = 'p.paper,'
 
 [[mutant]]
 name = "a template's picture is judged like the project's"

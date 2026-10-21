@@ -61,9 +61,9 @@ class ReadingAThemeTest(unittest.TestCase):
         self.assertIs(theme_from({}), DEFAULT)
 
     def test_the_typeface_and_the_colours_are_taken(self) -> None:
-        theme = theme_from({"font": "Arial", "palette": {"ink": "3f3f3f"}})
+        theme = theme_from({"font": "Arial", "palette": {"ink": "424242"}})
         self.assertEqual(theme.type.family, "Arial")
-        self.assertEqual(theme.palette.ink, "3F3F3F")
+        self.assertEqual(theme.palette.ink, "424242")
 
     def test_colours_left_out_keep_their_defaults(self) -> None:
         theme = theme_from({"palette": {"ink": "000000"}})
@@ -286,23 +286,23 @@ class ThemeThroughTheWorkspaceTest(unittest.TestCase):
     def test_nothing_declared_means_the_specimens_own_look(self) -> None:
         """⚠ **見た目の真値はテンプレート 1 枚。**書かなければそこから来る。"""
         _dress(self.root / "specimen.pptx",
-               Theme(type=Type(family="Arial"), palette=Palette(accent="0092D1")))
+               Theme(type=Type(family="Arial"), palette=Palette(accent="2E9E5B")))
         table = self._table_of(self._built(""))
         self.assertIn('typeface="Arial"', table)
-        self.assertIn("0092D1", table)
+        self.assertIn("2E9E5B", table)
         self.assertNotIn(DEFAULT.palette.accent, table)
 
     def test_a_declaration_is_laid_over_the_specimen(self) -> None:
         _dress(self.root / "specimen.pptx",
-               Theme(type=Type(family="Arial"), palette=Palette(accent="0092D1")))
+               Theme(type=Type(family="Arial"), palette=Palette(accent="2E9E5B")))
         table = self._table_of(self._built('[theme.palette]\naccent = "B3261E"\n'))
         self.assertIn("B3261E", table, "the declaration did not win")
         self.assertIn('typeface="Arial"', table, "the specimen's typeface was dropped")
 
     def test_the_project_look_reaches_the_built_pages(self) -> None:
-        slides = self._built('[theme]\nfont = "Arial"\n\n[theme.palette]\naccent = "0092D1"\n')
+        slides = self._built('[theme]\nfont = "Arial"\n\n[theme.palette]\naccent = "2E9E5B"\n')
         self.assertIn('typeface="Arial"', self._table_of(slides))
-        self.assertIn("0092D1", self._table_of(slides))
+        self.assertIn("2E9E5B", self._table_of(slides))
         self.assertNotIn(DEFAULT.palette.accent, self._table_of(slides))
 
     def test_the_use_of_the_deck_reaches_the_built_pages(self) -> None:
@@ -366,10 +366,10 @@ class ThemeThroughTheWorkspaceTest(unittest.TestCase):
 
     def test_the_table_is_painted_from_the_palette_not_by_powerpoint(self) -> None:
         """⚠ 既定のスタイルは accent1 で見出しを塗る (= 色の真値が 2 つになる)。"""
-        table = self._table_of(self._built('[theme.palette]\naccent = "0092D1"\n'))
+        table = self._table_of(self._built('[theme.palette]\naccent = "2E9E5B"\n'))
         self.assertIn(NO_TABLE_STYLE, table)
         self.assertNotIn('firstRow="1"', table)
-        self.assertIn("0092D1", table[:table.index("</a:tr>")])
+        self.assertIn("2E9E5B", table[:table.index("</a:tr>")])
 
 
 if __name__ == "__main__":

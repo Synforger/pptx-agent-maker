@@ -9,7 +9,8 @@ from __future__ import annotations
 import colorsys
 import re
 
-from ...layout.base.tokens import contrast  # noqa: F401 - 明暗差の数え方は道具の中で 1 つ (= 組む側と同じ)
+from ...layout.base.tokens import (  # noqa: F401 - 明暗差の数え方と下限は道具の中で 1 つ (= 組む側と同じ)
+    contrast, reading_floor)
 
 SRGB = re.compile(r'<a:srgbClr val="([0-9A-Fa-f]{6})"\s*(/>|>(.*?)</a:srgbClr>)', re.S)
 SCHEME = re.compile(r'<a:schemeClr val="(\w+)"\s*(/>|>(.*?)</a:schemeClr>)', re.S)

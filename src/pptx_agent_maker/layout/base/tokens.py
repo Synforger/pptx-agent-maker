@@ -194,6 +194,28 @@ def contrast(one: str, other: str) -> float:
     return (light + 0.05) / (dark + 0.05)
 
 
+#: 字と地の明暗差の下限 (= WCAG 2 の AA)。普通の字と、大きい字 (= 18pt 以上、太字なら 14pt 以上)。
+#: 組む側 (= `Palette.words_on`) と焼いた後の検査 (= `contrast`) が同じ値を読む
+READABLE, READABLE_LARGE = 4.5, 3.0
+#: 大きい字の境 (= pt。太字はこの下の値から)。下限と同じく、組む側と検査が同じ値を読む
+LARGE_SIZE, LARGE_BOLD = 18.0, 14.0
+
+
+def reading_floor(points: float | None, bold: bool = False) -> float:
+    """The contrast words of this size and weight must reach (= 4.5, or 3 for large words).
+
+    `points` を書いていない字 (= `None`) は大きい側で数える ― 検査が「迷ったら言わない側へ」倒す向きと同じ。
+    """
+    large = points is None or points >= LARGE_SIZE or (bold and points >= LARGE_BOLD)
+    return READABLE_LARGE if large else READABLE
+
+
+def _towards(colour: str, end: str, share: float) -> str:
+    """`colour` moved `share` of the way to `end` (= 0 is `colour`, 1 is `end`)."""
+    return "".join(f"{round(low + (high - low) * share):02X}"
+                   for low, high in ((int(colour[i:i + 2], 16), int(end[i:i + 2], 16)) for i in (0, 2, 4)))
+
+
 @dataclass(frozen=True)
 class Palette:
     """Colours by meaning, not by name. `good`/`bad` mark a reading, never decoration."""
@@ -221,13 +243,32 @@ class Palette:
     #: 変えられない ― 案件が地を変えれば、枠はその地から出し直される
     EDGE_DEPTH: ClassVar[float] = 6.0
 
-    def words_on(self, ground: str) -> str:
+    def words_on(self, ground: str, points: float | None, bold: bool = False) -> str:
         """The colour of words on a ground a project named: the ink or the paper, whichever reads better.
 
-        ⚠ **閾値を置かない。**明るさの境目を数で決めると、境目の近くの色で読めない字が出る。
+        ⚠ **地の明るさの境目で選ばない。**境目を数で決めると、境目の近くの色で読めない字が出る。
         本文の色と紙の色の両方を地と比べ、差の大きい方を採る。
+
+        ⚠ **どちらも下限に届かない地では、届くまで色を寄せる。**中ほどの濃さの差し色は、墨とも紙とも
+        4.5 に届かず、検査 `contrast` が宣言で組んだ表で当たった。差の大きい方を、地から離れる向き
+        (= 黒か白) へ、届く最小の量だけ寄せる。寄せ切っても届かなければ (= 紙が既に白)、もう一方を
+        寄せる。届いている地の色は動かさない。
+
+        ⚠ **下限は字の大きさと太さで選ぶ** (= `reading_floor`。検査と同じ決まり)。大きい字と太字は 3 で
+        足りるので、3 に届く紙の色は暗い色へ変えない。`points` を書かない字は大きい側で数える。
         """
-        return self.ink if contrast(ground, self.ink) >= contrast(ground, self.paper) else self.paper
+        floor = reading_floor(points, bold)
+        ranked = sorted((self.ink, self.paper), key=lambda colour: contrast(ground, colour), reverse=True)
+        for colour in ranked:
+            end = "000000" if _luminance(colour) <= _luminance(ground) else "FFFFFF"
+            for step in range(self.STEPS + 1):
+                moved = _towards(colour, end, step / self.STEPS)
+                if contrast(ground, moved) >= floor:
+                    return moved
+        return ranked[0]
+
+    #: 字の色を寄せる刻み (= 黒か白までをこの数に割る。1 刻みが 1 階調)
+    STEPS: ClassVar[int] = 255
 
     #: 表のセルの地の濃さの段 (= 差し色を紙の色へ、この数に割って薄める。`shade`)
     SHADES: ClassVar[int] = 4

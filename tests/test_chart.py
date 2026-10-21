@@ -181,7 +181,7 @@ class AWaterfall(unittest.TestCase):
         self.assertEqual("", series["(base)"].number_format)
         self.assertEqual(["+#,##0;+#,##0", "-#,##0;-#,##0", "#,##0"],
                          [s.number_format for s in list(series.values())[1:]])
-        self.assertEqual({P.words_on(P.good), P.words_on(P.bad), P.words_on(P.accent)},
+        self.assertEqual({P.words_on(colour, DEFAULT.type.body) for colour in (P.good, P.bad, P.accent)},
                          {s.label_colour for s in list(series.values())[1:]})
 
     def test_a_step_is_printed_with_the_places_and_the_unit_of_the_rest(self) -> None:

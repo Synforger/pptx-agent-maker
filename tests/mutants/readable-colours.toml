@@ -1,0 +1,148 @@
+# Words reach the contrast floor their size and weight ask for on every ground the toolkit paints, and a
+# template's brand pairs pass the contrast check by name — and are said in the report.
+
+tests = ["tests/test_readable_colours.py"]
+
+# -- the words' colour (= layout/base/tokens.py) ------------------------------
+
+[[mutant]]
+name = "words short of the floor stay as they are"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "            for step in range(self.STEPS + 1):"
+new = "            for step in range(1):"
+
+[[mutant]]
+name = "only the better of the ink and the paper is moved"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        for colour in ranked:"
+new = "        for colour in ranked[:1]:"
+
+[[mutant]]
+name = "words short of the floor go all the way to black or white"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "                moved = _towards(colour, end, step / self.STEPS)"
+new = "                moved = _towards(colour, end, 1 if step else 0)"
+
+[[mutant]]
+name = "the words are moved only to the large type's floor"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "                if contrast(ground, moved) >= floor:"
+new = "                if contrast(ground, moved) >= READABLE_LARGE:"
+
+[[mutant]]
+name = "words of any size take the normal floor"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        floor = reading_floor(points, bold)\n"
+new = "        floor = READABLE\n"
+
+[[mutant]]
+name = "bold words of 14pt are counted as normal"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    large = points is None or points >= LARGE_SIZE or (bold and points >= LARGE_BOLD)"
+new = "    large = points is None or points >= LARGE_SIZE"
+
+[[mutant]]
+name = "bold words must pass 14pt to be large"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "(bold and points >= LARGE_BOLD)"
+new = "(bold and points > LARGE_BOLD)"
+
+[[mutant]]
+name = "words of 18pt must pass 18pt to be large"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "points >= LARGE_SIZE or"
+new = "points > LARGE_SIZE or"
+
+[[mutant]]
+name = "words without a size are counted as normal"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    large = points is None or points >= LARGE_SIZE or (bold and points >= LARGE_BOLD)"
+new = "    large = points is not None and (points >= LARGE_SIZE or (bold and points >= LARGE_BOLD))"
+
+[[mutant]]
+name = "the check counts words by its own sizes"
+file = "src/pptx_agent_maker/checks/rules/contrast.py"
+old = "reading_floor(points, bool(BOLD.search(properties.group(0))))"
+new = "reading_floor(points, False)"
+
+# -- each caller hands over the size and weight of its words ------------------
+
+[[mutant]]
+name = "a table's heading row is counted as normal weight"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            ink = theme.palette.words_on(ground, theme.type.body, heading)\n"
+new = "            ink = theme.palette.words_on(ground, theme.type.body)\n"
+
+[[mutant]]
+name = "a table's words are counted as having no size"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            ink = theme.palette.words_on(ground, theme.type.body, heading)\n"
+new = "            ink = theme.palette.words_on(ground, None, heading)\n"
+
+[[mutant]]
+name = "a timeline's period is counted as normal weight"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "p.words_on(p.accent, size, True),"
+new = "p.words_on(p.accent, size),"
+
+[[mutant]]
+name = "a bar takes the colour of words of no size"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        look = self.look(style, size)\n"
+new = "        look = self.look(style)\n"
+
+[[mutant]]
+name = "an arrowhead is counted as normal weight"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        look = self.look(style, size, True)\n"
+new = "        look = self.look(style, size)\n"
+
+[[mutant]]
+name = "a box takes the colour of its heading, not of its body"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "self.look(said.style, *((t.body, False) if body else (t.heading, True)))"
+new = "self.look(said.style, t.heading, True)"
+
+# -- the pairs a project lets through (= checks/) -----------------------------
+
+[[mutant]]
+name = "a pair the project names is still called"
+file = "src/pptx_agent_maker/checks/rules/contrast.py"
+old = "        if ratio < floor and (colour, ground) in allowed:"
+new = "        if False:"
+
+[[mutant]]
+name = "a pair passes the other way round too"
+file = "src/pptx_agent_maker/checks/rules/contrast.py"
+old = "        if ratio < floor and (colour, ground) in allowed:"
+new = "        if ratio < floor and ((colour, ground) in allowed or (ground, colour) in allowed):"
+
+[[mutant]]
+name = "a pair that is not two colours is taken"
+file = "src/pptx_agent_maker/checks/rules/contrast.py"
+old = "        if not all(found):"
+new = "        if False:"
+
+[[mutant]]
+name = "a pair written in lower case never matches"
+file = "src/pptx_agent_maker/checks/rules/contrast.py"
+old = "        pairs.add(tuple(match.group(1).upper() for match in found))"
+new = "        pairs.add(tuple(match.group(1) for match in found))"
+
+[[mutant]]
+name = "what was let through is not carried out of a run"
+file = "src/pptx_agent_maker/checks/__init__.py"
+old = "        findings.allowed.extend(getattr(found, \"allowed\", ()))"
+new = "        pass"
+
+[[mutant]]
+name = "a build drops what was let through"
+file = "src/pptx_agent_maker/checks/__init__.py"
+old = "    return Findings(built + run_declared(manifest, theme, config), found.allowed)"
+new = "    return Findings(built + run_declared(manifest, theme, config))"
+
+[[mutant]]
+name = "the report lets pairs through silently"
+file = "src/pptx_agent_maker/checks/__init__.py"
+old = "        lines.extend(f\"  {'pass':4}  {name:<16} {what}\" for check, what in getattr(findings, \"allowed\", ())"
+new = "        lines.extend(f\"\" for check, what in ()"
