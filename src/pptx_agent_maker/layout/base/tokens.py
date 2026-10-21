@@ -358,10 +358,32 @@ class Theme:
         return tuple(name for name, _colour in self.grounds)
 
     def frame(self) -> Rect:
-        """The slide minus its margins — where every page starts."""
+        """The slide minus its margins — where every page starts.
+
+        下の余白は、頁の足元 (= `foot`) から取る。レイアウトが頁の下に何も印字しなければ、頁の下端から。
+        """
         s = self.spacing
         return self.slide.inset(left=s.margin_x, right=s.margin_x,
-                                top=s.margin_top, bottom=s.margin_bottom)
+                                top=s.margin_top, bottom=self.slide.bottom - self.foot() + s.margin_bottom)
+
+    def foot(self) -> int:
+        """Where the page ends for what is placed on it: the top of what the layout prints across its lower half.
+
+        ふつうは頁の下端。頁の下半分に、レイアウトが頁を横切って印字する物 (= 頁番号と注記の上に引いた線、
+        足元の帯) が在れば、そのうちいちばん上の物の上端 ― そこから下はレイアウトの物で、本文から見れば頁の縁。
+
+        ⚠ **頁の下端から余白を取っていた間は、レイアウトの線を見ていなかった。**線が頁の下端から 0.9cm より
+        下に在るテンプレートで、本文の下端 (= 目次のカードの列、出所の帯) が線の 0.2cm 手前まで下り、
+        テンプレートから複製した頁が線の手前に残す余白が無かった (= 重なってはいないので、検査は言わない)。
+        線がそれより上に在れば、本文は線を越えて下まで続いていた (= 検査は細い線を数えない)。
+
+        頁の上半分から始まる物 (= 頁を丸ごと覆う地、題の下の罫線) と、頁の片側に在る物 (= 隅のロゴ) は数えない。
+        """
+        middle = self.slide.left + self.slide.width // 2
+        half = self.slide.top + self.slide.height // 2
+        return min((thing.top for thing in self.under.prints
+                    if thing.left < middle < thing.right and half <= thing.top < self.slide.bottom),
+                   default=self.slide.bottom)
 
     def line_height(self, size: float | None = None) -> int:
         """One line of type, including its leading."""
@@ -552,7 +574,8 @@ class Theme:
         ⚠ **題の帯の高さは使い方で変わるが、レイアウトの線は動かない。**字の小さい使い方の頁 (= 紙 1 枚の頁) は
         帯が低く、本文がテンプレートの罫線より上から始まって、箱が罫線に乗った (= 検査は細い線を数えない)。
 
-        頁の下半分に届く物 (= 出所の上の罫線、頁を丸ごと覆う地) は数えない ― その下から始めたら本文が無い。
+        頁の下半分に届く物 (= 出所の上の罫線、頁を丸ごと覆う地) は数えない ― その下から始めたら本文が無い
+        (= 出所の上の罫線は、本文の終わる所を決める。`foot`)。
         """
         middle = band.left + band.width // 2
         half = self.slide.top + self.slide.height // 2
