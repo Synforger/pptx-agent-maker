@@ -4,7 +4,7 @@
 画面を見る人が起動の仕方を知っている必要がある。見る物の一覧はこの機械の設定 file が持ち、
 画面の上の欄で選ぶ:
 
-    # ~/.config/pptx-agent-maker/preview.toml
+    # ~/.config/pptx-agent-maker/preview.toml   (= 器の根が在る時は <根>/config/pptx-agent-maker/preview.toml)
     [[search]]            # この folder の下の案件 (= workspace.toml を持つ folder) を並べる
     path = "~/decks"
     depth = 3             # 何段下まで探すか (= 省略すると 3)
@@ -35,7 +35,9 @@ import tomllib
 from pathlib import Path
 from typing import NamedTuple
 
-DEFAULT = Path.home() / ".config" / "pptx-agent-maker" / "preview.toml"
+from pptx_live_preview.platform_root import tool_folder
+
+FILENAME = "preview.toml"
 #: 探す時に下りない folder (= 控え・ツールの状態)
 NOT_PROJECTS = {"_archive", "_edits", ".pptx-agent-maker", "node_modules"}
 
@@ -57,7 +59,21 @@ class Offer(NamedTuple):
     problem: str | None = None
 
 
-def load(path: Path | str = DEFAULT) -> dict:
+def default_places_file() -> Path:
+    """The places file of this machine: under the platform root when one is given, else ~/.config."""
+    folder = tool_folder("config")
+    if folder is None:
+        folder = Path.home() / ".config" / "pptx-agent-maker"
+    return folder / FILENAME
+
+
+def load(path: Path | str | None = None) -> dict:
+    """The places file at `path` (= left out: the machine's own), checked."""
+    if path is None:
+        try:
+            path = default_places_file()
+        except ValueError as error:  # 根が絶対 path でない
+            raise PlacesError(str(error)) from error
     path = Path(path).expanduser()
     if not path.is_file():
         raise PlacesError(

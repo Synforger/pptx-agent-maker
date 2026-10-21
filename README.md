@@ -139,8 +139,8 @@ the page after it is 1.
 ## Try it
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -e .
-task test
+uv sync               # builds .venv from .python-version and uv.lock; `uv run` does the same on first use
+task test:unit
 ```
 
 ## Layout of this repository

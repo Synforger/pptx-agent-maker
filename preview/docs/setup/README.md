@@ -19,13 +19,13 @@ macOS で LibreOffice を `.app` として入れた場合、 `soffice` が PATH 
 ```bash
 git clone <このリポジトリ>
 cd pptx-live-preview
-task setup     # .venv 作成 + 本体と dev extras を install
+uv sync        # .venv 作成 + 本体と dev group (pytest, build) を install。 `uv run` も初回に同じことをする
 ```
 
 ## 初回起動
 
 ```bash
-.venv/bin/pptx-live-preview path/to/deck.pptx
+uv run pptx-live-preview path/to/deck.pptx
 ```
 
 URL が表示され、 既定ではブラウザが開く (= `--no-open` で抑止)。 初回はデッキ 1 本あたり
@@ -49,7 +49,8 @@ tailscale serve --bg --set-path /pptx http://127.0.0.1:18096
 ## 描画結果の置き場
 
 焼いた頁は `~/.cache/pptx-live-preview/<デッキ名>-<hash>/` に貯まる (= `XDG_CACHE_HOME` を
-設定していればその配下)。 デッキごとに 20 世代まで保持し、 どの世代からも参照されなくなった
+設定していればその配下。 環境変数 `AGENT_PLATFORM_ROOT` を設定していれば
+`<根>/cache/pptx-agent-maker/pages/<デッキ名>-<hash>/`。 両方あれば `XDG_CACHE_HOME` が優先)。 デッキごとに 20 世代まで保持し、 どの世代からも参照されなくなった
 絵は自動で消える。 手で消しても次の描画で作り直されるだけで、 壊れることはない。
 
 ## アンインストール

@@ -31,11 +31,12 @@ jobs:
       - name: Install LibreOffice
         # One test converts a built deck end to end — the closest thing to
         # opening it in PowerPoint, and how the repair dialog would be caught.
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends libreoffice-impress
-      - name: Create the virtualenv the gates run in
-        # Every gate runs the interpreter in .venv, which a fresh checkout does
-        # not have: without this the suite stops at the first task, not at a
-        # real finding.
-        run: task setup
+        # poppler-utils turns the converted pages into pictures (= the preview's
+        # own end-to-end test).
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends libreoffice-impress poppler-utils
+      - name: Install uv
+        # Every gate runs through `uv run`, which builds the environment from
+        # .python-version and uv.lock the first time it is called.
+        uses: astral-sh/setup-uv@v10.2.0
       - name: Run the local gate suite
         run: task ci

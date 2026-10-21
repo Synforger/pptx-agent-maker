@@ -147,7 +147,7 @@ def main() -> int:
     if not rows:
         print(
             "warning: no deps collected (= no Python / Node env detected).\n"
-            "Run after `task setup` so pip-licenses / npm see installed deps.",
+            "Run it as `task gen-notices` so pip-licenses / npm see installed deps.",
             file=sys.stderr,
         )
         return 1

@@ -92,7 +92,9 @@
   - 絵と本文の行数を突き合わせる (= 3 つの絵の頁に、4 つめの説明を残さない)
   - 同じ文字列が頁の中に 2 つ在る置換は、全箇所を指す (= 既定は 1 つめだけ)
 - **構成案を書く前に、場面の近い良い見本を見る** ― 機械に見本の集まり
-  (= `~/.local/share/pptx-agent-maker/examples/INDEX.md`) が在れば、場面の近い資料を 2〜3 本開き、話の
+  (= 置き場は `~/.local/share/pptx-agent-maker/examples/`、環境変数 `AGENT_PLATFORM_ROOT` が在る機械では
+  `$AGENT_PLATFORM_ROOT/references/pptx-agent-maker/examples/`。最初に開くのは中の `INDEX.md`) が在れば、
+  場面の近い資料を 2〜3 本開き、話の
   並べ方と 1 頁の見え方を見てから構成案を書く。真似するのは構成・量・配置で、飾りと絵に焼いた字は
   真似しない (= 集め方は道具の repo の `scripts/examples/fetch-examples.py`)
 - **構成案の前に、頁ごとの材料 (= 数の表・絵) を道具で作り、頁は材料から組む** ― 頁の数字は結果の表から

@@ -12,10 +12,9 @@ without opening PowerPoint on every iteration.
 ```bash
 # Prerequisites: LibreOffice (soffice) and poppler (pdftoppm) on PATH.
 # `task doctor` diagnoses the toolchain floor.
-task setup
-
-.venv/bin/pptx-live-preview path/to/deck.pptx     # one deck
-.venv/bin/pptx-live-preview path/to/deck-folder/  # every deck in the folder, as tabs
+# `uv run` builds the environment from the repository root the first time.
+uv run pptx-live-preview path/to/deck.pptx     # one deck
+uv run pptx-live-preview path/to/deck-folder/  # every deck in the folder, as tabs
 ```
 
 Options: `--port` (0 = pick a free one), `--dpi` (default 200), `--no-open` (do not launch a browser).

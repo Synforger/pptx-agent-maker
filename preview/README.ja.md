@@ -13,10 +13,9 @@
 ```bash
 # 前提: LibreOffice (soffice) と poppler (pdftoppm) が PATH にあること。
 # `task doctor` で toolchain の充足を診断できる。
-task setup
-
-.venv/bin/pptx-live-preview path/to/deck.pptx     # 単一デッキ
-.venv/bin/pptx-live-preview path/to/deck-folder/  # フォルダ内の全デッキをタブで
+# `uv run` は初回に repository の root から環境を作る。
+uv run pptx-live-preview path/to/deck.pptx     # 単一デッキ
+uv run pptx-live-preview path/to/deck-folder/  # フォルダ内の全デッキをタブで
 ```
 
 オプション: `--port` (= 0 で空きポート自動)、 `--dpi` (= 既定 200)、 `--no-open` (= ブラウザを開かない)。

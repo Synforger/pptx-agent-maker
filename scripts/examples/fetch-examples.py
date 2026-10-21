@@ -2,7 +2,8 @@
 """Gather the decks people ranked best, for an agent to look at before it plans a deck.
 
 作法 (= deck skill の craft.md) の「作る前に、場面の近い見本を見る」が指す集まりを、機械ごとに
-揃える。repo には入れない (= 他者のデータ)。置き場の既定:
+揃える。repo には入れない (= 他者のデータ)。置き場の既定
+(= 器の根 `AGENT_PLATFORM_ROOT` が在る時は `<根>/references/pptx-agent-maker/examples/`):
 
     ~/.local/share/pptx-agent-maker/examples/
     ├── INDEX.md            # 場面ごとの一覧と見方 (= agent が最初に開く 1 枚)
@@ -14,7 +15,8 @@
 
     python3 scripts/examples/fetch-examples.py [--to DIR] [--no-fetch]
 
-束をプレビューの欄に出すには、`~/.config/pptx-agent-maker/preview.toml` に場面と形の folder を
+束をプレビューの欄に出すには、プレビューの設定 file (= 既定 `~/.config/pptx-agent-maker/preview.toml`、
+器の根が在る時は `<根>/config/pptx-agent-maker/preview.toml`) に場面と形の folder を
 `[[folder]]` で足す (= 書く行は `--no-fetch` の最後に出る)。
 
 ⚠ **取るのは 1 位だけ。**agent が 1 回に開くのは 2〜3 本で、1 位 (= 題材ごとに 1 本、187 本) で足りる。
@@ -43,7 +45,9 @@ from pathlib import Path
 
 from PIL import Image
 
-DEFAULT = Path.home() / ".local" / "share" / "pptx-agent-maker" / "examples"
+from pptx_agent_maker.project.files.places import default_places_file
+from pptx_live_preview.platform_root import tool_folder
+
 ALIGN = "https://huggingface.co/datasets/Yqy6/Slides-Align"
 ALIGN_API = "https://huggingface.co/api/datasets/Yqy6/Slides-Align/tree/main/"
 #: 頁の絵の長辺 (= agent が読む時に縮める大きさ。原寸の 3000px は容量の払い損)
@@ -291,14 +295,24 @@ def albums(root: Path, decks: list[dict]) -> list[tuple[str, Path]]:
     return offers
 
 
+def default_examples_folder() -> Path:
+    """Where the collection is gathered: under the platform root when one is given, else ~/.local/share."""
+    references = tool_folder("references")
+    if references is not None:
+        return references / "examples"
+    return Path.home() / ".local" / "share" / "pptx-agent-maker" / "examples"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--to", type=Path, default=DEFAULT, help=f"where to gather (default {DEFAULT})")
+    parser.add_argument("--to", type=Path, default=None,
+                        help="where to gather (default: references/pptx-agent-maker/examples under "
+                             "$AGENT_PLATFORM_ROOT when set, else ~/.local/share/pptx-agent-maker/examples)")
     parser.add_argument("--no-fetch", action="store_true",
                         help="rebuild the index and the albums from what is already gathered")
     args = parser.parse_args(argv)
     started = time.monotonic()
-    root = args.to.expanduser()
+    root = (args.to or default_examples_folder()).expanduser()
     root.mkdir(parents=True, exist_ok=True)
     if args.no_fetch:
         decks = json.loads((root / "slides-align" / "decks.json").read_text(encoding="utf-8"))
@@ -314,7 +328,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{len(got)} decks ({sum(d['pages'] for d in got)} pages), {len(decks) - len(got)} not offered, "
           f"{failed} files that would not come; index at {root / 'INDEX.md'}")
     print("forms (pages picked by their words): " + ", ".join(f"{k} {v}" for k, v in forms.items()))
-    print("to see them in the preview, add to ~/.config/pptx-agent-maker/preview.toml:\n")
+    print(f"to see them in the preview, add to {default_places_file()}:\n")
     for name, folder in offers:
         print(f'[[folder]]\nname = "{name}"\npath = "{folder}"\n')
     print(f"done in {time.monotonic() - started:.0f}s")
