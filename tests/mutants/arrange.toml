@@ -95,8 +95,14 @@ new = "elif True:                     # 縦に向き合う"
 [[mutant]]
 name = "a link crosses the cell between"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "            if other in (a, b) or other.contains(a) or other.contains(b):"
-new = "            if True:"
+old = "            if (other.left < between.right and between.left < other.right"
+new = "            if (False and between.left < other.right"
+
+[[mutant]]
+name = "a cell that holds both ends of a link stands between them"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "                  and not other.contains(a) and not other.contains(b)]"
+new = "                  and True]"
 
 [[mutant]]
 name = "a link backwards points forwards"

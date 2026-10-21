@@ -280,6 +280,15 @@ class Links(unittest.TestCase):
         (line,) = kinds(page, "line")
         self.assertEqual((line.start[0], line.end[0]), (b.left, a.right))
 
+    def test_a_cell_that_holds_both_ends_does_not_stand_between_them(self):
+        """Two cards in the rows of one cell are joined across their gap: the cell round them is not in the way."""
+        page = self.build([{"cells": [{"rows": [{"cells": [{"id": "a", "card": {"heading": "A"}}]},
+                                                {"cells": [{"id": "b", "card": {"heading": "B"}}]}]},
+                                      {"card": {"heading": "Beside"}}]}],
+                          [{"from": "a", "to": "b"}])
+        (line,) = kinds(page, "line")
+        self.assertTrue(line.arrow)
+
     def test_an_unknown_id_a_cell_between_or_cells_that_do_not_face_are_refused(self):
         row = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"card": {"heading": "M"}},
                           {"id": "b", "card": {"heading": "B"}}]}]

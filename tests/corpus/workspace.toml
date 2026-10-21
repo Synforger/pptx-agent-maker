@@ -28,6 +28,13 @@ body = 11
 band = 16
 display = 40
 
+# A use whose gaps are wide enough to hold words beside an arrow (= a sideways arrow's words stand in the gap).
+[theme.uses.airy]
+like = "read"
+
+[theme.uses.airy.spacing]
+gap_m = 2.5
+
 # A use that sets its own floor and spacing (= like the toolkit's sheet, tighter still).
 [theme.uses.proposal]
 like = "sheet"

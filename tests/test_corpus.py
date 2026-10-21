@@ -18,7 +18,8 @@ sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker.layout import types  # noqa: E402
 from pptx_agent_maker.layout.types.bodies import chart as charts  # noqa: E402
-from pptx_agent_maker.layout.types.bodies.compose import BODIES, PARTS  # noqa: E402
+from pptx_agent_maker.layout.types.bodies.arrange import LINK_KEYS  # noqa: E402
+from pptx_agent_maker.layout.types.bodies.compose import BODIES, PARTS, ROLES, TEXT_LOOKS  # noqa: E402
 from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import TYPES, EXTRA_KEYS, FRAME_KEYS  # noqa: E402
 from pptx_agent_maker.layout.base.tokens import DERIVED  # noqa: E402
@@ -97,6 +98,18 @@ class TheCorpusUsesEverything(unittest.TestCase):
     def test_every_part_and_every_type_a_cell_may_hold(self) -> None:
         used = {key for cell in CELLS for key in cell}
         self.assertEqual(set(), {"rows", "weight", "caption", *PARTS, *BODIES} - used)
+
+    def test_every_role_a_text_may_have_and_every_look_it_takes(self) -> None:
+        texts = [cell for cell in CELLS if "text" in cell]
+        self.assertEqual(set(ROLES), {cell["role"] for cell in texts if "role" in cell})
+        self.assertEqual(set(), set(TEXT_LOOKS) - {key for cell in texts for key in cell})
+        self.assertTrue(any("role" in cell and "tone" in cell for cell in texts), "no text of a role is coloured")
+
+    def test_every_key_of_a_link_and_arrows_both_ways(self) -> None:
+        linked = [link for page in DECLARED if page["type"] == "compose" for link in page.get("links", [])]
+        self.assertEqual(set(LINK_KEYS), {key for link in linked for key in link})
+        self.assertTrue(any("text" in link and "tone" not in link for link in linked), "no words on a grey arrow")
+        self.assertTrue(any("text" in link and "tone" in link for link in linked), "no words on a coloured arrow")
 
     def test_every_look_on_everything_shaped_like_a_box(self) -> None:
         bars = [bar for body in bodies("timeline") for lane in body["lanes"] for bar in lane.get("bars", [])]

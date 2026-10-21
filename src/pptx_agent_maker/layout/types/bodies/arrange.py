@@ -11,7 +11,8 @@
   共通の言葉を置く
 * **絵の上の印 (`marks`)** ― 写真や図の 1 点を指して名前を付ける (= 製品の各部、画面の各所)。点の位置だけは
   絵に対する割合で書く (= 頁の座標ではないので、絵の外へは出ない)。名前は絵の左右の列に並び、点まで線が引かれる
-* **マスどうしの線 (`links`)** ― `compose` の頁で、`id` を付けたマスからマスへ矢印を引く (= 隣り合うマスだけ)
+* **マスどうしの線 (`links`)** ― `compose` の頁で、`id` を付けたマスからマスへ矢印を引く (= 隣り合うマスだけ)。
+  色の役 (`tone`) と、矢印のそばに置く言葉 (`text`) も書ける
 
 ⚠ **収まらなければ縮めずに止まる** (= どの並べ方も、箱か字を小さくして押し込むことはしない)。
 """
@@ -20,7 +21,7 @@ from __future__ import annotations
 
 import math
 
-from ...base.geometry import Rect
+from ...base.geometry import Rect, pt
 from ...parts.page import Card, Page, PageFullError
 from ..core.read import Spec, read_card, read_tone, only_keys
 from ..core.registry import PageTypeError
@@ -39,6 +40,8 @@ CLEAR = 0.35
 MARK_COLUMN = 1 / 3
 #: 木の箱の子を持つ側のキー
 TREE_KEYS = ("heading", "body", "tone", "icon", "tentative", "strong", "children")
+#: マスどうしの線 1 本が読むキー
+LINK_KEYS = ("from", "to", "text", "tone")
 
 
 # -- 輪 ----------------------------------------------------------------------
@@ -344,38 +347,86 @@ def marked_figure(page: Page, rect: Rect, source, aspect: float, marks: list[tup
 # -- マスどうしの線 ----------------------------------------------------------
 
 
-def links(page: Page, written, cells: dict[str, Rect], every: list[Rect], what: str) -> None:
+def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[Rect], blank: list[Rect],
+          what: str) -> None:
     """An arrow from each cell named in `from` to the one in `to`, across the gap where the two face each other.
 
     `every` は頁の全部のマス (= `id` の無いマスも)。2 つのあいだに別のマスが在れば、線はそれを横切るので止める。
+    ただし `blank` (= 中身の無いマス。`text = ""`) は空きなので数えない (= 離れた 2 つのマスを、間の空きを
+    またいで結べる)。`tone` は矢印の色の役 (= 書かなければ灰)、`text` は矢印のそばの言葉 (= `_words_by`)。
     """
     if not isinstance(written, list) or not written:
         raise PageTypeError(f"{what}: `links` is a list of {{ from = \"id\", to = \"id\" }}")
     for number, item in enumerate(written, start=1):
         where = f"{what}: link {number}"
-        only_keys(item, {"from", "to"}, where)
+        only_keys(item, set(LINK_KEYS), where)
         ends = [str(item.get(key, "")) for key in ("from", "to")]
         missing = [end for end in ends if end not in cells]
         if missing:
             known = ", ".join(sorted(cells)) or "none — give the cells an `id`"
             raise PageTypeError(f"{where}: no cell has the id {missing[0]!r} (= the ids on this page: {known})")
+        tone = read_tone(spec, item, where, "box") if "tone" in item else None
+        words = item.get("text")
+        if "text" in item and (not isinstance(words, str) or not words.strip()):
+            raise PageTypeError(f"{where}: `text` is the words set beside the arrow, not {words!r} — "
+                                "drop the key for an arrow without words")
         a, b = cells[ends[0]], cells[ends[1]]
         if a.top < b.bottom and b.top < a.bottom:                       # 横に向き合う
             y = (max(a.top, b.top) + min(a.bottom, b.bottom)) // 2
             start, end = ((a.right, y), (b.left, y)) if a.right <= b.left else ((a.left, y), (b.right, y))
+            across = True
         elif a.left < b.right and b.left < a.right:                     # 縦に向き合う
             x = (max(a.left, b.left) + min(a.right, b.right)) // 2
             start, end = ((x, a.bottom), (x, b.top)) if a.bottom <= b.top else ((x, a.top), (x, b.bottom))
+            across = False
         else:
             raise PageTypeError(f"{where}: {ends[0]!r} and {ends[1]!r} do not face each other across a row or a "
                                 "column — a link joins cells side by side or one above the other")
         between = Rect(min(start[0], end[0]), min(start[1], end[1]),
                        abs(end[0] - start[0]), abs(end[1] - start[1]))
-        for other in every:
-            if other in (a, b) or other.contains(a) or other.contains(b):
-                continue
+        others = [other for other in every if other not in (a, b) and other not in blank
+                  and not other.contains(a) and not other.contains(b)]
+        for other in others:
             if (other.left < between.right and between.left < other.right
                     and other.top < between.bottom and between.top < other.bottom):
                 raise PageTypeError(f"{where}: another cell stands between {ends[0]!r} and {ends[1]!r} — "
                                     "a link joins cells with nothing between them")
-        page.line(start, end, arrow=True)
+        page.line(start, end, arrow=True, tone=tone)
+        if words:
+            reach = max(rect.right for rect in every)
+            _words_by(page, words.strip(), start, end, across, (a, b), others, reach, where)
+
+
+def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, int], across: bool,
+              ends: tuple[Rect, Rect], others: list[Rect], reach: int, where: str) -> None:
+    """The words of a link: above a sideways arrow, to the right of a downward one.
+
+    上は、矢印の上の隙間 (= 向き合う 2 つのマスの上端まで)、右は、矢印の右の隙間 (= 別のマスに突き当たるか、
+    マスの並びの右端 `reach` まで)。言葉は隙間の中に、折って置く (= 本文の大きさの太字)。**隙間に入らなければ
+    縮めずに止まる** ― 隙間を広げるのは使い方の `gap_m`。
+    言葉の見た目は矢印の色 (`tone`) とは別 (= 本文の大きさ・太字・本文の色)。
+    """
+    s, ty = page.theme.spacing, page.theme.type
+    if across:
+        left, right = sorted((start[0], end[0]))
+        bottom = start[1] - s.gap_s // 2
+        room = bottom - max(rect.top for rect in ends)
+        at, fix, align = "above the arrow, between the two cells", "a wider gap (= `gap_m` of the page's use)", "center"
+    else:
+        above, below = sorted((start[1], end[1]))
+        stops = [rect.left for rect in others if rect.left >= start[0] and rect.top < below and above < rect.bottom]
+        left = start[0] + s.gap_s
+        right = min(stops) - s.gap_s if stops else reach
+        room = below - above
+        at, fix, align = ("to the right of the arrow, in the gap between the two cells",
+                          "a taller gap (= `gap_m` of the page's use)", "left")
+    usable = right - left - 2 * s.text_inset
+    if usable < pt(ty.body):
+        raise PageFullError(f"{where}: the words have {max(usable, 0)} EMU of width {at} — not even one character "
+                            f"({pt(ty.body)}); {fix}, or no words")
+    height = page.theme.wrapped_height(words, usable, ty.body, bold=True)
+    if height > room:
+        raise PageFullError(f"{where}: its words need {height} EMU of height {at} and there are {room} — "
+                            f"{fix}, shorter words, or none; nothing will shrink")
+    top = bottom - height if across else above + (room - height) // 2
+    page.words(Rect(left, top, right - left, height), words, ty.body, bold=True, align=align)

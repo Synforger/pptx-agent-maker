@@ -57,14 +57,14 @@ new = "dashed=look.dashed, heavy=look.heavy, rounded=False))"
 [[mutant]]
 name = "an outlined card's colour is not on its line"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill, heavy=style.strong), fill"
-new = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, p.ink, heavy=style.strong), fill"
+old = "return Look(p.thinned(p.CARD_WASH, head), p.ink, head, heavy=style.strong), head"
+new = "return Look(p.thinned(p.CARD_WASH, head), p.ink, p.ink, heavy=style.strong), head"
 
 [[mutant]]
 name = "a strong outlined card is not heavier"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill, heavy=style.strong), fill"
-new = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill), fill"
+old = "return Look(p.thinned(p.CARD_WASH, head), p.ink, head, heavy=style.strong), head"
+new = "return Look(p.thinned(p.CARD_WASH, head), p.ink, head), head"
 
 [[mutant]]
 name = "a tentative outlined card is dashed"
@@ -75,14 +75,14 @@ new = "return Look(p.paper, p.ink, p.ink, dashed=True, heavy=style.strong), p.in
 [[mutant]]
 name = "a ground with no meaning is outlined in a colour like a reading"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if style.tone in LIGHT or (style.tone not in TONES and edge):"
-new = "        if False:"
+old = "        return tone not in LIGHT and (tone in TONES or not self.ground(tone, points, bold)[2])"
+new = "        return True"
 
 [[mutant]]
 name = "a pale ground a project named is drawn like a deep one"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if style.tone in LIGHT or (style.tone not in TONES and edge):"
-new = "        if style.tone in LIGHT:"
+old = "        return tone not in LIGHT and (tone in TONES or not self.ground(tone, points, bold)[2])"
+new = "        return tone not in LIGHT"
 
 [[mutant]]
 name = "the conclusion band is drawn in the accent like the condition"

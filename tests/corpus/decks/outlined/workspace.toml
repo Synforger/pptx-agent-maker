@@ -13,6 +13,13 @@ card_look = "outlined"
 band_look = "outlined"
 box_height = "page"
 
+# A use whose gaps are tall enough for a line of words beside a downward arrow.
+[theme.uses.gapped]
+like = "read"
+
+[theme.uses.gapped.spacing]
+gap_m = 1.0
+
 [theme.grounds]
 "Inside" = "EAF0F8"
 "Late" = "8B1E3F"

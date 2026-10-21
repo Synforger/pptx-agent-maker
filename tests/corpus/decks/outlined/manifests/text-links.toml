@@ -1,0 +1,67 @@
+# Headings above outlined cards, and arrows that carry a colour and a word (= a deck whose boxes fill the page).
+
+specimen = "specimen.pptx"
+out = "text-links.pptx"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+use = "gapped"
+title = "Stages down the page, each arrow saying what moves"
+links = [
+  { from = "one", to = "two", text = "once cleaned", tone = "bad" },
+  { from = "two", to = "three", text = "if it holds", tone = "accent" },
+]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 2
+text = ""
+[[pages.rows.cells]]
+weight = 6
+text = "What we saw"
+role = "label"
+tone = "accent"
+[[pages.rows.cells]]
+weight = 3
+text = "Next condition"
+role = "label"
+tone = "accent"
+align = "center"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "one"
+weight = 2
+card = { heading = "Stage 1", tag = true, tone = "bad" }
+[[pages.rows.cells]]
+weight = 6
+card = { body = ["The first set came out clean in every run", "Two runs drifted a little"], tone = "bad" }
+[[pages.rows.cells]]
+weight = 3
+card = { heading = "Resize the input first", tone = "accent", align = "center" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "two"
+weight = 2
+card = { heading = "Stage 2", tag = true, tone = "bad" }
+[[pages.rows.cells]]
+weight = 6
+card = { body = ["The second set was noisier"], tone = "bad" }
+[[pages.rows.cells]]
+weight = 3
+card = { heading = "Use a cleaner source", tone = "accent", align = "center" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "three"
+weight = 2
+card = { heading = "Stage 3", tag = true, tone = "Late" }
+[[pages.rows.cells]]
+weight = 6
+text = "Kept for the last: it waits on the second stage"
+role = "note"
+[[pages.rows.cells]]
+weight = 3
+card = { heading = "Wait for stage 2", tone = "accent", align = "center" }
