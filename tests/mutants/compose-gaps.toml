@@ -169,26 +169,26 @@ new = "\"guide_tone\", \"id\","
 [[mutant]]
 name = "the gaps across and down do not follow the scale"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"pad\""
-new = "\"gap_l\", \"band_gap\", \"pad\""
+old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"title_gap\", \"pad\""
+new = "\"gap_l\", \"band_gap\", \"title_gap\", \"pad\""
 
 [[mutant]]
 name = "the gap under a band does not follow the scale"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"pad\", \"cell_pad_y\""
-new = "\"gap_l\", \"gap_x\", \"gap_y\", \"pad\", \"cell_pad_y\""
+old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"title_gap\", \"pad\", \"cell_pad_y\""
+new = "\"gap_l\", \"gap_x\", \"gap_y\", \"title_gap\", \"pad\", \"cell_pad_y\""
 
 [[mutant]]
 name = "a use may not write the gap across or the gap down"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\",\n          \"pad\""
-new = "\"gap_l\", \"band_gap\",\n          \"pad\""
+old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"title_gap\",\n          \"pad\""
+new = "\"gap_l\", \"band_gap\", \"title_gap\",\n          \"pad\""
 
 [[mutant]]
 name = "a use may not write the gap under a band"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\",\n          \"pad\""
-new = "\"gap_l\", \"gap_x\", \"gap_y\",\n          \"pad\""
+old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"title_gap\",\n          \"pad\""
+new = "\"gap_l\", \"gap_x\", \"gap_y\", \"title_gap\",\n          \"pad\""
 
 [[mutant]]
 name = "a use that says only gap_m leaves the gap across at the deck's"
@@ -223,14 +223,8 @@ new = "    band_gap: int = cm(0.5)\n"
 [[mutant]]
 name = "a title is set off the body by the gap between boxes"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        gap = self.theme.spacing.band_gap\n        self._remaining = Rect(rest.left, band.bottom + gap, rest.width,"
-new = "        gap = self.theme.spacing.gap_m\n        self._remaining = Rect(rest.left, band.bottom + gap, rest.width,"
-
-[[mutant]]
-name = "a title the layout places is set off the body by the gap between boxes"
-file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        gap = self.theme.spacing.band_gap\n        if top + height + gap >= rest.bottom:"
-new = "        gap = self.theme.spacing.gap_m\n        if top + height + gap >= rest.bottom:"
+old = "        gap = self.theme.spacing.band_gap if gap is None else gap\n        self._remaining = Rect(rest.left, band.bottom + gap, rest.width,"
+new = "        gap = self.theme.spacing.gap_m if gap is None else gap\n        self._remaining = Rect(rest.left, band.bottom + gap, rest.width,"
 
 [[mutant]]
 name = "a band at the foot is set off the body by the gap between boxes"

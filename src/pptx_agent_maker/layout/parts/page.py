@@ -153,7 +153,8 @@ class Page:
         """The space not yet spoken for."""
         return self._remaining
 
-    def _take_top(self, height: int) -> Rect:
+    def _take_top(self, height: int, gap: int | None = None) -> Rect:
+        """Take a band of that height off the top of what is left, and `gap` under it (= `band_gap` unless said)."""
         if getattr(self, "_frozen", False):
             raise RuntimeError("the frame is settled; everything else divides `body`")
         if height > self._remaining.height:
@@ -162,16 +163,15 @@ class Page:
                 "a page that does not fit is a page that needs splitting, not shrinking"
             )
         band, rest = self._remaining.rows([height, max(self._remaining.height - height, 1)])
-        gap = self.theme.spacing.band_gap
+        gap = self.theme.spacing.band_gap if gap is None else gap
         self._remaining = Rect(rest.left, band.bottom + gap, rest.width, self._remaining.bottom - band.bottom - gap)
         return band
 
-    def _take_at(self, top: int, height: int) -> Rect:
-        """Take a band of that height starting at that height of the slide (= the title, where the layout puts it)."""
+    def _take_at(self, top: int, height: int, gap: int) -> Rect:
+        """Take a band of that height starting at that height of the slide (= the title, where the layout puts it), and `gap` under it."""
         if getattr(self, "_frozen", False):
             raise RuntimeError("the frame is settled; everything else divides `body`")
         rest = self._remaining
-        gap = self.theme.spacing.band_gap
         if top + height + gap >= rest.bottom:
             raise PageFullError(
                 f"the title band ends at {top + height} EMU, and the page ends at {rest.bottom} — "
@@ -239,9 +239,9 @@ class Page:
             # レイアウトの題の枠の高さに置く (= 複製した頁の題と同じ高さ)。上に置く小さい字は、その枠の上に
             top, height = self.theme.title_row()
             above = s.kicker_height if kicker and not lead else 0
-            bar = self._take_at(max(top - above, self.theme.slide.top), height + above + folded)
+            bar = self._take_at(max(top - above, self.theme.slide.top), height + above + folded, s.title_gap)
         else:
-            bar = self._take_top(s.title_height + folded)
+            bar = self._take_top(s.title_height + folded, s.title_gap)
         # 字と札が使うのは、レイアウトが印字する物 (= ロゴ) の手前まで。帯そのものは頁の幅のまま
         clear = Rect(left, bar.top, right - left, bar.height)
         if kicker and not lead:

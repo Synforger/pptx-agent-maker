@@ -217,11 +217,11 @@ SIZED = ("title", "heading", "stage", "body", "caption")
 DERIVED = ("band", "display", "tag")
 #: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
 #: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
-TIGHTENED = ("gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap", "pad", "cell_pad_y", "cell_pad_x",
+TIGHTENED = ("gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap", "title_gap", "pad", "cell_pad_y", "cell_pad_x",
              "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap", "row_gap", "mark", "icon", "chevron_point", "swatch")
 #: 案件の名前付きの使い方が 1 つずつ決められる余白と間隔 (= `[theme.uses.<名前>.spacing]`、cm で書く)。
 #: 条件の帯 (= `band_height`) と結論の帯 (= `conclusion_height`) の高さは、書けば字に比例しない
-SPACED = ("margin_x", "margin_top", "margin_bottom", "gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap",
+SPACED = ("margin_x", "margin_top", "margin_bottom", "gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap", "title_gap",
           "pad", "cell_pad_y", "cell_pad_x", "text_inset", "bar_pad_x", "bar_pad_y", "bar_gap",
           "row_gap", "band_height", "conclusion_height")
 
@@ -405,6 +405,9 @@ class Spacing:
     #: 題の帯・条件の帯・結論の帯・足元の帯と、本体のあいだ。使い方が `gap_m` だけ書けばそれに従う。
     #: 物どうしの間を詰めても、帯と本体の間は詰めない頁のための口
     band_gap: int = cm(0.6)
+    #: 題の帯と、その下の物 (= 条件の帯か本体) のあいだ。書かなければ `band_gap` に従う。題と条件の帯の間は
+    #: 広く、条件の帯と本体の間は詰める頁のための口
+    title_gap: int = cm(0.6)
     pad: int = cm(0.35)
     #: 題の帯 (= 題の上の小さい字の段 + 題の段)。小さい字の在る頁も無い頁も、帯はこの高さ
     title_height: int = cm(1.5)
@@ -1061,6 +1064,9 @@ def _furniture(type: Type) -> Spacing:
         # `gap_m` だけ書いた使い方では、段とマスの間も帯と本体の間も同じ距離のまま (= 今まで)。別に書けば別
         distances = {"gap_x": distances["gap_m"], "gap_y": distances["gap_m"], "band_gap": distances["gap_m"],
                      **distances}
+    if "band_gap" in distances:
+        # 題の下の間は、別に書かなければ帯と本体の間と同じ (= 今まで)
+        distances = {"title_gap": distances["band_gap"], **distances}
     base = replace(base, **distances)
     kicker = round(base.kicker_height * type.caption / read.caption)
     said = dict(type.spaced)
