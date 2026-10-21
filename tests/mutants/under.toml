@@ -53,8 +53,8 @@ new = "start, end = line.left, line.right"
 [[mutant]]
 name = "the layout is not read"
 file = "src/pptx_agent_maker/deck/build.py"
-old = "look = replace(theme_from(merged(specimen, workspace.look)), under=under)"
-new = "look = theme_from(merged(specimen, workspace.look))"
+old = "look = replace(look, under=under, palette=replace(look.palette, allowed=allowed))"
+new = "look = replace(look, palette=replace(look.palette, allowed=allowed))"
 
 [[mutant]]
 name = "the title of a cover counts as a title to write a page's title into"
