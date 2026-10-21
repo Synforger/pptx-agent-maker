@@ -119,8 +119,8 @@ new = "room - sum(heights)"
 [[mutant]]
 name = "a flow in a deck of words' height grows all the same"
 file = "src/pptx_agent_maker/layout/types/core/stack.py"
-old = '    if page.theme.box_height != "page" or room <= stack:'
-new = "    if room <= stack:"
+old = '    if page.theme.box_height != "page" or room <= stack or not stack:'
+new = "    if room <= stack or not stack:"
 
 [[mutant]]
 name = "aligned rows are grown one stage at a time"

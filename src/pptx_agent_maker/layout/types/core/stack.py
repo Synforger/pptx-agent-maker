@@ -31,29 +31,37 @@ def card_height(page: Page, cards, width: int, columns: int) -> int:
     return tallest + 2 * s.pad
 
 
+def stood(heights: list[int], gap: int) -> int:
+    """How tall boxes of these heights stand stacked with `gap` between (= nothing, for no boxes)."""
+    return sum(heights) + gap * (len(heights) - 1) if heights else 0
+
+
 def stage_stacks(page: Page, spec: Spec, stages: list, wide: int, aligned: bool,
-            what: str) -> tuple[list[list[tuple[Card, int]]], int]:
+            what: str, bare: bool = False) -> tuple[list[list[tuple[Card, int]]], int]:
     """Each stage's nodes with the height each takes, and how tall the tallest stage stands.
 
     流れ図と道のりが同じ数え方で積む (= 段の下のノードは、どちらでも同じ箱)。
+
+    ⚠ **ノードの無い段は、`bare` の型 (= 道のり) にだけ許す。**流れ図の段は中身が要る型なので、
+    `bare` を書かない呼び手は今までどおり止まる。許した段の下は空の列で、高さは 0
+    (= 全部の段が空なら、積んだ高さも 0)。
     """
     gap = page.theme.spacing.gap_s
     stacks = []
     for number, stage in enumerate(stages, start=1):
         nodes = [read_card(spec, node, f"{what}: stage {number}, node {index}")
                  for index, node in enumerate(stage.get("nodes", []), start=1)]
-        if not nodes:
+        if not nodes and not bare:
             raise PageTypeError(f"{what}: stage {stage['name']!r} has no nodes")
         stacks.append([(node, card_height(page, [node], wide, 1)) for node in nodes])
     if aligned:
         # 行ごとに、その行で一番高いノードへ揃える (= 同じ順番のノードが同じ高さに並ぶ)
         rows = [max(column[index][1] for column in stacks if index < len(column))
-                for index in range(max(len(column) for column in stacks))]
+                for index in range(max(map(len, stacks)))]
         stacks = [[(node, rows[index]) for index, (node, _tall) in enumerate(column)]
                   for column in stacks]
-        return stacks, sum(rows) + gap * (len(rows) - 1)
-    return stacks, max(sum(tall for _n, tall in column) + gap * (len(column) - 1)
-                       for column in stacks)
+        return stacks, stood(rows, gap)
+    return stacks, max(stood([tall for _n, tall in column], gap) for column in stacks)
 
 
 def spread(extra: int, count: int) -> list[int]:
@@ -78,17 +86,18 @@ def fill_stacks(page: Page, stacks: list[list[tuple[Card, int]]], stack: int, ro
 
     箱は自分の字の分の高さに、余った高さの等しい取り分を足す (= どの段も下端が揃う)。`aligned` は行ごとに
     足すので、段をまたいで同じ順番のノードの高さが揃ったまま。字の分で `room` に収まらない時と、字の分の
-    高さの資料では、何も変えない (= 収まらないのを止めるのは呼ぶ側)。
+    高さの資料では、何も変えない (= 収まらないのを止めるのは呼ぶ側)。ノードの無い段 (= 道のりの矢羽根だけの
+    段) は空のまま、全部の段が空なら配る箱が無いので、何も変えない。
     """
-    if page.theme.box_height != "page" or room <= stack:
+    if page.theme.box_height != "page" or room <= stack or not stack:
         return stacks, stack
     gap = page.theme.spacing.gap_s
     if aligned:
         rows = grown([max(column[index][1] for column in stacks if index < len(column))
-                      for index in range(max(len(column) for column in stacks))], room, gap)
+                      for index in range(max(map(len, stacks)))], room, gap)
         return [[(node, rows[index]) for index, (node, _tall) in enumerate(column)] for column in stacks], room
     return [[(node, tall) for (node, _own), tall in zip(column, grown([own for _node, own in column], room, gap))]
-            for column in stacks], room
+            if column else [] for column in stacks], room
 
 
 def aligned_rows(spec: Spec, what: str) -> bool:
