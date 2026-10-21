@@ -125,9 +125,14 @@ def describe() -> str:
     lines.append(f"  on any type: {', '.join(sorted(EXTRA_KEYS))}")
     lines.append(f"  a chart: kind ({' | '.join(chart.KINDS)}), categories, series = [{{ name, values, tone }}] "
                  'or data = "x.csv", highlight, unit, labels, totals (= of a waterfall), '
-                 "callouts = [{ at, series, text }]")
+                 "callouts = [{ at, series, text }], bare (= bars alone: no numbers, no value axis), "
+                 "notes (= a bar chart's one line under each name)")
     lines.append('  a scatter:   kind = "scatter", x, y (= the names of its axes), '
-                 'series = [{ name, points = [[x, y], …], tone }] or data = "x.csv", highlight')
+                 'series = [{ name, points = [[x, y] or [x, y, "its name"], …], tone }] or data = "x.csv", '
+                 "highlight, grid")
+    lines.append('  a strip:     kind = "strip", axis = "log", ticks = [1, 10, 100, …] (= powers of ten), '
+                 "categories = [rows], notes = [one line for each row], series = [{ name, values = [[a row's numbers], …], "
+                 "tone }], median, highlight, legend")
     lines.append("  a table's cell: its words, or one mark — { harvey = 0 to 4 } (= quarters filled) "
                  f"or {{ mark = {' | '.join(MARKS)} }} — or its words on a ground as deep as its value: "
                  "{ text, shade = 0 to 4 }")

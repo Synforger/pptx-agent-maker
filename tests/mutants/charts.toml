@@ -43,8 +43,8 @@ new = "    return tuple(drawn), True"
 [[mutant]]
 name = "the bars carry their numbers and the axis repeats them"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "legend=legend, axis=not plan.labels or plan.scale is not None,"
-new = "legend=legend, axis=True,"
+old = "        return not self.bare and (not self.labels or self.scale is not None)"
+new = "        return True"
 
 [[mutant]]
 name = "the numbers are printed although the page said not to"
@@ -371,8 +371,8 @@ new = "    if False:\n        raise PageTypeError(f\"{what}: {' and '.join"
 [[mutant]]
 name = "the points of a scatter are squares"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "        drawn.marker.style = XL_MARKER_STYLE.CIRCLE\n        drawn.marker.size = POINT"
-new = "        drawn.marker.style = XL_MARKER_STYLE.SQUARE\n        drawn.marker.size = POINT"
+old = "        drawn.marker.style = XL_MARKER_STYLE.CIRCLE\n        drawn.marker.size = round(series.mark) or POINT"
+new = "        drawn.marker.style = XL_MARKER_STYLE.SQUARE\n        drawn.marker.size = round(series.mark) or POINT"
 
 [[mutant]]
 name = "the axes of a scatter carry no name"
@@ -395,8 +395,8 @@ new = 'callouts=callouts, **look))'
 [[mutant]]
 name = "a chart with a scale hides its axis once its numbers are on the bars"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "axis=not plan.labels or plan.scale is not None,"
-new = "axis=not plan.labels,"
+old = "        return not self.bare and (not self.labels or self.scale is not None)"
+new = "        return not self.bare and not self.labels"
 
 [[mutant]]
 name = "the scale draws no lines at its steps"
@@ -433,3 +433,467 @@ name = "a chart whose axis is hidden lets the reader's app start its bars above 
 file = "src/pptx_agent_maker/write/pptx.py"
 old = "    elif not element.axis and element.pinned is None:\n        _zero_end(chart, element)\n"
 new = ""
+
+# -- a small chart of bars alone (`bare`) ----------------------------------------
+
+[[mutant]]
+name = "a bare chart still prints the numbers on its bars"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "highlight, unit, labels and not bare,"
+new = "highlight, unit, labels,"
+
+[[mutant]]
+name = "a bare chart still draws its value axis"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        return not self.bare and (not self.labels or self.scale is not None)"
+new = "        return not self.labels or self.scale is not None"
+
+[[mutant]]
+name = "bare is taken for any kind of chart"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if kind not in BARE:"
+new = "    if False:"
+
+[[mutant]]
+name = "bare is written beside the keys that speak of numbers"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if said:\n        raise PageTypeError(f\"{what}: `bare` shows"
+new = "    if False:\n        raise PageTypeError(f\"{what}: `bare` shows"
+
+[[mutant]]
+name = "bare is read as true for anything written"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if not isinstance(bare, bool):\n        raise PageTypeError(f\"{what}: `bare`"
+new = "    if False:\n        raise PageTypeError(f\"{what}: `bare`"
+
+# -- a line under each name of a bar chart (`notes`) ------------------------------
+
+[[mutant]]
+name = "a note is set centred instead of to the names' edge"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = 'align="right", size=small'
+new = 'align="center", size=small'
+
+[[mutant]]
+name = "a note is set above its name"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "round(inner.top + slot * (index + 0.5) + line / 2)"
+new = "round(inner.top + slot * (index + 0.5) - line / 2 - height)"
+
+[[mutant]]
+name = "a note does not keep the names' distance from the axis"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "inner.left - theme.spacing.bar_pad_y - width"
+new = "inner.left - width"
+
+[[mutant]]
+name = "the plot does not stand clear of a note wider than every name"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "+ [theme.width(note, small) for note in plan.notes], default=0)"
+new = "+ [], default=0)"
+
+[[mutant]]
+name = "a note is set as big and as dark as a name"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "size=small, colour=theme.palette.muted)"
+new = 'size=0, colour="")'
+
+[[mutant]]
+name = "a category with nothing to add still gets a note"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "for index, note in enumerate(plan.notes) if note)"
+new = "for index, note in enumerate(plan.notes))"
+
+[[mutant]]
+name = "bars too close for their notes print the notes over the next name"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if slot < line + height:"
+new = "    if False:"
+
+[[mutant]]
+name = "notes do not have to be one for each category"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "or len(listed) != len(categories)"
+new = "or False"
+
+[[mutant]]
+name = "notes are taken for any kind of chart"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if kind not in (\"bar\", \"strip\"):\n        raise PageTypeError(f\"{what}: `notes` are set"
+new = "    if False:\n        raise PageTypeError(f\"{what}: `notes` are set"
+
+[[mutant]]
+name = "notes are written beside a scale"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if plan.notes:\n        raise PageTypeError(f\"{where}: a chart with notes"
+new = "    if False:\n        raise PageTypeError(f\"{where}: a chart with notes"
+
+[[mutant]]
+name = "a chart with notes alone is left to powerpoint, and its notes never placed"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "if plan.callouts or plan.notes"
+new = "if plan.callouts"
+
+[[mutant]]
+name = "the written words keep the chart's colour whatever a callout says"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "callout.colour or element.colour, align=callout.align)"
+new = "element.colour, align=callout.align)"
+
+[[mutant]]
+name = "the written words keep the chart's size whatever a callout says"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "callout.size or element.size,"
+new = "element.size,"
+
+[[mutant]]
+name = "the written words are centred whatever a callout says"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "callout.colour or element.colour, align=callout.align)"
+new = 'callout.colour or element.colour, align="center")'
+
+[[mutant]]
+name = "each note has a box as wide as its own words, so the left edges drift"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    width = max(theme.width(note, small) for note in plan.notes)"
+new = "    width = theme.width(plan.notes[0], small)"
+
+# -- a scatter's names beside the points, and its grid (`[x, y, "name"]`, `grid`) --
+
+[[mutant]]
+name = "the grid of a scatter is asked for and never coloured"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = 'grid=page.theme.palette.rule if points.grid else "",'
+new = 'grid="",'
+
+[[mutant]]
+name = "grid is read as true for anything written"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if not isinstance(grid, bool):\n        raise PageTypeError"
+new = "    if False:\n        raise PageTypeError"
+
+[[mutant]]
+name = "the name of a point is not read"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = 'label = point[2] if len(point) == 3 else ""'
+new = 'label = ""'
+
+[[mutant]]
+name = "a name of a point may be empty, a number or two lines"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = '            if len(point) == 3 and (not isinstance(label, str) or not label.strip() or "\n" in label):'
+new = "            if False:"
+
+[[mutant]]
+name = "named points are left to powerpoint's own axes"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "plane = _plane(page, rect, points, what) if points.named else None"
+new = "plane = None"
+
+[[mutant]]
+name = "a name at the right edge is set to the right and runs off the chart"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "for words, toward_left in ((right, False), (left, True)):"
+new = "for words, toward_left in ((right, False),):"
+
+[[mutant]]
+name = "names printing over each other are let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "            if apart.overlaps(there):"
+new = "            if False:"
+
+[[mutant]]
+name = "words that fit on neither side are let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "                if rect.contains(words):\n                    break"
+new = "                if True:\n                    break"
+
+[[mutant]]
+name = "the numbers under a name are printed to no places"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    places = (_places(x for one in series for x in one.xs), _places(y for one in series for y in one.values))"
+new = "    places = (0, 0)"
+
+[[mutant]]
+name = "the axes of named points have no room round the points"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "ROOM = 0.08"
+new = "ROOM = 0.0"
+
+[[mutant]]
+name = "the plot of named points takes no room for the legend"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    below = line + pad if len(points.series) > 1 else 0\n    left = "
+new = "    below = 0\n    left = "
+
+[[mutant]]
+name = "the plot of named points takes no room for the name and numbers of the y axis"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    left = rect.left + pad + line + pad + max(theme.width(f\"{tick:g}\") for tick in ticks) + pad"
+new = "    left = rect.left + pad"
+
+[[mutant]]
+name = "the plot of named points takes no room for the x axis words"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    bottom = rect.bottom - below - 2 * (line + pad) - pad"
+new = "    bottom = rect.bottom - below"
+
+[[mutant]]
+name = "named points are drawn in a size the words were not placed for"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "found.append(replace(one, labels=tuple(labels), mark=MARK))"
+new = "found.append(replace(one, labels=tuple(labels)))"
+
+[[mutant]]
+name = "the written grid is not the colour asked for"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            lines.color.rgb = _colour(element.grid)"
+new = '            lines.color.rgb = _colour("000000")'
+
+[[mutant]]
+name = "the written grid is not a hairline"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            lines.width = Emu(theme.spacing.hairline)\n        axis.major_tick_mark = XL_TICK_MARK.NONE\n        axis.format.line.color.rgb = _colour(element.line)\n        if not name:"
+new = "            lines.width = Emu(1)\n        axis.major_tick_mark = XL_TICK_MARK.NONE\n        axis.format.line.color.rgb = _colour(element.line)\n        if not name:"
+
+[[mutant]]
+name = "every written name is set to the right of its point"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    data_label.position = XL_LABEL_POSITION.LEFT if label.left else XL_LABEL_POSITION.RIGHT"
+new = "    data_label.position = XL_LABEL_POSITION.RIGHT"
+
+[[mutant]]
+name = "a written name is one line of words, the numbers lost"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    for number, line in enumerate(label.text.split(\"\\n\")):"
+new = "    for number, line in enumerate(label.text.split(\"\\n\")[:1]):"
+
+[[mutant]]
+name = "the plot of a scatter with names is not pinned"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    plane = element.plane\n    _hold(chart, plane.inner)"
+new = "    plane = element.plane"
+
+[[mutant]]
+name = "the axes of a scatter with names run as powerpoint pleases"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        axis.maximum_scale = high\n        axis.major_unit = step\n    if plane.log:"
+new = "        axis.major_unit = step\n    if plane.log:"
+
+# -- a strip of points on a log axis (`kind = "strip"`) -----------------------------
+
+[[mutant]]
+name = "a strip is taken without saying its axis"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = '    if written.get("axis") != "log":'
+new = "    if False:"
+
+[[mutant]]
+name = "ticks that are not every power of ten in turn are let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "or any(after - before != 1 for before, after in zip(powers, powers[1:])))"
+new = "or False)"
+
+[[mutant]]
+name = "a tick that is not a power of ten is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "abs(10.0 ** power - tick) > 1e-9 * tick"
+new = "False"
+
+[[mutant]]
+name = "a row written twice is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if len(set(rows)) != len(rows):\n        raise PageTypeError(f\"{what}: a row is written twice"
+new = "    if False:\n        raise PageTypeError(f\"{what}: a row is written twice"
+
+[[mutant]]
+name = "a series with the wrong number of rows is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "if not isinstance(values, list) or len(values) != len(rows) or any("
+new = "if not isinstance(values, list) or any("
+
+[[mutant]]
+name = "a point off the axis is let through to be cut off"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "                if not ticks[0] <= value <= ticks[-1]:"
+new = "                if False:"
+
+[[mutant]]
+name = "a series with no point at all is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if not any(values):"
+new = "        if False:"
+
+[[mutant]]
+name = "a series called Median is let through to meet the ring"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if len(set(names)) != len(names) or MEDIAN in names:"
+new = "    if len(set(names)) != len(names):"
+
+[[mutant]]
+name = "the median of an even number of points is the upper of the two in the middle"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "return ordered[half] if len(ordered) % 2 else (ordered[half - 1] + ordered[half]) / 2"
+new = "return ordered[half]"
+
+[[mutant]]
+name = "marks of one row are all set on the row's middle line"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    candidates = [0.0] + [sign * size * k for k in range(1, steps + 1) for sign in (1, -1)]"
+new = "    candidates = [0.0]"
+
+[[mutant]]
+name = "marks of one row may not leave the middle line at all"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "offsets = _swarm([across(value) for value, _index in found], mark, slot / 2 - mark / 2)"
+new = "offsets = _swarm([across(value) for value, _index in found], mark, 0)"
+
+[[mutant]]
+name = "a row too low for the name it holds is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if slot < tallest:"
+new = "    if False:"
+
+[[mutant]]
+name = "the plot of a strip takes no line above it for the axis words"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    top = rect.top + line + pad\n    bottom = rect.bottom - ((line + pad) if legend else 0) - pad"
+new = "    top = rect.top\n    bottom = rect.bottom - ((line + pad) if legend else 0) - pad"
+
+[[mutant]]
+name = "the plot of a strip takes no line below it for the legend"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    bottom = rect.bottom - ((line + pad) if legend else 0) - pad"
+new = "    bottom = rect.bottom - pad"
+
+[[mutant]]
+name = "the plot of a strip starts under the names of its rows"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    left = rect.left + lead + pad\n    right = rect.right"
+new = "    left = rect.left\n    right = rect.right"
+
+[[mutant]]
+name = "the plot of a strip runs on under the notes"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    right = rect.right - ((trail + pad) if trail else pad)"
+new = "    right = rect.right - pad"
+
+[[mutant]]
+name = "a strip shows a legend whatever the page said"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    legend = plan.legend if plan.legend is not None else len(plan.series) + plan.median > 1"
+new = "    legend = True"
+
+[[mutant]]
+name = "a strip with the numbers 0.1 and up marks its axis like one from 1"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = '                  x_format="#,##0" if plan.ticks[0] >= 1 else "General")'
+new = '                  x_format="#,##0")'
+
+[[mutant]]
+name = "the rows of a strip are counted from the numbers they hold"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "(plan.ticks[0], plan.ticks[-1], 10), (0.5, count + 0.5, 1), log=True, down=True,"
+new = "(plan.ticks[0], plan.ticks[-1], 10), (0, count, 1), log=True, down=True,"
+
+[[mutant]]
+name = "a strip runs its rows from the bottom"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "(0.5, count + 0.5, 1), log=True, down=True,"
+new = "(0.5, count + 0.5, 1), log=True, down=False,"
+
+[[mutant]]
+name = "a strip is drawn on a plain axis"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "(0.5, count + 0.5, 1), log=True, down=True,"
+new = "(0.5, count + 0.5, 1), log=False, down=True,"
+
+[[mutant]]
+name = "a strip shows the axis of its rows"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "legend=legend, axis=False, grid=palette.rule,"
+new = "legend=legend, axis=True, grid=palette.rule,"
+
+[[mutant]]
+name = "a strip draws no grid between its rows and along its ticks"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "legend=legend, axis=False, grid=palette.rule,"
+new = 'legend=legend, axis=False, grid="",'
+
+[[mutant]]
+name = "the median ring is filled in the ground's colour"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = '        drawn.append(Series(MEDIAN, tuple(row for _value, row in middles), "",'
+new = "        drawn.append(Series(MEDIAN, tuple(row for _value, row in middles), palette.paper,"
+
+[[mutant]]
+name = "the median ring has no edge"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "xs=tuple(value for value, _row in middles), outline=palette.ink, mark=STRIP_MARK + RING_OVER))"
+new = 'xs=tuple(value for value, _row in middles), outline="", mark=STRIP_MARK + RING_OVER))'
+
+[[mutant]]
+name = "a row with no note is given an empty one"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if plan.notes[row] if plan.notes else False:"
+new = "        if plan.notes:"
+
+[[mutant]]
+name = "the marks of a strip are drawn in the default size, not the size they were kept apart for"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "drawn.append(Series(name, tuple(columns[index]), colour, xs=tuple(xs[index]), mark=STRIP_MARK))"
+new = "drawn.append(Series(name, tuple(columns[index]), colour, xs=tuple(xs[index])))"
+
+[[mutant]]
+name = "the written strip is drawn on a plain axis"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if plane.log:"
+new = "    if False:"
+
+[[mutant]]
+name = "the written strip runs its rows from the bottom"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if plane.down:"
+new = "    if False:"
+
+[[mutant]]
+name = "the written strip prints its ticks as powerpoint pleases"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if plane.x_format:"
+new = "    if False:"
+
+[[mutant]]
+name = "the written strip shows the axis of its rows"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if not element.axis:\n        chart.value_axis.visible = False\n    if element.plane:"
+new = "    if False:\n        chart.value_axis.visible = False\n    if element.plane:"
+
+[[mutant]]
+name = "the written marks are the default size whatever the chart said"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        drawn.marker.size = round(series.mark) or POINT"
+new = "        drawn.marker.size = POINT"
+
+[[mutant]]
+name = "the written ring is as thin as a hairline"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            drawn.marker.format.line.width = Emu(round(theme.spacing.hairline * RING))"
+new = "            drawn.marker.format.line.width = Emu(theme.spacing.hairline)"
+
+[[mutant]]
+name = "the written ring has no edge"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        if series.outline:\n            # 縁のある印"
+new = "        if False:\n            # 縁のある印"
+
+[[mutant]]
+name = "the words of a scatter are left outside the group the chart is in"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    holder = slide if not element.callouts else slide.shapes.add_group_shape()"
+new = "    holder = slide"
+
+[[mutant]]
+name = "the median ring is as small as the marks, so a point of the row hides it"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "outline=palette.ink, mark=STRIP_MARK + RING_OVER))"
+new = "outline=palette.ink, mark=STRIP_MARK))"

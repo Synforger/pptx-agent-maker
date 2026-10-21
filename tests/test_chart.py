@@ -151,11 +151,15 @@ class TheListingOfTypes(unittest.TestCase):
     def test_it_says_how_a_chart_is_written(self) -> None:
         said = types.describe()
         self.assertRegex(said, r"chart\s+needs: chart")
-        self.assertIn("kind (bar | column | line | stacked | waterfall | scatter)", said)
+        self.assertIn("kind (bar | column | line | stacked | waterfall | scatter | strip)", said)
+        self.assertIn('a strip:     kind = "strip", axis = "log", ticks = [1, 10, 100, …]', said)
         self.assertIn('a scatter:   kind = "scatter", x, y', said)
-        self.assertIn("points = [[x, y], …]", said)
+        self.assertIn('points = [[x, y] or [x, y, "its name"], …]', said)
+        self.assertIn("highlight, grid", said)
         self.assertIn('data = "x.csv"', said)
         self.assertIn("callouts = [{ at, series, text }]", said)
+        self.assertIn("bare (= bars alone", said)
+        self.assertIn("notes (= a bar chart's one line under each name)", said)
 
 
 class AWaterfall(unittest.TestCase):
@@ -1011,3 +1015,137 @@ class AHiddenAxisStartsAtZero(unittest.TestCase):
         scaled = self.axis_of(a_chart(series=({"name": "r", "values": [4.5, 4.3, 3.5, 4.0]},),
                                       scale={"from": 1, "to": 5, "step": 1}))
         self.assertIn('<c:min val="1.0"/>', scaled)
+
+
+class ASmallChartOfBarsAlone(unittest.TestCase):
+    """⚠ **`bare` は数字も値の軸も出さない棒。**小さな図を並べる頁 (= 研究の地図の区画) で、棒の高さの比だけを
+    見せる。数字を付けないグラフは値の軸が出るので、`bare` はその軸も消す ― 隠しても棒は 0 から立つ。"""
+
+    def axis_of(self, chart: Chart) -> str:
+        return re.search(r"<c:valAx>.*?</c:valAx>", written(chart)[0], re.S).group(0)
+
+    def test_it_prints_no_number_and_draws_no_value_axis(self) -> None:
+        for kind in ("column", "bar"):
+            with self.subTest(kind=kind):
+                chart = a_chart(kind, bare=True)
+                self.assertFalse(chart.axis)
+                self.assertEqual([""], [series.number_format for series in chart.series])
+                xml, _parts = written(chart)
+                self.assertNotIn("<c:dLbls>", xml)
+                self.assertRegex(self.axis_of(chart), r'<c:delete(/>| val="1"/>)')
+
+    def test_the_names_of_the_categories_stay_under_the_bars(self) -> None:
+        xml, _parts = written(a_chart(bare=True))
+        category_axis = re.search(r"<c:catAx>.*?</c:catAx>", xml, re.S).group(0)
+        self.assertIn('<c:delete val="0"/>', category_axis)
+        for name in QUARTERS:
+            self.assertIn(f"<c:v>{name}</c:v>", xml)
+
+    def test_the_bars_stand_from_zero_and_the_numbers_are_still_in_the_deck(self) -> None:
+        close = a_chart(bare=True, series=({"name": "Score", "values": [75, 75, 67]},), categories=["A", "B", "C"])
+        self.assertIn('<c:min val="0.0"/>', self.axis_of(close))
+        self.assertIn("<c:v>67</c:v>", written(close)[0])
+
+    def test_one_bar_can_still_stand_out(self) -> None:
+        chart = a_chart(bare=True, highlight="Q3")
+        self.assertEqual(((2, P.accent),), chart.series[0].points)
+
+    def test_without_it_a_chart_is_what_it_was(self) -> None:
+        for chart in (a_chart(), a_chart(bare=False)):
+            self.assertEqual(["#,##0"], [series.number_format for series in chart.series])
+
+    def test_it_is_for_bars_and_says_nothing_of_numbers(self) -> None:
+        refused = WhatIsRefused()
+        for kind in ("line", "stacked", "waterfall"):
+            with self.subTest(kind=kind):
+                refused.refused({"kind": kind, "bare": True}, "`bare` is a small chart of bars alone", kind)
+        for key, value in (("labels", True), ("unit", "%"), ("scale", {"from": 0, "to": 30, "step": 10}),
+                           ("callouts", [{"at": "Q1", "text": "up"}])):
+            with self.subTest(key=key):
+                refused.refused({"bare": True, key: value}, "`bare` shows no numbers and no value axis", f"`{key}`")
+        refused.refused({"bare": "yes"}, "`bare` is true or false")
+
+
+class ALineUnderEachName(unittest.TestCase):
+    """⚠ **`notes` は横棒の項目の名前の下に置く 1 行の説明。**名前は PowerPoint が帯の真ん中に右寄せで置く
+    軸の字なので、説明は道具が置く場所を計算する ― 描く範囲を道具が決めて書き出す (= 注記と同じ)。"""
+
+    FOODS = ["Alpha team", "Beta", "Gamma", "Delta"]
+    NOTES = ["from the archive", "", "faces blurred", "hand drawn, scanned"]
+    S, LINE, SMALL = DEFAULT.spacing, DEFAULT.line_height(), DEFAULT.line_height(DEFAULT.type.caption)
+
+    def noted(self, **keys) -> Chart:
+        return a_chart("bar", series=({"name": "Images", "values": [12, 30, 21, 8]},), categories=self.FOODS,
+                       notes=self.NOTES, **keys)
+
+    def inner(self, chart: Chart):
+        return WordsPointingAtAPoint.inner(chart)
+
+    def test_a_note_is_one_line_right_of_the_names_edge_and_below_the_name(self) -> None:
+        chart = self.noted()
+        left, top, _wide, tall = self.inner(chart)
+        slot = tall / 4
+        self.assertEqual(["from the archive", "faces blurred", "hand drawn, scanned"],
+                         [callout.text for callout in chart.callouts])
+        self.assertEqual(1, len({callout.words.left for callout in chart.callouts}), "the notes' left edges line up")
+        for callout, index in zip(chart.callouts, (0, 2, 3)):
+            self.assertEqual("right", callout.align)
+            self.assertAlmostEqual(left - self.S.bar_pad_y, callout.words.right, delta=1)
+            self.assertAlmostEqual(top + slot * (index + 0.5) + self.LINE / 2, callout.words.top, delta=1)
+            # 箱はどれも、いちばん長い説明の幅 (= 左端も右端も揃う)
+            self.assertEqual((DEFAULT.width("hand drawn, scanned", DEFAULT.type.caption), self.SMALL),
+                             (callout.words.width, callout.words.height))
+            self.assertIsNone(callout.line)
+
+    def test_a_note_is_set_small_and_grey_beside_the_names(self) -> None:
+        for callout in self.noted().callouts:
+            self.assertEqual((DEFAULT.type.caption, P.muted), (callout.size, callout.colour))
+
+    def test_the_plot_stands_clear_of_the_widest_name_or_note(self) -> None:
+        chart = self.noted()
+        left, _top, _wide, _tall = self.inner(chart)
+        widest = max(DEFAULT.width("hand drawn, scanned", DEFAULT.type.caption), DEFAULT.width("Alpha team"))
+        self.assertGreaterEqual(left - chart.frame.left, widest + self.S.gap_s)
+        for callout in chart.callouts:
+            self.assertTrue(chart.rect.contains(callout.words))
+
+    def test_notes_take_no_band_from_the_chart(self) -> None:
+        chart = self.noted()
+        self.assertEqual(chart.rect, chart.frame)
+
+    def test_a_note_and_a_callout_each_keep_their_own_side(self) -> None:
+        chart = self.noted(callouts=[{"at": "Beta", "text": "above target"}])
+        words = [callout for callout in chart.callouts if callout.text == "above target"][0]
+        self.assertGreater(words.words.left, chart.frame.right)
+        self.assertEqual(4, len(chart.callouts))
+
+    def test_without_notes_the_chart_is_left_to_powerpoint(self) -> None:
+        chart = a_chart("bar")
+        self.assertEqual((None, None, ()), (chart.frame, chart.pinned, chart.callouts))
+
+    def test_written_out_the_notes_travel_with_the_chart_in_one_group(self) -> None:
+        xml, parts = written(self.noted())
+        slide = parts["ppt/slides/slide1.xml"].decode("utf-8")
+        self.assertIn("<p:grpSp>", slide)
+        for note in ("from the archive", "faces blurred", "hand drawn, scanned"):
+            self.assertIn(note, slide)
+        self.assertIn('<c:layoutTarget val="inner"/>', xml)
+        runs = re.findall(r'<a:pPr algn="r"/>.*?sz="(\d+)"', slide, re.S)
+        self.assertIn(str(round(DEFAULT.type.caption * 100)), runs)
+        self.assertIn(P.muted, slide)
+
+    def test_what_notes_may_not_be(self) -> None:
+        refused = WhatIsRefused()
+        refused.refused({"notes": ["a", "b", "c", "d"]}, "`notes` are set under the names of a bar chart's", "column")
+        for notes in (["a"], ["a", "b", "c", "d", "e"], "a", [1, 2, 3, 4], ["a\nb", "", "", ""]):
+            with self.subTest(notes=notes):
+                refused.refused({"kind": "bar", "notes": notes}, "`notes` is one line of words for each of the 4")
+        refused.refused({"kind": "bar", "notes": ["a", "", "", ""], "scale": {"from": 0, "to": 30, "step": 10}},
+                        "a chart with notes works out its own axis")
+
+    def test_bars_too_close_for_a_name_and_its_note_stop_the_page(self) -> None:
+        many = [f"Row {number}" for number in range(1, 15)]
+        with self.assertRaises(PageFullError) as stopped:
+            a_chart("bar", series=({"name": "N", "values": list(range(1, 15))},), categories=many,
+                    notes=["a note"] * 14)
+        self.assertIn("name and its note need", str(stopped.exception))
