@@ -24,6 +24,9 @@ SIZE = re.compile(r'<a:rPr[^>]*\bsz="(\d+)"')
 # 中身として拾う (= 実物で 1 回踏んだ)。直前が / でない > だけを開始とみなす。
 TEXT = re.compile(r"<a:t\b[^>]*(?<!/)>(.*?)</a:t>", re.S)
 CELL = re.compile(r"<a:tc[ >](.*?)</a:tc>", re.S)
+#: 横か縦にまたがれた側のセル (= またぐセルが言葉を持ち、これは持たない)。`CELL` が拾う中身の頭に、開始タグの
+#: 属性が付いている
+SPANNED = re.compile(r'[^<>]*\b[hv]Merge="1"')
 #: 文字を持てる図形 (= 位置を書いていない物も含む。プレースホルダは位置をレイアウトから継ぐ)
 TEXT_SHAPE = re.compile(r"<p:sp>(.*?)</p:sp>", re.S)
 TITLE_PLACEHOLDER = re.compile(r'<p:ph\b[^>]*\btype="(?:title|ctrTitle)"')
@@ -68,8 +71,13 @@ class Shape:
         return sizes
 
     def table_rows(self) -> list[list[str]]:
-        """Cell texts, row by row, for a table; empty for anything else."""
-        return [[html.unescape("".join(TEXT.findall(cell))) for cell in CELL.findall(row)]
+        """Cell texts, row by row, for a table; empty for anything else.
+
+        ⚠ **またがれた側のセルは数えない。**全部の列をまたぐ区切りの行は、先頭のセルだけが言葉を持つ。
+        またがれた側を空欄と読むと、区切りを 1 行書くたびに「空欄」が列の数だけ出る。
+        """
+        return [[html.unescape("".join(TEXT.findall(cell))) for cell in CELL.findall(row)
+                 if not SPANNED.match(cell)]
                 for row in ROW.findall(self.xml)]
 
 

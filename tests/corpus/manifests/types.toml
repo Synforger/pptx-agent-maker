@@ -445,3 +445,20 @@ name = "Dec | 0.5"
 name = "Jan | 1.0"
 goal = true
 nodes = [["Release", "anyone can install it"]]
+
+[[pages]]
+kind = "declare"
+type = "board"
+title = "Rows that divide a table"
+table = [
+  ["Region", "Open", "Staff"],
+  { band = "Main sites", tone = "accent" },
+  ["North", "6 days", "14"],
+  ["South", "7 days", "21"],
+  { band = "Partners", tone = "Outside" },
+  ["West", "5 days", "8"],
+  { band = "Closed for the season" },
+  ["East", "―", "―"],
+]
+footer = "made up for the corpus"
+why = "a table divided by bands: in the accent, on a named ground, and with no tone at all"

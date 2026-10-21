@@ -23,8 +23,8 @@ new = "        return words"
 [[mutant]]
 name = "a table forgets which of its cells are shaded"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "header, highlight or {}, tuple(widths), marks, shades)"
-new = "header, highlight or {}, tuple(widths), marks)"
+old = "header, highlight or {}, tuple(widths), marks, shades, bands)"
+new = "header, highlight or {}, tuple(widths), marks, bands=bands)"
 
 [[mutant]]
 name = "a cell of no depth is kept as a shaded cell"
@@ -47,8 +47,8 @@ new = "return self.thinned(1 / self.SHADES)"
 [[mutant]]
 name = "a shaded cell keeps the ground of its row"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "            ground = (theme.palette.shade(element.shades[(r, c)]) if (r, c) in element.shades\n                      else _cell_colour(theme, heading, r))"
-new = "            ground = _cell_colour(theme, heading, r)"
+old = "            ground = (theme.palette.shade(element.shades[(r, c)]) if (r, c) in element.shades\n                      else _cell_colour(theme, heading, r - above))"
+new = "            ground = _cell_colour(theme, heading, r - above)"
 
 [[mutant]]
 name = "the words on a deep ground stay in the colour of the body"
@@ -65,5 +65,5 @@ new = "if not isinstance(level, int) or not 0 <= level <= Palette.SHADES:"
 [[mutant]]
 name = "only the first line of a cell is set in the page's type"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "            for paragraph in cell.text_frame.paragraphs:\n                paragraph.alignment = PP_ALIGN.LEFT"
-new = "            for paragraph in cell.text_frame.paragraphs[:1]:\n                paragraph.alignment = PP_ALIGN.LEFT"
+old = "    for paragraph in cell.text_frame.paragraphs:\n        paragraph.alignment = PP_ALIGN.LEFT"
+new = "    for paragraph in cell.text_frame.paragraphs[:1]:\n        paragraph.alignment = PP_ALIGN.LEFT"

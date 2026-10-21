@@ -1,5 +1,6 @@
 # What a deck of outlined cards does to a card: the colour goes to the line and the heading, the words stand
 # in the middle of the box, a card may leave its heading or its body out, a tag is a label on pale grey.
+# A table is plain: a grey heading row, no stripes, grey rules; a band divides it in whatever tone it asks for.
 
 specimen = "specimen.pptx"
 out = "outlined.pptx"
@@ -98,3 +99,21 @@ nodes = [
   { heading = "Release", body = ["notes", "the build"], tone = "accent" },
   { tone = "band" },
 ]
+
+[[pages]]
+kind = "declare"
+type = "board"
+title = "A plain table, divided by bands"
+table = [
+  ["Bed", "Planted", "Water", "Yield"],
+  { band = "Spring", tone = "accent" },
+  ["North", { text = "12 Mar", shade = 1 }, "weekly", { text = "48 kg", shade = 2 }],
+  ["South", { text = "30 Mar", shade = 0 }, "twice a week", { text = "71 kg", shade = 4 }],
+  { band = "Autumn" },
+  ["West", "2 Sep", "weekly", { text = "9 kg", shade = 1 }],
+  { band = "Left fallow", tone = "bad" },
+  ["East", "―", "―", "―"],
+]
+note = "A band stands across every column and says what the rows under it have in common"
+footer = "made up for the corpus"
+why = "a plain table, and the rows that divide it"

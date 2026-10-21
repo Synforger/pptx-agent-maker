@@ -637,7 +637,8 @@ def _solid(format, colour: str, outline: str = "", theme: Theme | None = None) -
 
 
 def _table(slide, element: Table, theme: Theme) -> None:
-    rows, columns = len(element.rows), len(element.rows[0])
+    # 列の数は、区切りでない最初の行が言う (= 区切りは 1 つのセルの行)
+    rows, columns = len(element.rows), len(next(row for r, row in enumerate(element.rows) if r not in element.bands))
     shape = slide.shapes.add_table(
         rows, columns, Emu(element.rect.left), Emu(element.rect.top),
         Emu(element.rect.width), Emu(element.rect.height),
@@ -648,35 +649,88 @@ def _table(slide, element: Table, theme: Theme) -> None:
         column.width = Emu(width)
     for row in table.rows:
         row.height = Emu(theme.table_row_height())
+    plain = theme.table_look == "plain"
+    # 本文の縞は、区切りの行を数えずに続ける (= 区切りが入っても、縞の並びは同じ)
+    above = 0
     for r, row in enumerate(element.rows):
         heading = bool(element.header and r == 0)
+        if r in element.bands:
+            above += 1
+            _band(table, r, columns, row[0], element.bands[r], theme, plain)
+            continue
         for c, value in enumerate(row):
             cell = table.cell(r, c)
-            cell.margin_top = Emu(theme.spacing.cell_pad_y)
-            cell.margin_bottom = Emu(theme.spacing.cell_pad_y)
-            cell.margin_left = Emu(theme.spacing.cell_pad_x)
-            cell.margin_right = Emu(theme.spacing.cell_pad_x)
+            _pad(cell, theme)
             # 地の濃さを言ったセルは、差し色をその段まで薄めた地。字は、その地の上で読める方の色
             ground = (theme.palette.shade(element.shades[(r, c)]) if (r, c) in element.shades
-                      else _cell_colour(theme, heading, r))
+                      else _cell_colour(theme, heading, r - above))
             cell.fill.solid()
             cell.fill.fore_color.rgb = _colour(ground)
+            if plain:
+                _rules(cell, theme)
             cell.text = value
             mark = (r, c) in element.marks
             # 字は地の上で読める方の色 (= 見出し行の地は案件の差し色。薄い差し色に白い字を決め打つと
             # 読めない見出しになった)
             ink = theme.palette.words_on(ground, theme.type.body, heading)
-            # ⚠ **セルの文の行は、全部同じに書く。**改行を含む文は行ごとに別の段落になる。最初の段落にだけ
-            # 大きさ・色・書体を付けていた間は、改行の後の行が pptx の既定の大きさ (= 18pt) で出た
-            for paragraph in cell.text_frame.paragraphs:
-                paragraph.alignment = PP_ALIGN.LEFT
-                for run in paragraph.runs:
-                    run.font.size = Pt(theme.type.body)
-                    run.font.bold = heading
-                    run.font.name = MARK_FACE if mark else theme.type.family
-                    run.font.color.rgb = _colour(element.highlight.get((r, c)) or ink)
-                    if mark:
-                        _every_script(run, MARK_FACE)
+            _cell_words(cell, theme, bold=heading, colour=element.highlight.get((r, c)) or ink, mark=mark)
+
+
+def _pad(cell, theme: Theme) -> None:
+    cell.margin_top = Emu(theme.spacing.cell_pad_y)
+    cell.margin_bottom = Emu(theme.spacing.cell_pad_y)
+    cell.margin_left = Emu(theme.spacing.cell_pad_x)
+    cell.margin_right = Emu(theme.spacing.cell_pad_x)
+
+
+def _cell_words(cell, theme: Theme, *, bold: bool, colour: str, mark: bool = False) -> None:
+    # ⚠ **セルの文の行は、全部同じに書く。**改行を含む文は行ごとに別の段落になる。最初の段落にだけ
+    # 大きさ・色・書体を付けていた間は、改行の後の行が pptx の既定の大きさ (= 18pt) で出た
+    for paragraph in cell.text_frame.paragraphs:
+        paragraph.alignment = PP_ALIGN.LEFT
+        for run in paragraph.runs:
+            run.font.size = Pt(theme.type.body)
+            run.font.bold = bold
+            run.font.name = MARK_FACE if mark else theme.type.family
+            run.font.color.rgb = _colour(colour)
+            if mark:
+                _every_script(run, MARK_FACE)
+
+
+def _band(table, r: int, columns: int, words: str, painted: tuple[str, str], theme: Theme, plain: bool) -> None:
+    """A row that divides the table: one cell across every column, in bold.
+
+    ⚠ **またぐ列の全部のセルに、地と罫線を書く。**またがれた側にも同じ地と罫線を持たせておくと、
+    PowerPoint で区切りをセルに分け直しても、見た目が変わらない。
+    """
+    ground, ink = painted
+    for c in range(columns):
+        cell = table.cell(r, c)
+        _pad(cell, theme)
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = _colour(ground)
+        if plain:
+            _rules(cell, theme)
+    first = table.cell(r, 0)
+    if columns > 1:
+        first.merge(table.cell(r, columns - 1))
+    first.text = str(words)
+    _cell_words(first, theme, bold=True, colour=ink)
+
+
+def _rules(cell, theme: Theme) -> None:
+    """A rule on every side of a cell, in the colour of the rules (= `table_look = "plain"`).
+
+    ⚠ **罫線は地より前に書く。**セルの性質の中の並びは、左・右・上・下の線、それから地 (= schema の決め)。
+    並びが違う file を PowerPoint は修復しようとする。
+    """
+    properties = cell._tc.get_or_add_tcPr()
+    for index, side in enumerate(("lnL", "lnR", "lnT", "lnB")):
+        line = properties.makeelement(qn(f"a:{side}"), {"w": str(theme.spacing.hairline)})
+        fill = line.makeelement(qn("a:solidFill"), {})
+        fill.append(fill.makeelement(qn("a:srgbClr"), {"val": theme.palette.rule}))
+        line.append(fill)
+        properties.insert(index, line)
 
 
 def _every_script(run, face: str) -> None:
@@ -697,7 +751,12 @@ def _every_script(run, face: str) -> None:
 
 
 def _cell_colour(theme: Theme, heading: bool, row: int) -> str:
-    """見出しは差し色、本文は 1 行おきに薄く敷く (= 横に目が滑らないように)。"""
+    """見出しは差し色、本文は 1 行おきに薄く敷く (= 横に目が滑らないように)。
+
+    `table_look = "plain"` の表は、見出しを灰の地に、本文は縞なしの紙の色にする (= 目を滑らせるのは罫線)。
+    """
+    if theme.table_look == "plain":
+        return theme.palette.wash if heading else theme.palette.paper
     if heading:
         return theme.palette.accent
     return theme.palette.band if row % 2 == 0 else theme.palette.paper

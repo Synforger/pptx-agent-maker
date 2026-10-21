@@ -1,0 +1,237 @@
+# A table in the plain look (`[theme] table_look`), and a row that divides a table (`{ band = "…" }`).
+
+tests = ["tests/test_table_plain.py", "tests/test_corpus.py"]
+
+# -- the look a project picks --------------------------------------------------
+
+[[mutant]]
+name = "the project says plain and its tables stay as they were"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        table_look=table_look,\n"
+new = ""
+
+[[mutant]]
+name = "the key is not one a project may set"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = '         "table_look", "layout_of_page")'
+new = '         "layout_of_page")'
+
+[[mutant]]
+name = "a look nobody pictured is let through"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = 'TABLE_LOOKS = ("accent", "plain")'
+new = 'TABLE_LOOKS = ("accent", "plain", "outlined")'
+
+[[mutant]]
+name = "a project that says nothing gets the plain look"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    table_look: str = \"accent\"\n"
+new = "    table_look: str = \"plain\"\n"
+
+[[mutant]]
+name = "the outlined deck of the corpus stops setting a plain look"
+file = "tests/corpus/decks/outlined/workspace.toml"
+old = "table_look = \"plain\"\n"
+new = ""
+
+# -- reading a row that divides a table ---------------------------------------
+
+[[mutant]]
+name = "a band is read as a row of plain words"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "            read.append([read_band(row, where)])"
+new = "            read.append([str(read_band(row, where))])"
+
+[[mutant]]
+name = "a row written as a table of keys is not taken for a row"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "all(isinstance(row, (list, dict)) and row for row in rows)"
+new = "all(isinstance(row, list) and row for row in rows)"
+
+[[mutant]]
+name = "the heading row may be a band"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "            if r == 1:\n"
+new = "            if False:\n"
+
+[[mutant]]
+name = "a band with no row under it is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "            if r == len(rows):\n"
+new = "            if False:\n"
+
+[[mutant]]
+name = "a band takes a key nobody reads"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    only_keys(item, {\"band\", \"tone\"}, what)\n"
+new = ""
+
+[[mutant]]
+name = "a band with no words is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = " or isinstance(words, bool) or not str(words).strip():"
+new = " or isinstance(words, bool):"
+
+[[mutant]]
+name = "a tone that is not a name is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if not isinstance(tone, str):\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "a band forgets the tone it asked for"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        cell.tone = tone\n"
+new = '        cell.tone = ""\n'
+
+# -- measuring a table with bands in it ---------------------------------------
+
+[[mutant]]
+name = "a long band widens the first column"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        rows = [row for row in rows if not divides(row)] or rows"
+new = "        rows = rows"
+
+[[mutant]]
+name = "a band is set in the width of the first column when it is measured"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "zip(row, [sum(widths)] if divides(row) else widths)"
+new = "zip(row, widths)"
+
+[[mutant]]
+name = "any row of one cell is taken for a band"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "    return len(row) == 1 and isinstance(row[0], Band)"
+new = "    return len(row) == 1"
+
+# -- what the page makes of the rows ------------------------------------------
+
+[[mutant]]
+name = "a table forgets which of its rows are bands"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "header, highlight or {}, tuple(widths), marks, shades, bands)"
+new = "header, highlight or {}, tuple(widths), marks, shades)"
+
+[[mutant]]
+name = "the heading row of a table handed over directly may be a band"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if header and 0 in bands:\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "a tone nobody names is let through"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if band.tone not in TONES and band.tone not in named:\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "a band with no tone stands on the paper"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            return p.wash, p.ink\n        named"
+new = "            return p.paper, p.ink\n        named"
+
+[[mutant]]
+name = "a plain table paints its bands the way an accent table does"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if self.theme.table_look == \"plain\":\n            look, words"
+new = "        if False:\n            look, words"
+
+[[mutant]]
+name = "a plain table's band says its tone in the body's colour"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            return look.fill, words\n"
+new = "            return look.fill, look.ink\n"
+
+# -- what is baked ------------------------------------------------------------
+
+[[mutant]]
+name = "a plain table is baked with the accent heading and the stripes"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if theme.table_look == \"plain\":\n        return theme.palette.wash"
+new = "    if False:\n        return theme.palette.wash"
+
+[[mutant]]
+name = "a plain table is baked with no rules"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            if plain:\n                _rules(cell, theme)\n            cell.text = value"
+new = "            cell.text = value"
+
+[[mutant]]
+name = "the rules are in the colour of the words"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '{"val": theme.palette.rule}'
+new = '{"val": theme.palette.ink}'
+
+[[mutant]]
+name = "the rules are not as thick as a hairline"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '{"w": str(theme.spacing.hairline)}'
+new = '{"w": "0"}'
+
+[[mutant]]
+name = "the rules of a cell are written after its ground"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        properties.insert(index, line)"
+new = "        properties.append(line)"
+
+[[mutant]]
+name = "a table that begins with a band is as wide as the band"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "len(next(row for r, row in enumerate(element.rows) if r not in element.bands))"
+new = "len(element.rows[0])"
+
+[[mutant]]
+name = "a band is baked as cells in columns"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    if columns > 1:\n        first.merge(table.cell(r, columns - 1))\n"
+new = ""
+
+[[mutant]]
+name = "the words of a band are not bold"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    _cell_words(first, theme, bold=True, colour=ink)"
+new = "    _cell_words(first, theme, bold=False, colour=ink)"
+
+[[mutant]]
+name = "the words of a band keep the colour of the body"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    _cell_words(first, theme, bold=True, colour=ink)"
+new = "    _cell_words(first, theme, bold=True, colour=theme.palette.ink)"
+
+[[mutant]]
+name = "a band stands on the ground of an ordinary row"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        cell.fill.fore_color.rgb = _colour(ground)\n        if plain:\n            _rules(cell, theme)\n    first"
+new = "        cell.fill.fore_color.rgb = _colour(theme.palette.paper)\n        if plain:\n            _rules(cell, theme)\n    first"
+
+[[mutant]]
+name = "only the first cell of a band gets its ground and its rules"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    for c in range(columns):\n        cell = table.cell(r, c)\n        _pad(cell, theme)\n        cell.fill.solid()"
+new = "    for c in range(1):\n        cell = table.cell(r, c)\n        _pad(cell, theme)\n        cell.fill.solid()"
+
+[[mutant]]
+name = "a band counts as a row of the body, and the stripe under it turns over"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "            above += 1\n"
+new = "            pass\n"
+
+[[mutant]]
+name = "the stripe is counted from the top of the table"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "_cell_colour(theme, heading, r - above)"
+new = "_cell_colour(theme, heading, r)"
+
+# -- the checks that read what is baked ---------------------------------------
+
+[[mutant]]
+name = "the cells a band spans over are read as blank cells"
+file = "src/pptx_agent_maker/checks/base/slide.py"
+old = "                 if not SPANNED.match(cell)]"
+new = "                 ]"
+
+[[mutant]]
+name = "the colour of a rule is read as the ground of its cell"
+file = "src/pptx_agent_maker/checks/rules/contrast.py"
+old = 'OUTLINE = re.compile(r"<a:(ln[LRTB]?)\b.*?</a:\1>", re.S)'
+new = 'OUTLINE = re.compile(r"<a:ln\b.*?</a:ln>", re.S)'

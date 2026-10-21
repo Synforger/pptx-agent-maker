@@ -1,5 +1,5 @@
 # A second made-up project, whose look is the one `[theme]` sets for a whole deck: outlined cards and bands,
-# and boxes that fill the page. The main corpus keeps the default look, and the look of a deck is one per
+# plain tables, and boxes that fill the page. The main corpus keeps the default look, and the look of a deck is one per
 # project, so what the outlined look does to a page is kept from here (= snapshot.py bakes it in a project of
 # its own; the pictures and recipes are the corpus's).
 
@@ -11,6 +11,7 @@ assets = "assets"
 [theme]
 card_look = "outlined"
 band_look = "outlined"
+table_look = "plain"
 box_height = "page"
 
 # A use whose gaps are tall enough for a line of words beside a downward arrow.

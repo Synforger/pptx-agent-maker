@@ -186,6 +186,10 @@ CARD_LOOKS = ("filled", "outlined")
 #: 条件の帯と結論の帯の見た目。`plain` は枠の無い帯 (= 既定)、`outlined` は枠と色を持つ (= 上は差し色、
 #: 下は灰)。案件が `[theme] band_look` で決める
 BAND_LOOKS = ("plain", "outlined")
+#: 表の見た目。`accent` は見出しの行を差し色で塗り、本文を 1 行おきに薄く敷く (= 既定。罫線は引かない)、
+#: `plain` は見出しの行を灰の地に本文の色の太字にして、本文は紙の色のまま、どのセルにも灰の罫線を引く。
+#: 資料全体の見た目なので案件が `[theme] table_look` で決める (= 表ごと・頁ごとには選べない)
+TABLE_LOOKS = ("accent", "plain")
 #: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
 SIZED = ("title", "heading", "stage", "body", "caption")
 #: そのほか、案件が書ける役 (= `[theme.type]`)。書かなければ他の役から出る (= `Type.band` は見出し、
@@ -427,6 +431,27 @@ class Under:
     layout: str = "slideLayout1.xml"
 
 
+class Band(str):
+    """The words of a row that divides a table: one cell across every column, and the tone it asked for.
+
+    字のまま表を通るので (= 印と濃さのセルと同じ)、表を読む所も置く所も、行が 1 つのセルの行かどうかだけを
+    `divides` で問う。`tone` は書かれたまま (= 空は書かれていない)。色の役か `[theme.grounds]` の名前かは、
+    地を引ける所 (= `Page.table`) が確かめる。
+    """
+
+    tone: str
+
+    def __new__(cls, words: str, tone: str = "") -> "Band":
+        cell = super().__new__(cls, words)
+        cell.tone = tone
+        return cell
+
+
+def divides(row) -> bool:
+    """Whether a row of a table is a band across it (= its one cell is a `Band`), not cells in columns."""
+    return len(row) == 1 and isinstance(row[0], Band)
+
+
 @dataclass(frozen=True)
 class Theme:
     """Everything a page is allowed to know about how the deck looks."""
@@ -446,6 +471,8 @@ class Theme:
     box_height: str = "text"
     card_look: str = "filled"
     band_look: str = "plain"
+    #: 表の見た目 (= `TABLE_LOOKS`)。これも既定は今までの見た目
+    table_look: str = "accent"
     #: この見た目の使い方の名前 (= 道具の `read` / `present` か、案件が `[theme.uses]` で名付けたもの)
     use: str = "read"
     #: この案件が知っている使い方と、それぞれの字の大きさ (= 資料と頁が `use` で名指す先。`using`)
@@ -550,7 +577,8 @@ class Theme:
         total = 0
         for row in rows:
             tallest = 1
-            for cell, width in zip(row, widths):
+            # 区切りの行は全部の列をまたぐ (= 1 列の幅で折ると、長い区切りが何段にも数えられる)
+            for cell, width in zip(row, [sum(widths)] if divides(row) else widths):
                 usable = width - 2 * self.spacing.cell_pad_x
                 tallest = max(tallest, self.lines(cell, max(usable, 1)))
             total += tallest * self.line_height() + 2 * self.spacing.cell_pad_y
@@ -562,6 +590,7 @@ class Theme:
         均等に割ると、長いラベルの列だけが折り返して表が縦に伸び、下に置いたはずの
         読み方を飲み込む。中身の最大の長さに比例させ、どの列にも下限を置く。
         """
+        rows = [row for row in rows if not divides(row)] or rows        # 区切りの行は列の幅を決めない
         columns = max(len(row) for row in rows)
         want = [max((len(str(row[i])) if i < len(row) else 0) for row in rows) or 1
                 for i in range(columns)]
@@ -745,7 +774,7 @@ DEFAULT = Theme()
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
 _MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "band_look",
-         "layout_of_page")
+         "table_look", "layout_of_page")
 
 
 class ThemeError(ValueError):
@@ -796,6 +825,7 @@ def theme_from(settings: dict | None) -> Theme:
     box_height = _choice(settings, "box_height", BOX_HEIGHTS, "the height of a page's boxes")
     card_look = _choice(settings, "card_look", CARD_LOOKS, "the look of a card")
     band_look = _choice(settings, "band_look", BAND_LOOKS, "the look of the bands over and under a page")
+    table_look = _choice(settings, "table_look", TABLE_LOOKS, "the look of a table")
     # 型の頁を乗せるレイアウトは、見本を読む所が使う (= `deck/base/under.py`)。ここは書き方だけ確かめる
     on = settings.get("layout_of_page")
     if on is not None and (isinstance(on, bool) or not isinstance(on, int) or on < 1):
@@ -823,6 +853,7 @@ def theme_from(settings: dict | None) -> Theme:
         box_height=box_height,
         card_look=card_look,
         band_look=band_look,
+        table_look=table_look,
     )
 
 

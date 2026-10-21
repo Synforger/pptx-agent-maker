@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..base.geometry import Rect, cm
-from ..base.tokens import DEFAULT, MONO_FACE, Theme
+from ..base.tokens import DEFAULT, MONO_FACE, Band, Theme, divides
 from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
 from .look import LIGHT, Look, Style, TONES
 
@@ -524,6 +524,7 @@ class Page:
         """A small table. Empty cells are refused: write a dash if there is no value.
 
         セルは言葉か、状態の印 (= `Mark`) か、地の濃さを言った言葉 (= `Shade`。値の大小を地の濃さで見せる)。
+        行は、列のセルの並びか、全部の列をまたぐ区切り (= `Band` 1 つの行。何を分けるかは `tone` が言う)。
 
         ⚠ **表の高さは行数が決める。**渡した枠は上限であって指示ではなく、行が
         入り切らなければ PowerPoint は枠を下へ伸ばす (= 頁から溢れる)。ここで
@@ -552,11 +553,36 @@ class Page:
             raise ValueError(
                 "a heading cell is given a shade — the heading row stands on the accent already; "
                 "a shade belongs to the cells under it")
+        bands = {r: self._divider(row[0]) for r, row in enumerate(rows) if divides(row)}
+        if header and 0 in bands:
+            raise ValueError("the heading row of a table is cells in columns — a band divides the rows under it")
         self.elements.append(
             Table("table", placed, tuple(tuple(str(c) for c in row) for row in rows),
-                  header, highlight or {}, tuple(widths), marks, shades)
+                  header, highlight or {}, tuple(widths), marks, shades, bands)
         )
         return placed
+
+    def _divider(self, band: Band) -> tuple[str, str]:
+        """(the ground, the colour of the words) of a row that divides a table.
+
+        `tone` を書かない区切りは、見出しと同じ灰の地に本文の色。書いた区切りは、箱と同じ語彙で色を言う ―
+        `table_look = "accent"` の表では箱と同じく地を塗り (= 差し色は濃い地に読める字)、`"plain"` の表では
+        枠を色で言うカードと同じく色を字が持つ (= 地はほぼ紙の色)。
+        """
+        t, p = self.theme.type, self.theme.palette
+        if not band.tone:
+            return p.wash, p.ink
+        named = self.theme.ground_names()
+        if band.tone not in TONES and band.tone not in named:
+            grounds = f"; this project names {', '.join(named)} in [theme.grounds]" if named else ""
+            raise ValueError(
+                f"band {str(band)!r} has tone {band.tone!r} — a tone is one of the palette's roles: "
+                f"{', '.join(TONES)}{grounds}")
+        if self.theme.table_look == "plain":
+            look, words = self.outlined_look(Style(tone=band.tone), t.body, True)
+            return look.fill, words
+        fill, words, _edge = self.ground(band.tone, t.body, True)
+        return fill, words
 
     def text_face(self, role: str | None = None) -> tuple[float, bool]:
         """(size, bold) of the words of a `text` in this role (= the side that counts its height and the side that sets it read one).
