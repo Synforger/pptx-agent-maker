@@ -31,16 +31,13 @@ from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls, qn
 from pptx.util import Emu, Pt
 
-from ..layout.parts.elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Table, Text, bullet_indent
+from ..layout.parts.elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Table, Text, TEXT_INSET_Y, bullet_indent
 from ..layout.base.tokens import DEFAULT, MARK_FACE, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
 #: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)
 PRESET = {"rect": MSO_SHAPE.RECTANGLE, "home": MSO_SHAPE.PENTAGON, "chevron": MSO_SHAPE.CHEVRON,
           "voice": MSO_SHAPE.ROUNDED_RECTANGULAR_CALLOUT}
-
-#: 文字の枠が上下に自分で取る余白 (= pptx の既定。左右は `Spacing.text_inset`)
-TEXT_INSET_Y = 45720
 
 #: 「スタイルなし・罫線なし」。PowerPoint が新しい表に付ける既定のスタイルは
 #: **テーマの accent1 で見出しを塗る**ので、色の出どころが palette と 2 つに割れる。

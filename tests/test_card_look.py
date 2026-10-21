@@ -26,8 +26,8 @@ from support.pages import box_of, build, named  # noqa: E402
 from pptx_agent_maker import DEFAULT, Page, checks  # noqa: E402
 from pptx_agent_maker.layout.base.geometry import Rect, pt  # noqa: E402
 from pptx_agent_maker.layout.base.tokens import DERIVED, SIZED, ThemeError, theme_from  # noqa: E402
-from pptx_agent_maker.layout.parts.elements import bullet_indent  # noqa: E402
-from pptx_agent_maker.layout.parts.page import TEXT_PAD_Y, Card, PageFullError, card_text  # noqa: E402
+from pptx_agent_maker.layout.parts.elements import TEXT_INSET_Y, bullet_indent  # noqa: E402
+from pptx_agent_maker.layout.parts.page import Card, PageFullError, card_text  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
@@ -183,7 +183,7 @@ class AlignmentAndTheMiddleOfTheBox(unittest.TestCase):
     def centre(self, built, head: str, last: str) -> tuple[float, float]:
         """(the middle of the words as they stand on the page, the middle of the box)."""
         first, end, box = named(built, head).rect, named(built, last).rect, elements(built, "box")[0].rect
-        return (first.top + TEXT_PAD_Y + (end.bottom - first.top) / 2, box.top + box.height / 2)
+        return (first.top + TEXT_INSET_Y + (end.bottom - first.top) / 2, box.top + box.height / 2)
 
     def test_in_an_outlined_deck_the_words_stand_in_the_middle_of_the_box(self) -> None:
         for items in ({"heading": "Head", "body": "words"}, {"heading": "Head"}, {"body": "words"}):
@@ -199,7 +199,7 @@ class AlignmentAndTheMiddleOfTheBox(unittest.TestCase):
         box = Rect(page.body.left, page.body.top, page.body.width, DEFAULT.line_height(T.heading) + 2 * S.pad)
         page.boxes(box, [Card("Head", "words that need more room than the box has")])
         head = next(e for e in page.elements if e.kind == "box_heading").rect
-        self.assertEqual(box.top + S.pad - TEXT_PAD_Y, head.top)
+        self.assertEqual(box.top + S.pad - TEXT_INSET_Y, head.top)
 
     def test_a_filled_deck_keeps_the_words_at_the_top(self) -> None:
         built = cards({"heading": "Head", "body": "words"}, theme=theme_from({"box_height": "page"}))
@@ -250,7 +250,7 @@ class ATagIsOneLineOnAPaleGround(unittest.TestCase):
         for theme in (OUTLINED_PAGE, theme_from({"box_height": "page"})):
             box, words, _built = self.tag(theme)
             self.assertAlmostEqual(box.rect.top + box.rect.height / 2,
-                                   words.rect.top + TEXT_PAD_Y + words.rect.height / 2, delta=2)
+                                   words.rect.top + TEXT_INSET_Y + words.rect.height / 2, delta=2)
         box, _words, _built = self.tag(DEFAULT)
         self.assertEqual(DEFAULT.line_height(T.heading) + 2 * S.pad, box.rect.height)
 

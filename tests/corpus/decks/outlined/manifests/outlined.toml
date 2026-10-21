@@ -1,0 +1,100 @@
+# What a deck of outlined cards does to a card: the colour goes to the line and the heading, the words stand
+# in the middle of the box, a card may leave its heading or its body out, a tag is a label on pale grey.
+
+specimen = "specimen.pptx"
+out = "outlined.pptx"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "Every way to fill an outlined card"
+condition = "A colour is on the line and on the heading; the words are in the middle"
+conclusion = "A card with only its heading stands in the middle just the same"
+card_columns = 3
+cards = [
+  { heading = "Both", body = "a heading and a body", tone = "accent" },
+  { body = "only the words of the card", tone = "bad" },
+  { heading = "Only a heading", tone = "good" },
+  { heading = "Stage 1", tag = true, tone = "bad" },
+  { heading = "Centred", body = "heading and body, set to the middle", align = "center", tone = "accent" },
+  { body = ["the first bullet", "a second bullet, long enough to wrap onto another line of its card", "the third"], tone = "tint" },
+  { heading = "Open", body = "not decided yet", tentative = true },
+  { heading = "On a named ground", body = "kept in house", tone = "Inside", strong = true },
+  { tone = "band" },
+]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Stages, what each showed, and what comes next"
+condition = "Three stages on the same made-up sample set"
+conclusion = "The second stage needs a cleaner input before the third is worth running"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 2
+text = ""
+[[pages.rows.cells]]
+weight = 6
+text = "What we saw"
+[[pages.rows.cells]]
+weight = 3
+text = "Next condition"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 2
+card = { heading = "Stage 1", tag = true, tone = "bad" }
+[[pages.rows.cells]]
+weight = 6
+card = { body = ["The first set came out clean in every run", "Two runs drifted a little, by the same amount"], tone = "bad" }
+[[pages.rows.cells]]
+weight = 3
+card = { heading = "Resize the input first", tone = "accent" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 2
+card = { heading = "Stage 2", tag = true, tone = "bad" }
+[[pages.rows.cells]]
+weight = 6
+card = { body = ["The second set was noisier, and the result followed the noise"], tone = "bad" }
+[[pages.rows.cells]]
+weight = 3
+card = { heading = "Use a cleaner source", tone = "accent" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 2
+card = { heading = "Stage 3", tag = true, tone = "Late" }
+[[pages.rows.cells]]
+weight = 6
+card = { tone = "tint" }
+[[pages.rows.cells]]
+weight = 3
+card = { heading = "Wait for stage 2", tone = "accent", align = "center" }
+
+[[pages]]
+kind = "declare"
+type = "flow"
+title = "The nodes of a flow are cards too"
+[[pages.stages]]
+name = "Plan"
+nodes = [
+  { heading = "Scope", body = "what is in", tone = "accent" },
+  { body = "a node with only its words", tone = "bad" },
+]
+
+[[pages.stages]]
+name = "Build"
+nodes = [
+  { heading = "Core", tone = "good", strong = true },
+  { heading = "Step 2", tag = true, tone = "accent" },
+]
+
+[[pages.stages]]
+name = "Ship"
+nodes = [
+  { heading = "Release", body = ["notes", "the build"], tone = "accent" },
+  { tone = "band" },
+]

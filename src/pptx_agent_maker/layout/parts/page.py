@@ -37,7 +37,7 @@ from pathlib import Path
 
 from ..base.geometry import Rect, cm
 from ..base.tokens import DEFAULT, MONO_FACE, Theme
-from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Mark, Shade, Table, Text, bullet_indent
+from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -76,11 +76,6 @@ class Card:
 
 #: カードの字の寄せ
 CARD_ALIGNS = ("left", "center")
-
-#: pptx の文字の枠が、上下に自分で取る余白 (= 枠の上端から字の頭までの距離)。字を縦の中央に置く時、
-#: この分だけ枠を上へ上げて、字の塊の真ん中を箱の真ん中に合わせる
-TEXT_PAD_Y = 45720
-
 
 def card_text(theme: Theme, card: Card, room: int) -> tuple[int, int]:
     """(the height of the heading, the height of the body) of a card, at this width for its words.
@@ -451,7 +446,8 @@ class Page:
             if outlined or said.tag:
                 # 字の塊 (= 見出しと本文) の真ん中を、箱の真ん中に置く
                 total = head_tall + (s.gap_s if head_tall and body_tall else 0) + body_tall
-                top = inner.top + max((inner.height - total) // 2, 0) - TEXT_PAD_Y
+                # 字の頭は枠の上端から `TEXT_INSET_Y` 下がるので、そのぶん枠を上げて塊の真ん中を箱の真ん中に合わせる
+                top = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y
                 head = Rect(inner.left, top, inner.width, head_tall)
                 rest = Rect(inner.left, head.bottom + (s.gap_s if head_tall else 0), inner.width, body_tall)
             elif body and heading:

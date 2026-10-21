@@ -55,17 +55,33 @@ def bake(corpus: Path, out: Path) -> list[Path]:
     """Build every manifest of `corpus` in a project of its own and write each page's XML under `out`.
 
     頁は読む順に `page-NN.xml` (+ その頁が指す物と絵の digest の `page-NN.rels`)、グラフは `chartN.xml`。
+
+    見た目を資料全体で決める鍵 (= `[theme]` の `card_look` など) は、案件に 1 つしか書けない。別の見た目で
+    焼く資料は `<corpus>/decks/<名前>/` に自分の `workspace.toml` と `manifests/` を持ち (= 絵と recipe は
+    corpus のものを使う)、頁は `<out>/<名前>/<manifest>/` に残る。
     """
     manifests = sorted((corpus / "manifests").glob("*.toml"))
     if not manifests:
         raise SnapshotError(f"no manifests under {corpus / 'manifests'}")
+    written = _bake_project(corpus, corpus / "workspace.toml", manifests, out)
+    for deck in sorted((corpus / "decks").glob("*/workspace.toml")) if (corpus / "decks").is_dir() else []:
+        found = sorted((deck.parent / "manifests").glob("*.toml"))
+        if not found:
+            raise SnapshotError(f"no manifests under {deck.parent / 'manifests'}")
+        written += _bake_project(corpus, deck, found, out / deck.parent.name)
+    return written
+
+
+def _bake_project(corpus: Path, workspace: Path, manifests: list[Path], out: Path) -> list[Path]:
+    """One project: the corpus's pictures and recipes, the `workspace` given, and these manifests built in it."""
     written: list[Path] = []
     with tempfile.TemporaryDirectory() as scratch:
         project = Path(scratch) / "project"
         _run("init", str(project))
-        for name in ("workspace.toml", "recipes.toml"):
-            if (corpus / name).is_file():
-                shutil.copy2(corpus / name, project / name)
+        if workspace.is_file():
+            shutil.copy2(workspace, project / "workspace.toml")
+        if (corpus / "recipes.toml").is_file():
+            shutil.copy2(corpus / "recipes.toml", project / "recipes.toml")
         for manifest in manifests:
             shutil.copy2(manifest, project / manifest.name)
         if (corpus / "assets").is_dir():

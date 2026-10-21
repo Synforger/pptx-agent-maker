@@ -34,8 +34,10 @@ def _toml(path: Path) -> dict:
 
 
 RECIPES = _toml(CORPUS / "recipes.toml")["recipes"]
-WRITTEN = [page for manifest in sorted((CORPUS / "manifests").glob("*.toml"))
-           for page in _toml(manifest)["pages"]]
+#: 資料全体の見た目を変えて焼く資料 (= `decks/<名前>/`。`[theme]` は案件に 1 つなので、自分の `workspace.toml` を持つ)
+DECKS = sorted((CORPUS / "decks").glob("*/workspace.toml"))
+MANIFESTS = sorted((CORPUS / "manifests").glob("*.toml")) + sorted((CORPUS / "decks").glob("*/manifests/*.toml"))
+WRITTEN = [page for manifest in MANIFESTS for page in _toml(manifest)["pages"]]
 #: 宣言として組まれる頁 (= recipe の頁は、recipe が決めたキーを足して読む)
 DECLARED = [page if page["kind"] == "declare" else {**RECIPES[page["recipe"]], **page}
             for page in WRITTEN if page["kind"] in ("declare", "recipe")]
@@ -114,6 +116,27 @@ class TheCorpusUsesEverything(unittest.TestCase):
         self.assertTrue(any(isinstance(card.get("body"), list) for card in written), "no card has a list of bullets")
         self.assertTrue(any(isinstance(card.get("body"), str) for card in written))
         self.assertTrue(any(not card.get("heading") for card in written), "no card leaves its heading out")
+
+    def test_the_look_a_deck_sets_for_all_its_pages_is_kept_in_a_deck_of_its_own(self) -> None:
+        """⚠ 見た目は案件に 1 つなので、既定の見た目の資料は、別の見た目が頁に何をするかを守れない。"""
+        from pptx_agent_maker.layout.base.tokens import BAND_LOOKS, BOX_HEIGHTS, CARD_LOOKS
+        main = _toml(CORPUS / "workspace.toml").get("theme", {})
+        looks = {key: {main.get(key)} | {_toml(path).get("theme", {}).get(key) for path in DECKS}
+                 for key in ("card_look", "band_look", "box_height")}
+        for key, options in (("card_look", CARD_LOOKS), ("band_look", BAND_LOOKS), ("box_height", BOX_HEIGHTS)):
+            with self.subTest(key):
+                self.assertEqual(set(options), {value or options[0] for value in looks[key]},
+                                 f"{key}: a look no project of the corpus is set in")
+
+    def test_the_cards_of_a_deck_in_the_outlined_look_say_what_the_look_does_to_them(self) -> None:
+        written = [card for path in DECKS for manifest in (path.parent / "manifests").glob("*.toml")
+                   for page in _toml(manifest)["pages"] for card in tables(page)
+                   if card and set(card) <= set(CARD_KEYS)]
+        self.assertEqual(set(CARD_KEYS) - {"icon"}, set(CARD_KEYS) & {key for card in written for key in card})
+        self.assertTrue(any(not card.get("heading") and card.get("body") for card in written), "no card of words only")
+        self.assertTrue(any(card.get("heading") and not card.get("body") and not card.get("tag") for card in written),
+                        "no card of a heading only")
+        self.assertTrue(any(not card.get("heading") and not card.get("body") for card in written), "no empty card")
 
     def test_every_role_a_use_of_the_project_sizes_apart_from_the_others(self) -> None:
         uses = _toml(CORPUS / "workspace.toml")["theme"]["uses"]

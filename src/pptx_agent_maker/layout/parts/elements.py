@@ -32,6 +32,11 @@ class Text(Element):
     bullets: bool = False
 
 
+#: 文字の枠が上下に自分で取る余白 (= pptx の既定。左右は `Spacing.text_inset`)。字を縦の中央に置く側 (= `Page.boxes`)
+#: と、枠を書く側 (= `write/pptx.py`) が同じ値を使う。枠の上端から字の頭までの距離
+TEXT_INSET_Y = 45720
+
+
 def bullet_indent(size: float) -> int:
     """How far the words of a bullet stand in from the edge: one em, the bullet's own width and the gap after it.
 

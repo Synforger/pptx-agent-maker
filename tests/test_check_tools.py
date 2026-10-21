@@ -44,6 +44,15 @@ footer = "Source: made up for this test"
 """
 
 
+CARDS = """
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "Cards"
+cards = [{ heading = "One", body = "words", tone = "accent" }]
+"""
+
+
 def quietly(run, *argv: str) -> tuple[int, str]:
     said = io.StringIO()
     with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
@@ -133,6 +142,21 @@ class ASnapshot(unittest.TestCase):
         quietly(snapshot.main, *corpus)
         self.assertEqual(0, quietly(snapshot.main, *corpus, "--check")[0])
         self.assertEqual(["deck"], sorted(path.name for path in (self.corpus / "snapshot").iterdir()))
+
+    def test_a_deck_with_a_look_of_its_own_is_baked_in_its_own_project_and_kept_under_its_name(self) -> None:
+        deck = self.corpus / "decks" / "round"
+        (deck / "manifests").mkdir(parents=True)
+        (deck / "workspace.toml").write_text('root = "."\n[theme]\ncard_look = "outlined"\n', encoding="utf-8")
+        (deck / "manifests" / "look.toml").write_text(
+            'specimen = "specimen.pptx"\nout = "look.pptx"\n' + CARDS, encoding="utf-8")
+        corpus = ("--corpus", str(self.corpus))
+        self.assertEqual(0, quietly(snapshot.main, *corpus)[0])
+        self.assertEqual(["deck", "round"], sorted(path.name for path in (self.corpus / "snapshot").iterdir()))
+        self.assertTrue((self.corpus / "snapshot" / "round" / "look" / "page-01.xml").is_file())
+        self.assertEqual(0, quietly(snapshot.main, *corpus, "--check")[0])
+        (deck / "workspace.toml").write_text('root = "."\n', encoding="utf-8")
+        code, said = quietly(snapshot.main, *corpus, "--check")
+        self.assertEqual(1, code, "the deck's own look is part of what is kept")
 
     def test_a_corpus_that_does_not_build_stops_instead_of_keeping_less(self) -> None:
         (self.corpus / "manifests" / "deck.toml").write_text(
