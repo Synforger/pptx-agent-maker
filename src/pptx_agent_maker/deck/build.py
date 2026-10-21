@@ -39,7 +39,7 @@ def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
     字の大きさは、この資料が `use` で名指した使い方のもの (= 書いていなければ案件のもの)。頁が自分の
     使い方を名指す時は、ここで返した見た目から選び直す (= `Theme.using`)。
     """
-    specimen = (workspace.root / manifest.specimen).resolve()
+    specimen = workspace.specimen(manifest.specimen).resolve()
     if not specimen.is_file():
         raise ManifestError(f"specimen not found: {specimen}")
     try:
@@ -59,7 +59,7 @@ def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
 def build(workspace: Workspace, manifest: Manifest) -> Path:
     """Assemble the deck the manifest describes and return where it landed."""
     theme = theme_of(workspace, manifest)
-    specimen = (workspace.root / manifest.specimen).resolve()
+    specimen = workspace.specimen(manifest.specimen).resolve()
 
     destination = workspace.out(manifest.out)
     if touched_by_hand(destination):
