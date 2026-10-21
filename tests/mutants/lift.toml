@@ -1,4 +1,5 @@
-# Lifting into a template keeps the template as it was, for the last few lifts only.
+# Lifting into a template keeps the template as it was, for the last few lifts only, and adds
+# its stand-in words to the template's stale_words however the person wrote that array.
 
 tests = ["tests/test_lift.py"]
 
@@ -19,3 +20,33 @@ name = "the oldest copies are the ones kept"
 file = "src/pptx_agent_maker/project/commands/lift.py"
 old = "    for old in copies[:-KEPT]:"
 new = "    for old in copies[KEPT:]:"
+
+[[mutant]]
+name = "an array on many lines is folded onto its last line"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = '    if "\n" not in text[start:end]:  # 1 行の配列 (= 語は同じ行に続ける)'
+new = "    if True:"
+
+[[mutant]]
+name = "no comma is put after the array's last word"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = '        head = head[:last] + "," + head[last:]'
+new = "        pass"
+
+[[mutant]]
+name = "a comment in the array is read as words"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = '        if char == "#":'
+new = "        if False:"
+
+[[mutant]]
+name = "an escaped quote ends the word"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = """                at += 2 if char == '"' and text[at] == "\\\\" else 1"""
+new = "                at += 1"
+
+[[mutant]]
+name = "words that did not land in [checks] are written anyway"
+file = "src/pptx_agent_maker/project/commands/lift.py"
+old = "    if landed != current + added:"
+new = "    if False:"

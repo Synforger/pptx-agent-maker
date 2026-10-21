@@ -158,6 +158,47 @@ class Lifting(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("<手法名>", said, "a stand-in left in place went through")
 
+    #: 人が書き直した `[checks] stale_words` (= 1 行、1 語 1 行、最後の語の行で閉じる、空)。
+    #: 1 行の方は、引用符の中に `]` が在る (= エスケープを読み違えると、そこを配列の終わりと取る)
+    ARRAYS = {
+        "one line": 'stale_words = ["案件名", "第 \\"N]\\" 回"]  # the specimen\'s own\n',
+        "one per line": ('stale_words = [\n    "案件名",\n'
+                         '    "第 N 回",  # the specimen\'s own [kept]\n]\n'),
+        "closed on the last line": 'stale_words = ["案件名",\n  "第 N 回"]\n',
+        "empty": "stale_words = [\n]\n",
+    }
+
+    def test_the_stand_in_words_join_the_array_however_it_is_written(self) -> None:
+        """⚠ 複数行の配列は 1 行目だけが書き直され、2 行目から先が宙に浮いて設定が読めなくなった。"""
+        settings = self.template / "workspace.toml"
+        base = settings.read_text(encoding="utf-8").split("[checks]")[0]
+        for shape, array in self.ARRAYS.items():
+            with self.subTest(shape):
+                written = base + "[checks]\n" + array + "near_alignment = false\n"
+                settings.write_text(written, encoding="utf-8")
+                before = tomllib.loads(written)["checks"]["stale_words"]
+                code, said = self._lift("--page", "w1.pptx:1", "--replace", "手法 A=<手法名>")
+                self.assertEqual(code, 0, said)
+                text = settings.read_text(encoding="utf-8")
+                checks = tomllib.loads(text)["checks"]
+                self.assertEqual(checks["stale_words"], before + ["<手法名>", "<文言"])
+                self.assertIs(checks["near_alignment"], False, "the rest of [checks] was lost")
+                if "#" in array:
+                    self.assertIn("# the specimen's own", text, "the person's comment was dropped")
+                self.assertEqual(text.count("\n") > written.count("\n"), "\n" in array.rstrip("\n"),
+                                 "an array on one line was spread over many, or one on many lines was folded")
+
+    def test_stand_in_words_that_would_not_land_in_checks_write_nothing(self) -> None:
+        """A `stale_words` of another table comes first: the words would go there, not to the check."""
+        settings = self.template / "workspace.toml"
+        settings.write_text('[elsewhere]\nstale_words = ["x"]\n\n[checks]\nstale_words = ["案件名"]\n',
+                            encoding="utf-8")
+        self.before["workspace.toml"] = settings.read_bytes()
+        code, said = self._lift("--page", "w1.pptx:1")
+        self.assertNotEqual(code, 0)
+        self.assertIn("stale_words", said)
+        self._untouched()
+
     def test_a_field_powerpoint_fills_is_left_alone(self) -> None:
         """頁番号の欄は PowerPoint が埋める ― 仮の語にすると、次の案件で人が直せない
         「埋め忘れ」を検査が言い続ける。"""
