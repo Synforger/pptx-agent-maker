@@ -206,19 +206,88 @@ def _plain(deck: Path, number: int) -> None:
 
 
 def _with_stale_words(settings: Path, words: list[str]) -> str:
-    """The template's settings with `words` added to `[checks] stale_words`."""
+    """The template's settings with `words` added to `[checks] stale_words`.
+
+    ⚠ **配列は、人が書いた形のまま末尾に足す。**1 行目だけを書き直すと、複数行に並べた配列の 2 行目から
+    先が宙に浮き、設定が読めなくなった。配列の終わりは文字列とコメントを読み飛ばして探し、並べ方
+    (= 1 行か、1 語 1 行か) と中のコメントは残す。
+    """
     text = settings.read_text(encoding="utf-8") if settings.is_file() else ""
     current = tomllib.loads(text).get("checks", {}).get("stale_words", []) if text else []
-    wanted = current + [w for w in words if w not in current]
-    line = "stale_words = [" + ", ".join(_quote(w) for w in wanted) + "]"
-    if re.search(r"(?m)^stale_words\s*=.*$", text):
-        text = re.sub(r"(?m)^stale_words\s*=.*$", lambda _m: line, text, count=1)
+    added = [w for w in words if w not in current]
+    key = re.search(r"(?m)^[ \t]*stale_words[ \t]*=[ \t]*(?=\[)", text)
+    if key:
+        if added:
+            text = _appended(text, key.end(), added)
     elif re.search(r"(?m)^\[checks\]\s*$", text):
+        line = "stale_words = [" + ", ".join(_quote(w) for w in added) + "]"
         text = re.sub(r"(?m)^\[checks\]\s*$", lambda m: m.group(0) + "\n" + line, text, count=1)
     else:
+        line = "stale_words = [" + ", ".join(_quote(w) for w in added) + "]"
         text = text.rstrip("\n") + "\n\n# テンプレートが残した語。差し替え忘れたら検査が止める。\n[checks]\n" + line + "\n"
-    tomllib.loads(text)  # 壊した設定を書かない
+    # 壊した設定も、語が入らなかった設定も書かない (= 別の表の `stale_words` を書き換えた時など)
+    landed = tomllib.loads(text).get("checks", {}).get("stale_words")
+    if landed != current + added:
+        raise LiftError(f"{settings}: could not add {', '.join(map(repr, added))} to [checks] stale_words "
+                        "— add them by hand and lift again")
     return text
+
+
+def _appended(text: str, start: int, words: list[str]) -> str:
+    """`text` with `words` added at the end of the array that opens at `start`."""
+    end, last, comma = _array_end(text, start)
+    quoted = [_quote(w) for w in words]
+    if "\n" not in text[start:end]:  # 1 行の配列 (= 語は同じ行に続ける)
+        inner = text[start + 1:end].rstrip()
+        joint = "" if inner == "" else " " if inner.endswith(",") else ", "
+        return text[:start + 1] + inner + joint + ", ".join(quoted) + text[end:]
+    # 複数行の配列 (= 最後の語の行と同じ字下げで、1 語 1 行に足す)
+    line_start = text.rfind("\n", 0, last if last else end) + 1
+    indent = re.match(r"[ \t]*", text[line_start:]).group(0) if last else "    "
+    lines = "".join(f"{indent}{q},\n" for q in quoted)
+    closing = text.rfind("\n", 0, end) + 1
+    if text[closing:end].strip():  # `]` が最後の語と同じ行に在る
+        lines, closing = "\n" + lines, end
+    head = text[:closing]
+    if last and not comma:
+        head = head[:last] + "," + head[last:]
+    return head + lines + text[closing:]
+
+
+def _array_end(text: str, start: int) -> tuple[int, int, bool]:
+    """Where the TOML array opening at `text[start]` closes, where its last value ends (0 if empty),
+    and whether a comma follows that value."""
+    depth, at, last, comma = 0, start, 0, False
+    while at < len(text):
+        char = text[at]
+        if char == "#":
+            at = text.find("\n", at)
+            if at < 0:
+                break
+            continue
+        if char in "\"'":
+            fence = char * 3 if text.startswith(char * 3, at) else char
+            at += len(fence)
+            while at < len(text) and not text.startswith(fence, at):
+                at += 2 if char == '"' and text[at] == "\\" else 1
+            at += len(fence)
+            if depth == 1:
+                last, comma = at, False
+            continue
+        if char == "[":
+            depth += 1
+        elif char == "]":
+            depth -= 1
+            if depth == 0:
+                return at, last, comma
+            if depth == 1:
+                last, comma = at + 1, False
+        elif char == "," and depth == 1:
+            comma = True
+        elif not char.isspace() and depth == 1:
+            last, comma = at + 1, False
+        at += 1
+    raise LiftError("the settings' stale_words array never closes")
 
 
 def _quote(word: str) -> str:

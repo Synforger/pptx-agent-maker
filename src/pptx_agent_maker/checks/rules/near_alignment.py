@@ -14,6 +14,9 @@
 どちらも地に在る組は、今までどおり比べる。
 
 閾値は 1 mm 未満のずれ (= 案件で外すなら `[checks] near_alignment = false`)。
+
+⚠ **所見に出す桁で 0 になるずれは、揃っている。**絵が並ぶ頁で「0.00 mm ずれている」が 5 件出た (= EMU の
+端数で数 EMU 違うだけ)。直す人が数字を見て直せないずれは言わない ― 下限は表示の桁 (`PLACES`) から決まる。
 """
 
 from __future__ import annotations
@@ -27,6 +30,8 @@ from ..base.slide import Shape, read
 NAME = "near_alignment"
 #: 1 mm = 36000 EMU (= これ未満のずれを「揃え損ね」、同じ大きさの差もこれ未満を「同じ」とみなす)
 MM = 36000
+#: 所見に出すずれの桁 (= mm の小数)。この桁で 0 になるずれは揃っているとみなす
+PLACES = 2
 
 
 def _shared(a0: int, a1: int, b0: int, b1: int) -> int:
@@ -76,10 +81,10 @@ def run(deck: Path, config: dict | None = None) -> list[Finding]:
                 if boxed[id(one)] != boxed[id(other)]:
                     continue
                 miss = _miss(one, other)
-                if miss and 0 < miss[1] < MM:
+                if miss and round(miss[1] / MM, PLACES) > 0 and miss[1] < MM:
                     edge, by = miss
                     findings.append(Finding(
                         NAME, page.number,
                         f"{(one.texts() or [one.kind])[0][:30]!r} and {(other.texts() or [other.kind])[0][:30]!r}",
-                        f"their {edge} edges miss by {by / MM:.2f} mm — line them up"))
+                        f"their {edge} edges miss by {by / MM:.{PLACES}f} mm — line them up"))
     return findings

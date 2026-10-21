@@ -213,6 +213,13 @@ class ChecksFireTest(unittest.TestCase):
         self.assertEqual([], near_alignment.run(self._boxes("other.pptx", 10800, height=600000), {}),
                          "boxes of a different height are not siblings in a row")
 
+    def test_a_miss_that_shows_as_zero_is_lined_up(self) -> None:
+        """⚠ 絵が並ぶ頁で「0.00 mm ずれている」が 5 件出た ― 所見の桁 (= 0.01 mm) で 0 になるずれは揃っている。"""
+        self.assertEqual([], near_alignment.run(self._boxes("dust.pptx", 144), {}), "0.004 mm was reported")
+        shown = near_alignment.run(self._boxes("least.pptx", 180), {})
+        self.assertTrue(shown, "0.005 mm, which shows as 0.01 mm, went through")
+        self.assertIn("0.01 mm", shown[0].why)
+
     def _words_beside_a_card(self, name: str, drop: int, *, both_boxed: bool) -> Path:
         """A card holding one line, and a line of the same height beside it (= on the page, or in a card)."""
         def place(slide):
