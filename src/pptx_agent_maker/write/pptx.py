@@ -305,6 +305,7 @@ def _text(slide, element: Text, theme: Theme) -> None:
     for index, line in enumerate(element.text.split("\n")):
         paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
         paragraph.alignment = ALIGN[element.align]
+        _leaded(paragraph, element.size, theme)
         if element.bullets:
             _bulleted(paragraph, element.size)
         run = paragraph.add_run()
@@ -317,6 +318,16 @@ def _text(slide, element: Text, theme: Theme) -> None:
         run.font.name = element.family or theme.type.family
     if titled:
         _as_title(box, theme)
+
+
+def _leaded(paragraph, size: float, theme: Theme) -> None:
+    """Set the paragraph's line spacing to the line height the layout counted, when the deck or the use wrote one.
+
+    ⚠ **書いた資料では、行間を書体に任せない。**見積りは `leading` の倍率で数えるので、書体の 1 行が
+    それより高いと箱から溢れ、低いと箱が背高になる。書かなければ今までどおり書体任せ (= 既存の資料は動かない)。
+    """
+    if theme.type.leading_set:
+        paragraph.line_spacing = Pt(round(size * theme.type.leading_set, 2))
 
 
 def _bulleted(paragraph, size: float) -> None:
@@ -688,6 +699,7 @@ def _cell_words(cell, theme: Theme, *, bold: bool, colour: str, mark: bool = Fal
     # 大きさ・色・書体を付けていた間は、改行の後の行が pptx の既定の大きさ (= 18pt) で出た
     for paragraph in cell.text_frame.paragraphs:
         paragraph.alignment = PP_ALIGN.LEFT
+        _leaded(paragraph, theme.type.body, theme)
         for run in paragraph.runs:
             run.font.size = Pt(theme.type.body)
             run.font.bold = bold
