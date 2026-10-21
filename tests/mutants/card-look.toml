@@ -47,10 +47,10 @@ old = "set(declared) - {*SIZED, *DERIVED}"
 new = "set(declared) - {*SIZED}"
 
 [[mutant]]
-name = "a use of the project's does not list the two new roles when it refuses one"
+name = "a use of the project's does not list the derived roles when it refuses one"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = '("like", "floor", "spacing", "box_height", *SIZED, *DERIVED))'
-new = '("like", "floor", "spacing", "box_height", *SIZED))'
+old = "(*_USE_KEYS, *SIZED, *DERIVED))"
+new = "(*_USE_KEYS, *SIZED))"
 
 # -- the band's words (layout/parts/page.py) -------------------------------------
 
@@ -89,14 +89,14 @@ new = "width = room"
 [[mutant]]
 name = "a tag that would wrap is let through"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "if theme.wraps(card.heading, room, t.heading, bold=True) > 1:"
+old = "if theme.wraps(card.heading, room, t.tag, bold=True) > 1:"
 new = "if False:"
 
 [[mutant]]
 name = "a tag is as tall as a heading and a body"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "return theme.line_height(t.heading), 0"
-new = "return theme.line_height(t.heading), theme.line_height(t.body)"
+old = "return theme.line_height(t.tag), 0"
+new = "return theme.line_height(t.tag), theme.line_height(t.body)"
 
 [[mutant]]
 name = "a tag is on the ground of its tone and not on pale grey"
@@ -107,8 +107,8 @@ new = 'Fill("box", card, look.fill, outline=mark.outline,'
 [[mutant]]
 name = "a tag's words are not in the colour of its tone"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "mark, ink = self.outlined_look(said.style, t.heading, True)"
-new = "mark, _ink = self.outlined_look(said.style, t.heading, True)"
+old = "mark, ink = self.outlined_look(said.style, t.tag, True)"
+new = "mark, _ink = self.outlined_look(said.style, t.tag, True)"
 
 [[mutant]]
 name = "a tag is set to the left"
@@ -117,16 +117,16 @@ old = 'align = "center" if said.tag else said.align'
 new = "align = said.align"
 
 [[mutant]]
-name = "the words of an outlined card stay at the top"
+name = "the single words of an outlined card are not set by the middle of their frame"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "if outlined or said.tag:"
-new = "if said.tag:"
+old = "alone = (outlined or said.tag) and not (heading and body)"
+new = "alone = said.tag and not (heading and body)"
 
 [[mutant]]
-name = "the words of a tag stay at the top of a filled deck"
+name = "the words of a tag are not set by the middle of their frame in a filled deck"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "if outlined or said.tag:"
-new = "if outlined:"
+old = "alone = (outlined or said.tag) and not (heading and body)"
+new = "alone = outlined and not (heading and body)"
 
 [[mutant]]
 name = "the middle of the words is the middle of the box, not allowing for the frame's own padding"
@@ -149,20 +149,20 @@ new = "rest = Rect(inner.left, head.bottom, inner.width, body_tall)"
 [[mutant]]
 name = "a card's body ignores the alignment it was given"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "ink, align=align, bullets=said.bullets))"
-new = "ink, bullets=said.bullets))"
+old = "ink, align=align, bullets=said.bullets,"
+new = "ink, bullets=said.bullets,"
 
 [[mutant]]
 name = "a card's heading ignores the alignment it was given"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "head_ink, bold=True, align=align))"
-new = "head_ink, bold=True))"
+old = "bold=True, align=align, middle=alone))"
+new = "bold=True, middle=alone))"
 
 [[mutant]]
 name = "a card's body is not set as bullets"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "ink, align=align, bullets=said.bullets))"
-new = "ink, align=align))"
+old = "ink, align=align, bullets=said.bullets,"
+new = "ink, align=align,"
 
 # -- reading a card (layout/types/core/read.py) ----------------------------------
 

@@ -65,6 +65,14 @@ box_height = "page"
 like = "read"
 box_height = "middle"
 
+# A use that sizes a tag apart from the headings of the cards beside it, and sets its tables in the plain look
+# (= this deck's tables have a heading row on the accent).
+[theme.uses.tagged]
+like = "read"
+heading = 10.5
+tag = 14
+table_look = "plain"
+
 # The pictures here are made up to exercise the layout, so there is no source to name:
 # the corpus builds with the check for unsourced pages switched off, the way a project may.
 [checks]

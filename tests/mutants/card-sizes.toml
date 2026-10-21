@@ -1,0 +1,143 @@
+# The size of a tag, the look of a table a use picks, and the single words of a card standing in the middle of their frame.
+
+tests = ["tests/test_card_sizes.py"]
+
+# -- the size of a tag (layout/base/tokens.py) -------------------------------------------------------------------
+
+[[mutant]]
+name = "a tag written under theme.type is not read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.heading if self.tag_set is None else self.tag_set"
+new = "return self.heading"
+
+[[mutant]]
+name = "a tag left unsaid is the title and not the heading"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "return self.heading if self.tag_set is None else self.tag_set"
+new = "return self.title if self.tag_set is None else self.tag_set"
+
+[[mutant]]
+name = "tag is a role nobody reads"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = 'DERIVED = ("band", "display", "tag")'
+new = 'DERIVED = ("band", "display")'
+
+# -- the size of a tag (layout/parts/page.py) --------------------------------------------------------------------
+
+[[mutant]]
+name = "a tag is as tall as a line of a heading"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return theme.line_height(t.tag), 0"
+new = "return theme.line_height(t.heading), 0"
+
+[[mutant]]
+name = "a tag is kept to one line at the size of a heading"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "if theme.wraps(card.heading, room, t.tag, bold=True) > 1:"
+new = "if theme.wraps(card.heading, room, t.heading, bold=True) > 1:"
+
+[[mutant]]
+name = "a tag is set at the size of a heading"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "t.tag if said.tag else t.heading, head_ink,"
+new = "t.heading, head_ink,"
+
+[[mutant]]
+name = "a card that is not a tag is set at the size of a tag"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "t.tag if said.tag else t.heading, head_ink,"
+new = "t.tag, head_ink,"
+
+# -- the look of a table a use picks (layout/base/tokens.py) -----------------------------------------------------
+
+[[mutant]]
+name = "the look of the tables a use writes is not read"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "                       table_look_set=_picked(said, \"table_look\", TABLE_LOOKS, \"the look of a table\", where))"
+new = "                       table_look_set=None)"
+
+[[mutant]]
+name = "a look nobody pictured is let through as the look of a use's tables"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = 'table_look_set=_picked(said, "table_look", TABLE_LOOKS,'
+new = 'table_look_set=_picked(said, "table_look", (*TABLE_LOOKS, "outlined", "filled", ""),'
+
+[[mutant]]
+name = "table_look is not a key a use may write"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = '_USE_KEYS = ("like", "floor", "spacing", "box_height", "table_look")'
+new = '_USE_KEYS = ("like", "floor", "spacing", "box_height")'
+
+[[mutant]]
+name = "a use that says nothing takes the toolkit's look, not the deck's"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "table_look_set=sized.table_look_set or table_look)"
+new = 'table_look_set=sized.table_look_set or "accent")'
+
+[[mutant]]
+name = "a look in another use keeps the look of the tables of the first"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        table_look = type.table_look_set or self.table_look\n"
+new = "        table_look = self.table_look\n"
+
+[[mutant]]
+name = "a look in another use is not given the look of its tables"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "box_height=box_height,\n                       table_look=table_look)"
+new = "box_height=box_height)"
+
+[[mutant]]
+name = "a deck made in a use of its own does not take that use's look of tables"
+file = "src/pptx_agent_maker/layout/base/tokens.py"
+old = "        table_look=type.table_look_set,\n"
+new = "        table_look=table_look,\n"
+
+# -- the single words of a card in the middle of their frame (layout/parts/page.py, write/pptx.py) --------------
+
+[[mutant]]
+name = "the words of a card with a heading and a body are set by the middle of a frame as well"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "alone = (outlined or said.tag) and not (heading and body)"
+new = "alone = outlined or said.tag"
+
+[[mutant]]
+name = "the frame of single words is worked out from their height again"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if alone:\n                head = rest = inner\n"
+new = "            if False:\n                head = rest = inner\n"
+
+[[mutant]]
+name = "the frame of single words is the whole box and not its inside"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if alone:\n                head = rest = inner\n"
+new = "            if alone:\n                head = rest = card\n"
+
+[[mutant]]
+name = "the body of a card that holds one set of words is not set by the middle of its frame"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "bullets=said.bullets,\n                                          middle=alone))"
+new = "bullets=said.bullets))"
+
+[[mutant]]
+name = "the heading of a card that holds one set of words is not set by the middle of its frame"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "bold=True, align=align, middle=alone))"
+new = "bold=True, align=align))"
+
+[[mutant]]
+name = "a filled deck sets the words of a tag at the top again"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "alone = (outlined or said.tag) and not (heading and body)"
+new = "alone = outlined and not (heading and body)"
+
+[[mutant]]
+name = "the writer puts words that ask for the middle at the top"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "MSO_ANCHOR.MIDDLE if element.middle or element.kind in {"
+new = "MSO_ANCHOR.MIDDLE if element.kind in {"
+
+[[mutant]]
+name = "the writer puts every card's words in the middle"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "MSO_ANCHOR.MIDDLE if element.middle or element.kind in {"
+new = 'MSO_ANCHOR.MIDDLE if element.middle or element.kind.startswith("box_") or element.kind in {'

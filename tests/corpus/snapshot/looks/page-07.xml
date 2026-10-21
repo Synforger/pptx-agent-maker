@@ -180,8 +180,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4406000" y="1656240"/>
-<a:ext cx="3380000" cy="294640"/>
+<a:off x="4406000" y="1206000"/>
+<a:ext cx="3380000" cy="1286560"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -189,7 +189,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" anchor="ctr">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -511,8 +511,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="8254000" y="3410800"/>
-<a:ext cx="3380000" cy="294640"/>
+<a:off x="8254000" y="2960560"/>
+<a:ext cx="3380000" cy="1286560"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -520,7 +520,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" anchor="ctr">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>

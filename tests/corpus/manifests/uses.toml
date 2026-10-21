@@ -149,3 +149,33 @@ cards = [
   { heading = "Gaps", body = "the gaps between the cards are the ones there always were" },
   { heading = "Bands", body = "the bands and the title stay where they are" },
 ]
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "tagged"
+title = "A tag is set larger than the headings of the cards beside it"
+condition = "Headings are 10.5 points; the tags are 14"
+card_columns = 3
+cards = [
+  { heading = "Stage 1", tag = true, tone = "accent" },
+  { heading = "Stage 2", tag = true, tone = "bad" },
+  { heading = "Stage 3", tag = true, tone = "good" },
+  { heading = "First", body = "the heading is as small as the use says", tone = "accent" },
+  { heading = "Second", body = "and the tag above it is not", tone = "bad" },
+  { heading = "Third", body = "the height of a tag follows its own size", tone = "good" },
+]
+
+[[pages]]
+kind = "declare"
+type = "board"
+use = "tagged"
+title = "A use sets its tables in a look of its own"
+table = [
+  ["Bed", "Planted", "Yield"],
+  { band = "Spring", tone = "accent" },
+  ["North", "12 Mar", "48 kg"],
+  ["South", "30 Mar", "71 kg"],
+]
+note = "The deck's tables have a heading row on the accent; this use's are plain"
+footer = "made up for the corpus"

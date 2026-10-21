@@ -21,6 +21,11 @@ like = "read"
 [theme.uses.gapped.spacing]
 gap_m = 1.0
 
+# A use whose tables have a heading row on the accent, in a deck whose tables are plain.
+[theme.uses.blue]
+like = "read"
+table_look = "accent"
+
 [theme.grounds]
 "Inside" = "EAF0F8"
 "Late" = "8B1E3F"

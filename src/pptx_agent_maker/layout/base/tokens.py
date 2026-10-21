@@ -128,12 +128,16 @@ class Type:
     tight: float = 1.0
     #: 余白と間隔のうち、1 つずつ決めた物 (= 名前と EMU。倍率より勝つ)。書けるのは案件の名前付きの使い方だけ
     spaced: tuple[tuple[str, int], ...] = ()
-    #: 案件が書いた `band` と `display` (= 書かなければ None で、下の 2 つが他の役から出す)
+    #: 案件が書いた `band` と `display` と `tag` (= 書かなければ None で、下の 3 つが他の役から出す)
     band_set: float | None = None
     display_set: float | None = None
+    tag_set: float | None = None
     #: この使い方が選んだ本体の箱の高さ (= `BOX_HEIGHTS`)。書かなければ None で、資料の `[theme] box_height`
     #: に倣う。案件が読み込む時 (= `theme_from`) に、書かなかった使い方へ資料の値が入る
     box_height_set: str | None = None
+    #: この使い方が選んだ表の見た目 (= `TABLE_LOOKS`)。`box_height_set` と同じ作りで、書かなければ資料の
+    #: `[theme] table_look` に倣う
+    table_look_set: str | None = None
 
     @property
     def band(self) -> float:
@@ -153,6 +157,16 @@ class Type:
         比も保つ。
         """
         return self.title * 2 if self.display_set is None else self.display_set
+
+    @property
+    def tag(self) -> float:
+        """札 (= カードの `tag = true`) の字。**書かなければ見出し。**
+
+        札は、カードの見出しより大きく置く頁がある (= 札は段の名前で、見出しより目立たせたい)。同じ
+        `heading` の役のままでは、見出しを下げると札も下がるので、別の役に分ける。札の高さを数える側
+        (= `card_text`) と、描く側 (= `Page.boxes`) が同じ値を読む。
+        """
+        return self.heading if self.tag_set is None else self.tag_set
 
     @property
     def plan(self) -> tuple[float, ...]:
@@ -193,13 +207,14 @@ CARD_LOOKS = ("filled", "outlined")
 BAND_LOOKS = ("plain", "outlined")
 #: 表の見た目。`accent` は見出しの行を差し色で塗り、本文を 1 行おきに薄く敷く (= 既定。罫線は引かない)、
 #: `plain` は見出しの行を灰の地に本文の色の太字にして、本文は紙の色のまま、どのセルにも灰の罫線を引く。
-#: 資料全体の見た目なので案件が `[theme] table_look` で決める (= 表ごと・頁ごとには選べない)
+#: 資料全体の見た目なので案件が `[theme] table_look` で決め、使い方ごと (= `[theme.uses.<名前>]`) にも選べる
+#: (= 表ごと・頁ごとには選べない)
 TABLE_LOOKS = ("accent", "plain")
 #: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
 SIZED = ("title", "heading", "stage", "body", "caption")
-#: そのほか、案件が書ける役 (= `[theme.type]`)。書かなければ他の役から出る (= `Type.band` は見出し、
-#: `Type.display` は題の 2 倍)。書いた値は `Type` の `<名前>_set` に入る
-DERIVED = ("band", "display")
+#: そのほか、案件が書ける役 (= `[theme.type]`)。書かなければ他の役から出る (= `Type.band` と `Type.tag` は
+#: 見出し、`Type.display` は題の 2 倍)。書いた値は `Type` の `<名前>_set` に入る
+DERIVED = ("band", "display", "tag")
 #: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
 #: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
 TIGHTENED = ("gap_s", "gap_m", "gap_l", "pad", "cell_pad_y", "cell_pad_x", "text_inset", "bar_pad_x", "bar_pad_y",
@@ -489,8 +504,8 @@ class Theme:
     def using(self, use: str | None) -> "Theme":
         """This look in the sizes of another use the project knows (= what a deck or a page names with `use`).
 
-        変わるのは字の大きさと、それに付いて行く帯の高さ、使い方が選んだ箱の高さ (= `box_height`) だけ。
-        書体・色・余白・下敷きは同じ資料のまま。
+        変わるのは字の大きさと、それに付いて行く帯の高さ、使い方が選んだ箱の高さ (= `box_height`) と表の
+        見た目 (= `table_look`) だけ。書体・色・余白・下敷きは同じ資料のまま。
 
         ⚠ **選べるのは使い方の名前だけ** (= 大きさを 1 つずつは書けない)。役ごとの大きさが頁に書けると、同じ
         役の字が頁によって違う大きさになる。名前で選ぶなら、同じ使い方の頁どうしは必ず揃う。
@@ -504,7 +519,9 @@ class Theme:
                 "(= the toolkit's own, and the ones named under [theme.uses])")
         type = replace(known[use], family=self.type.family)
         box_height = type.box_height_set or self.box_height
-        return replace(self, use=use, type=type, spacing=_furniture(type), box_height=box_height)
+        table_look = type.table_look_set or self.table_look
+        return replace(self, use=use, type=type, spacing=_furniture(type), box_height=box_height,
+                       table_look=table_look)
 
     def ground_names(self) -> tuple[str, ...]:
         return tuple(name for name, _colour in self.grounds)
@@ -843,8 +860,9 @@ def theme_from(settings: dict | None) -> Theme:
             f"theme.layout_of_page is {on!r} — it is the number of a specimen page (= 1, 2, ...), and the "
             "declared pages sit on the layout that page sits on")
 
-    # 使い方が自分の箱の高さを書いていなければ、資料の値に倣う (= 頁が名指した使い方の箱の高さは、そこから読める)
-    scales = {name: replace(sized, box_height_set=sized.box_height_set or box_height)
+    # 使い方が自分の箱の高さと表の見た目を書いていなければ、資料の値に倣う (= 頁が名指した使い方のそれは、そこから読める)
+    scales = {name: replace(sized, box_height_set=sized.box_height_set or box_height,
+                            table_look_set=sized.table_look_set or table_look)
               for name, sized in {**USES, **_uses(settings.get("uses"))}.items()}
     use = settings.get("use", "read")
     if not isinstance(use, str) or use not in scales:
@@ -865,7 +883,7 @@ def theme_from(settings: dict | None) -> Theme:
         box_height=type.box_height_set,
         card_look=card_look,
         band_look=band_look,
-        table_look=table_look,
+        table_look=type.table_look_set,
     )
 
 
@@ -875,10 +893,7 @@ def _choice(settings: dict, key: str, options: tuple[str, ...], what: str) -> st
     ⚠ **知らない名前は拒む。**綴り違いを既定へ落とすと、書いた人は見た目を変えたつもりで、焼いた頁は
     今までのまま出る。
     """
-    value = settings.get(key, options[0])
-    if not isinstance(value, str) or value not in options:
-        raise ThemeError(f"theme.{key} is {value!r} — {what} is {' or '.join(repr(name) for name in options)}")
-    return value
+    return _picked(settings, key, options, what, "theme") or options[0]
 
 
 def _sizes(what: str, base: Type, declared, where: str, takes: tuple[str, ...] = (*SIZED, *DERIVED)) -> Type:
@@ -909,6 +924,10 @@ def _sizes(what: str, base: Type, declared, where: str, takes: tuple[str, ...] =
     return sized
 
 
+#: 使い方が大きさの役のほかに書けるキー (= 倣う先、下限、余白、資料の見た目のうち使い方ごとに選べる物)
+_USE_KEYS = ("like", "floor", "spacing", "box_height", "table_look")
+
+
 def _uses(declared) -> dict[str, Type]:
     """The uses a project names for itself (= `[theme.uses.<name>]`), each with its sizes.
 
@@ -917,7 +936,8 @@ def _uses(declared) -> dict[str, Type]:
 
     ⚠ **道具は幅を持たせ、使い方は道具が配る skill が縛る。**下限と余白を動かせる口は、ここ 1 か所 (= 名前を
     付けた使い方) にだけ在る ― 頁や資料は名前で選ぶだけなので、同じ名前の頁はどこでも同じ形になる。
-    本体の箱の高さ (= `box_height`) も同じ口で選べる (= 書かなければ資料の `[theme] box_height`)。
+    本体の箱の高さ (= `box_height`) と表の見た目 (= `table_look`) も同じ口で選べる (= 書かなければ資料の
+    `[theme] box_height` と `[theme] table_look`)。
 
     ⚠ **道具の使い方と同じ名前は拒む。**`read` や `present` をここで書き換えられると、その大きさを決める
     口が `[theme.type]` と 2 つに割れる。
@@ -940,22 +960,26 @@ def _uses(declared) -> dict[str, Type]:
                 f"{where}.like is {like!r} — a use of the project's own starts from "
                 f"{' or '.join(repr(use) for use in USES)}")
         base = _spaced(_floored(USES[like], said.get("floor"), where), said.get("spacing"), f"{where}.spacing")
-        base = replace(base, box_height_set=_boxed(said.get("box_height"), where))
-        sizes = {key: value for key, value in said.items() if key not in ("like", "floor", "spacing", "box_height")}
-        found[name] = _sizes(f"the use {name!r}", base, sizes, where,
-                             ("like", "floor", "spacing", "box_height", *SIZED, *DERIVED))
+        base = replace(base,
+                       box_height_set=_picked(said, "box_height", BOX_HEIGHTS, "the height of a page's boxes", where),
+                       table_look_set=_picked(said, "table_look", TABLE_LOOKS, "the look of a table", where))
+        sizes = {key: value for key, value in said.items() if key not in _USE_KEYS}
+        found[name] = _sizes(f"the use {name!r}", base, sizes, where, (*_USE_KEYS, *SIZED, *DERIVED))
     return found
 
 
-def _boxed(height, where: str) -> str | None:
-    """The height of the boxes a use asks for (= `box_height`; unsaid, that of the deck)."""
-    if height is None:
+def _picked(said: dict, key: str, options: tuple[str, ...], what: str, where: str) -> str | None:
+    """A look picked by name (= `[theme] <key>`, or the same key of a use); unsaid, None.
+
+    `what` は誤りを言う時のその見た目の呼び方、`where` は書かれた場所 (= `theme`、`theme.uses.<名前>`)。
+    **書いてあるのに名前でない物 (= 空、数、真偽) は、書かなかった扱いにせず拒む。**
+    """
+    if key not in said:
         return None
-    if not isinstance(height, str) or height not in BOX_HEIGHTS:
-        raise ThemeError(
-            f"{where}.box_height is {height!r} — the height of a page's boxes is "
-            f"{' or '.join(repr(name) for name in BOX_HEIGHTS)}")
-    return height
+    value = said[key]
+    if not isinstance(value, str) or value not in options:
+        raise ThemeError(f"{where}.{key} is {value!r} — {what} is {' or '.join(repr(name) for name in options)}")
+    return value
 
 
 def _floored(base: Type, floor, where: str) -> Type:

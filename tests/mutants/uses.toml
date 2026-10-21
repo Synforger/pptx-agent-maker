@@ -17,8 +17,8 @@ new = "        add_page(deck, page.build(), theme)"
 [[mutant]]
 name = "a look in another use keeps the bands of the first"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        return replace(self, use=use, type=type, spacing=_furniture(type), box_height=box_height)"
-new = "        return replace(self, use=use, type=type, box_height=box_height)"
+old = "spacing=_furniture(type), box_height=box_height,"
+new = "box_height=box_height,"
 
 [[mutant]]
 name = "a look in another use takes the toolkit's typeface"
@@ -29,8 +29,8 @@ new = "        type = known[use]"
 [[mutant]]
 name = "a look in another use forgets which use it is in"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        return replace(self, use=use, type=type, spacing=_furniture(type), box_height=box_height)"
-new = "        return replace(self, type=type, spacing=_furniture(type), box_height=box_height)"
+old = "return replace(self, use=use, type=type,"
+new = "return replace(self, type=type,"
 
 [[mutant]]
 name = "a use the project does not know is not refused"
