@@ -162,8 +162,8 @@ class Page:
                 "a page that does not fit is a page that needs splitting, not shrinking"
             )
         band, rest = self._remaining.rows([height, max(self._remaining.height - height, 1)])
-        self._remaining = Rect(rest.left, band.bottom + self.theme.spacing.gap_m,
-                               rest.width, self._remaining.bottom - band.bottom - self.theme.spacing.gap_m)
+        gap = self.theme.spacing.band_gap
+        self._remaining = Rect(rest.left, band.bottom + gap, rest.width, self._remaining.bottom - band.bottom - gap)
         return band
 
     def _take_at(self, top: int, height: int) -> Rect:
@@ -171,7 +171,7 @@ class Page:
         if getattr(self, "_frozen", False):
             raise RuntimeError("the frame is settled; everything else divides `body`")
         rest = self._remaining
-        gap = self.theme.spacing.gap_m
+        gap = self.theme.spacing.band_gap
         if top + height + gap >= rest.bottom:
             raise PageFullError(
                 f"the title band ends at {top + height} EMU, and the page ends at {rest.bottom} — "
@@ -186,7 +186,7 @@ class Page:
         if height > self._remaining.height:
             raise PageFullError(f"asked for {height} EMU of height, {self._remaining.height} left")
         top = Rect(self._remaining.left, self._remaining.top, self._remaining.width,
-                   self._remaining.height - height - self.theme.spacing.gap_m)
+                   self._remaining.height - height - self.theme.spacing.band_gap)
         strip = Rect(self._remaining.left, self._remaining.bottom - height, self._remaining.width, height)
         self._remaining = top
         return strip

@@ -16,27 +16,27 @@ new = '{"name", "nodes", "goal", *LOOK_KEYS}'
 
 [[mutant]]
 name = "a stage that says nothing weighs nothing"
-file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
-old = 'value = stage.get("weight", 1)'
-new = 'value = stage.get("weight", 0.5)'
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'value = item.get("weight", 1)'
+new = 'value = item.get("weight", 0.5)'
 
 [[mutant]]
 name = "a weight of nothing is let through"
-file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
-old = "or not isinstance(value, Real) or value <= 0:"
-new = "or not isinstance(value, Real) or value < 0:"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "or not math.isfinite(value) or value <= 0:"
+new = "or not math.isfinite(value) or value < 0:"
 
 [[mutant]]
 name = "a weight that is true or false is let through"
-file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
-old = "    if isinstance(value, bool) or not isinstance(value, Real) or value <= 0:"
-new = "    if not isinstance(value, Real) or value <= 0:"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if isinstance(value, bool) or not isinstance(value, Real)"
+new = "    if not isinstance(value, Real)"
 
 [[mutant]]
 name = "a weight that is a string is let through"
-file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
-old = "or not isinstance(value, Real) or value <= 0:"
-new = "or value <= 0:"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "or not isinstance(value, Real) or not math.isfinite(value)"
+new = "or not math.isfinite(value)"
 
 [[mutant]]
 name = "the nodes of every stage break over the width of the first column"

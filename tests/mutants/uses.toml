@@ -163,13 +163,13 @@ new = "TIGHTENED = (\"margin_x\", \"gap_s\","
 [[mutant]]
 name = "the padding of a table's cells is left out of what is tightened"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "\"pad\", \"cell_pad_y\", \"cell_pad_x\", \"text_inset\", \"bar_pad_x\", \"bar_pad_y\",\n             \"bar_gap\""
-new = "\"pad\", \"cell_pad_x\", \"text_inset\", \"bar_pad_x\", \"bar_pad_y\",\n             \"bar_gap\""
+old = "\"pad\", \"cell_pad_y\", \"cell_pad_x\",\n             \"text_inset\""
+new = "\"pad\", \"cell_pad_x\",\n             \"text_inset\""
 
 [[mutant]]
 name = "a distance written by itself loses to the ratio"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "    base = replace(base, **dict(type.spaced))\n"
+old = "    base = replace(base, **distances)\n"
 new = ""
 
 [[mutant]]

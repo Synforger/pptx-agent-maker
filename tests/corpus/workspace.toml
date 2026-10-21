@@ -73,6 +73,17 @@ heading = 10.5
 tag = 14
 table_look = "plain"
 
+# A use whose cells stand far apart across a row and close together down the page (= `gap_x` between the cells
+# of a row, `gap_y` between the rows, `band_gap` between a band and the body; a use that says only `gap_m` sets all
+# three).
+[theme.uses.apart]
+like = "read"
+
+[theme.uses.apart.spacing]
+gap_x = 1.6
+gap_y = 0.15
+band_gap = 1.0
+
 # The pictures here are made up to exercise the layout, so there is no source to name:
 # the corpus builds with the check for unsourced pages switched off, the way a project may.
 [checks]
