@@ -75,7 +75,7 @@ pptx-agent-maker lift <案件> <テンプレートの folder> \
 | `figures` | `figures` | ― | 絵を横に並べる (= 説明は絵ごとに `["a.png", "説明"]`) |
 | `figure_grid` | `figures` | `columns` | 絵を格子に並べる |
 | `flow` | `stages` | `align_rows` `direction` | 段を左から右へ、あいだに → (= `direction = "down"` で上から下へ、段の中は横に並んで分岐) |
-| `roadmap` | `stages` | `align_rows` | 到達点までの段を矢羽根で左から右へ。各段の下にノード |
+| `roadmap` | `stages` | `align_rows` | 到達点までの段を矢羽根で左から右へ。各段の下にノード (= 省ける) |
 | `compose` | `rows` | ― | 本体を段とマスで書く。マスに部品を 1 つ (= 上の型も入る)。図が無くても通る |
 | `timeline` | `periods` `lanes` | `phases` `milestones` | 期間を左から右、レーンを上から下。レーンの中に棒と印 |
 | `chart` | `chart` | ― | 数字から描くグラフを 1 つ (= 棒・縦棒・折れ線・積み上げ・滝グラフ。PowerPoint で数字を直せる) |
@@ -156,6 +156,9 @@ nodes = [
 ]
 
 [[pages.stages]]
+name = "Dec | 0.5"                                     # nodes は省ける。矢羽根だけの段になる
+
+[[pages.stages]]
 name = "Jan | 1.0"
 goal = true                                            # 任意。最後の段だけ。到達点として強調する
 nodes = [ ["Release", "anyone can install it"] ]
@@ -167,6 +170,10 @@ nodes = [ ["Release", "anyone can install it"] ]
   一回り大きい (= 16pt。ほかの段は 14pt)。ほかの段の矢羽根は薄い地に枠
 - 段のキーは `name` / `nodes` / `goal` と、見た目の 4 つ (= `tone` / `icon` / `tentative` / `strong`)。
   flow の `settled` は読まない。段は 2 つ以上
+- **`nodes` は省ける** (= `nodes = []` と同じ)。省いた段は矢羽根だけで、その下は空く。**全部の段で省けば、
+  矢羽根の帯だけが立つ** (= 帯の高さだけを使う)。一部の段だけ省くと、
+  書いた段のノードだけが積まれ、`align_rows` も書いた段の間で揃う。`box_height = "page"` の資料でも、
+  矢羽根は伸びず、ノードが残りの高さを分け合う。**`flow` は省けない** (= 段に中身が要る型)
 - 長い名前は矢羽根の中で折れ、全部の矢羽根がいちばん高い名前に揃う
 - 収まらない頁は縮めずに止まる (= ノードを短くするか、段を 2 頁に分ける)
 

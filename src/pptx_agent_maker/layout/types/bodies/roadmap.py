@@ -14,8 +14,10 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
     """The road to a goal: stages left to right as arrowheads, each holding what it delivers.
 
     段は `name` (= 矢羽根の中。時期と版を「11 月上旬 | 0.4.0」のように書く) と `nodes`
-    (= flow と同じ 2 通りの書き方と `tone`、`icon`)。**最後の段だけ** `goal = true` を書ける
-    (= 到達点。濃い地で、名前を一回り大きく置く)。`align_rows` は flow と同じ。
+    (= flow と同じ 2 通りの書き方と `tone`、`icon`)。**`nodes` は省ける** (= 矢羽根だけの段。
+    全部の段で省けば、矢羽根の帯だけが立つ。一部の段だけ省けば、その段の下は空く)。flow の段は
+    中身が要る型なので、省けない。**最後の段だけ** `goal = true` を書ける (= 到達点。濃い地で、
+    名前を一回り大きく置く)。`align_rows` は flow と同じ。
 
     矢羽根は最初の段が左の平らな形、2 段目からが左の切り欠いた形で、先が次の段の切り欠きに
     噛み合う。向きは矢羽根が示すので、段の間に「→」は置かない。
@@ -44,7 +46,7 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
     theme, s, ty = page.theme, page.theme.spacing, page.theme.type
     gap = s.gap_s
     columns = area.columns(len(stages), gap=s.gap_m)
-    stacks, stack = stage_stacks(page, spec, stages, columns[0].width, aligned, "roadmap")
+    stacks, stack = stage_stacks(page, spec, stages, columns[0].width, aligned, "roadmap", bare=True)
 
     # 矢羽根は自分の列から次の列の頭まで伸び、先が次の段の切り欠きに入る (= 最後の段は列の中で
     # 尖る)。文字が使える幅は、プリセットが決めた文字の枠 (= 切り欠きと先を除いた幅) から余白を引く
@@ -64,7 +66,7 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
         arrows.append((Rect(column.left, area.top, right - column.left, 1), shape, size, tall, style))
     head_height = max(tall for _r, _s, _z, tall, _style in arrows)
 
-    wanted = head_height + gap + stack
+    wanted = head_height + (gap + stack if stack else 0)   # 矢羽根だけの道のりは、帯の高さだけ要る
     if wanted > area.height:
         raise PageFullError(
             f"this roadmap needs {wanted} EMU of height and the body has {area.height} — "

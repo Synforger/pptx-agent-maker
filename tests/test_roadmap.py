@@ -20,12 +20,13 @@ from support.pages import box_of, build, named  # noqa: E402
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
-from pptx_agent_maker.layout.base.geometry import cm  # noqa: E402
+from pptx_agent_maker.layout.base.geometry import Rect, cm  # noqa: E402
 from pptx_agent_maker.layout.parts.elements import Bar, Figure, Text  # noqa: E402
 from pptx_agent_maker.layout.parts.look import Style  # noqa: E402
 from pptx_agent_maker.layout.parts.page import Card, Page, PageFullError  # noqa: E402
-from pptx_agent_maker.layout.base.tokens import DEFAULT  # noqa: E402
-from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
+from pptx_agent_maker.layout.base.tokens import DEFAULT, theme_from  # noqa: E402
+from pptx_agent_maker.layout.types.core.read import Spec  # noqa: E402
+from pptx_agent_maker.layout.types.core.registry import TYPES, PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, aspect, new_deck, save  # noqa: E402
 
 DATA = REPO / "tests" / "data"
@@ -139,9 +140,6 @@ class WhatARoadRefuses(unittest.TestCase):
     def test_a_stage_says_when_it_is(self):
         self.refused([stage("One"), {"nodes": [["A", "a"]]}], "stage 2", "no `name`")
 
-    def test_a_stage_holds_something(self):
-        self.refused([stage("One"), {"name": "Two", "nodes": []}], "has no nodes")
-
     def test_a_key_nobody_reads(self):
         self.refused([stage("One"), stage("Two", settled="x")], "stage 2", "does not take settled")
 
@@ -156,6 +154,137 @@ class WhatARoadRefuses(unittest.TestCase):
         with self.assertRaises(PageFullError) as raised:
             road(many)
         self.assertIn("roadmap", str(raised.exception))
+
+
+def bare(name, **more):
+    """A stage of an arrowhead alone."""
+    return {"name": name, **more}
+
+
+def boxes(built):
+    return [e for e in built.build() if e.kind == "box"]
+
+
+class ABareRoad(unittest.TestCase):
+    """A stage may leave its `nodes` out: the arrowhead stands alone, and a flow still wants its nodes."""
+
+    def test_a_road_of_arrowheads_alone_is_a_row_of_them_and_nothing_under(self):
+        built = road([bare("Early | 0.4"), bare("Late | 0.5"), bare("Then | 1.0", goal=True)])
+        self.assertEqual(["Early | 0.4", "Late | 0.5", "Then | 1.0"], [a.text for a in arrows(built)])
+        self.assertEqual([], boxes(built))
+
+    def test_the_arrowheads_are_the_same_with_nodes_under_them_or_without(self):
+        names = ["Early | 0.4", "Late | 0.5", "Then | 1.0"]
+        alone = arrows(road([bare(name) for name in names]))
+        held = arrows(road([stage(name) for name in names]))
+        self.assertEqual([(a.rect, a.shape, a.size, a.fill) for a in held],
+                         [(a.rect, a.shape, a.size, a.fill) for a in alone])
+
+    def test_an_empty_list_is_the_same_as_leaving_it_out(self):
+        names = ["One", "Two", "Three"]
+        self.assertEqual(road([bare(name) for name in names]).build(),
+                         road([bare(name, nodes=[]) for name in names]).build())
+
+    def test_the_stages_that_hold_nodes_keep_them_under_their_own_arrowhead_and_the_rest_stand_empty(self):
+        built = road([stage("One", ["A", "a"]), bare("Two"), stage("Three", ["C", "c"], ["D", "d"])])
+        heads = arrows(built)
+        self.assertEqual([heads[0].rect.left, heads[2].rect.left], [box_of(built, "A").rect.left,
+                                                                      box_of(built, "C").rect.left])
+        self.assertEqual(3, len(boxes(built)))
+        for box in boxes(built):
+            self.assertFalse(heads[1].rect.left < box.rect.left < heads[1].rect.right,
+                             "a box stands under the arrowhead that holds nothing")
+        self.assertGreater(box_of(built, "D").rect.top, box_of(built, "C").rect.bottom)
+
+    def test_the_tallest_stage_alone_decides_how_far_down_the_nodes_reach(self):
+        built = road([stage("One", ["A", "a"]), bare("Two"), stage("Three", ["C", "c"], ["D", "d"])])
+        s = DEFAULT.spacing
+        self.assertEqual(box_of(built, "D").rect.bottom,
+                         max(b.rect.bottom for b in boxes(built)))
+        self.assertEqual(arrows(built)[0].rect.bottom + s.gap_s, box_of(built, "A").rect.top)
+
+    def test_align_rows_lines_up_the_stages_that_hold_nodes_and_lets_the_rest_be(self):
+        stages = [stage("One", ["A", "a body long enough to break over several lines " * 4], ["B", "b"]),
+                  bare("Two"), stage("Three", ["C", "c"], ["D", "d"])]
+        built = road(stages, align_rows=True)
+        self.assertEqual(box_of(built, "B").rect.top, box_of(built, "D").rect.top)
+        self.assertEqual(box_of(built, "A").rect.height, box_of(built, "C").rect.height)
+        self.assertEqual([], boxes(road([bare("One"), bare("Two")], align_rows=True)))
+
+    def test_align_rows_counts_its_rows_over_every_stage_not_the_first(self):
+        built = road([bare("Zero"), stage("One", ["A", "a"], ["B", "b"]), stage("Two", ["C", "c"], ["D", "d"])],
+                     align_rows=True)
+        self.assertEqual(box_of(built, "B").rect.top, box_of(built, "D").rect.top)
+
+    def test_a_body_as_tall_as_the_arrowheads_holds_a_road_of_them_alone(self):
+        """⚠ 矢羽根だけの道のりが要る高さは、帯の高さちょうど (= 空のノードの上の隙間は要らない)。"""
+        stages = [bare("One"), bare("Two")]
+        height = arrows(road(stages))[0].rect.height
+
+        def fill(room):
+            page = Page("A page")
+            spec = Spec({"stages": stages}, lambda name: DATA / name, aspect)
+            TYPES["roadmap"][0](page, spec, Rect(page.body.left, page.body.top, page.body.width, room))
+
+        fill(height)
+        with self.assertRaises(PageFullError):
+            fill(height - 1)
+
+    def test_it_needs_only_the_height_of_its_arrowheads(self):
+        """前提: 同じ段にノードを書けば頁に収まらない (= 収まるのは、ノードを省いたから)。"""
+        many = [stage(f"S{n}", *[[f"N{n}{k}", "a body " * 12] for k in range(8)]) for n in range(3)]
+        with self.assertRaises(PageFullError):
+            road(many)
+        self.assertEqual(3, len(arrows(road([bare(s["name"]) for s in many]))))
+
+    def test_what_an_arrowhead_may_carry_it_carries_alone(self):
+        built = road([bare("One", tone="tint", icon=SQUARE), bare("Two", goal=True)])
+        palette = DEFAULT.palette
+        self.assertEqual(palette.tint, arrows(built)[0].fill)
+        self.assertEqual(palette.accent, arrows(built)[1].fill)
+        self.assertEqual(1, len([e for e in built.build() if isinstance(e, Figure)]))
+
+    def test_it_still_says_when_an_arrowhead_has_no_name(self):
+        with self.assertRaises(PageTypeError) as raised:
+            road([bare("One"), {"nodes": []}])
+        self.assertIn("no `name`", str(raised.exception))
+
+    def test_a_flow_still_holds_something_in_every_stage(self):
+        for nodes in ({}, {"nodes": []}):
+            with self.subTest(nodes=nodes):
+                with self.assertRaises(PageTypeError) as raised:
+                    build({"type": "flow", "title": "A flow", "stages": [
+                        {"name": "One", "nodes": [["A", "a"]]}, {"name": "Two", **nodes}]})
+                self.assertIn("has no nodes", str(raised.exception))
+        with self.assertRaises(PageTypeError):
+            build({"type": "flow", "title": "A flow", "direction": "down", "stages": [
+                {"name": "One", "nodes": [["A", "a"]]}, {"name": "Two"}]})
+
+
+class ABareRoadOnAPage(unittest.TestCase):
+    """In a deck that says `box_height = "page"` the nodes share the height left; arrowheads alone share nothing."""
+
+    PAGE = theme_from({"box_height": "page"})
+
+    def bottom(self):
+        return Page("A page", self.PAGE).body.bottom
+
+    def test_the_nodes_of_the_stages_that_hold_any_reach_the_bottom_of_the_body(self):
+        for extra, last in (({}, "C"), ({"align_rows": True}, "B")):
+            with self.subTest(**extra):
+                built = build({"type": "roadmap", "title": "T", "stages": [
+                    stage("One", ["A", "a"], ["B", "b"]), bare("Two"), stage("Three", ["C", "c"])], **extra}, self.PAGE)
+                self.assertEqual(self.bottom(), box_of(built, "B").rect.bottom)
+                self.assertEqual(self.bottom(), box_of(built, last).rect.bottom)
+
+    def test_a_road_of_arrowheads_alone_stays_as_tall_as_they_are(self):
+        for extra in ({}, {"align_rows": True}):
+            with self.subTest(**extra):
+                built = build({"type": "roadmap", "title": "T", "stages": [bare("One"), bare("Two", goal=True)],
+                               **extra}, self.PAGE)
+                plain = road([bare("One"), bare("Two", goal=True)])
+                self.assertEqual([], boxes(built))
+                self.assertEqual([a.rect.height for a in arrows(plain)], [a.rect.height for a in arrows(built)])
 
 
 class ItsNodes(unittest.TestCase):

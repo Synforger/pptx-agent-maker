@@ -1,0 +1,51 @@
+# A roadmap whose stages may leave their `nodes` out: the arrowheads stand alone, and a flow still wants its nodes.
+
+tests = ["tests/test_roadmap.py"]
+
+[[mutant]]
+name = "a roadmap asks for the nodes of every stage again"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = 'aligned, "roadmap", bare=True)'
+new = 'aligned, "roadmap")'
+
+[[mutant]]
+name = "a flow lets a stage go without nodes"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "        if not nodes and not bare:"
+new = "        if not nodes and False:"
+
+[[mutant]]
+name = "a road of arrowheads alone is counted as tall as the gap under them as well"
+file = "src/pptx_agent_maker/layout/types/bodies/roadmap.py"
+old = "    wanted = head_height + (gap + stack if stack else 0)"
+new = "    wanted = head_height + gap + stack"
+
+[[mutant]]
+name = "no boxes stacked are counted a gap short"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "    return sum(heights) + gap * (len(heights) - 1) if heights else 0"
+new = "    return sum(heights) + gap * (len(heights) - 1)"
+
+[[mutant]]
+name = "rows lined up across the stages are counted a gap short when no stage holds a node"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "        return stacks, stood(rows, gap)"
+new = "        return stacks, sum(rows) + gap * (len(rows) - 1)"
+
+[[mutant]]
+name = "rows lined up across the stages are counted over the first stage only"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "                for index in range(max(map(len, stacks)))]\n        stacks = [[(node, rows[index])"
+new = "                for index in range(len(stacks[0]))]\n        stacks = [[(node, rows[index])"
+
+[[mutant]]
+name = "a page-height deck shares height out to a road with no node to give it to"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = '    if page.theme.box_height != "page" or room <= stack or not stack:'
+new = '    if page.theme.box_height != "page" or room <= stack:'
+
+[[mutant]]
+name = "a page-height deck shares height out to a stage that holds no node"
+file = "src/pptx_agent_maker/layout/types/core/stack.py"
+old = "            if column else [] for column in stacks], room"
+new = "            for column in stacks], room"

@@ -408,3 +408,40 @@ marks = [
   { at = [0.85, 0.3], text = "Owner" },
   { at = [0.9, 0.8], text = "Age" },
 ]
+
+[[pages]]
+kind = "declare"
+type = "roadmap"
+title = "Arrowheads alone, when the stages need no words under them"
+
+[[pages.stages]]
+name = "Early Nov | 0.4"
+
+[[pages.stages]]
+name = "Dec | 0.5, the first version partners can try"
+tone = "tint"
+
+[[pages.stages]]
+name = "Jan | 1.0"
+goal = true
+
+[[pages]]
+kind = "declare"
+type = "roadmap"
+title = "Or only some of them hold nodes, the rest standing empty"
+align_rows = true
+
+[[pages.stages]]
+name = "Early Nov | 0.4"
+nodes = [
+  ["Core", "reads every input"],
+  ["Docs", "how to start"],
+]
+
+[[pages.stages]]
+name = "Dec | 0.5"
+
+[[pages.stages]]
+name = "Jan | 1.0"
+goal = true
+nodes = [["Release", "anyone can install it"]]

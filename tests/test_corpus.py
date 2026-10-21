@@ -83,6 +83,13 @@ class TheCorpusUsesEverything(unittest.TestCase):
                 used = {key for body in bodies(name) for key in body}
                 self.assertEqual(set(), (needs | takes) - used, f"{name}: keys the corpus never writes")
 
+    def test_a_roadmap_of_arrowheads_alone_and_one_with_only_some_stages_bare(self) -> None:
+        roads = [body["stages"] for body in bodies("roadmap")]
+        self.assertTrue(any(all("nodes" not in stage for stage in road) for road in roads),
+                        "no roadmap leaves the nodes out of every stage")
+        self.assertTrue(any(0 < sum("nodes" not in stage for stage in road) < len(road) for road in roads),
+                        "no roadmap leaves the nodes out of some stages only")
+
     def test_every_extra_and_every_key_of_the_frame(self) -> None:
         used = {key for page in DECLARED for key in page}
         self.assertEqual(set(), (EXTRA_KEYS | FRAME_KEYS) - used)
@@ -99,7 +106,7 @@ class TheCorpusUsesEverything(unittest.TestCase):
             "a node of a flow": [node for body in bodies("flow") for stage in body["stages"]
                                  for node in stage["nodes"]],
             "a node of a roadmap": [node for body in bodies("roadmap") for stage in body["stages"]
-                                    for node in stage["nodes"]],
+                                    for node in stage.get("nodes", [])],
             "a stage of a roadmap": [stage for body in bodies("roadmap") for stage in body["stages"]],
             "a bar": [bar for bar in bars if bar.get("spans", 1) == 1],
             "a bar across lanes": [bar for bar in bars if bar.get("spans", 1) > 1],
