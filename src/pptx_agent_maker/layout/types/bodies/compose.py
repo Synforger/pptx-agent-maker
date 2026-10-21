@@ -33,7 +33,7 @@ from numbers import Real
 
 from ...base.geometry import Rect
 from ...parts.look import Style
-from ...parts.page import Card, Page, PageFullError, Voice
+from ...parts.page import CARD_ALIGNS, Card, Page, PageFullError, Voice
 from ..core.registry import TYPES, PageTypeError, register
 from ..core.read import Spec, read_card, read_table, read_tone, only_keys
 from ..core.stack import card_height, spread
@@ -42,9 +42,11 @@ from .chart import place_chart
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
 PARTS = ("card", "figure", "table", "text", "points", "chart", "voices", "ring", "tree", "overlap")
-#: 文章の役 (= `role`)。書かなければ本文の色と大きさ。`display` = 頁の主役の数字を特大で、`mono` = コード・
-#: コマンド・数式の行を等幅で、折らずに薄い地の枠に
-ROLES = ("display", "mono")
+#: 文章の役 (= `role`)。書かなければ本文の色と大きさ。`display` = 頁の主役の数字を特大で、`label` = 列や行の
+#: 見出しを太字で、`note` = 添える小さい字を灰で、`mono` = コード・コマンド・数式の行を等幅で、折らずに薄い地の枠に
+ROLES = ("display", "label", "note", "mono")
+#: 文章が読むキーのうち、字の見え方 (= 色の役と寄せ。`mono` は枠の中に等幅で置くので読まない)
+TEXT_LOOKS = ("tone", "align")
 #: 声 1 つが読むキー
 VOICE_KEYS = ("text", "who", "tone")
 #: マスに丸ごと入れられる型 (= その型の書き方のまま)。`cards` はマスごとの `card` で、
@@ -55,17 +57,18 @@ BODIES = ("figures", "figure_grid", "flow", "roadmap", "timeline", "board", "age
 @register("compose", needs=["rows"], takes=["links"], figure=False)
 def _compose(page: Page, spec: Spec, area: Rect) -> None:
     """Rows top to bottom, cells left to right, one part in each cell (or more rows); then the links."""
-    seen: list[tuple[str | None, Rect]] = []
+    seen: list[tuple[str | None, Rect, bool]] = []
     _stack(page, spec, spec.get("rows"), area, "compose", seen)
     named: dict[str, Rect] = {}
-    for name, rect in seen:
+    for name, rect, _blank in seen:
         if name is None:
             continue
         if name in named:
             raise PageTypeError(f"compose: two cells have the id {name!r} — an id names one cell")
         named[name] = rect
     if spec.get("links") is not None:
-        arrange.links(page, spec.get("links"), named, [rect for _name, rect in seen], "compose")
+        arrange.links(page, spec, spec.get("links"), named, [rect for _name, rect, _blank in seen],
+                      [rect for _name, rect, blank in seen if blank], "compose")
 
 
 def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> None:
@@ -91,9 +94,17 @@ def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> 
             tall = height + (next(more) if grows and not shares else 0)
         for index, (cell, column, natural) in enumerate(cells, start=1):
             rect = Rect(area.left + column.left, top, column.width, tall)
-            seen.append((str(cell["id"]) if "id" in cell else None, rect))
+            seen.append((str(cell["id"]) if "id" in cell else None, rect, _blank(cell)))
             _place(page, spec, cell, rect, natural, height is not None, f"{where}: row {number}, cell {index}", seen)
         top += tall + gap
+
+
+def _blank(cell: dict) -> bool:
+    """Whether a cell holds nothing (= `text = ""`): space a link may cross, and words may stand over.
+
+    コードの枠 (= `role = "mono"`) は、中が空でも枠が見える物なので、空きに数えない。
+    """
+    return "text" in cell and cell.get("role") != "mono" and not str(cell["text"]).strip()
 
 
 def _grows(page: Page, cell: dict) -> bool:
@@ -119,7 +130,8 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
         if not isinstance(cells, list) or not cells:
             raise PageTypeError(f"{what} has no cells — write [[…cells]] under it, one per part")
         for index, cell in enumerate(cells, start=1):
-            only_keys(cell, {"weight", "rows", "caption", "role", "marks", "id", *PARTS, *BODIES}, f"{what}, cell {index}")
+            only_keys(cell, {"weight", "rows", "caption", "role", "marks", "id", *TEXT_LOOKS, *PARTS, *BODIES},
+                      f"{what}, cell {index}")
         weights = [_weight(cell, f"{what}, cell {index}") for index, cell in enumerate(cells, start=1)]
         columns = Rect(0, 0, width, 1).columns(weights, gap=gap)
         measured = [(cell, column, _natural(page, spec, cell, column.width, f"{what}, cell {index}"))
@@ -156,6 +168,13 @@ def _part(cell: dict, what: str) -> str:
             raise PageTypeError(f"{what}: `role` belongs to a text, and this cell holds {named[0]}")
         if cell["role"] not in ROLES:
             raise PageTypeError(f"{what}: `role` is one of {', '.join(ROLES)}, not {cell['role']!r}")
+    for key in TEXT_LOOKS:
+        if key in cell and (named[0] != "text" or cell.get("role") == "mono"):
+            holds = "a mono text (= code is set in its own box)" if named[0] == "text" else named[0]
+            raise PageTypeError(f"{what}: `{key}` belongs to a text of words, and this cell holds {holds}")
+    if "align" in cell and cell["align"] not in CARD_ALIGNS:
+        raise PageTypeError(
+            f"{what}: `align` is {' or '.join(repr(name) for name in CARD_ALIGNS)}, not {cell['align']!r}")
     return named[0]
 
 
@@ -174,7 +193,7 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
         except PageFullError as reason:
             raise PageFullError(f"{what}: {reason}") from reason
     if part == "text":
-        size, bold = (theme.type.display, True) if cell.get("role") == "display" else (None, False)
+        size, bold = page.text_face(cell.get("role"))
         return theme.wrapped_height(str(cell["text"]), max(width - 2 * s.text_inset, 1), size, bold=bold)
     if part == "points":
         return page.points_height(width, _points(cell, what))
@@ -215,12 +234,11 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)])
         elif part == "table":
             page.table(fitted, _table(cell, what))
-        elif part == "text" and cell.get("role") == "display":
-            page.display(fitted, str(cell["text"]))
         elif part == "text" and cell.get("role") == "mono":
             page.code(fitted, str(cell["text"]))
         elif part == "text":
-            page.text(fitted, str(cell["text"]))
+            tone = read_tone(spec, cell, what, "box") if "tone" in cell else None
+            page.text(fitted, str(cell["text"]), role=cell.get("role"), tone=tone, align=cell.get("align", "left"))
         elif part == "points":
             page.points(fitted, _points(cell, what))
         elif part == "voices":

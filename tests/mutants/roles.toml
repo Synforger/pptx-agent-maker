@@ -35,5 +35,5 @@ new = "return self.theme.wrapped_height(text, width) + 2 * s.pad"
 [[mutant]]
 name = "a display text is measured at the body's size"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = 'size, bold = (theme.type.display, True) if cell.get("role") == "display" else (None, False)'
+old = 'size, bold = page.text_face(cell.get("role"))'
 new = "size, bold = (None, False)"

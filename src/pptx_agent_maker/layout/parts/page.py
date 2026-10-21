@@ -372,11 +372,26 @@ class Page:
         p = self.theme.palette
         if style.tentative:
             return Look(p.paper, p.ink, p.ink, heavy=style.strong), p.ink
-        fill, _words, edge = self.ground(style.tone, points, bold)
-        if style.tone in LIGHT or (style.tone not in TONES and edge):
-            look = self.look(style, points, bold)
-            return look, look.ink
-        return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill, heavy=style.strong), fill
+        head = self.tone_ink(style.tone, points, bold)
+        if self.carries_colour(style.tone, points, bold):
+            return Look(p.thinned(p.CARD_WASH, head), p.ink, head, heavy=style.strong), head
+        return self.look(style, points, bold), head
+
+    def carries_colour(self, tone: str, points: float | None = None, bold: bool = False) -> bool:
+        """Whether a tone is a colour in itself (= `accent` / `good` / `bad`, a ground the project named that is deep), not a pale ground.
+
+        薄い地 (= `box` / `band` / `tint`、字が本文の色で読める地に名前を付けた物) は、意味を持たない地の色。
+        `points` と `bold` は `ground` と同じ (= 名前を付けた地が薄いかは、載る字の大きさと太さで決まる)。
+        """
+        return tone not in LIGHT and (tone in TONES or not self.ground(tone, points, bold)[2])
+
+    def tone_ink(self, tone: str, points: float | None = None, bold: bool = False) -> str:
+        """The colour words and lines take for a tone on the paper: the colour itself where the tone carries one, else the ink.
+
+        カードの見出しの色 (= `outlined_look`)、文章の字の色、矢印の線の色が、この 1 つの決まりを読む。薄い地は
+        紙の上の字にすると読めないので、本文の色のまま。
+        """
+        return self.ground(tone, points, bold)[0] if self.carries_colour(tone, points, bold) else self.theme.palette.ink
 
     def _lead(self, icon: tuple[Path, float] | None, size: float) -> int:
         """How much room the words give an icon set in front of them (= none without one)."""
@@ -543,15 +558,32 @@ class Page:
         )
         return placed
 
-    def text(self, rect: Rect, text: str) -> None:
-        """Words that are part of what the page says: the body's colour, at the body's size."""
-        t, p = self.theme.type, self.theme.palette
-        self.elements.append(Text("text", rect, text, t.body, p.ink))
+    def text_face(self, role: str | None = None) -> tuple[float, bool]:
+        """(size, bold) of the words of a `text` in this role (= the side that counts its height and the side that sets it read one).
 
-    def display(self, rect: Rect, text: str) -> None:
+        書かなければ本文 (= 本文の大きさ、太字でない)。`label` は列や行の見出し (= `stage` の大きさの太字)、`note` は
+        添える小さい字 (= `caption` の大きさ)、`display` は頁の主役の数字 (= `Type.display` の太字)。
+        """
+        t = self.theme.type
+        return {"display": (t.display, True), "label": (t.stage, True), "note": (t.caption, False)}.get(
+            role, (t.body, False))
+
+    def text(self, rect: Rect, text: str, *, role: str | None = None, tone: str | None = None,
+             align: str = "left") -> None:
+        """Words that are part of what the page says: the body's colour, at the body's size.
+
+        `role` は字の大きさと太さ (= `text_face`)。色は、書かなければ役ごと (= 本文と見出しは本文の色、`note` は
+        灰、`display` は差し色)。`tone` を書けばその色の役の字 (= `tone_ink`)。
+        """
+        p = self.theme.palette
+        size, bold = self.text_face(role)
+        colour = self.tone_ink(tone, size, bold) if tone else {"note": p.muted, "display": p.accent}.get(role, p.ink)
+        self.elements.append(Text("display" if role == "display" else "text", rect, text, size, colour,
+                                  bold=bold, align=align))
+
+    def display(self, rect: Rect, text: str, *, tone: str | None = None, align: str = "left") -> None:
         """The figure the page is about, set very large (= `Type.display`): bold, in the accent."""
-        t, p = self.theme.type, self.theme.palette
-        self.elements.append(Text("display", rect, text, t.display, p.accent, bold=True))
+        self.text(rect, text, role="display", tone=tone, align=align)
 
     def code_height(self, width: int, text: str) -> int:
         """How tall a block of code stands: its lines as written, with the room of a box round them.
@@ -745,12 +777,16 @@ class Page:
         """The faint ground under every other column, so the eye can follow a period down the page."""
         self.elements.append(Fill("stripe", rect, self.theme.palette.wash))
 
-    def line(self, start: tuple[int, int], end: tuple[int, int], *, arrow: bool = False) -> None:
-        """A thin straight line in the colour of quiet ink (= what joins things, not a thing itself)."""
+    def line(self, start: tuple[int, int], end: tuple[int, int], *, arrow: bool = False,
+             tone: str | None = None) -> None:
+        """A thin straight line in the colour of quiet ink (= what joins things, not a thing itself).
+
+        `tone` を書けば、その色の役の線 (= `tone_ink`)。矢じりも線と同じ色。
+        """
         left, right = sorted((start[0], end[0]))
         top, bottom = sorted((start[1], end[1]))
         self.elements.append(Line("line", Rect(left, top, right - left, bottom - top), start, end,
-                                  self.theme.palette.muted, arrow=arrow))
+                                  self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow))
 
     def words(self, rect: Rect, text: str, size: float, *, bold: bool = False, align: str = "center") -> None:
         """Words that name a part of a diagram (= a circle's name, what two circles share, a mark on a picture)."""

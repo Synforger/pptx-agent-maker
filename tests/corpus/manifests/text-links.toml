@@ -1,0 +1,77 @@
+# What a text cell and a link may say: the roles of a text with a tone and an alignment, and an arrow that
+# carries a colour and words beside it.
+
+specimen = "specimen.pptx"
+out = "text-links.pptx"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A text can be a heading, a note, or a figure, and any of them can be set in a colour"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = "A heading in the ink"
+role = "label"
+[[pages.rows.cells]]
+text = "A heading in the accent, centred"
+role = "label"
+tone = "accent"
+align = "center"
+[[pages.rows.cells]]
+text = "A heading in a ground the project named"
+role = "label"
+tone = "Late"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = "A note is smaller and grey"
+role = "note"
+[[pages.rows.cells]]
+text = "A note a reading has coloured"
+role = "note"
+tone = "bad"
+[[pages.rows.cells]]
+text = "Words in a pale ground stay in the colour of the body"
+tone = "Inside"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = "92%"
+role = "display"
+tone = "good"
+align = "center"
+[[pages.rows.cells]]
+weight = 2
+text = "A big figure takes a tone and a place too; what it counts goes in the words beside it"
+align = "center"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+use = "airy"
+title = "Words stand beside an arrow: above a sideways one, to the right of a downward one"
+links = [
+  { from = "received", to = "sorted", text = "then", tone = "accent" },
+  { from = "sorted", to = "answered", text = "if open" },
+  { from = "received", to = "kept", text = "always", tone = "bad" },
+]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "received"
+card = { heading = "Received", body = "at the desk" }
+[[pages.rows.cells]]
+id = "sorted"
+card = { heading = "Sorted", body = "an owner is named" }
+[[pages.rows.cells]]
+id = "answered"
+card = { heading = "Answered", body = "within a day", tone = "accent" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "kept"
+card = { heading = "Kept", body = "every ticket", tone = "band" }
+[[pages.rows.cells]]
+weight = 2
+text = "Nothing is thrown away; the arrow from the desk says so"

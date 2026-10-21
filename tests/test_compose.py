@@ -428,7 +428,7 @@ class Roles(unittest.TestCase):
         self.assertIn("`role` belongs to a text", str(wrong_part.exception))
         with self.assertRaises(PageTypeError) as unknown:
             compose([row({"text": "A", "role": "huge"})])
-        self.assertIn("display, mono", str(unknown.exception))
+        self.assertIn("display, label, note, mono", str(unknown.exception))
 
     def test_written_out_the_code_keeps_its_face_and_lines_and_the_checks_find_nothing(self):
         page = compose([row({"text": "98%", "role": "display"}, {"text": self.CODE, "role": "mono"})])
