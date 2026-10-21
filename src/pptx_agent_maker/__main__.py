@@ -92,15 +92,15 @@ def _preview(workspace, port: int, no_open: bool) -> int:
     ビルドがデッキを書き換えると、プレビューがそのまま焼き直す。焼いたデッキは
     マニフェストの隣に在るので、見るのは案件の folder そのもの。
     """
-    # ⚠ repo から動かしたときだけ在る path。入れたツールでは preview は別の package。
+    # ⚠ repo から動かしたときだけ在る path。入れたツールでは、プレビューはツールと一緒に入っている。
     if PREVIEW.is_dir() and str(PREVIEW) not in sys.path:
         sys.path.insert(0, str(PREVIEW))
     try:
         from pptx_live_preview.__main__ import main as preview_main
     except ImportError as error:  # pragma: no cover - depends on the environment
         hint = (f"       run: pip install -e {PREVIEW.parent}" if PREVIEW.is_dir()
-                else "       the live preview is a separate package; install it "
-                     "beside the toolkit")
+                else "       the live preview is installed with the toolkit; install the toolkit "
+                     "again from its checkout (pipx install --force --editable <checkout>)")
         print(f"error: the live preview is not available ({error}).\n{hint}", file=sys.stderr)
         return 1
 
