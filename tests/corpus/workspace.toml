@@ -97,3 +97,6 @@ unsourced = false
 # Most of the charts here exercise something else than their axes, so the check for a value axis with no name is
 # off too; the charts at the end of `charts` name theirs.
 unnamed_axis = false
+# The manifests here lay the types out one after another; their chapters are not read as a story, so the check for
+# a long chapter without an agenda at the head of each part is off too.
+section_agenda = false
