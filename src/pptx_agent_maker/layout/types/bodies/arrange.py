@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import math
 
-from ...base.geometry import Rect, pt
+from ...geometry import Rect, pt
 from ...parts.page import Card, Page, PageFullError
 from ..core.read import Spec, read_card, read_tone, only_keys
 from ..core.registry import PageTypeError

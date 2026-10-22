@@ -1,30 +1,30 @@
 # How tall the bands are and how tall the boxes of one use are, and a body that stands in the middle of the page.
 
-tests = ["tests/test_heights.py"]
+tests = ["tests/layout/test_heights.py"]
 
-# -- the band of a conclusion and the band of a condition (layout/base/tokens.py, layout/parts/page.py) -----------
+# -- the band of a conclusion and the band of a condition (layout/tokens.py, layout/parts/page.py) -----------
 
 [[mutant]]
 name = "a use cannot write the height of a band"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = '"row_gap", "band_height", "conclusion_height", "figure_floor")'
 new = '"row_gap", "figure_floor")'
 
 [[mutant]]
 name = "a height a use writes for the band over a page is cut from its type all the same"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'said["band_height"] if "band_height" in said else '
 new = ""
 
 [[mutant]]
 name = "a height a use writes for the band under a page is not read"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'conclusion_height=said.get("conclusion_height", band),'
 new = "conclusion_height=base.conclusion_height,"
 
 [[mutant]]
 name = "the band under a page, left unsaid, is not as tall as the one over it"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'conclusion_height=said.get("conclusion_height", band),'
 new = 'conclusion_height=said.get("conclusion_height", base.conclusion_height),'
 
@@ -34,41 +34,41 @@ file = "src/pptx_agent_maker/layout/parts/page.py"
 old = "self._take_bottom(s.conclusion_height)"
 new = "self._take_bottom(s.band_height)"
 
-# -- the height of the boxes a use picks (layout/base/tokens.py) --------------------------------------------------
+# -- the height of the boxes a use picks (layout/tokens.py) --------------------------------------------------
 
 [[mutant]]
 name = "the height of the boxes a use writes is not read"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "                       box_height_set=_picked(said, \"box_height\", BOX_HEIGHTS, \"the height of a page's boxes\", where),\n"
 new = ""
 
 [[mutant]]
 name = "a name nobody knows is let through as the height of a use's boxes"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    if not isinstance(value, str) or value not in options:"
 new = "    if False:"
 
 [[mutant]]
 name = "a use that says nothing takes the toolkit's height, not the deck's"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "box_height_set=sized.box_height_set or box_height,"
 new = 'box_height_set=sized.box_height_set or "text",'
 
 [[mutant]]
 name = "a look in another use keeps the height of the first"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        box_height = type.box_height_set or self.box_height\n"
 new = "        box_height = self.box_height\n"
 
 [[mutant]]
 name = "a deck made in a use of its own does not take that use's height"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        box_height=type.box_height_set,\n"
 new = "        box_height=box_height,\n"
 
 [[mutant]]
 name = "a deck cannot pick the middle"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'BOX_HEIGHTS = ("text", "page", "middle")'
 new = 'BOX_HEIGHTS = ("text", "page")'
 

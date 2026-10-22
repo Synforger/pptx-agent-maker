@@ -1,6 +1,6 @@
 # A chart drawn from its numbers: what is drawn, how it is written out, and how it travels with its page.
 
-tests = ["tests/test_chart.py", "tests/test_scatter.py"]
+tests = ["tests/layout/test_chart.py", "tests/layout/test_scatter.py"]
 
 # -- what is drawn (layout/types/bodies/chart.py) --------------------------------
 
@@ -308,19 +308,19 @@ new = "        pass"
 
 [[mutant]]
 name = "a dropped chart leaves the numbers it kept"
-file = "src/pptx_agent_maker/deck/base/archive.py"
+file = "src/pptx_agent_maker/_common/archive.py"
 old = "            if not gone:\n                return dropped\n            text = types.read_text"
 new = "            if not gone or dropped:\n                return dropped\n            text = types.read_text"
 
 [[mutant]]
 name = "a dropped chart stays declared in the package"
-file = "src/pptx_agent_maker/deck/base/archive.py"
+file = "src/pptx_agent_maker/_common/archive.py"
 old = "                text = re.sub(rf'<Override PartName=\"/{re.escape(name)}\"[^>]*/>', \"\", text)\n                dropped.append(name)"
 new = "                dropped.append(name)"
 
 [[mutant]]
 name = "a part named like any XML is left to the extension's own type"
-file = "src/pptx_agent_maker/deck/base/archive.py"
+file = "src/pptx_agent_maker/_common/archive.py"
 old = "        if (default and default.group(1) == content_type) or f'PartName=\"/{name}\"' in text:"
 new = "        if default or f'PartName=\"/{name}\"' in text:"
 

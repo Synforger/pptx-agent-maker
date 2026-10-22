@@ -13,7 +13,7 @@ import difflib
 from dataclasses import dataclass
 from pathlib import Path
 
-from ...checks.base.slide import read
+from ..._common.slide import read
 
 
 @dataclass(frozen=True)

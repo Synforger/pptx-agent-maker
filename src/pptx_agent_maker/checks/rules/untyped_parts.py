@@ -15,7 +15,7 @@ import re
 import zipfile
 from pathlib import Path
 
-from ..base.finding import Finding
+from ..finding import Finding
 
 NAME = "untyped_parts"
 _DEFAULT = re.compile(r'<Default\s+Extension="([^"]+)"')

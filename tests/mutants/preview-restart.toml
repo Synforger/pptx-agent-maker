@@ -1,7 +1,7 @@
 # The standing preview starts itself again, with the same arguments, once the toolkit or the preview has changed
 # on disk and the change has settled.
 
-tests = ["tests/test_preview_projects.py"]
+tests = ["tests/project/test_preview_projects.py"]
 
 [[mutant]]
 name = "the preview starts again while the files are still being written"

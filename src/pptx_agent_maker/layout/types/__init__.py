@@ -42,8 +42,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from ..base.geometry import Rect
-from ..base.tokens import DEFAULT, Theme
+from ..geometry import Rect
+from ..tokens import DEFAULT, Theme
 from ..parts.page import Page
 from .core.frame import centre_body, place_cards, place_legend, place_trailing, reserve_legend, reserve_trailing
 from .core.read import MARKS, Spec

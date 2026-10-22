@@ -1,30 +1,30 @@
 # A table in the plain look (`[theme] table_look`), and a row that divides a table (`{ band = "…" }`).
 
-tests = ["tests/test_table_plain.py", "tests/test_corpus.py"]
+tests = ["tests/layout/test_table_plain.py", "tests/layout/test_corpus.py"]
 
 # -- the look a project picks --------------------------------------------------
 
 [[mutant]]
 name = "the project says plain and its tables stay as they were"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        table_look=type.table_look_set,\n"
 new = ""
 
 [[mutant]]
 name = "the key is not one a project may set"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = '         "table_look", "layout_of_page")'
 new = '         "layout_of_page")'
 
 [[mutant]]
 name = "a look nobody pictured is let through"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'TABLE_LOOKS = ("accent", "plain")'
 new = 'TABLE_LOOKS = ("accent", "plain", "outlined")'
 
 [[mutant]]
 name = "a project that says nothing gets the plain look"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    table_look: str = \"accent\"\n"
 new = "    table_look: str = \"plain\"\n"
 
@@ -80,7 +80,7 @@ new = "    if False:\n"
 
 [[mutant]]
 name = "a band forgets the tone it asked for"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        cell.tone = tone\n"
 new = '        cell.tone = ""\n'
 
@@ -88,19 +88,19 @@ new = '        cell.tone = ""\n'
 
 [[mutant]]
 name = "a long band widens the first column"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        rows = [row for row in rows if not divides(row)] or rows"
 new = "        rows = rows"
 
 [[mutant]]
 name = "a band is set in the width of the first column when it is measured"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "zip(row, [sum(widths)] if divides(row) else widths)"
 new = "zip(row, widths)"
 
 [[mutant]]
 name = "any row of one cell is taken for a band"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    return len(row) == 1 and isinstance(row[0], Band)"
 new = "    return len(row) == 1"
 
@@ -226,7 +226,7 @@ new = "_cell_colour(theme, heading, r)"
 
 [[mutant]]
 name = "the cells a band spans over are read as blank cells"
-file = "src/pptx_agent_maker/checks/base/slide.py"
+file = "src/pptx_agent_maker/_common/slide.py"
 old = "                 if not SPANNED.match(cell)]"
 new = "                 ]"
 

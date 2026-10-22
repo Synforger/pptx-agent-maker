@@ -32,7 +32,7 @@ from pptx.oxml.ns import nsdecls, qn
 from pptx.util import Emu, Pt
 
 from ..layout.parts.elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Lead, Line, Table, Text, TEXT_INSET_Y, bullet_indent
-from ..layout.base.tokens import DEFAULT, MARK_FACE, Theme
+from ..layout.tokens import DEFAULT, MARK_FACE, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
 #: 文字を持つ図形の形 → プリセット (= `page.SHAPES`)

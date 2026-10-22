@@ -1,42 +1,42 @@
 # Three looks a project picks for its pages: how tall the boxes stand, how a card is painted, how the bands are.
 
-tests = ["tests/test_page_look.py"]
+tests = ["tests/layout/test_page_look.py"]
 
 # -- reading what the project wrote -------------------------------------------
 
 [[mutant]]
 name = "the project says page and the boxes stay as tall as their words"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        box_height=type.box_height_set,\n"
 new = ""
 
 [[mutant]]
 name = "the project says outlined for its cards and they stay filled"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        card_look=card_look,\n"
 new = ""
 
 [[mutant]]
 name = "the project says outlined for its bands and they stay plain"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        band_look=band_look,\n"
 new = ""
 
 [[mutant]]
 name = "a name nobody knows is read as the look there always was"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    if not isinstance(value, str) or value not in options:"
 new = "    if False:"
 
 [[mutant]]
 name = "a colour thinned into the paper is always the accent"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "self.accent if hue is None else hue"
 new = "self.accent"
 
 [[mutant]]
 name = "a card's ground is no longer nearly paper"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "CARD_WASH: ClassVar[float] = 0.03"
 new = "CARD_WASH: ClassVar[float] = 0.3"
 

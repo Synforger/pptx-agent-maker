@@ -1,7 +1,7 @@
 # A panel: a box in a cell that holds rows of cells of its own, its look, its heading and rule, the rows laid
 # inside it, its height, and the links across it.
 
-tests = ["tests/test_panel.py", "tests/test_compose.py", "tests/test_arrange.py"]
+tests = ["tests/layout/test_panel.py", "tests/layout/test_compose.py", "tests/layout/test_arrange.py"]
 
 # -- how it is drawn --
 

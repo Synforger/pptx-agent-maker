@@ -13,13 +13,13 @@ from pathlib import Path
 
 from ..layout import types
 from ..layout.parts.page import PageFullError
-from ..layout.base.tokens import Theme, ThemeError, allowed_pairs, theme_from
+from ..layout.tokens import Theme, ThemeError, allowed_pairs, theme_from
 from ..project.files.manifest import Entry, Manifest, ManifestError
 from ..project.files.workspace import Workspace, WorkspaceError
 from ..review.take.fold import keep_safe
-from ..review.base.ledger import remember, touched_by_hand
-from .base.look import merged
-from .base.under import under_of
+from ..review.ledger import remember, touched_by_hand
+from ._internal.look import merged
+from ._internal.under import under_of
 from ..write import add_page, aspect, new_deck, save
 from . import Deck, Slide
 
@@ -31,7 +31,7 @@ class HandEditedError(RuntimeError):
 def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
     """The look this manifest's declared pages are built in: the specimen's, with the project's laid over.
 
-    見本からはもう 1 つ読む ― 型の頁が乗るレイアウトが持つ物 (= 題の枠と、印字される物。`base/under.py`)。
+    見本からはもう 1 つ読む ― 型の頁が乗るレイアウトが持つ物 (= 題の枠と、印字される物。`_internal/under.py`)。
 
     検査で通すと決めた字と地の色の組 (= `[checks] contrast_allowed`) も渡す ― 組む側は、その組の字の色を
     寄せない (= `Palette.words_on`。検査と同じ読み方で、読む所は `allowed_pairs` 1 つ)。

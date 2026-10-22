@@ -8,11 +8,11 @@ test が緑でも、その test が見張っているつもりの物を本当に
 
 表の形:
 
-    tests = ["tests/test_geometry.py"]        # 流す test (= 速い物に絞る)
+    tests = ["tests/layout/test_geometry.py"]        # 流す test (= 速い物に絞る)
 
     [[mutant]]
     name = "touching edges count as overlapping"
-    file = "src/pptx_agent_maker/layout/base/geometry.py"
+    file = "src/pptx_agent_maker/layout/geometry.py"
     old = "and other.left < self.right"        # この file にちょうど 1 か所だけ在る文字列
     new = "and other.left <= self.right"
 

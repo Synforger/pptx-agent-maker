@@ -168,8 +168,10 @@ src/pptx_agent_maker/
 ├── deck/      copying a specimen page, importing one from an earlier deck
 ├── checks/    reading a built deck back, one check per file
 ├── review/    keeping a person's edit, and taking it back into the manifest
-└── project/   pointing at a deck project that lives outside this repo
+├── project/   pointing at a deck project that lives outside this repo
+└── _common/   what more than two of the above stand on (a pptx's parts as files, a built slide read back)
 templates/     the skeleton a deck project is created from (it ships with a specimen)
+tests/         the suite, in the same tree as src/ and scripts/, beside the corpus and the mutant tables
 preview/       the live preview, installed with the toolkit (vendored with its own history, git subtree)
 ```
 

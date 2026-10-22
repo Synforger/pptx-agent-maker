@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..base.finding import Finding
-from ..base.picture import ours, placed
+from ..finding import Finding
+from .._internal.picture import ours, placed
 
 NAME = "low_resolution"
 #: 頁の上で 1 インチに並ぶ画素の下限

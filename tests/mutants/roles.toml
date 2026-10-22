@@ -1,6 +1,6 @@
 # The roles a compose text can take: a figure set very large, lines of code set monospaced.
 
-tests = ["tests/test_compose.py"]
+tests = ["tests/layout/test_compose.py"]
 
 [[mutant]]
 name = "code is wrapped like any other words"
@@ -16,7 +16,7 @@ new = "run.font.name = theme.type.family"
 
 [[mutant]]
 name = "the display size is the title's"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.title * 2"
 new = "return self.title"
 

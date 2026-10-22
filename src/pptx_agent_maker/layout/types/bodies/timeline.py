@@ -14,8 +14,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from numbers import Real
 
-from ...base.geometry import Rect
-from ...base.tokens import Theme
+from ...geometry import Rect
+from ...tokens import Theme
 from ...parts.look import Style, TONES
 from ...parts.page import Page, PageFullError
 from ..core.read import LOOK_KEYS, Spec, only_keys, read_style, read_tone

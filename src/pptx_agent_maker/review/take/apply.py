@@ -28,13 +28,13 @@ from pathlib import Path
 
 from lxml import etree
 
-from ...checks.base.slide import read
-from ...deck.base.archive import Archive
+from ..._common.slide import read
+from ..._common.archive import Archive
 from ...deck.pages.swap import NS, pictures
 from ...project.files.manifest import Manifest, ManifestError
 from ...project.files.recipes import TABLE_HEAD, dump, toml_key
 from .fold import keep_safe
-from ..base.ledger import last_machine_build, remember, touched_by_hand
+from ..ledger import last_machine_build, remember, touched_by_hand
 
 #: 形を比べる前に落とすもの (= 保存のたびに PowerPoint が書き換える印と、文言そのもの)
 _UNSHAPE = (

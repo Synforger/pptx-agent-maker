@@ -1,7 +1,7 @@
 # Siblings that miss by a hair: words in a card and words on the page are not siblings, and a miss
 # that shows as 0.00 mm is no miss.
 
-tests = ["tests/test_checks.py"]
+tests = ["tests/checks/test_checks.py"]
 
 [[mutant]]
 name = "words in a card and words on the page are compared as siblings"

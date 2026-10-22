@@ -2,7 +2,7 @@
 # cell of no words takes no height and draws nothing, a picture is ruled at shares of its height (`guides`,
 # `guide_tone`), and the share of a row, a cell or a stage is read in one place.
 
-tests = ["tests/test_compose_gaps.py", "tests/test_compose.py", "tests/test_roadmap.py", "tests/test_uses.py"]
+tests = ["tests/layout/test_compose_gaps.py", "tests/layout/test_compose.py", "tests/layout/test_roadmap.py", "tests/layout/test_uses.py"]
 
 [[mutant]]
 name = "the rows of a page are set apart by the gap across a row"
@@ -144,13 +144,13 @@ new = "or not isinstance(value, Real) or value <= 0:"
 
 [[mutant]]
 name = "the gap across of a deck is not the gap between its boxes"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    gap_x: int = cm(0.6)\n"
 new = "    gap_x: int = cm(0.5)\n"
 
 [[mutant]]
 name = "the gap down of a deck is not the gap between its boxes"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    gap_y: int = cm(0.6)\n"
 new = "    gap_y: int = cm(0.5)\n"
 
@@ -168,55 +168,55 @@ new = "\"guide_tone\", \"id\","
 
 [[mutant]]
 name = "the gaps across and down do not follow the scale"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"title_gap\", \"pad\""
 new = "\"gap_l\", \"band_gap\", \"title_gap\", \"pad\""
 
 [[mutant]]
 name = "the gap under a band does not follow the scale"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"title_gap\", \"pad\", \"cell_pad_y\""
 new = "\"gap_l\", \"gap_x\", \"gap_y\", \"title_gap\", \"pad\", \"cell_pad_y\""
 
 [[mutant]]
 name = "a use may not write the gap across or the gap down"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"title_gap\",\n          \"pad\""
 new = "\"gap_l\", \"band_gap\", \"title_gap\",\n          \"pad\""
 
 [[mutant]]
 name = "a use may not write the gap under a band"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "\"gap_l\", \"gap_x\", \"gap_y\", \"band_gap\", \"title_gap\",\n          \"pad\""
 new = "\"gap_l\", \"gap_x\", \"gap_y\", \"title_gap\",\n          \"pad\""
 
 [[mutant]]
 name = "a use that says only gap_m leaves the gap across at the deck's"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
 new = "{\"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
 
 [[mutant]]
 name = "a use that says only gap_m leaves the gap down at the deck's"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
 new = "{\"gap_x\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
 
 [[mutant]]
 name = "a use that says only gap_m leaves the gap under a band at the deck's"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
 new = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"],\n                     **distances}"
 
 [[mutant]]
 name = "gap_m overrides a gap written apart"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "{\"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"],\n                     **distances}"
 new = "{**distances, \"gap_x\": distances[\"gap_m\"], \"gap_y\": distances[\"gap_m\"], \"band_gap\": distances[\"gap_m\"]}"
 
 [[mutant]]
 name = "the gap under a band of a deck is not the gap between its boxes"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    band_gap: int = cm(0.6)\n"
 new = "    band_gap: int = cm(0.5)\n"
 

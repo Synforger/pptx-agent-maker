@@ -1,6 +1,6 @@
 """The round trip with the person reading the deck.
 
-    base/ledger.py   ツールが最後に焼いたものを覚える (= 手編集を上書きしない)
+    ledger.py        ツールが最後に焼いたものを覚える (= 手編集を上書きしない)
     diff/parts.py    2 つのデッキを部品単位で全量突き合わせる (= 落とさない層)
     diff/compare.py  2 つのデッキの文言を全文で突き合わせる (= 読める形に翻訳する層)
     take/fold.py     手編集を退避し、manifest に戻せる形で出す
@@ -15,7 +15,7 @@ from __future__ import annotations
 from .diff.compare import Change, changes
 from .diff.parts import Inventory, Part, compare as compare_parts, render as render_parts
 from .take.fold import as_manifest_entries, fold, keep_safe
-from .base.ledger import last_machine_build, remember, touched_by_hand
+from .ledger import last_machine_build, remember, touched_by_hand
 
 __all__ = ["Change", "changes", "fold", "as_manifest_entries", "keep_safe",
            "remember", "touched_by_hand", "last_machine_build",

@@ -189,7 +189,7 @@ def _decided(value, keep, replace, names, hits, placed, key: str = ""):
 
 def _plain(deck: Path, number: int) -> None:
     """Refuse a page whose relationships would carry data along (= charts, embedded files)."""
-    from ...deck.base.archive import Archive
+    from ..._common.archive import Archive
 
     order = Archive(deck.parent).order_of(deck)
     if not 1 <= number <= len(order):

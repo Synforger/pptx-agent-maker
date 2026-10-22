@@ -1,6 +1,6 @@
 # What people said, each in a speech bubble with who said it under its tail (= `voices` in a compose cell).
 
-tests = ["tests/test_compose.py"]
+tests = ["tests/layout/test_compose.py"]
 
 [[mutant]]
 name = "the voices stand one to a row whatever the width"

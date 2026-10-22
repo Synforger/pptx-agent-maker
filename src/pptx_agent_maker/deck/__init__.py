@@ -1,6 +1,6 @@
 """Building a deck out of pages that already exist.
 
-    base/archive.py   部品を触る最下層 (= pptx は zip)
+    _internal/        見本が持つ見た目と、型の頁が乗るレイアウト (= 部品を触る最下層は根の `_common/archive.py`)
     pages/slides.py   テンプレートの複製 / 過去デッキからの輸入
     pages/text.py     文言の置換
     pages/swap.py     絵と表の中身の入れ替え (= 人が整えた頁の形はそのまま)
@@ -19,7 +19,7 @@ from typing import Iterator
 
 from .pages import slides as _slides
 from .pages import text as _text
-from .base.archive import NUMBER_FRAME, Archive
+from .._common.archive import NUMBER_FRAME, Archive
 from .pages.text import ReplacementMissed
 
 __all__ = ["Deck", "Slide", "ReplacementMissed", "build"]

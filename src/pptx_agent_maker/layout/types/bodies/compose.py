@@ -44,7 +44,7 @@ from __future__ import annotations
 
 from numbers import Real
 
-from ...base.geometry import Rect, cm
+from ...geometry import Rect, cm
 from ...parts.look import Style
 from ...parts.page import CARD_ALIGNS, Card, Page, PageFullError, Panel, Voice
 from ..core.registry import TYPES, PageTypeError, register

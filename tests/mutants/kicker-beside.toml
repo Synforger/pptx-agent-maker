@@ -1,59 +1,59 @@
 # The small words above a title can stand beside it: on its first line, in the accent colour, taking room from the title,
 # in a size the project may say (= `[theme.type] kicker`), and in the title's own paragraph so the two share a baseline.
 
-tests = ["tests/test_kicker_beside.py"]
+tests = ["tests/layout/test_kicker_beside.py"]
 
 [[mutant]]
 name = "the project says beside and the small words stay above"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        kicker=kicker,\n"
 new = ""
 
 [[mutant]]
 name = "a place nobody knows is read as above"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    if not isinstance(kicker, str) or kicker not in KICKERS:"
 new = "    if False:"
 
 [[mutant]]
 name = "the title is counted as if nothing stood beside it"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "            room -= self.kicker_lead(kicker)\n"
 new = ""
 
 [[mutant]]
 name = "small words above a title take room from it all the same"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = '        if not kicker or self.kicker != "beside":'
 new = "        if not kicker:"
 
 [[mutant]]
 name = "the small words are measured in the light weight"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.spacing.text_inset + self.width(kicker, self.kicker_size, bold=True)"
 new = "return self.spacing.text_inset + self.width(kicker, self.kicker_size, bold=False)"
 
 [[mutant]]
 name = "the small words beside a title are measured in the title's size whatever the project says"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.spacing.text_inset + self.width(kicker, self.kicker_size, bold=True)"
 new = "return self.spacing.text_inset + self.width(kicker, self.type.title, bold=True)"
 
 [[mutant]]
 name = "left unsaid, the small words beside a title take the caption's size"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = '        if self.type.kicker_set is None and self.kicker == "beside":'
 new = "        if False:"
 
 [[mutant]]
 name = "the project's size for the small words is not a size it may write"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'DERIVED = ("band", "display", "tag", "kicker")'
 new = 'DERIVED = ("band", "display", "tag")'
 
 [[mutant]]
 name = "beside a title, the row of the small words grows with their size and moves the band"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'small = type.kicker if kicker == "above" else type.caption'
 new = "small = type.kicker"
 

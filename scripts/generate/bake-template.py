@@ -4,7 +4,7 @@
 `init` した直後に 1 本焼けるようにするため ― 会社名もロゴも案件名も入っていない、ツールの
 既定の見た目そのままの見本。案件は自分の `specimen.pptx` でこれを差し替える。
 
-⚠ **見た目の真値は `layout/base/tokens.py` の 1 枚**で、この pptx はそこから焼いた派生物。
+⚠ **見た目の真値は `layout/tokens.py` の 1 枚**で、この pptx はそこから焼いた派生物。
 両者が一致していることは test が見ている (= 色や書体を変えたら `task specimen` で焼き直す)。
 
 テンプレートはデッキの見た目そのもの ― 複製される頁 (= 表紙)、焼いたデッキのマスター
@@ -24,7 +24,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker.layout.parts.elements import Element, Fill, Text  # noqa: E402
-from pptx_agent_maker.layout.base.tokens import DEFAULT, Theme  # noqa: E402
+from pptx_agent_maker.layout.tokens import DEFAULT, Theme  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
 TEMPLATE = REPO / "src" / "pptx_agent_maker" / "templates" / "project"

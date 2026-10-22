@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..base.finding import Finding
-from ..base.slide import read, slide_size
+from ..finding import Finding
+from ..._common.slide import read, slide_size
 
 NAME = "off_page"
 SLACK = 12700  # 1pt: shadows and borders legitimately sit a hair outside

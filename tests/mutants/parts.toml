@@ -1,6 +1,6 @@
 # Parts: one compose cell kept once in recipes.toml, the samples a project starts with, and lifting them.
 
-tests = ["tests/test_recipes.py", "tests/test_lift.py"]
+tests = ["tests/project/test_recipes.py", "tests/project/test_lift.py"]
 
 [[mutant]]
 name = "a cell may change what its part fixes"

@@ -1,6 +1,6 @@
 # Arrangements in a compose cell: a ring, a tree, circles that overlap.
 
-tests = ["tests/test_arrange.py"]
+tests = ["tests/layout/test_arrange.py"]
 
 [[mutant]]
 name = "the ring goes round anticlockwise"

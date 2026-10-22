@@ -16,7 +16,7 @@ import zipfile
 from pathlib import Path
 from typing import Callable
 
-from ..base.archive import CARRIED_FOLDERS, Archive
+from ..._common.archive import CARRIED_FOLDERS, Archive
 
 NOTES_REL = re.compile(r'<Relationship [^>]*notesSlide[^>]*/>')
 MEDIA_TARGET = re.compile(r'Target="\.\./media/(image[\w.]+)"')
@@ -95,7 +95,7 @@ def import_from(archive: Archive, source: Path, page_number: int,
         # ⚠ **宣言で組んだ頁は白紙に描いてある。**持ち込むときレイアウトの参照を
         # そのままにすると、番号だけが引き継がれてテンプレートの別のレイアウト (= 終わりの頁
         # など) の上に乗り、その背景の飾りが出る。`relayout` (= 型の頁が乗るレイアウトの部品の名前。
-        # `deck/base/under.py` が決める) へ向け直す。
+        # `deck/_internal/under.py` が決める) へ向け直す。
         rels = LAYOUT_TARGET.sub(f'Target="../slideLayouts/{relayout}"', rels)
 
     archive.slide(new_name).write_text(slide_xml, encoding="utf-8")

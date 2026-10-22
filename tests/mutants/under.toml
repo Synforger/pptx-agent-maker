@@ -1,40 +1,40 @@
 # A declared page knows the layout it sits on: the title it offers, and what it prints.
 
-tests = ["tests/test_under.py"]
+tests = ["tests/deck/test_under.py"]
 
 [[mutant]]
 name = "the band runs the width of the frame whatever the layout prints"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "            left, right = self.clear(band)\n"
 new = "            left, right = band.left, band.right\n"
 
 [[mutant]]
 name = "a logo at the right is not kept off"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "                right = min(right, thing.left - gap)"
 new = "                pass"
 
 [[mutant]]
 name = "a logo at the left is not kept off"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "                left = max(left, thing.right + gap)"
 new = "                pass"
 
 [[mutant]]
 name = "what is printed below the band narrows it all the same"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "            if (thing.bottom <= band.top or band.bottom <= thing.top\n                    or thing.right"
 new = "            if (False\n                    or thing.right"
 
 [[mutant]]
 name = "a thing across the whole page is read as standing at the right"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "            if thing.left >= middle:"
 new = "            if thing.right >= middle:"
 
 [[mutant]]
 name = "the band is settled on one line, before the title folds"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "            lines = needed\n\n    def title_lines"
 new = "            return needed, left, right\n\n    def title_lines"
 
@@ -58,13 +58,13 @@ new = "look = replace(look, palette=replace(look.palette, allowed=allowed))"
 
 [[mutant]]
 name = "the title of a cover counts as a title to write a page's title into"
-file = "src/pptx_agent_maker/deck/base/under.py"
+file = "src/pptx_agent_maker/deck/_internal/under.py"
 old = """_TITLE = re.compile(r'<p:ph\\b[^>]*\\btype="title"')"""
 new = """_TITLE = re.compile(r'<p:ph\\b[^>]*\\btype="(?:title|ctrTitle)"')"""
 
 [[mutant]]
 name = "a placeholder of the layout counts as something it prints"
-file = "src/pptx_agent_maker/deck/base/under.py"
+file = "src/pptx_agent_maker/deck/_internal/under.py"
 old = "for part in parts for shape in shapes_in(part) if draws_anything(shape)"
 new = "for part in parts for shape in shapes_in(part)"
 
@@ -126,31 +126,31 @@ new = "            if self.theme.crossed(Rect(main.left, main.top, main.width, m
 
 [[mutant]]
 name = "a short line at one side counts as a line across the page"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "thing.top < band.bottom and band.top < thing.bottom and thing.left < middle < thing.right"
 new = "thing.top < band.bottom and band.top < thing.bottom"
 
 [[mutant]]
 name = "a connector of the layout is not read as a line"
-file = "src/pptx_agent_maker/deck/base/under.py"
+file = "src/pptx_agent_maker/deck/_internal/under.py"
 old = "_DRAWN = re.compile(r\"<p:(cxnSp|sp)>(.*?)</p:\\1>\", re.S)"
 new = "_DRAWN = re.compile(r\"<p:(sp)>(.*?)</p:\\1>\", re.S)"
 
 [[mutant]]
 name = "a shape with no height is not read as a line"
-file = "src/pptx_agent_maker/deck/base/under.py"
+file = "src/pptx_agent_maker/deck/_internal/under.py"
 old = "        if (kind == \"sp\" and width and height) or not (width or height):"
 new = "        if kind == \"sp\" or not (width or height):"
 
 [[mutant]]
 name = "a shape that says it draws no line is read as a line"
-file = "src/pptx_agent_maker/deck/base/under.py"
+file = "src/pptx_agent_maker/deck/_internal/under.py"
 old = "        if stroke is not None and NO_FILL.search(stroke.group(2) or \"\"):\n            continue\n"
 new = ""
 
 [[mutant]]
 name = "the layout's lines are left out of what it prints"
-file = "src/pptx_agent_maker/deck/base/under.py"
+file = "src/pptx_agent_maker/deck/_internal/under.py"
 old = "prints=prints + tuple(rect for _, rect in lines),"
 new = "prints=prints,"
 
@@ -158,25 +158,25 @@ new = "prints=prints,"
 
 [[mutant]]
 name = "a layout that offers the frame is enough to number every declared page"
-file = "src/pptx_agent_maker/deck/base/under.py"
+file = "src/pptx_agent_maker/deck/_internal/under.py"
 old = "    frame = _NUMBER.search(parts[0]) if numbered else None"
 new = "    frame = _NUMBER.search(parts[0])"
 
 [[mutant]]
 name = "the pages of the specimen are not looked at"
-file = "src/pptx_agent_maker/deck/base/under.py"
+file = "src/pptx_agent_maker/deck/_internal/under.py"
 old = "for name in archive.namelist() if _PAGE.fullmatch(name))"
 new = "for name in archive.namelist() if False)"
 
 [[mutant]]
 name = "any placeholder on a page of the specimen counts as its number"
-file = "src/pptx_agent_maker/deck/base/archive.py"
+file = "src/pptx_agent_maker/_common/archive.py"
 old = """NUMBER_FRAME = re.compile(r'<p:ph\\b([^>]*\\btype="sldNum"[^>]*?)/?>')"""
 new = """NUMBER_FRAME = re.compile(r'<p:ph\\b([^>]*?)/?>')"""
 
 [[mutant]]
 name = "the frame's name is cut down to its kind"
-file = "src/pptx_agent_maker/deck/base/under.py"
+file = "src/pptx_agent_maker/deck/_internal/under.py"
 old = "number=tuple(_SAID.findall(frame.group(1))) if frame else (),"
 new = "number=tuple(_SAID.findall(frame.group(1)))[:1] if frame else (),"
 
@@ -244,7 +244,7 @@ new = "            self._archive.count_from(1)"
 
 [[mutant]]
 name = "the first number is written into the first page instead of the deck"
-file = "src/pptx_agent_maker/deck/base/archive.py"
+file = "src/pptx_agent_maker/_common/archive.py"
 old = """            else tag[:-1] + f' firstSlideNum="{first}">'"""
 new = """            else tag"""
 
@@ -264,37 +264,37 @@ new = "            self._remaining = self._remaining.inset(top=lower)\n        i
 
 [[mutant]]
 name = "what reaches the lower half of the page pushes the rest under it"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "thing.left < middle < thing.right and band.bottom < thing.bottom <= half),"
 new = "thing.left < middle < thing.right and band.bottom < thing.bottom),"
 
 [[mutant]]
 name = "a short line at one side counts as a line across the page under the title"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "if thing.left < middle < thing.right and band.bottom < thing.bottom <= half),"
 new = "if band.bottom < thing.bottom <= half),"
 
 [[mutant]]
 name = "no gap is kept under the layout's line"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        return rest if lowest is None else max(rest, lowest + self.spacing.gap_s)"
 new = "        return rest if lowest is None else max(rest, lowest)"
 
 [[mutant]]
 name = "the highest of several lines decides"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        lowest = max((thing.bottom for thing in self.under.prints"
 new = "        lowest = min((thing.bottom for thing in self.under.prints"
 
 [[mutant]]
 name = "the title band stays where the toolkit's margin puts it, whatever the layout's title frame says"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        seat = self.under.title_frame if self.under.title else None\n"
 new = "        seat = None\n"
 
 [[mutant]]
 name = "a title frame the rule runs through keeps its full height, and the rule crosses the title"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "                bottom = line.top\n"
 new = "                pass\n"
 
@@ -320,42 +320,42 @@ new = "under = under_of(specimen)"
 
 [[mutant]]
 name = "the page ends a margin above the slide's edge, whatever the layout prints at its foot"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "bottom=self.slide.bottom - self.foot() + s.margin_bottom)"
 new = "bottom=s.margin_bottom)"
 
 [[mutant]]
 name = "the page ends at the layout's foot with no margin above it"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "bottom=self.slide.bottom - self.foot() + s.margin_bottom)"
 new = "bottom=self.slide.bottom - min(self.foot(), self.slide.bottom - s.margin_bottom))"
 
 [[mutant]]
 name = "the margin above the foot is a gap that tightens with the use"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "bottom=self.slide.bottom - self.foot() + s.margin_bottom)"
 new = "bottom=self.slide.bottom - self.foot() + (s.gap_l if self.foot() < self.slide.bottom else s.margin_bottom))"
 
 [[mutant]]
 name = "the lowest of several things at the foot decides"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        return min((thing.top for thing in self.under.prints"
 new = "        return max((thing.top for thing in self.under.prints"
 
 [[mutant]]
 name = "a logo at a corner of the foot counts as the foot"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "if thing.left < middle < thing.right and half <= thing.top < self.slide.bottom),"
 new = "if half <= thing.top < self.slide.bottom),"
 
 [[mutant]]
 name = "what starts in the upper half counts as the foot"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "if thing.left < middle < thing.right and half <= thing.top < self.slide.bottom),"
 new = "if thing.left < middle < thing.right and thing.top < self.slide.bottom),"
 
 [[mutant]]
 name = "what is printed past the slide's edge counts as the foot"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "if thing.left < middle < thing.right and half <= thing.top < self.slide.bottom),"
 new = "if thing.left < middle < thing.right and half <= thing.top),"

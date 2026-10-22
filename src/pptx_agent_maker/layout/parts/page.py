@@ -36,8 +36,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..base.geometry import Rect, cm
-from ..base.tokens import DEFAULT, MONO_FACE, Band, Theme, divides
+from ..geometry import Rect, cm
+from ..tokens import DEFAULT, MONO_FACE, Band, Theme, divides
 from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Lead, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
 from .look import LIGHT, Look, Style, TONES
 

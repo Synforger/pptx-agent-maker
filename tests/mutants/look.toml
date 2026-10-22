@@ -1,8 +1,8 @@
 # The four looks, from the one place that reads them to every part that paints them,
 # and the timeline's three steps (read, measure, place).
 
-tests = ["tests/test_look.py", "tests/test_timeline.py", "tests/test_roadmap.py", "tests/test_flow.py",
-         "tests/test_grounds.py", "tests/test_compose.py"]
+tests = ["tests/layout/test_look.py", "tests/layout/test_timeline.py", "tests/layout/test_roadmap.py", "tests/layout/test_flow.py",
+         "tests/layout/test_grounds.py", "tests/layout/test_compose.py"]
 
 # -- the one reader (layout/types/core/read.py) --------------------------------
 

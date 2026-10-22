@@ -1,7 +1,7 @@
 # The tools that check a refactor, broken the ways they could fail quietly.
 # A snapshot that passes what moved, or a mutate that calls a survivor red, checks nothing.
 
-tests = ["tests/test_check_tools.py"]
+tests = ["tests/scripts/check/test_check_tools.py"]
 
 # -- scripts/check/snapshot.py ------------------------------------------------
 

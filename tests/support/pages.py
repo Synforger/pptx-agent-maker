@@ -13,7 +13,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 
 from pptx_agent_maker.layout import types  # noqa: E402
-from pptx_agent_maker.layout.base.tokens import DEFAULT, Theme  # noqa: E402
+from pptx_agent_maker.layout.tokens import DEFAULT, Theme  # noqa: E402
 from pptx_agent_maker.write import aspect  # noqa: E402
 
 #: test が使う絵の置き場 (= 数バイトの絵。`dot.png` は 8 x 8、`wide.png` は 16 x 4)

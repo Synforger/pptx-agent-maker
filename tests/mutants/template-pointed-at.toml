@@ -1,7 +1,7 @@
 # A project may point at a template folder: its settings are read with the project's laid over them, and its
 # specimen is used when the project holds none; the preview lists such a project.
 
-tests = ["tests/test_project.py", "tests/test_preview_projects.py"]
+tests = ["tests/project/test_project.py", "tests/project/test_preview_projects.py"]
 
 [[mutant]]
 name = "the template is not read"

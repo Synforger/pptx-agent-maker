@@ -1,6 +1,6 @@
 # A name beside a bar or a mark, and the arrow between two stages: on one line, in the box they were given.
 
-tests = ["tests/test_timeline.py", "tests/test_flow.py"]
+tests = ["tests/layout/test_timeline.py", "tests/layout/test_flow.py"]
 
 [[mutant]]
 name = "a name beside something is wrapped like any other words"

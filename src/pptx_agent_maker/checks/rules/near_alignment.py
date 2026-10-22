@@ -24,8 +24,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..base.finding import Finding
-from ..base.slide import Shape, read
+from ..finding import Finding
+from ..._common.slide import Shape, read
 
 NAME = "near_alignment"
 #: 1 mm = 36000 EMU (= これ未満のずれを「揃え損ね」、同じ大きさの差もこれ未満を「同じ」とみなす)

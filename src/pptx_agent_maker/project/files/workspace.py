@@ -40,7 +40,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ...layout.base.tokens import ThemeError, theme_from
+from ...layout.tokens import ThemeError, theme_from
 
 REPO = Path(__file__).resolve().parents[4]
 FILENAME = "workspace.toml"

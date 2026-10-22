@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import fields, is_dataclass, replace
 
-from ...base.geometry import Rect
+from ...geometry import Rect
 from ...parts.elements import Line
 from ...parts.page import Page, PageFullError
 from .read import Spec

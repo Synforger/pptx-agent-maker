@@ -1,0 +1,653 @@
+"""The page types: what they build, and what they refuse.
+
+型が「用意されただけ」にならないことを、ここで機械が見張る ― 座標を書く口が
+型の中にも無いこと、宣言に縦横比を書けないこと、綴り違いが黙って落ちないこと。
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+from pptx_agent_maker.layout import types
+from pptx_agent_maker.layout.parts.elements import Figure, Fill, Table, Text
+from pptx_agent_maker import Page
+from pptx_agent_maker.layout.tokens import DEFAULT
+from pptx_agent_maker.layout.parts.page import PageFullError
+from pptx_agent_maker.layout.types.core.registry import PageTypeError
+from pptx_agent_maker.project.files.manifest import Manifest, ManifestError
+
+REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "tests"))
+
+from support.pages import build  # noqa: E402
+
+DATA = REPO / "tests" / "data"
+SQUARE = "dot.png"      # 8 x 8
+WIDE = "wide.png"       # 16 x 4
+
+
+#: 型それぞれの、本体に最小限そろった宣言
+MINIMAL = {
+    "figure": {"figure": SQUARE},
+    "figures": {"figures": [SQUARE, WIDE]},
+    "figure_grid": {"figures": [SQUARE, WIDE, SQUARE, WIDE]},
+    "flow": {"stages": [{"name": "にゅうりょく", "nodes": [["A", "ほそく"]], "settled": "じょうけん"},
+                        {"name": "せいせい", "nodes": [["B", "ほそく"]]}]},
+    "roadmap": {"stages": [{"name": "はじめ", "nodes": [["A", "ほそく"]]},
+                           {"name": "とうたつ", "nodes": [["B", "ほそく"]], "goal": True}]},
+    "timeline": {"periods": ["いま", "つぎ"],
+                 "lanes": [{"name": "しごと", "bars": [{"from": 0, "to": 1, "text": "きめる"}]}]},
+    "chart": {"chart": {"kind": "column", "categories": ["いま", "つぎ"],
+                        "series": [{"name": "かず", "values": [1, 2]}]}},
+    # 絵を持たなくてよい型 (= デッキの骨格)
+    "agenda": {"buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]],
+               "highlight": 1},
+    "board": {"table": [["列", "値"], ["A", "1"]]},
+    "cards": {"cards": [["\u2460", "さいしょ"], ["\u2461", "つぎ"]]},
+    # 本体を段とマスで書く型 (= カードだけの頁も組めるよう、絵を要らない)
+    "compose": {"rows": [{"cells": [{"card": ["もくひょう", "ひとつ"]}]},
+                         {"cells": [{"card": ["はしら", "ひとつめ"]}, {"card": ["はしら", "ふたつめ"]}]}]},
+}
+
+#: 絵を持たなくてよい型 (= デッキの骨格と、本体を段とマスで書く型)
+SKELETON = {"agenda", "board", "cards", "compose"}
+
+#: 本体に添えられるもの (= どの型でも同じように効く)
+EXTRAS = {"table": [["列", "値"], ["A", "1"]],
+          "points": ["ひとつ", "ふたつ"],
+          "note": "読み方を 1 行",
+          "cards": [["\u2460", "さいしょ"], ["\u2461", "つぎ"]]}
+
+
+class EveryTypeBuilds(unittest.TestCase):
+    """Each of the eight makes a page, and every page has something to look at."""
+
+    def test_every_type_is_covered_here(self):
+        self.assertEqual(sorted(MINIMAL), types.names())
+
+    def test_only_the_scaffolding_may_skip_the_figure(self):
+        self.assertEqual(sorted(SKELETON), types.skeleton())
+
+    def test_each_type_builds_a_page_inside_its_frame(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data})
+                elements = page.build()
+                figures = [e for e in elements if isinstance(e, Figure)]
+                if "figure" in data or "figures" in data:
+                    self.assertTrue(figures, f"{name} produced no figure")
+                frame = page.theme.frame()
+                for element in elements:
+                    self.assertTrue(frame.contains(element.rect),
+                                    f"{name}: {element.kind} landed outside the frame")
+
+    def test_siblings_never_overlap(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                placed = [e for e in build({"type": name, "title": "だい", **data}).build()
+                          if isinstance(e, (Figure, Table))]
+                for i, a in enumerate(placed):
+                    for b in placed[i + 1:]:
+                        self.assertFalse(a.rect.overlaps(b.rect),
+                                         f"{name}: {a.kind} and {b.kind} overlap")
+
+    def test_the_bands_are_optional_and_appear_when_asked(self):
+        plain = build({"type": "figure", "title": "だい", "figure": SQUARE}).build()
+        dressed = build({"type": "figure", "title": "だい", "figure": SQUARE,
+                         "kicker": "01 | しるし", "condition": "じょうけん",
+                         "conclusion": "けつろん", "footer": "でどころ"}).build()
+        kinds = {e.kind for e in dressed} - {e.kind for e in plain}
+        self.assertEqual({"kicker", "band", "band_text", "footer"}, kinds)
+
+
+class TheExtrasWorkOnEveryType(unittest.TestCase):
+    """Cards, a table and the reading are the same on every type.
+
+    ⚠ **付属の有無で型を分けない。**分けていた間は、実物の頁が持っているものを
+    受け取れる型が 1 つも無く、ほとんどの頁で何かが落ちた (= 表を持つ型は
+    カードを受け取れず、カードを持つ型は表を受け取れなかった)。
+    """
+
+    def test_every_type_accepts_every_extra(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                spec = {"type": name, "title": "だい", **data, **EXTRAS}
+                if name == "cards":
+                    spec.pop("cards", None)
+                    spec["cards"] = EXTRAS["cards"]
+                page = build(spec)
+                kinds = {e.kind for e in page.build()}
+                self.assertIn("table", kinds, f"{name} dropped the table")
+                self.assertIn("points", kinds, f"{name} dropped the points")
+                self.assertIn("note", kinds, f"{name} dropped the reading")
+                self.assertIn("box", kinds, f"{name} dropped the cards")
+
+    def test_the_cards_carry_the_same_edge_on_every_type(self):
+        """カードの地は薄い。どの型に付けても、地を濃くした色の枠を持つ (= 棒と流れ図の箱と同じ)。"""
+        palette = DEFAULT.palette
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data, "cards": EXTRAS["cards"]})
+                cards = [e for e in page.build() if isinstance(e, Fill) and e.kind == "box"
+                         and e.colour == palette.box]
+                self.assertTrue(cards)
+                self.assertEqual({palette.edge(palette.box)}, {card.outline for card in cards})
+
+    def test_the_extras_stay_inside_the_frame(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data, **EXTRAS})
+                frame = page.theme.frame()
+                for element in page.build():
+                    self.assertTrue(frame.contains(element.rect),
+                                    f"{name}: {element.kind} landed outside the frame")
+
+    def test_the_reading_starts_under_the_last_point(self):
+        """⚠ **要点を配列で書くと、取る高さが 1 行ぶんに数えられていた** (= 配列を文字列に直して
+        測っていた)。3 行の要点が半行ぶんの枠に置かれ、字が下の読み方に重なった ― 枠どうしは
+        重ならないので検査は通り、見本を焼いて初めて出た。
+        """
+        points = ["ひとつ", "ふたつ", "みっつ"]
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data, "points": points,
+                              "note": "読み方を 1 行"})
+                placed = {e.kind: e.rect for e in page.build()}
+                last_line = placed["points"].top + len(points) * page.theme.line_height()
+                self.assertLessEqual(last_line, placed["note"].top,
+                                     f"{name}: the points run into the reading")
+
+    def test_points_take_the_same_room_as_a_list_and_as_lines(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                spec = {"type": name, "title": "だい", **data, "note": "読み方を 1 行"}
+                listed = build({**spec, "points": ["ひとつ", "ふたつ", "みっつ"]}).build()
+                lined = build({**spec, "points": "ひとつ\nふたつ\nみっつ"}).build()
+                self.assertEqual(lined, listed)
+
+    def test_what_sits_under_a_body_has_the_room_it_is_placed_in(self):
+        """⚠ **本体のすぐ下の空きを、下の最初の物が表の時にしか数えていなかった。**要点や読み方だけの
+        頁は、取った場所が置く場所より 0.3cm 短く、短いぶんは次の物との空きに食い込んでいた。
+
+        絵が枠を使い切る頁で、下に置く物の組み合わせを全部見る ― 最初の物は本体から広い空き、続く
+        物は狭い空き、どれも自分の行ぶんの高さを持ち、最後の物が枠の下端で終わる。
+        """
+        s, theme = DEFAULT.spacing, DEFAULT
+        under = {"table": [["列", "値"], ["折り返すほど長い見出しの行" * 6, "1"]],
+                 "points": ["ひとつ", "ふたつ", "みっつ"], "note": "読み方を 1 行"}
+        width = theme.frame().width
+        tall = {"table": theme.table_height(under["table"], theme.column_widths(under["table"], width)),
+                "points": 3 * theme.line_height(), "note": theme.line_height()}
+        self.assertGreater(tall["table"], theme.table_height(2), "the long cell does not fold")
+        for wanted in (("table",), ("points",), ("note",), ("table", "points"), ("table", "note"),
+                       ("points", "note"), ("table", "points", "note")):
+            with self.subTest(wanted):
+                page = build({"type": "figure", "title": "だい", "figure": SQUARE,
+                              **{key: under[key] for key in wanted}})
+                placed = {e.kind: e.rect for e in page.build()}
+                rects = [placed[key] for key in wanted]
+                self.assertEqual(placed["figure"].bottom + s.gap_m, rects[0].top)
+                for above, below in zip(rects, rects[1:]):
+                    self.assertEqual(above.bottom + s.gap_s, below.top)
+                self.assertEqual([tall[key] for key in wanted], [rect.height for rect in rects])
+                self.assertEqual(page.body.bottom, rects[-1].bottom)
+
+    def test_the_reading_takes_what_is_left_under_a_body_that_did_not_fill_its_area(self):
+        """カードだけの頁は本体が空で、読み方の下に場所が余る。読み方の枠はそこまで伸びる。"""
+        page = build({"type": "cards", "title": "だい", "cards": EXTRAS["cards"], "note": "読み方を 1 行"})
+        note = next(e.rect for e in page.build() if e.kind == "note")
+        self.assertEqual(page.body.bottom, note.bottom)
+        self.assertGreater(note.height, DEFAULT.line_height())
+
+    def test_the_order_of_the_frame_never_changes(self):
+        """並びは 1 つしかない ― カードは本体の上、表と読み方は本体の下。"""
+        page = build({"type": "figure", "title": "だい", "figure": SQUARE, **EXTRAS})
+        placed = {e.kind: e.rect for e in page.build()}
+        self.assertLess(placed["box"].top, placed["figure"].top)
+        self.assertLess(placed["figure"].bottom, placed["table"].top)
+        self.assertLess(placed["table"].bottom, placed["points"].top)
+        self.assertLess(placed["points"].bottom, placed["note"].top)
+
+
+class OnlyTheTypeThatReadsAKeyAcceptsIt(unittest.TestCase):
+    """⚠ **読まない型に書けるままだと、書いたつもりで頁には無い。**
+
+    `caption` は「どの型にも添えられる」一覧に入っていたが、絵を並べる型は頁全体の
+    caption を読まない (= 絵ごとの説明は `figures` の中に書く)。黙って落ちていた。
+    """
+
+    @staticmethod
+    def _build(data):
+        return types.build(data, lambda name: Path(name), lambda path: 1.0)
+
+    def test_one_image_takes_a_caption(self) -> None:
+        self._build({"type": "figure", "title": "t", "figure": "a.png", "caption": "読み方"})
+
+    def test_images_side_by_side_do_not(self) -> None:
+        with self.assertRaises(types.PageTypeError) as caught:
+            self._build({"type": "figures", "title": "t",
+                         "figures": ["a.png", "b.png"], "caption": "落ちていた"})
+        self.assertIn("does not take caption", str(caught.exception))
+
+    def test_a_grid_takes_its_column_count(self) -> None:
+        self._build({"type": "figure_grid", "title": "t",
+                     "figures": ["a.png", "b.png"], "columns": 2})
+
+    def test_one_image_does_not_take_a_column_count(self) -> None:
+        with self.assertRaises(types.PageTypeError):
+            self._build({"type": "figure", "title": "t", "figure": "a.png", "columns": 2})
+
+    def test_only_the_agenda_takes_a_highlight(self) -> None:
+        """強調する章を持つのは目次だけ ― 他の型に書けた間は、黙って落ちていた。"""
+        with self.assertRaises(types.PageTypeError) as caught:
+            self._build({"type": "figure", "title": "t", "figure": "a.png", "highlight": 2})
+        self.assertIn("does not take highlight", str(caught.exception))
+
+
+class TheCardsKeepTheirOwnColumnCount(unittest.TestCase):
+    """⚠ **カードの列数と絵の格子の列数は別の数。**
+
+    同じ `columns` を読んでいた間は、格子を 3 列にするとカード 4 枚が 3 + 1 に割れ、
+    格子以外の型ではカードの列数を書く口が無かった。
+    """
+
+    CARDS = [["①", "a"], ["②", "b"], ["③", "c"], ["④", "d"]]
+
+    @classmethod
+    def _card_rows(cls, page) -> int:
+        """Rows the cards took, counted by their own headings (= 流れ図や目次の箱は数えない)."""
+        heads = {head for head, _body in cls.CARDS}
+        return len({e.rect.top for e in page.build()
+                    if isinstance(e, Text) and e.text in heads})
+
+    def test_the_grid_columns_leave_the_cards_alone(self):
+        page = build({"type": "figure_grid", "title": "だい", "columns": 3,
+                      "figures": [SQUARE] * 6, "cards": self.CARDS})
+        self.assertEqual(1, self._card_rows(page))
+
+    def test_any_type_can_wrap_its_cards(self):
+        for name, data in MINIMAL.items():
+            with self.subTest(name):
+                page = build({"type": name, "title": "だい", **data,
+                              "cards": self.CARDS, "card_columns": 2})
+                self.assertEqual(2, self._card_rows(page))
+
+    def test_the_card_count_is_not_read_as_a_grid(self):
+        page = build({"type": "figure_grid", "title": "だい", "card_columns": 2,
+                      "figures": [SQUARE] * 6, "cards": self.CARDS})
+        rows = {e.rect.top for e in page.build() if e.kind == "figure"}
+        self.assertEqual(2, len(rows), "the grid kept its own 3 columns")
+
+
+class WhatTheTypesRefuse(unittest.TestCase):
+    """A declaration nobody can build must stop here, not later."""
+
+    def test_an_unknown_type_is_refused_and_lists_what_exists(self):
+        with self.assertRaises(PageTypeError) as raised:
+            build({"type": "figure_and_vibes", "title": "だい", "figure": SQUARE})
+        self.assertIn("figure_grid", str(raised.exception))
+
+    def test_a_missing_required_key_is_refused(self):
+        with self.assertRaises(PageTypeError) as raised:
+            build({"type": "board", "title": "だい"})
+        self.assertIn("table", str(raised.exception))
+
+    def test_a_key_nobody_reads_is_refused(self):
+        """⚠ 綴り違いを捨てると、書いた人は書いたつもりで、頁にはそれが無い。"""
+        with self.assertRaises(PageTypeError) as raised:
+            build({"type": "figure", "title": "だい", "figure": SQUARE, "captoin": "typo"})
+        self.assertIn("captoin", str(raised.exception))
+
+    def test_a_page_without_a_title_is_refused(self):
+        with self.assertRaises(PageTypeError):
+            build({"type": "figure", "figure": SQUARE})
+
+    def test_a_flow_needs_more_than_one_stage(self):
+        with self.assertRaises(PageTypeError):
+            build({"type": "flow", "title": "だい",
+                   "stages": [{"name": "ひとつ", "nodes": [["A", "b"]]}]})
+
+    def test_an_agenda_cannot_highlight_a_chapter_that_is_not_there(self):
+        with self.assertRaises(PageTypeError):
+            build({"type": "agenda", "title": "だい", "highlight": 9,
+                   "buckets": [["しょう", ["こうもく"]]]})
+
+    def test_an_agenda_with_more_chapters_than_fit_stops(self):
+        """⚠ **章の箱を、取れる高さに切り詰めて置いていた。**箱の中の字が箱の下の線に乗った。"""
+        chapters = [[f"しょう {number}", []] for number in range(1, 15)]
+        with self.assertRaises(PageFullError) as stopped:
+            build({"type": "agenda", "title": "だい", "buckets": chapters})
+        self.assertIn("agenda: chapter 1 needs", str(stopped.exception))
+        self.assertTrue(build({"type": "agenda", "title": "だい", "buckets": chapters[:6]}).build())
+
+    def test_an_agenda_with_more_items_than_fit_stops(self):
+        items = [f"こうもく {number}" for number in range(1, 16)]
+        with self.assertRaises(PageFullError) as stopped:
+            build({"type": "agenda", "title": "だい", "buckets": [["しょう 1", items], ["しょう 2", items]]})
+        self.assertIn("agenda: the list of items needs", str(stopped.exception))
+        self.assertTrue(build({"type": "agenda", "title": "だい",
+                               "buckets": [["しょう 1", items[:8]], ["しょう 2", items[:8]]]}).build())
+
+    def test_a_chapter_of_an_agenda_stands_as_tall_as_its_words(self):
+        page = build({"type": "agenda", "title": "だい", "highlight": 1,
+                      "buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]]})
+        boxes = sorted((e.rect for e in page.build() if e.kind == "box"), key=lambda rect: rect.top)
+        s, theme = DEFAULT.spacing, DEFAULT
+        heading = theme.line_height(theme.type.heading)
+        self.assertEqual([heading + s.gap_s + theme.line_height() + 2 * s.pad, heading + 2 * s.pad],
+                         [box.height for box in boxes])
+
+    AGENDA = {"type": "agenda", "title": "だい", "highlight": 2,
+              "buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]], ["しょう 3", []]]}
+
+    @staticmethod
+    def _chapters(page):
+        """(the box, the heading in it, the words under the heading or None) per chapter, top to bottom."""
+        built = page.build()
+        boxes = sorted((e for e in built if e.kind == "box"), key=lambda e: e.rect.top)
+        found = []
+        for box in boxes:
+            head = next(e for e in built if e.kind == "box_heading" and box.rect.contains(e.rect))
+            body = next((e for e in built if e.kind == "box_body" and box.rect.contains(e.rect)), None)
+            found.append((box, head, body))
+        return found
+
+    def test_an_agenda_marks_its_chapter_in_words_unless_told_a_ground(self):
+        chapters = self._chapters(build(self.AGENDA))
+        self.assertEqual(["1. しょう 1", "2. しょう 2", "3. しょう 3"], [head.text for _b, head, _w in chapters])
+        self.assertEqual([None, "◀ この章", None], [body.text if body else None for _b, _h, body in chapters])
+        self.assertEqual({DEFAULT.palette.box}, {box.colour for box, _h, _w in chapters})
+
+    def test_the_chapter_of_an_agenda_can_take_a_ground_instead_of_the_words(self):
+        """地が「この章」を言うので、言葉は置かない (= 同じことを 2 度言わない)。濃い地の字は紙の色。"""
+        chapters = self._chapters(build({**self.AGENDA, "highlight_tone": "accent"}))
+        self.assertEqual([DEFAULT.palette.box, DEFAULT.palette.accent, DEFAULT.palette.box],
+                         [box.colour for box, _h, _w in chapters])
+        self.assertEqual([DEFAULT.palette.ink, DEFAULT.palette.paper, DEFAULT.palette.ink],
+                         [head.colour for _b, head, _w in chapters])
+        self.assertEqual([None, None, None], [body for _b, _h, body in chapters])
+        tall = {box.rect.height for box, _h, _w in chapters}
+        self.assertEqual(1, len(tall), "a chapter with no words under its name stands as tall as the others")
+
+    def test_the_ground_is_one_of_the_tones_a_page_may_name(self):
+        with self.assertRaises(PageTypeError) as refused:
+            build({**self.AGENDA, "highlight_tone": "blue"})
+        self.assertIn("highlight_tone", str(refused.exception))
+        self.assertIn("accent", str(refused.exception))
+
+    def test_a_ground_with_no_chapter_to_put_it_on_is_refused(self):
+        spec = {key: value for key, value in self.AGENDA.items() if key != "highlight"}
+        with self.assertRaises(PageTypeError) as refused:
+            build({**spec, "highlight_tone": "accent"})
+        self.assertIn("highlight", str(refused.exception))
+
+    def test_the_chapters_of_an_agenda_can_be_numbered_in_circles(self):
+        chapters = self._chapters(build({**self.AGENDA, "numbers": "circled"}))
+        self.assertEqual(["\u2460 しょう 1", "\u2461 しょう 2", "\u2462 しょう 3"],
+                         [head.text for _b, head, _w in chapters])
+
+    def test_a_way_of_numbering_nobody_knows_is_refused(self):
+        for numbers in ("roman", "", 1, True):
+            with self.subTest(numbers=numbers), self.assertRaises(PageTypeError) as refused:
+                build({**self.AGENDA, "numbers": numbers})
+            self.assertIn("numbers", str(refused.exception))
+
+    CARDS = {"type": "agenda", "title": "だい", "look": "cards", "highlight": 2,
+             "buckets": [["しょう 1 ― ようし", ["こうもく"]], ["しょう 2 ― ようし", ["こうもく", "つぎ"]],
+                         ["しょう 3", []]]}
+
+    @staticmethod
+    def _kind(page, kind: str) -> list:
+        return [e for e in page.build() if e.kind == kind]
+
+    def test_the_cards_share_the_height_of_their_column(self):
+        """骨組みの目次は、 右のカードが列の高さを章の数で等分して使い切る (= 字の高さに縮まない)。"""
+        page = build(self.CARDS)
+        cards = sorted(self._kind(page, "agenda_card"), key=lambda e: e.rect.top)
+        self.assertEqual(3, len(cards))
+        tall = [card.rect.height for card in cards]
+        self.assertLessEqual(max(tall) - min(tall), 1, "the column is shared equally (= one EMU left over at most)")
+        self.assertTrue(all(card.rounded for card in cards))
+        self.assertEqual(Page("だい", DEFAULT).body.bottom, cards[-1].rect.bottom)
+        self.assertEqual(["アジェンダ"], [e.text for e in self._kind(page, "agenda_heading")])
+
+    def test_the_chapter_in_hand_is_drawn_in_the_accent_and_the_others_in_grey(self):
+        page, p = build(self.CARDS), DEFAULT.palette
+        cards = sorted(self._kind(page, "agenda_card"), key=lambda e: e.rect.top)
+        discs = sorted(self._kind(page, "agenda_disc"), key=lambda e: e.rect.top)
+        numbers = sorted(self._kind(page, "agenda_number"), key=lambda e: e.rect.top)
+        self.assertEqual([p.wash, p.thinned(p.FAINT), p.wash], [card.colour for card in cards])
+        self.assertEqual([p.rule, p.accent, p.rule], [disc.colour for disc in discs])
+        self.assertEqual([("1", p.ink), ("2", p.paper), ("3", p.ink)], [(n.text, n.colour) for n in numbers])
+        self.assertTrue(all(disc.rect.width == disc.rect.height for disc in discs), "a number sits in a circle")
+
+    def test_a_chapter_name_and_its_summary_are_two_lines(self):
+        """`名前 ― 要旨` は、 名前を太字の 1 行目、 要旨を 2 行目にする。 要旨の無い章は名前だけ。"""
+        page = build(self.CARDS)
+        self.assertEqual(["しょう 1", "しょう 2", "しょう 3"], [e.text for e in self._kind(page, "agenda_chapter")])
+        self.assertEqual(["ようし", "ようし"], [e.text for e in self._kind(page, "agenda_summary")])
+        self.assertTrue(all(e.bold for e in self._kind(page, "agenda_chapter")))
+
+    def test_the_list_marks_the_chapter_in_hand_and_greys_only_the_marks_of_items(self):
+        """骨組みの左の一覧は、 今の章だけ差し色の太字。 ほかの章と小項目は本文の色で、 小項目の印だけ灰。
+
+        ⚠ **章の印を章の名前と同じ run に入れていた。**頁を複製して章の名前を差し替えると、 右のカードは
+        替わり、 左の一覧は替わらなかった (= 差し替えは run の文言全体が一致した時だけ)。 印は別の箱に置く。
+        """
+        page, p, t = build(self.CARDS), DEFAULT.palette, DEFAULT.type
+        rows = self._kind(page, "agenda_item")
+        self.assertEqual(["しょう 1", "こうもく", "しょう 2", "こうもく", "つぎ", "しょう 3"], [e.text for e in rows])
+        self.assertEqual(sorted(e.text for e in self._kind(page, "agenda_chapter")),
+                         sorted(e.text for e in rows if e.size == t.stage), "a chapter is named alike on both sides")
+        self.assertEqual([p.ink, p.ink, p.accent, p.ink, p.ink, p.ink], [e.colour for e in rows])
+        self.assertEqual([False, False, True, False, False, False], [e.bold for e in rows])
+        self.assertEqual([t.stage, t.body, t.stage, t.body, t.body, t.stage], [e.size for e in rows])
+        marks = self._kind(page, "agenda_mark")
+        self.assertEqual(["\u2022", "\u2013", "\u2022", "\u2013", "\u2013", "\u2022"], [e.text for e in marks])
+        self.assertEqual([p.ink, p.muted, p.accent, p.muted, p.muted, p.ink], [e.colour for e in marks])
+        self.assertFalse(any(e.bold for e in marks))
+
+    def test_an_item_of_the_chapter_in_hand_can_be_marked(self):
+        """章の途中から入り直す頁は、 今の章の小項目を 1 つ差し色の太字にする (= 印も差し色)。"""
+        page, p = build({**self.CARDS, "highlight_item": 2}), DEFAULT.palette
+        picked = [e for e in self._kind(page, "agenda_item") if e.bold]
+        self.assertEqual(["しょう 2", "つぎ"], [e.text for e in picked])
+        self.assertEqual([p.accent, p.muted, p.accent], [e.colour for e in self._kind(page, "agenda_mark")][2:5])
+
+    NESTED = [["しょう 1", [["なか 1", ["ページ a", "ページ b"]], "こうもく"]],
+              ["しょう 2", [["なか 2", ["ページ c"]], ["なか 3", ["ページ d", "ページ e"]]]]]
+
+    def test_an_item_can_hold_the_names_under_it_and_only_the_chapter_in_hand_shows_them(self):
+        """小項目の下の段は今の章だけ、 小項目よりもう一段下げて並ぶ (= 字は本文の色、 印だけ灰)。"""
+        page, p = build({**self.CARDS, "buckets": self.NESTED, "highlight": 2}), DEFAULT.palette
+        rows = self._kind(page, "agenda_item")
+        self.assertEqual(["しょう 1", "なか 1", "こうもく", "しょう 2", "なか 2", "ページ c", "なか 3", "ページ d",
+                          "ページ e"], [e.text for e in rows])
+        marks = self._kind(page, "agenda_mark")
+        left = [mark.rect.left for mark in marks]
+        self.assertTrue(left[0] < left[1] == left[4] < left[5] == left[7] == left[8], "three steps in, one per level")
+        self.assertEqual([p.muted, p.muted], [marks[7].colour, marks[8].colour])
+        self.assertEqual([p.ink, p.ink], [rows[7].colour, rows[8].colour])
+
+    def test_the_names_under_an_item_stand_in_every_chapter_when_none_is_in_hand(self):
+        spec = {key: value for key, value in self.AGENDA.items() if key != "highlight"}
+        points = self._kind(build({**spec, "buckets": self.NESTED}), "points")[0].text.split("\n")
+        self.assertEqual(["— しょう 1", "    — なか 1", "        — ページ a", "        — ページ b",
+                          "    — こうもく", "— しょう 2", "    — なか 2", "        — ページ c",
+                          "    — なか 3", "        — ページ d", "        — ページ e"], points)
+        folded = self._kind(build({**self.AGENDA, "buckets": self.NESTED, "highlight": 1}), "points")[0].text
+        self.assertIn("ページ b", folded)
+        self.assertNotIn("ページ c", folded)
+
+    def test_the_list_can_be_numbered_chapters_by_the_disc_items_from_one_in_each_chapter(self):
+        """`list_marks = "numbers"` は章を右の丸と同じ数、 小項目を章ごとに 「(1)」 から、 下の段は印なしにする。
+
+        色と太字の決まりは印のままと同じ (= 今の章の印は差し色、 小項目の印は灰)。
+        """
+        page, p = build({**self.CARDS, "buckets": self.NESTED, "highlight": 2, "list_marks": "numbers"}), DEFAULT.palette
+        marks = self._kind(page, "agenda_mark")
+        self.assertEqual(["1", "(1)", "(2)", "2", "(1)", "(2)"], [e.text for e in marks])
+        self.assertEqual([p.ink, p.muted, p.muted, p.accent, p.muted, p.muted], [e.colour for e in marks])
+        self.assertEqual([e.text for e in self._kind(page, "agenda_number")], [e.text for e in marks if "(" not in e.text])
+        rows = {e.text: e for e in self._kind(page, "agenda_item")}
+        self.assertEqual(rows["ページ c"].rect.left, rows["ページ d"].rect.left)
+        self.assertLess(rows["ページ c"].rect.left, rows["なか 2"].rect.left + rows["なか 2"].rect.width)
+
+    def test_numbered_items_keep_the_words_of_one_level_in_one_line_down_the_page(self):
+        """「(9)」 と 「(10)」 の後の字の頭が揃う (= 印の幅は段ごとに一番広い物)。"""
+        chapter = ["しょう", [f"こうもく {index}" for index in range(1, 11)]]
+        page = build({**self.CARDS, "buckets": [chapter], "highlight": 1, "list_marks": "numbers"})
+        items = [e for e in self._kind(page, "agenda_item") if e.text.startswith("こうもく")]
+        self.assertEqual(1, len({e.rect.left for e in items}))
+
+    def test_the_marks_stay_as_they_are_when_the_list_is_not_numbered(self):
+        plain, said = build(self.CARDS), build({**self.CARDS, "list_marks": "marks"})
+        self.assertEqual([(e.text, e.rect) for e in self._kind(plain, "agenda_mark")],
+                         [(e.text, e.rect) for e in self._kind(said, "agenda_mark")])
+
+    def test_list_marks_is_refused_outside_the_cards_and_in_a_word_it_does_not_read(self):
+        with self.assertRaisesRegex(PageTypeError, r"`list_marks` sets the marks of the list `look = \"cards\"`"):
+            build({**self.AGENDA, "list_marks": "numbers"})
+        with self.assertRaisesRegex(PageTypeError, r"`list_marks` is 'letters'"):
+            build({**self.CARDS, "list_marks": "letters"})
+
+    def test_an_item_to_mark_is_counted_among_the_items_not_the_names_under_them(self):
+        page = build({**self.CARDS, "buckets": self.NESTED, "highlight": 2, "highlight_item": 2})
+        self.assertEqual(["しょう 2", "なか 3"], [e.text for e in self._kind(page, "agenda_item") if e.bold])
+
+    def test_folding_the_other_chapters_lets_a_long_list_stand(self):
+        """全部の章の下の段を並べると頁に入らない目次が、 今の章の分だけなら入る。"""
+        chapters = [[f"しょう {number}", [[f"なか {number}-{index}", ["ページ 1", "ページ 2"]] for index in (1, 2, 3)]]
+                    for number in (1, 2, 3)]
+        with self.assertRaises(PageFullError):
+            build({**self.CARDS, "buckets": chapters, "highlight": 0})
+        self.assertTrue(build({**self.CARDS, "buckets": chapters, "highlight": 1}).build())
+
+    def test_an_item_written_in_a_shape_the_agenda_does_not_read_is_refused(self):
+        for item in (["なか"], ["なか", "ページ"], [["なか"], ["ページ"]], ["なか", [["ページ"]]],
+                     ["なか", ["ページ"], "あまり"]):
+            with self.subTest(item=item), self.assertRaises(PageTypeError) as refused:
+                build({**self.CARDS, "buckets": [["しょう 1", [item]], ["しょう 2", []]], "highlight": 1})
+            self.assertIn("an item of chapter 1", str(refused.exception))
+
+    def test_what_the_cards_cannot_take_is_refused(self):
+        for spec, word in (({**self.CARDS, "look": "tiles"}, "look"),
+                           ({**self.CARDS, "highlight_item": 9}, "highlight_item"),
+                           ({**self.CARDS, "highlight_item": True}, "highlight_item"),
+                           ({**self.AGENDA, "highlight_item": 1}, "highlight_item"),
+                           ({**self.CARDS, "highlight_tone": "accent"}, "highlight_tone"),
+                           ({**self.CARDS, "numbers": "circled"}, "numbers")):
+            with self.subTest(word=word, spec=spec), self.assertRaises(PageTypeError) as refused:
+                build(spec)
+            self.assertIn(word, str(refused.exception))
+
+    def test_cards_with_more_items_than_fit_stop(self):
+        items = [f"こうもく {number}" for number in range(1, 16)]
+        with self.assertRaises(PageFullError) as stopped:
+            build({**self.CARDS, "buckets": [["しょう 1", items], ["しょう 2", items]]})
+        self.assertIn("agenda: the list of items needs", str(stopped.exception))
+
+    def test_only_the_agenda_takes_its_looks(self):
+        for key, value in (("highlight_tone", "accent"), ("numbers", "circled")):
+            with self.subTest(key=key), self.assertRaises(PageTypeError) as refused:
+                build({"type": "figure", "title": "だい", "figure": SQUARE, key: value})
+            self.assertIn(f"does not take {key}", str(refused.exception))
+
+    def test_figures_needs_more_than_one(self):
+        with self.assertRaises(PageTypeError):
+            build({"type": "figures", "title": "だい", "figures": [SQUARE]})
+
+    def test_an_empty_points_block_is_refused(self):
+        with self.assertRaises(ValueError):
+            build({"type": "figure", "title": "だい", "figure": SQUARE,
+                   "points": ["", "  "]})
+
+    def test_a_table_with_an_empty_cell_is_refused(self):
+        with self.assertRaises(ValueError):
+            build({"type": "figure", "title": "だい", "figure": SQUARE,
+                   "table": [["列", "値"], ["A", ""]]})
+
+
+class CoordinatesCannotBeDeclared(unittest.TestCase):
+    """The whole point: neither the declaration nor the types hold numbers."""
+
+    def test_the_aspect_ratio_comes_from_the_file(self):
+        square = [e for e in build({"type": "figure", "title": "だい", "figure": SQUARE}).build()
+                  if isinstance(e, Figure)][0]
+        wide = [e for e in build({"type": "figure", "title": "だい", "figure": WIDE}).build()
+                if isinstance(e, Figure)][0]
+        self.assertAlmostEqual(square.rect.width / square.rect.height, 1.0, places=1)
+        self.assertAlmostEqual(wide.rect.width / wide.rect.height, 4.0, places=1)
+
+    def test_the_aspect_ratio_cannot_be_declared(self):
+        """比を宣言に書けると、絵を差し替えた日に古い比が残って潰れた絵が焼ける。"""
+        with self.assertRaises(PageTypeError):
+            build({"type": "figure", "title": "だい", "figure": WIDE, "aspect": 1.0})
+
+    def test_the_types_module_holds_no_coordinates(self):
+        """型の中にも座標を書かせない (= 割り方は比、寸法は token が持つ)。"""
+        source = "\n".join(path.read_text(encoding="utf-8") for path in
+                           sorted((REPO / "src/pptx_agent_maker/layout/types").rglob("*.py")))
+        code = "\n".join(line.split("#")[0] for line in source.splitlines())
+        code = re.sub(r'""".*?"""', "", code, flags=re.S)
+        offenders = re.findall(r"(?<![\w.])\d{4,}(?![\w.])", code)
+        self.assertEqual([], offenders,
+                         f"a page type wrote a raw dimension: {offenders}")
+
+    def test_a_body_type_must_show_something(self):
+        """本文の型が図解を落とせるなら、表と文章だけの頁が戻ってくる。
+
+        絵を持つか、図形で組んだ図解を持つか (= `flow` / `timeline`)、数字から描くグラフを持つかの
+        どれかでなければ組めない。
+        """
+        for name, data in MINIMAL.items():
+            if name in SKELETON:
+                continue
+            with self.subTest(name):
+                shows = {"figure", "figures", "stages", "lanes", "chart"} & data.keys()
+                self.assertTrue(shows, f"{name} can be built without anything to look at")
+
+    def test_the_scaffolding_stays_small(self):
+        """例外の型は増やさない (= 増えた分だけ「表だけの頁」の逃げ道になる)。
+
+        4 つめの `compose` は、承知の上で足した逃げ道。カードだけで組む頁 (= 目標と柱) を拒むと、
+        型に合わせて指定を曲げる組み方が戻るため (= 2026-10-03 に決めた)。
+        """
+        self.assertLessEqual(len(types.skeleton()), 4)
+
+
+class ManifestCarriesTheType(unittest.TestCase):
+    """A declared page picks a type or a script — one way, never both."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.addCleanup(self.tmp.cleanup)
+
+    def write(self, body: str) -> Path:
+        path = self.root / "deck.toml"
+        path.write_text('specimen = "base/s.pptx"\nout = "d.pptx"\n' + body, encoding="utf-8")
+        return path
+
+    def test_a_typed_page_keeps_its_fields_and_drops_the_plumbing(self):
+        manifest = Manifest.load(self.write(
+            '[[pages]]\nkind = "declare"\ntype = "figure"\ntitle = "だい"\n'
+            'figure = "a.png"\nwhy = "おぼえがき"\n'))
+        entry = manifest.entries[0]
+        self.assertEqual("figure", entry.type)
+        self.assertEqual("おぼえがき", entry.why)
+        self.assertEqual({"type", "title", "figure"}, set(entry.data))
+
+    def test_a_declared_page_without_a_type_is_refused(self):
+        """型に収まらない頁は、型を足してから作る (= 手で図形を置く道は無い)。"""
+        with self.assertRaises(ManifestError) as raised:
+            Manifest.load(self.write('[[pages]]\nkind = "declare"\n'))
+        self.assertIn("type", str(raised.exception))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,7 +1,7 @@
 # What a text cell and a link may say: the roles label and note, a tone and an alignment on a text,
 # a tone and words on a link.
 
-tests = ["tests/test_text_links.py", "tests/test_compose.py", "tests/test_arrange.py"]
+tests = ["tests/layout/test_text_links.py", "tests/layout/test_compose.py", "tests/layout/test_arrange.py"]
 
 # -- the roles of a text --
 

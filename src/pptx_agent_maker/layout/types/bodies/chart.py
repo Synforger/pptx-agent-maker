@@ -46,7 +46,7 @@ from dataclasses import dataclass, replace
 from decimal import Decimal
 from pathlib import Path
 
-from ...base.geometry import Rect, pt
+from ...geometry import Rect, pt
 from ...parts.elements import Callout, Chart, Label, Pinned, Plane, Series
 from ...parts.look import TONES
 from ...parts.page import Page, PageFullError

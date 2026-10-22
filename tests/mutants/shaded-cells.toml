@@ -1,6 +1,6 @@
 # A table cell that stands on a ground as deep as its value.
 
-tests = ["tests/test_shaded_cells.py"]
+tests = ["tests/layout/test_shaded_cells.py"]
 
 [[mutant]]
 name = "a depth past the accent is taken"
@@ -40,7 +40,7 @@ new = "        if False:"
 
 [[mutant]]
 name = "every depth is the same ground"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.thinned(level / self.SHADES)"
 new = "return self.thinned(1 / self.SHADES)"
 
