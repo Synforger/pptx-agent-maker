@@ -57,3 +57,14 @@ assets = "assets"       # images and other material, one folder per round
 # was never reworded, and the check after the build stops it.
 [checks]
 stale_words = ["案件名", "第 N 回"]
+
+# Words the readers of the deck do not use — a made-up rendering of a term, say. A word written
+# here is stopped wherever it stands on a page or in a chart, and the check says what to write
+# instead. Written in a template's file, the table reaches every project that points at the
+# template; a project may write the same table, its value wins word by word, and `false` lets a
+# word of the template through. Left empty on purpose: a word written here is stopped in every
+# project built from this file.
+#
+# [checks.avoid]
+# "a word of your own making" = "the word the reader uses"
+# "a word with no word to write instead" = ""

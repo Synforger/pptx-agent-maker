@@ -25,8 +25,8 @@ sys.path.insert(0, str(REPO / "tests"))
 from pptx_agent_maker import DEFAULT, Page  # noqa: E402
 from pptx_agent_maker.checks import CHECKS, run_all  # noqa: E402
 from pptx_agent_maker.checks.rules import (  # noqa: E402
-    contrast, empty_cells, internal_names, long_title, low_resolution, near_alignment, off_page, overlap,
-    stretched, type_floor, unreplaced, untyped_parts)
+    avoided_words, contrast, empty_cells, internal_names, long_title, low_resolution, near_alignment, off_page,
+    overlap, stretched, type_floor, unreplaced, untyped_parts)
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 from deck.test_deck import make_dot  # noqa: E402
 
@@ -89,6 +89,10 @@ class ChecksFireTest(unittest.TestCase):
     def test_words_the_specimen_left_behind_are_caught(self) -> None:
         deck = raw_deck(self.dir / "stale.pptx", lambda s: text_at(s, "W3 の値をそのまま掲載"))
         self.assertTrue(unreplaced.run(deck, CONFIG))
+
+    def test_a_word_the_project_avoids_is_caught(self) -> None:
+        deck = raw_deck(self.dir / "avoided.pptx", lambda s: text_at(s, "鏡の写しをそのまま掲載"))
+        self.assertTrue(avoided_words.run(deck, {"avoid": {"鏡の写し": "レプリカ"}}))
 
     def test_words_printed_on_top_of_each_other_are_caught(self) -> None:
         """⚠ **枠ではなく描かれた文字で見る** ― 枠で見ていた頃は、画面では離れている
@@ -240,7 +244,7 @@ class ChecksFireTest(unittest.TestCase):
     def test_every_check_has_a_fixture_that_fires_it(self) -> None:
         """A check nobody proved is a check nobody can trust."""
         proven = {off_page.NAME, overlap.NAME, type_floor.NAME, empty_cells.NAME,
-                  internal_names.NAME, unreplaced.NAME, untyped_parts.NAME, long_title.NAME,
+                  internal_names.NAME, unreplaced.NAME, avoided_words.NAME, untyped_parts.NAME, long_title.NAME,
                   contrast.NAME, stretched.NAME, low_resolution.NAME, near_alignment.NAME}
         self.assertEqual({check.NAME for check in CHECKS}, proven,
                          "a check exists with no fixture proving it fires")

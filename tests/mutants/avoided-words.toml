@@ -1,0 +1,128 @@
+# The words a project has said not to use are stopped on a page, in a chart, and across a run boundary,
+# and the template's table and the project's lie over each other key by key.
+
+tests = ["tests/checks/test_avoided_words.py", "tests/checks/test_checks.py"]
+
+# -- the check (= checks/rules/avoided_words.py) ---------------------------
+
+[[mutant]]
+name = "the check reads its table under another name"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = 'TABLE = "avoid"'
+new = 'TABLE = "avoided"'
+
+[[mutant]]
+name = "a word is caught only at the head of a line"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "if word in line), None)"
+new = "if line.startswith(word)), None)"
+
+[[mutant]]
+name = "the letters are matched without their case"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "if word in line), None)"
+new = "if word.lower() in line.lower()), None)"
+
+[[mutant]]
+name = "a word set to false is still asked"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "if instead is False or not word:"
+new = "if not word:"
+
+[[mutant]]
+name = "an empty word hits every page"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "if instead is False or not word:"
+new = "if instead is False:"
+
+[[mutant]]
+name = "a word to write instead that is not a string is passed"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "if not isinstance(instead, str):"
+new = "if False:"
+
+[[mutant]]
+name = "a table that is not a table is passed"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "if not isinstance(table, dict):"
+new = "if False:"
+
+[[mutant]]
+name = "the sentence names a word instead even when there is none"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = '''why = (f"still says {word!r} — write {instead!r}" if instead'''
+new = '''why = (f"still says {word!r} — write {instead!r}" if True'''
+
+[[mutant]]
+name = "every finding is put on the first page"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "Finding(NAME, page.number,"
+new = "Finding(NAME, 1,"
+
+[[mutant]]
+name = "the words that hit are shown whole"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "line.strip()[:60]"
+new = "line.strip()"
+
+[[mutant]]
+name = "the words in a chart are left out"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "lines = [*page.lines(), *page.chart_lines()]"
+new = "lines = [*page.lines()]"
+
+[[mutant]]
+name = "the words on the page are left out"
+file = "src/pptx_agent_maker/checks/rules/avoided_words.py"
+old = "lines = [*page.lines(), *page.chart_lines()]"
+new = "lines = [*page.chart_lines()]"
+
+[[mutant]]
+name = "the check is not among the checks that run"
+file = "src/pptx_agent_maker/checks/rules/__init__.py"
+old = "internal_names, unreplaced, avoided_words,"
+new = "internal_names, unreplaced,"
+
+# -- the reader (= _common/slide.py) ---------------------------------------
+
+[[mutant]]
+name = "the runs of a paragraph are read one by one"
+file = "src/pptx_agent_maker/_common/slide.py"
+old = 'html.unescape("".join(TEXT.findall(line)))'
+new = 'html.unescape("\\n".join(TEXT.findall(line)))'
+
+[[mutant]]
+name = "a line break does not start a new line"
+file = "src/pptx_agent_maker/_common/slide.py"
+old = "for line in LINE_BREAK.split(body))"
+new = "for line in [body])"
+
+[[mutant]]
+name = "the charts of a page are not picked up"
+file = "src/pptx_agent_maker/_common/slide.py"
+old = "charts=_charts(archive, name)))"
+new = "charts=()))"
+
+[[mutant]]
+name = "only the first chart of a page is picked up"
+file = "src/pptx_agent_maker/_common/slide.py"
+old = "for chart in dict.fromkeys(CHART_OF_SLIDE.findall(rels))"
+new = "for chart in dict.fromkeys(CHART_OF_SLIDE.findall(rels)[:1])"
+
+[[mutant]]
+name = "a chart the file does not hold stops the read"
+file = "src/pptx_agent_maker/_common/slide.py"
+old = 'if f"ppt/charts/{chart}" in names)'
+new = "if True)"
+
+[[mutant]]
+name = "the item and series names of a chart are left out"
+file = "src/pptx_agent_maker/_common/slide.py"
+old = "return [*lines_of(xml), *cached]"
+new = "return lines_of(xml)"
+
+[[mutant]]
+name = "the titles and axis names of a chart are left out"
+file = "src/pptx_agent_maker/_common/slide.py"
+old = "return [*lines_of(xml), *cached]"
+new = "return cached"
