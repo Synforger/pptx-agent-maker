@@ -124,6 +124,31 @@ class SmallerThanTheTitle(unittest.TestCase):
         self.assertEqual(13, theme.using("headed").kicker_size)
         self.assertEqual(theme.type.title, theme.kicker_size, "the other uses keep the title's size")
 
+    def test_the_decks_size_reaches_every_use_it_named_that_writes_none(self) -> None:
+        """実際に出た形: 資料の `[theme.type]` に 1 回書いた大きさが、名前を付けた使い方の頁にも届く。"""
+        theme = theme_from({"kicker": "beside", "type": {"kicker": 13},
+                            "uses": {"detail": {"like": "read", "body": 11}, "own": {"like": "read", "kicker": 11}}})
+        self.assertEqual(13, theme.kicker_size)
+        self.assertEqual(13, theme.using("detail").kicker_size)
+        self.assertEqual(11, theme.using("own").kicker_size, "a use that writes its own keeps it")
+        lead = placed(Page(ONE, theme.using("detail"), kicker=KICKER), "title").lead
+        self.assertEqual(13, lead.size)
+
+    def test_the_other_roles_of_the_deck_stay_with_the_use_it_is_set_in(self) -> None:
+        theme = theme_from({"type": {"kicker": 13, "body": 14}, "uses": {"detail": {"like": "read"}}})
+        self.assertEqual(DEFAULT.type.body, theme.using("detail").type.body)
+
+    def test_the_toolkits_own_uses_keep_their_size(self) -> None:
+        theme = theme_from({"kicker": "beside", "type": {"kicker": 13}})
+        self.assertEqual(theme.using("present").type.title, theme.using("present").kicker_size)
+
+    def test_a_use_whose_floor_the_decks_size_falls_below_is_said(self) -> None:
+        with self.assertRaises(ThemeError) as refused:
+            theme_from({"kicker": "beside", "type": {"kicker": 13}, "uses": {"shown": {"like": "present"}}})
+        for said in ("theme.type.kicker", "'shown'", "[theme.uses.shown]"):
+            self.assertIn(said, str(refused.exception))
+        theme_from({"kicker": "beside", "type": {"kicker": 13}, "uses": {"shown": {"like": "present", "kicker": 14}}})
+
     def test_a_size_below_the_floor_is_refused(self) -> None:
         with self.assertRaises(ThemeError) as refused:
             theme_from({"kicker": "beside", "type": {"kicker": 8}})

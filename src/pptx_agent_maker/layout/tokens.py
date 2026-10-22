@@ -932,17 +932,20 @@ def theme_from(settings: dict | None) -> Theme:
 
     # 使い方が自分の箱の高さと表の見た目を書いていなければ、資料の値に倣う (= 頁が名指した使い方のそれは、そこから読める)
     leading = _leading(settings, "theme")
+    named = _uses(settings.get("uses"))
     scales = {name: replace(sized, box_height_set=sized.box_height_set or box_height,
                             table_look_set=sized.table_look_set or table_look,
                             leading_set=sized.leading_set or leading)
-              for name, sized in {**USES, **_uses(settings.get("uses"))}.items()}
+              for name, sized in {**USES, **named}.items()}
     use = settings.get("use", "read")
     if not isinstance(use, str) or use not in scales:
         raise ThemeError(
             f"theme.use is {use!r} — a deck is made to be {' or '.join(repr(name) for name in scales)} "
             "(= read at a desk, shown on a screen and spoken to, or a use named under [theme.uses])")
-    # `[theme.type]` は、案件が選んだ使い方の大きさを上書きする (= ほかの使い方には掛からない)
+    # `[theme.type]` は、案件が選んだ使い方の大きさを上書きする (= ほかの使い方には掛からない。題の上の小さい字だけは
+    # 名前を付けた使い方にも届く。`_kicked`)
     scales[use] = _sizes(f"a deck made to be {use}", scales[use], settings.get("type"), "theme.type")
+    scales = _kicked(scales, settings.get("type"), named)
     type = replace(scales[use], family=family)
     return Theme(
         use=use,
@@ -1039,6 +1042,33 @@ def _uses(declared) -> dict[str, Type]:
         sizes = {key: value for key, value in said.items() if key not in _USE_KEYS}
         found[name] = _sizes(f"the use {name!r}", base, sizes, where, (*_USE_KEYS, *SIZED, *DERIVED))
     return found
+
+
+def _kicked(scales: dict[str, Type], declared, named: dict[str, Type]) -> dict[str, Type]:
+    """The uses with the deck's size of the small words of a title, in every use the project named that writes none.
+
+    ⚠ **題の上の小さい字の大きさは、資料全体の見た目** (= 置き場の `[theme] kicker` と同じく、頁で変わらない)。
+    `[theme.type]` のほかの役は案件が選んだ使い方にだけ掛かるが、この役まで同じにしていた間は、名前を付けた
+    使い方の頁だけ小さい字が題の大きさに戻り、30 の使い方の全部に同じ値を写すことになった。使い方が自分で
+    `kicker` を書けばそちらが勝つ。道具の使い方 (= `read` / `present` / `sheet`) には掛からない ― 案件が書いた
+    大きさは案件の使い方の物で、道具の使い方を頁が選ぶのは、道具の大きさで組む時。
+
+    受け継いだ大きさが、その使い方の下限より小さければ拒む (= 使い方に自分の `kicker` を書いてもらう)。
+    """
+    size = (declared or {}).get("kicker")
+    if size is None:
+        return scales
+    kicked = dict(scales)
+    for name in named:
+        sized = kicked[name]
+        if named[name].kicker_set is not None:
+            continue
+        if size < sized.minimum:
+            raise ThemeError(
+                f"theme.type.kicker is {size:g}pt, below the {sized.minimum:g}pt floor of the use {name!r}, which takes "
+                f"it — write that use's own kicker under [theme.uses.{name}]")
+        kicked[name] = replace(sized, kicker_set=size)
+    return kicked
 
 
 def _leading(said: dict, where: str) -> float | None:

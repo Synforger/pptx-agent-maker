@@ -65,7 +65,7 @@ new = "    scales = {name: _sizes(f\"a deck made to be {use}\", sizes, settings.
 [[mutant]]
 name = "the uses a project names are not read"
 file = "src/pptx_agent_maker/layout/tokens.py"
-old = "{**USES, **_uses(settings.get(\"uses\"))}.items()"
+old = "{**USES, **named}.items()"
 new = "dict(USES).items()"
 
 [[mutant]]
