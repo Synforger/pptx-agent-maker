@@ -23,7 +23,8 @@ from pathlib import Path
 from pptx import Presentation
 from pptx.chart.data import CategoryChartData, XyChartData
 from pptx.dml.color import RGBColor
-from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION, XL_MARKER_STYLE, XL_TICK_MARK
+from pptx.enum.chart import (XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION, XL_MARKER_STYLE, XL_TICK_LABEL_POSITION,
+                             XL_TICK_MARK)
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
@@ -429,6 +430,12 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
     頁の題が言っている。
 
     ⚠ **負の値で色を反転させない。**既定のままだと、負の棒は地の色が抜けて白くなる。
+
+    ⚠ **負の値を持つグラフは、項目の名前を軸の外側の端に置く** (= 描く範囲の下端か左端。0 の線は項目の軸の
+    線のまま引く)。既定の置き場は値の軸の 0 の所で、負の棒と、その先に付く数字が名前に重なった。
+
+    軸の名前は、横の軸が `x_title`、縦の軸が `y_title` (= 横棒は値の軸が横)。値の数字を棒に付けて値の軸を隠す
+    グラフでも、値の軸に名前が在れば、軸を目盛りの字なしで残して名前だけを出す (= 何の数かは数字だけでは読めない)。
     """
     if element.plot == "scatter":
         _scatter(slide, element, theme)
@@ -448,12 +455,22 @@ def _chart(slide, element: Chart, theme: Theme) -> None:
 
     # 目盛りの線は引かない。値の数字を棒に付けたグラフは、値の軸も出さない (= 同じ数を 2 度見せない)。
     # 範囲を書いたグラフ (= `scale`) だけは、軸と、目盛りごとの薄い線を出す (= 読み手が範囲の中の位置を測る。下)
+    across, up = ((chart.value_axis, chart.category_axis) if element.plot == "bar"
+                  else (chart.category_axis, chart.value_axis))
+    named = element.x_title if across is chart.value_axis else element.y_title
     chart.value_axis.has_major_gridlines = False
-    chart.value_axis.visible = element.axis
+    chart.value_axis.visible = element.axis or bool(named)
+    if named and not element.axis:
+        chart.value_axis.tick_label_position = XL_TICK_LABEL_POSITION.NONE
     chart.value_axis.major_tick_mark = XL_TICK_MARK.NONE
     chart.value_axis.format.line.fill.background()
     chart.category_axis.major_tick_mark = XL_TICK_MARK.NONE
     chart.category_axis.format.line.color.rgb = _colour(element.line)
+    if any(value < 0 for series in element.series for value in series.values if value is not None):
+        chart.category_axis.tick_label_position = XL_TICK_LABEL_POSITION.LOW
+    for axis, name in ((across, element.x_title), (up, element.y_title)):
+        if name:
+            _name_axis(axis, name, element, theme)
     if element.plot == "bar":
         # 横棒は最初の項目を上に置く (= 表と同じ読み順。既定は下から積む)。項目の並びを逆にすると
         # 値の軸が上へ回るので、いちばん下の項目の側 (= 逆にした後の端) で交わらせて下に戻す
@@ -562,16 +579,8 @@ def _scatter(slide, element: Chart, theme: Theme) -> None:
             lines.width = Emu(theme.spacing.hairline)
         axis.major_tick_mark = XL_TICK_MARK.NONE
         axis.format.line.color.rgb = _colour(element.line)
-        if not name:
-            continue
-        axis.has_title = True
-        words = axis.axis_title.text_frame
-        words.text = name
-        for run in words.paragraphs[0].runs:
-            run.font.size = Pt(element.size)
-            run.font.bold = False
-            run.font.name = theme.type.family
-            run.font.color.rgb = _colour(element.colour)
+        if name:
+            _name_axis(axis, name, element, theme)
     # 縦の軸を出さないグラフ (= 行を並べるグラフ。縦は行の番号で、読み手に見せる数ではない)
     if not element.axis:
         chart.value_axis.visible = False
@@ -590,6 +599,18 @@ def _scatter(slide, element: Chart, theme: Theme) -> None:
             _solid(drawn.marker.format, series.colour)
         for label in series.labels:
             _name_point(drawn.points[label.index].data_label, label, element, theme)
+
+
+def _name_axis(axis, name: str, element: Chart, theme: Theme) -> None:
+    """Write an axis's name beside it, in the chart's type and colour, not bold (= the words a chart already carries)."""
+    axis.has_title = True
+    words = axis.axis_title.text_frame
+    words.text = name
+    for run in words.paragraphs[0].runs:
+        run.font.size = Pt(element.size)
+        run.font.bold = False
+        run.font.name = theme.type.family
+        run.font.color.rgb = _colour(element.colour)
 
 
 def _name_point(data_label, label, element: Chart, theme: Theme) -> None:

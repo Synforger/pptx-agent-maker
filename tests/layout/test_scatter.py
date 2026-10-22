@@ -152,14 +152,6 @@ class WhatIsRefused(unittest.TestCase):
                 self.assertIn(key, said)
                 self.assertIn("scatter", said)
 
-    def test_axis_names_on_a_chart_of_categories(self) -> None:
-        for axis in ("x", "y"):
-            with self.subTest(axis=axis), self.assertRaises(PageTypeError) as reason:
-                build({"type": "chart", "title": "だい",
-                       "chart": {"kind": "column", "categories": ["a"], axis: "なまえ",
-                                 "series": [{"name": "s", "values": [1]}]}}).build()
-            self.assertIn(axis, str(reason.exception))
-
     def test_a_highlight_that_names_no_series_and_a_series_named_twice(self) -> None:
         self.assertIn("highlight", refused(highlight="C 案"))
         self.assertIn("twice", refused(series=[A, A]))

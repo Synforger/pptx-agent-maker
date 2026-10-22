@@ -94,3 +94,6 @@ kicker = 13
 [checks]
 stale_words = ["案件名", "第 N 回"]
 unsourced = false
+# Most of the charts here exercise something else than their axes, so the check for a value axis with no name is
+# off too; the charts at the end of `charts` name theirs.
+unnamed_axis = false

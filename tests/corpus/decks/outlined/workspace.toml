@@ -33,3 +33,5 @@ table_look = "accent"
 [checks]
 stale_words = ["案件名", "第 N 回"]
 unsourced = false
+# The charts here exercise the outlined look, not their axes (= as the corpus's own workspace says).
+unnamed_axis = false

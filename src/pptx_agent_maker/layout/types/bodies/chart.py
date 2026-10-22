@@ -16,6 +16,10 @@
   5 段階の評価のように、読み手が「どの範囲のどこか」を目で測るグラフ。下限が 0 でない時は棒が途中から立つので、
   それが分かるよう軸は必ず出る
 * **凡例は系列が 2 つ以上の時だけ**
+* **軸の名前は `x` (= 横の軸) と `y` (= 縦の軸) に、単位も含めて書く** (= 横棒は値の軸が横)。値の数字を棒に
+  付けて値の軸を隠したグラフでも、名前だけは出る。値の軸の名前が無いグラフは、検査 `unnamed_axis` が知らせる
+* **負の値を持つグラフは、項目の名前を軸の外側の端に置く** (= 0 の所に置くと、負の棒と数字が名前に重なる。
+  0 の線は引いたまま)
 * 字の大きさは本文の大きさ、書体は頁と同じ
 
 数は manifest に書くか、素材の folder の CSV から読む (= `data = "x.csv"`。1 列目が項目、2 列目からが
@@ -121,6 +125,8 @@ class _Plan:
     notes: tuple[str, ...] = ()
     #: `highlight` の 1 つを塗る色の役 (= 書かなければ空で、差し色)
     highlight_tone: str = ""
+    #: 横の軸と縦の軸の名前 (= `x` と `y`。書かなければ空)
+    titles: tuple[str, str] = ("", "")
 
     @property
     def axis(self) -> bool:
@@ -160,7 +166,7 @@ def place_chart(page: Page, spec: Spec, written, rect: Rect, what: str) -> None:
     page.chart(Chart(
         "chart", rect, "stacked" if plan.kind == "waterfall" else plan.kind, plan.categories, series,
         legend=legend, axis=plan.axis, frame=frame, pinned=pinned,
-        callouts=callouts, scale=plan.scale, **look))
+        callouts=callouts, scale=plan.scale, x_title=plan.titles[0], y_title=plan.titles[1], **look))
 
 
 # -- reading ---------------------------------------------------------------------
@@ -171,10 +177,7 @@ def _read(spec: Spec, written, what: str) -> _Plan:
     kind = written.get("kind")
     if kind not in KINDS:
         raise PageTypeError(f"{what}: `kind` is one of {', '.join(KINDS)}, not {kind!r}")
-    named = [axis for axis in ("x", "y") if axis in written]
-    if named:
-        raise PageTypeError(f"{what}: {' and '.join(f'`{axis}`' for axis in named)} name the axes of a scatter, "
-                            f"and this is a {kind} — its categories say what it is drawn across")
+    titles = tuple(_axis_name(written, axis, what) for axis in ("x", "y"))
     if "data" in written:
         if "categories" in written or "series" in written:
             raise PageTypeError(f"{what}: the numbers come from `data` or from `categories` and `series`, "
@@ -209,10 +212,21 @@ def _read(spec: Spec, written, what: str) -> _Plan:
     notes = _notes(written.get("notes"), kind, categories, what)
     plan = _Plan(kind, tuple(categories), tuple(series), highlight, unit, labels and not bare,
                  tuple(str(name) for name in totals), callouts, bare=bare, notes=notes,
-                 highlight_tone=_highlight_tone(spec, written, highlight, what))
+                 highlight_tone=_highlight_tone(spec, written, highlight, what), titles=titles)
     if "scale" not in written:
         return plan
     return replace(plan, scale=_scale(written["scale"], plan, what))
+
+
+def _axis_name(written: dict, axis: str, what: str) -> str:
+    """The name an axis was given (= `x` across, `y` up), with its unit; empty when none was written."""
+    if axis not in written:
+        return ""
+    name = written[axis]
+    if not isinstance(name, str) or not name.strip():
+        raise PageTypeError(f"{what}: `{axis}` is the name of the {'horizontal' if axis == 'x' else 'vertical'} axis, "
+                            f"with its unit (= \"件数 (件)\"), not {name!r}")
+    return name.strip()
 
 
 def _bare(written: dict, kind: str, what: str) -> bool:
@@ -982,13 +996,14 @@ def _waterfall(page: Page, plan: _Plan, what: str) -> tuple[tuple[Series, ...], 
 def _readable(page: Page, plan: _Plan, rect: Rect, legend: bool, what: str) -> None:
     """Stop a chart too low for its bars to be read, wherever it is placed (= a page's body or a cell inside rows).
 
-    描く範囲は、注記の無いグラフでも同じ数え方で見積もる (= `_pointed` の 2 と同じ。凡例と、値の軸の字の行を除く)。
+    描く範囲は、注記の無いグラフでも同じ数え方で見積もる (= `_pointed` の 2 と同じ。凡例と、値の軸の字の行と、横の軸の
+    名前の行を除く)。
     横棒は項目ごとの帯が名前の 1 行より低ければ、名前どうしが重なる。縦のグラフは、棒の外に付く数字が描く範囲の
     半分を取れば、棒が数字の下に潰れる。どちらも縮めずに止まる (= 注記の在るグラフは `_pointed` が同じことを言う)。
     """
     theme, s = page.theme, page.theme.spacing
     line, pad = theme.line_height(), s.gap_s
-    below = line + s.gap_s if legend else 0
+    below = (line + s.gap_s if legend else 0) + (line + s.gap_s if plan.titles[0] else 0)
     if plan.kind == "bar":
         plot = rect.height - 2 * pad - below - (0 if plan.labels else line + s.gap_s)
         slot = plot / len(plan.categories)
@@ -1069,18 +1084,19 @@ def _pointed(page: Page, plan: _Plan, rect: Rect, legend: bool, what: str):
         band = line + s.gap_s
         frame = Rect(rect.left, rect.top + band, rect.width, rect.height - band)
 
-    # 2. 枠の中の描く範囲 (= 軸の字と凡例の場所を除く)
-    below = (line + s.gap_s if legend else 0)
+    # 2. 枠の中の描く範囲 (= 軸の字と名前と凡例の場所を除く。横の軸の名前は下に、縦の軸の名前は左に 1 行)
+    below = (line + s.gap_s if legend else 0) + (line + s.gap_s if plan.titles[0] else 0)
+    beside = line + s.gap_s if plan.titles[1] else 0
     low, high = min(0.0, *(value for column in tops for _top, value in column)), \
         max(0.0, *(reach for column in tops for _top, reach in column))
     longest = max([theme.width(name) for name in plan.categories]
                   + [theme.width(note, small) for note in plan.notes], default=0)
     if across:
-        left = frame.left + pad + longest + s.gap_s
+        left = frame.left + pad + beside + longest + s.gap_s
         top, bottom = frame.top + pad, frame.bottom - pad - below - (0 if plan.labels else line + s.gap_s)
         right = frame.right - pad
     else:
-        left = frame.left + pad                       # 値の軸の字の幅は、目盛りが決まってから足す
+        left = frame.left + pad + beside              # 値の軸の字の幅は、目盛りが決まってから足す
         top, bottom = frame.top + max(pad, line // 2), frame.bottom - (line + s.gap_s) - below
         right = frame.right - pad
     if right - left <= 0 or bottom - top <= 0:

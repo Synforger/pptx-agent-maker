@@ -262,7 +262,7 @@ class Chart(Element):
     frame: Rect | None = None
     pinned: Pinned | None = None
     callouts: tuple[Callout, ...] = ()
-    #: 点のグラフ (= `scatter`) の軸の名前。項目のグラフでは空
+    #: 横の軸と縦の軸の名前 (= 単位も含む。横棒は値の軸が横)。空なら書かない
     x_title: str = ""
     y_title: str = ""
     #: 値の軸の (下限, 上限, 目盛りの間)。在れば値の軸と目盛りの線を出す (= 無ければ軸は PowerPoint が決め、

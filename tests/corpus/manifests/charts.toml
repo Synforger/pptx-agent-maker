@@ -280,3 +280,39 @@ series = [
 [[pages.rows.cells]]
 weight = 1
 card = { heading = "Before is blue", body = "After is orange" }
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "Bars below zero keep their names at the outer edge, clear of the bars and their numbers"
+footer = "made up for the corpus"
+[pages.chart]
+kind = "bar"
+x = "Change in AP (points)"
+categories = ["car", "pedestrian", "traffic_cone", "bicycle"]
+series = [{ name = "Change", values = [0.0013, -0.0063, -0.0008, 0.002] }]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "Both axes say what they are, and the value axis keeps its name with the numbers on the bars"
+footer = "made up for the corpus"
+[pages.chart]
+kind = "column"
+x = "Quarter"
+y = "Orders (units)"
+categories = ["Q1", "Q2", "Q3", "Q4"]
+series = [{ name = "Orders", values = [12, 15, 21, 18] }]
+
+[[pages]]
+kind = "declare"
+type = "chart"
+title = "A chart the toolkit holds keeps a line under its plot and a line beside it for the names of its axes"
+footer = "made up for the corpus"
+[pages.chart]
+kind = "column"
+x = "Month"
+y = "Balance (k$)"
+categories = ["Apr", "May", "Jun", "Jul"]
+series = [{ name = "Balance", values = [12, 30, -21, 8] }]
+callouts = [{ at = "May", text = "the peak" }]
