@@ -122,3 +122,27 @@ name = "the check of a long title counts as if nothing stood beside the title"
 file = "src/pptx_agent_maker/checks/declared/long_title.py"
 old = "title, str(entry.data.get(\"sticker\", \"\")).strip(), str(entry.data.get(\"kicker\", \"\"))) if title else 0"
 new = "title, str(entry.data.get(\"sticker\", \"\")).strip(), \"\") if title else 0"
+
+[[mutant]]
+name = "the uses the project named keep the title's size for the small words"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "    scales = _kicked(scales, settings.get(\"type\"), named)\n"
+new = ""
+
+[[mutant]]
+name = "a use's own size for the small words gives way to the deck's"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        if named[name].kicker_set is not None:\n            continue\n"
+new = ""
+
+[[mutant]]
+name = "a use takes a size below its floor"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        if size < sized.minimum:"
+new = "        if False:"
+
+[[mutant]]
+name = "the toolkit's own uses take the deck's size too"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "    for name in named:\n        sized = kicked[name]"
+new = "    for name in kicked:\n        sized = kicked[name]"

@@ -363,12 +363,6 @@ old = "            if cell.strip():\n                points[column - 2].append((
 new = "            if True:\n                points[column - 2].append((x, number(cell or \"0\", row_number, column)))"
 
 [[mutant]]
-name = "a chart of categories reads the names of its axes and drops them"
-file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "highlight_tone=_highlight_tone(spec, written, highlight, what), titles=titles)"
-new = "highlight_tone=_highlight_tone(spec, written, highlight, what))"
-
-[[mutant]]
 name = "the points of a scatter are squares"
 file = "src/pptx_agent_maker/write/pptx.py"
 old = "        drawn.marker.style = XL_MARKER_STYLE.CIRCLE\n        drawn.marker.size = round(series.mark) or POINT"

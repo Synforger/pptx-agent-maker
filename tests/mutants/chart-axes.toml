@@ -104,3 +104,9 @@ name = "the check does not run with the others"
 file = "src/pptx_agent_maker/checks/declared/__init__.py"
 old = "ALL = (long_title, unsourced, unnamed_axis)"
 new = "ALL = (long_title, unsourced)"
+
+[[mutant]]
+name = "a chart of categories reads the names of its axes and drops them"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "highlight_tone=_highlight_tone(spec, written, highlight, what), titles=titles)"
+new = "highlight_tone=_highlight_tone(spec, written, highlight, what))"
