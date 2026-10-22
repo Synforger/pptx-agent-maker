@@ -47,26 +47,26 @@ new = "    if False:\n"
 [[mutant]]
 name = "the bands keep their height whatever the type"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "        spacing=_furniture(type),\n"
+old = "        spacing=_furniture(type, kicker),\n"
 new = ""
 
 [[mutant]]
 name = "the title's band grows with the headings, not with the title"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "title_height=kicker + round((base.title_height - base.kicker_height) * type.title / read.title),"
-new = "title_height=kicker + round((base.title_height - base.kicker_height) * type.heading / read.heading),"
+old = "title_height=step + round((base.title_height - base.kicker_height) * type.title / read.title),"
+new = "title_height=step + round((base.title_height - base.kicker_height) * type.heading / read.heading),"
 
 [[mutant]]
 name = "the row of the small words above a title keeps its height whatever the type"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "kicker = round(base.kicker_height * type.caption / read.caption)"
-new = "kicker = base.kicker_height"
+old = "step = round(base.kicker_height * small / read.caption)"
+new = "step = base.kicker_height"
 
 [[mutant]]
 name = "the row of the small words grows with the title, not with the small words"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "kicker = round(base.kicker_height * type.caption / read.caption)"
-new = "kicker = round(base.kicker_height * type.title / read.title)"
+old = 'small = type.kicker if kicker == "above" else type.caption'
+new = "small = type.title"
 
 [[mutant]]
 name = "the footer keeps its height whatever the type"

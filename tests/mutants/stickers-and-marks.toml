@@ -25,7 +25,7 @@ new = "room -= self.sticker_width(sticker)"
 [[mutant]]
 name = "the title's box runs on under the sticker"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "words = Rect(main.left + lead, main.top, main.width - lead - (tag + s.gap_m if tag else 0), main.height)"
+old = "words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)"
 new = "words = main"
 
 [[mutant]]

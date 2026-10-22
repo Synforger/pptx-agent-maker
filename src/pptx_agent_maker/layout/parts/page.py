@@ -38,7 +38,7 @@ from pathlib import Path
 
 from ..base.geometry import Rect, cm
 from ..base.tokens import DEFAULT, MONO_FACE, Band, Theme, divides
-from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
+from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Lead, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -208,7 +208,9 @@ class Page:
         使っていた間は、右上にロゴの在るテンプレートで、長い題と札がロゴに乗った。
 
         ⚠ **題の上の小さい字は、資料によっては題の左に同じ行で置く** (= `[theme] kicker = "beside"`。
-        差し色の太字で、題の 1 行目の高さ)。帯の高さは上に置く時と同じで、題はそのぶん狭い幅で折れる。
+        差し色の太字で、題の 1 行目に)。帯の高さは上に置く時と同じで、題はそのぶん狭い幅で折れる。
+        **題の枠の中に、題と同じ段落の頭の字として置く** (= `Lead`)。別の枠に置いて縦の中央を揃えていた間は、
+        小さい字を題より小さくすると、字の下の線が題の下の線より上に浮いた。
 
         ⚠ **折れた題が、レイアウトが頁を横切って描く線に乗るなら止まる。**横切る物は幅を詰めても
         避けられず、題の帯が伸びても動かない (= 2 行目が題の下の罫線に乗った。映す資料で出た)。
@@ -246,17 +248,12 @@ class Page:
         clear = Rect(left, bar.top, right - left, bar.height)
         if kicker and not lead:
             kick, main = clear.split_top(s.kicker_height)
-            self.elements.append(Text("kicker", kick, kicker, t.caption, p.muted))
+            self.elements.append(Text("kicker", kick, kicker, self.theme.kicker_size, p.muted))
         else:
             main = clear
         # 題の 1 行目の頭 (= 題は枠の真ん中に寄るので、折れた行ぶんの高さを引いて半分)
         row = self.theme.line_height(t.title)
         first = main.top + max((main.height - lines * row) // 2, 0)
-        if lead:
-            # 題の左に同じ行で (= 題の 1 行目の高さに、差し色の太字。枠は字の幅ちょうどで、折り返さない)
-            self.elements.append(Text(
-                "kicker_beside", Rect(main.left + s.text_inset, first, lead - s.text_inset, row),
-                kicker, t.title, p.accent, bold=True))
         # ⚠ **レイアウトの線が題の 1 行目の字を横切るなら止まる** (= 取り消し線に見える)。題の帯を題の枠に
         # 合わせても残るのは、題の枠そのものを線が横切る雛形か、題の枠を持たないレイアウト。直せるのは、
         # 型の頁を乗せるレイアウトの方
@@ -278,8 +275,9 @@ class Page:
                 raise PageFullError(
                     f"the title folds to {lines} lines, and the lines it folds onto land on a line the "
                     "layout draws across the page — say it shorter, so it stays on one line")
-        words = Rect(main.left + lead, main.top, main.width - lead - (tag + s.gap_m if tag else 0), main.height)
-        self.elements.append(Text("title", words, title, t.title, p.ink, bold=True))
+        words = Rect(main.left, main.top, main.width - (tag + s.gap_m if tag else 0), main.height)
+        beside = Lead(kicker, self.theme.kicker_size, p.accent, lead) if lead else None
+        self.elements.append(Text("title", words, title, t.title, p.ink, bold=True, lead=beside))
         lower = self.theme.under_the_title(bar) - self._remaining.top
         if lower > 0:
             # レイアウトの罫線が、残りの始まる所より下に在る頁: 残りはその線の下から。題の下の線は自分では引かない

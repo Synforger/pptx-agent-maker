@@ -19,8 +19,8 @@ new = "return self.title if self.tag_set is None else self.tag_set"
 [[mutant]]
 name = "tag is a role nobody reads"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = 'DERIVED = ("band", "display", "tag")'
-new = 'DERIVED = ("band", "display")'
+old = 'DERIVED = ("band", "display", "tag", "kicker")'
+new = 'DERIVED = ("band", "display", "kicker")'
 
 # -- the size of a tag (layout/parts/page.py) --------------------------------------------------------------------
 

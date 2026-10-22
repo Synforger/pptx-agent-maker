@@ -84,6 +84,11 @@ gap_x = 1.6
 gap_y = 0.15
 band_gap = 1.0
 
+# A use whose small words above a title are set larger than the captions (= the row they stand in grows with them).
+[theme.uses.headed]
+like = "read"
+kicker = 13
+
 # The pictures here are made up to exercise the layout, so there is no source to name:
 # the corpus builds with the check for unsourced pages switched off, the way a project may.
 [checks]
