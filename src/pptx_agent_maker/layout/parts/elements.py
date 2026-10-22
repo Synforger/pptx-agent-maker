@@ -20,6 +20,22 @@ class Element:
 
 
 @dataclass(frozen=True)
+class Lead:
+    """Words set in front of a text on its first line, in their own size and colour (= the small words beside a title).
+
+    同じ段落の run として書く (= 別の枠に置かない)。大きさの違う字を別々の枠で縦の中央に揃えると、字の下の線
+    (= ベースライン) が揃わない。道具は書体の縦の寸法を持たないので、揃えるのは描く側 (= PowerPoint) に任せる。
+    `width` は字と、後に続く字との間の空きを足した幅で、段落のぶら下げの字下げになる (= 続く字の 1 行目はここから
+    始まり、折れた行もここに揃う)。太字で置く。
+    """
+
+    text: str
+    size: float
+    colour: str
+    width: int
+
+
+@dataclass(frozen=True)
 class Text(Element):
     text: str
     size: float
@@ -34,6 +50,8 @@ class Text(Element):
     #: いっぱいに取ってこれで中央に置く ― 字の高さから枠の上端を計算すると、隣の箱と字の大きさが違う時に
     #: 上端が丸めの分だけずれる。種類で縦の寄せが決まる字 (= 帯・題・ラベルなど) は、これを使わない
     middle: bool = False
+    #: 1 行目の頭に並べる字 (= 題の左の小さい字)。無ければ None
+    lead: Lead | None = None
 
 
 #: 文字の枠が上下に自分で取る余白 (= pptx の既定。左右は `Spacing.text_inset`)。字を縦の中央に置く側 (= `Page.boxes`)

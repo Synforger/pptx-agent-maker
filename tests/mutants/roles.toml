@@ -5,8 +5,8 @@ tests = ["tests/test_compose.py"]
 [[mutant]]
 name = "code is wrapped like any other words"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = '"kicker_beside", "code"}'
-new = '"kicker_beside"}'
+old = '"marker", "code"}'
+new = '"marker"}'
 
 [[mutant]]
 name = "the face of a text of its own is ignored"

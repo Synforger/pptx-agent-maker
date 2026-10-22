@@ -31,7 +31,7 @@ from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls, qn
 from pptx.util import Emu, Pt
 
-from ..layout.parts.elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Line, Table, Text, TEXT_INSET_Y, bullet_indent
+from ..layout.parts.elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Lead, Line, Table, Text, TEXT_INSET_Y, bullet_indent
 from ..layout.base.tokens import DEFAULT, MARK_FACE, Theme
 
 ALIGN = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}
@@ -283,13 +283,13 @@ def _text(slide, element: Text, theme: Theme) -> None:
     frame = box.text_frame
     # 隣の物に付く名前と、段の間の向きは折り返さない。線表の名前と向きは枠の余白も取らない
     # (= 測った幅がそのまま使える幅。向きは狭い列に 1 文字で立つ)
-    frame.word_wrap = element.kind not in {"label", "marker", "kicker_beside", "code"}
+    frame.word_wrap = element.kind not in {"label", "marker", "code"}
     if not frame.word_wrap:
         # ⚠ **折り返さない枠は、枠を字に合わせない。**python-pptx が文字の枠に付ける既定 (= 字に合わせて
         # 枠を直す) を残していた間は、全角の短い名前が 1 文字ずつ縦に折れた ― 全角だけの名前は枠の幅が
         # 字の幅ちょうどで、LibreOffice はその幅で折る (= 焼いた絵で出た。PowerPoint では折れない)
         frame.auto_size = MSO_AUTO_SIZE.NONE
-    if element.kind in {"label", "lane", "marker", "kicker_beside"}:
+    if element.kind in {"label", "lane", "marker"}:
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(0)
     elif element.kind == "agenda_mark":
         # 目次の小項目の印は、 隣の字の箱と同じ高さに乗るよう上下の余白を残し、 左右だけ 0 にする
@@ -299,7 +299,7 @@ def _text(slide, element: Text, theme: Theme) -> None:
         # 読ませる資料の値) のままで、字の入る幅が道具の数えた幅より狭く、狭い箱で見積もりより 1 行多く折れた
         frame.margin_left = frame.margin_right = Emu(theme.spacing.text_inset)
     frame.vertical_anchor = MSO_ANCHOR.MIDDLE if element.middle or element.kind in {
-        "band_text", "title", "caption", "label", "lane", "stage", "marker", "kicker_beside", "agenda_number"} else MSO_ANCHOR.TOP
+        "band_text", "title", "caption", "label", "lane", "stage", "marker", "agenda_number"} else MSO_ANCHOR.TOP
     # 題は、乗るレイアウトに題の枠が在れば、その枠として書く (= 色・書体・太さはテンプレートのもの)
     titled = element.kind == "title" and theme.under.title
     for index, line in enumerate(element.text.split("\n")):
@@ -308,14 +308,18 @@ def _text(slide, element: Text, theme: Theme) -> None:
         _leaded(paragraph, element.size, theme)
         if element.bullets:
             _bulleted(paragraph, element.size)
-        run = paragraph.add_run()
-        run.text = line
-        run.font.size = Pt(element.size)
-        if titled:
-            continue
-        run.font.bold = element.bold
-        run.font.color.rgb = _colour(element.colour)
-        run.font.name = element.family or theme.type.family
+        if element.lead:
+            _hung(paragraph, element.lead, theme, first=index == 0)
+        # 頭の字の後ろの tab は、続く字と同じ書式の run にする (= 行の高さを続く字のまま保つ)
+        for words in ("\t", line) if element.lead and index == 0 else (line,):
+            run = paragraph.add_run()
+            run.text = words
+            run.font.size = Pt(element.size)
+            if titled:
+                continue
+            run.font.bold = element.bold
+            run.font.color.rgb = _colour(element.colour)
+            run.font.name = element.family or theme.type.family
     if titled:
         _as_title(box, theme)
 
@@ -341,6 +345,32 @@ def _bulleted(paragraph, size: float) -> None:
     properties.set("marL", str(indent))
     properties.set("indent", str(-indent))
     properties.append(properties.makeelement(qn("a:buChar"), {"char": "\u2022"}))
+
+
+def _hung(paragraph, lead: Lead, theme: Theme, *, first: bool) -> None:
+    """Stand a paragraph in by the lead's width, and on the first one set the lead in front of the words.
+
+    1 行目は字下げを負にして枠の左端から始め、頭の字の run の後ろの tab で、続く字を字下げの位置へ送る
+    (= tab の位置も同じ幅に書く。書かなければ、頭の字が少しでも長く描かれた時に既定の tab の位置まで飛ぶ)。
+    折れた行と 2 つめからの段落は字下げの位置に揃う。
+
+    ⚠ **頭の字は、題の枠として書く時も書式を run に直に書く** (= 大きさ・色・太さ・書体)。題の枠の書式は
+    テンプレートから継ぐので、書かなければ頭の字が題と同じ大きさと色になる。
+    """
+    properties = paragraph._p.get_or_add_pPr()
+    properties.set("marL", str(lead.width))
+    if not first:
+        return
+    properties.set("indent", str(-lead.width))
+    tabs = properties.makeelement(qn("a:tabLst"), {})
+    tabs.append(tabs.makeelement(qn("a:tab"), {"pos": str(lead.width), "algn": "l"}))
+    properties.append(tabs)
+    run = paragraph.add_run()
+    run.text = lead.text
+    run.font.size = Pt(lead.size)
+    run.font.bold = True
+    run.font.color.rgb = _colour(lead.colour)
+    run.font.name = theme.type.family
 
 
 def _as_title(box, theme: Theme) -> None:

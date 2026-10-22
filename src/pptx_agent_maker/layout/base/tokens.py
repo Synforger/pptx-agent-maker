@@ -128,10 +128,11 @@ class Type:
     tight: float = 1.0
     #: 余白と間隔のうち、1 つずつ決めた物 (= 名前と EMU。倍率より勝つ)。書けるのは案件の名前付きの使い方だけ
     spaced: tuple[tuple[str, int], ...] = ()
-    #: 案件が書いた `band` と `display` と `tag` (= 書かなければ None で、下の 3 つが他の役から出す)
+    #: 案件が書いた `band` と `display` と `tag` と `kicker` (= 書かなければ None で、下の 4 つが他の役から出す)
     band_set: float | None = None
     display_set: float | None = None
     tag_set: float | None = None
+    kicker_set: float | None = None
     #: この使い方が選んだ本体の箱の高さ (= `BOX_HEIGHTS`)。書かなければ None で、資料の `[theme] box_height`
     #: に倣う。案件が読み込む時 (= `theme_from`) に、書かなかった使い方へ資料の値が入る
     box_height_set: str | None = None
@@ -170,6 +171,16 @@ class Type:
         (= `card_text`) と、描く側 (= `Page.boxes`) が同じ値を読む。
         """
         return self.heading if self.tag_set is None else self.tag_set
+
+    @property
+    def kicker(self) -> float:
+        """題の上の小さい字 (= 章の番号と名前)。**書かなければ出所の字。**
+
+        題の左に同じ行で置く資料 (= `[theme] kicker = "beside"`) では、書かなければ題の字 (= `Theme.kicker_size`。
+        置き場は `Type` からは見えないので、置き場で変わる既定はそちらが持つ)。題より小さくして差し色の見出しに
+        見せる資料のための口で、上に置く時は、題の上の段の高さもこの大きさに付いて行く (= `_furniture`)。
+        """
+        return self.caption if self.kicker_set is None else self.kicker_set
 
     @property
     def plan(self) -> tuple[float, ...]:
@@ -216,8 +227,8 @@ TABLE_LOOKS = ("accent", "plain")
 #: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
 SIZED = ("title", "heading", "stage", "body", "caption")
 #: そのほか、案件が書ける役 (= `[theme.type]`)。書かなければ他の役から出る (= `Type.band` と `Type.tag` は
-#: 見出し、`Type.display` は題の 2 倍)。書いた値は `Type` の `<名前>_set` に入る
-DERIVED = ("band", "display", "tag")
+#: 見出し、`Type.display` は題の 2 倍、`Type.kicker` は出所の字か題の字)。書いた値は `Type` の `<名前>_set` に入る
+DERIVED = ("band", "display", "tag", "kicker")
 #: 行の高さの見積り (= 字の大きさに対する倍率)。案件が `leading` を書かなければ、これで数え、行間は書体に任せる
 LEADING = 1.45
 #: 案件が書ける `leading` の幅 (= 1 より詰めると行が重なり、2 を越えると行の間が段落の間に見える)
@@ -549,7 +560,7 @@ class Theme:
         type = replace(known[use], family=self.type.family)
         box_height = type.box_height_set or self.box_height
         table_look = type.table_look_set or self.table_look
-        return replace(self, use=use, type=type, spacing=_furniture(type), box_height=box_height,
+        return replace(self, use=use, type=type, spacing=_furniture(type, self.kicker), box_height=box_height,
                        table_look=table_look)
 
     def ground_names(self) -> tuple[str, ...]:
@@ -734,11 +745,25 @@ class Theme:
                 left = max(left, thing.right + gap)
         return left, right
 
+    @property
+    def kicker_size(self) -> float:
+        """The size of the small words of a title: as the project wrote it, else as where they stand says.
+
+        書かなければ、上に置く時は出所の字、題の左に置く時は題の字 (= 今までの見た目)。
+        """
+        if self.type.kicker_set is None and self.kicker == "beside":
+            return self.type.title
+        return self.type.kicker
+
     def kicker_lead(self, kicker: str) -> int:
-        """How much of the title's line the small words take when they stand beside it (= none above it)."""
+        """How much of the title's line the small words take when they stand beside it (= none above it).
+
+        字の幅と、題との間の空き (= 文字の枠の左右の余白 1 つぶん)。書き出しは、この幅を題の段落のぶら下げの
+        字下げに書く (= 題の 1 行目はこの位置から、折れた行もこの位置に揃う)。
+        """
         if not kicker or self.kicker != "beside":
             return 0
-        return self.spacing.text_inset + self.width(kicker, self.type.title, bold=True)
+        return self.spacing.text_inset + self.width(kicker, self.kicker_size, bold=True)
 
     def crossed(self, band: Rect) -> bool:
         """Whether the layout prints something across the middle of a band (= what `clear` cannot keep off).
@@ -922,7 +947,7 @@ def theme_from(settings: dict | None) -> Theme:
         scales=tuple(scales.items()),
         type=type,
         palette=Palette(**{name: str(value).upper() for name, value in colours.items()}),
-        spacing=_furniture(type),
+        spacing=_furniture(type, kicker),
         grounds=_grounds(settings.get("grounds")),
         kicker=kicker,
         box_height=type.box_height_set,
@@ -1072,7 +1097,7 @@ def _spaced(base: Type, declared, where: str) -> Type:
     return replace(base, tight=scale, spaced=tuple((name, cm(value)) for name, value in one_by_one.items()))
 
 
-def _furniture(type: Type) -> Spacing:
+def _furniture(type: Type, kicker: str) -> Spacing:
     """The spacing of a deck set in these sizes: the bands grow with the type that sits in them.
 
     題の帯・条件と結論の帯・出所の帯の高さは、そこに置く字の大きさに比例する (= 読ませる資料の
@@ -1087,6 +1112,8 @@ def _furniture(type: Type) -> Spacing:
 
     ⚠ **題の帯は 2 段で、段ごとに自分の字の大きさに比例する** (= 題の上の小さい字の段と、題の段)。
     帯を題の大きさだけで決めていた間は、小さい字だけを大きくした案件で、小さい字が題の頭に乗った。
+    小さい字の段は、上に置く資料では小さい字 (= `Type.kicker`) に、題の左に置く資料では出所の字に比例する
+    (= 横に置く資料は段を使わず、帯の高さは上に置く時と同じ。小さい字の大きさを変えても帯は動かない)。
     """
     base, read = Spacing(), USES["read"]
     if type.tight != 1:
@@ -1100,15 +1127,16 @@ def _furniture(type: Type) -> Spacing:
         # 題の下の間は、別に書かなければ帯と本体の間と同じ (= 今まで)
         distances = {"title_gap": distances["band_gap"], **distances}
     base = replace(base, **distances)
-    kicker = round(base.kicker_height * type.caption / read.caption)
+    small = type.kicker if kicker == "above" else type.caption
+    step = round(base.kicker_height * small / read.caption)
     said = dict(type.spaced)
     # 帯の高さは、書いた使い方では書いた値のまま ― 字に比例しない帯 (= 上と下で字の大きさが違う) を書くための口。
     # 結論の帯は、書かなければ上の帯と同じ高さ
     band = said["band_height"] if "band_height" in said else round(base.band_height * type.band / read.band)
     return replace(
         base,
-        kicker_height=kicker,
-        title_height=kicker + round((base.title_height - base.kicker_height) * type.title / read.title),
+        kicker_height=step,
+        title_height=step + round((base.title_height - base.kicker_height) * type.title / read.title),
         band_height=band,
         conclusion_height=said.get("conclusion_height", band),
         footer_height=round(base.footer_height * type.caption / read.caption),

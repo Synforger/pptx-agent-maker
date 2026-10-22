@@ -179,3 +179,15 @@ table = [
 ]
 note = "The deck's tables have a heading row on the accent; this use's are plain"
 footer = "made up for the corpus"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+use = "headed"
+kicker = "05 | Headed"
+title = "A use sets the small words above a title larger than the captions"
+condition = "The small words are 13 points; the row they stand in grows with them"
+cards = [
+  { heading = "Above", body = "the small words keep their own row over the title" },
+  { heading = "Title", body = "the title's own row is as tall as ever" },
+]

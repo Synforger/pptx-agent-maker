@@ -83,7 +83,7 @@ new = "    titled = theme.under.title"
 [[mutant]]
 name = "the title carries the toolkit's colour into the placeholder"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "        if titled:\n            continue\n"
+old = "            if titled:\n                continue\n"
 new = ""
 
 [[mutant]]

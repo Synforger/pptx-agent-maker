@@ -17,7 +17,7 @@ new = "        add_page(deck, page.build(), theme)"
 [[mutant]]
 name = "a look in another use keeps the bands of the first"
 file = "src/pptx_agent_maker/layout/base/tokens.py"
-old = "spacing=_furniture(type), box_height=box_height,"
+old = "spacing=_furniture(type, self.kicker), box_height=box_height,"
 new = "box_height=box_height,"
 
 [[mutant]]
