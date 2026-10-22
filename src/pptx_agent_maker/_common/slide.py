@@ -31,6 +31,12 @@ SPANNED = re.compile(r'[^<>]*\b[hv]Merge="1"')
 TEXT_SHAPE = re.compile(r"<p:sp>(.*?)</p:sp>", re.S)
 TITLE_PLACEHOLDER = re.compile(r'<p:ph\b[^>]*\btype="(?:title|ctrTitle)"')
 ROW = re.compile(r"<a:tr[ >](.*?)</a:tr>", re.S)
+PARAGRAPH = re.compile(r"<a:p[ >](.*?)</a:p>", re.S)
+LINE_BREAK = re.compile(r"<a:br\b(?:[^>]*/>|[^>]*>.*?</a:br>)", re.S)
+CHART_OF_SLIDE = re.compile(r'Target="[^"]*/charts/(chart\d+\.xml)"')
+#: グラフの部品が持つ文字の写し (= 項目名・系列名)。数の写し (`numCache`) は読まない
+STRING_CACHE = re.compile(r"<c:str(?:Cache|Lit)>(.*?)</c:str(?:Cache|Lit)>", re.S)
+CACHED_VALUE = re.compile(r"<c:v>(.*?)</c:v>", re.S)
 
 
 @dataclass(frozen=True)
@@ -92,12 +98,29 @@ class BuiltSlide:
     beneath: tuple["Shape", ...] = ()
     #: そのレイアウトとマスターの XML (= 題の文字の大きさのように、図形の外に書かれる物を読む)
     under: tuple[str, ...] = ()
+    #: この頁に載ったグラフの部品の XML (= 載っていなければ空)
+    charts: tuple[str, ...] = ()
 
     def shapes(self) -> list[Shape]:
         return shapes_in(self.xml)
 
     def texts(self) -> list[str]:
         return [html.unescape(t) for t in TEXT.findall(self.xml)]
+
+    def lines(self) -> list[str]:
+        """The words on the page, a line at a time, with the runs of a paragraph joined.
+
+        ⚠ 1 語が太字の run の境で割れていても、1 行として読める (= `texts()` は run ごと)。
+        段落の中の改行 (`<a:br/>`) は行を分ける。
+        """
+        return lines_of(self.xml)
+
+    def chart_lines(self) -> list[str]:
+        """The words inside the charts on the page: titles, axis names, item names and series names.
+
+        絵の中の字と、グラフの下に付く表 (= 埋め込みの Excel) の中身は読まない。
+        """
+        return [line for chart in self.charts for line in chart_lines_of(chart)]
 
     def title(self) -> str | None:
         """The XML of the page's title placeholder, when it has one that says something.
@@ -129,6 +152,19 @@ class BuiltSlide:
         return best
 
 
+def lines_of(xml: str) -> list[str]:
+    """The words in one part's XML, a line at a time: the runs of a paragraph joined, a break starting a new line."""
+    lines = (html.unescape("".join(TEXT.findall(line)))
+             for body in PARAGRAPH.findall(xml) for line in LINE_BREAK.split(body))
+    return [line for line in lines if line]
+
+
+def chart_lines_of(xml: str) -> list[str]:
+    """The words in one chart part: what its rich text says (= titles, axis names), then its item and series names."""
+    cached = [html.unescape(value) for cache in STRING_CACHE.findall(xml) for value in CACHED_VALUE.findall(cache)]
+    return [*lines_of(xml), *cached]
+
+
 def shapes_in(xml: str) -> list[Shape]:
     """Every placed shape in one part's XML."""
     found: list[Shape] = []
@@ -154,8 +190,20 @@ def read(deck: Path) -> list[BuiltSlide]:
         for number, name in enumerate(order, start=1):
             under = _under(archive, name)
             pages.append(BuiltSlide(number, name, archive.read(f"ppt/slides/{name}").decode("utf-8"),
-                                    tuple(shape for part in under for shape in shapes_in(part)), under))
+                                    tuple(shape for part in under for shape in shapes_in(part)), under,
+                                    charts=_charts(archive, name)))
         return pages
+
+
+def _charts(archive: zipfile.ZipFile, slide: str) -> tuple[str, ...]:
+    """The chart parts a page points at, as XML (= the ones the file does not hold are left out)."""
+    try:
+        rels = archive.read(f"ppt/slides/_rels/{slide}.rels").decode("utf-8")
+    except KeyError:
+        return ()
+    names = set(archive.namelist())
+    return tuple(archive.read(f"ppt/charts/{chart}").decode("utf-8")
+                 for chart in dict.fromkeys(CHART_OF_SLIDE.findall(rels)) if f"ppt/charts/{chart}" in names)
 
 
 def _under(archive: zipfile.ZipFile, slide: str) -> tuple[str, ...]:
