@@ -99,6 +99,22 @@ cd <案件のフォルダ> && task build -- example
 **頁に番号を振るテンプレート** (= 頁が頁番号の枠を持つ) **では、型の頁もレイアウトの頁番号の枠を持つ** ―
 複製した頁と同じ所に、同じ見た目で番号が出る。番号を持たない 1 枚目 (= 表紙) は数えず、その次の頁が 1 になる。
 
+## エージェントで使う
+
+この repo は Claude Code の plugin でもある。入っている skill は `making-decks` の 1 本で、資料を作る時に
+エージェントが何を先に読むか、資料の作法に新しい決まりを足す場所、ツールを通さずに作った `.pptx` の
+直し方を伝える。ツール本体は先に入れておく (= 「3 つの層」 の下の 3 行)。plugin が足すのは手順書で、
+コマンドは足さない。
+
+```bash
+claude plugin marketplace add Synforger/pptx-agent-maker
+claude plugin install pptx-agent-maker@pptx-agent-maker
+```
+
+checkout から入れるなら、repo の名前の代わりに folder を渡す: `claude plugin marketplace add <この checkout の path>`。
+skill は `/pptx-agent-maker:making-decks` で、資料の話になるとエージェントが自分で呼ぶ。checkout を pull すれば、
+次の session (= もしくは `/reload-plugins`) で届く。
+
 ## この repo の中身
 
 ```
