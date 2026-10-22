@@ -57,14 +57,14 @@ new = "(*_USE_KEYS, *SIZED))"
 [[mutant]]
 name = "a plain band is set at the size of a heading"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "text, t.band, p.ink, bold=conclusion)"
-new = "text, t.heading, p.ink, bold=conclusion)"
+old = "text, size, p.ink, bold=bold)"
+new = "text, t.heading, p.ink, bold=bold)"
 
 [[mutant]]
 name = "an outlined condition is set at the size of a heading"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "text, t.body if conclusion else t.band,"
-new = "text, t.body if conclusion else t.heading,"
+old = "size = t.body if outlined and conclusion else t.band"
+new = "size = t.body if outlined and conclusion else t.heading if outlined else t.band"
 
 # -- what a card says and how tall it stands (layout/parts/page.py) --------------
 
