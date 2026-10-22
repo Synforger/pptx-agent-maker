@@ -1,0 +1,35 @@
+# How wide one character runs: a table per family of typefaces, and a bold table measured character by character.
+
+tests = ["tests/layout/test_flow.py"]
+
+[[mutant]]
+name = "bold is counted with one factor over the regular table"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "return _ADVANCE_BOLD_OF[group].get(character, _ADVANCE_OTHER * _BOLD[group])"
+new = "return _ADVANCE_OF[group].get(character, _ADVANCE_OTHER) * _BOLD[group]"
+
+[[mutant]]
+name = "bold is counted as wide as regular"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "return _ADVANCE_BOLD_OF[group].get(character, _ADVANCE_OTHER * _BOLD[group])"
+new = "return _ADVANCE_OF[group].get(character, _ADVANCE_OTHER)"
+
+[[mutant]]
+name = "a bold character no table holds loses the bold factor"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "return _ADVANCE_BOLD_OF[group].get(character, _ADVANCE_OTHER * _BOLD[group])"
+new = "return _ADVANCE_BOLD_OF[group].get(character, _ADVANCE_OTHER)"
+
+[[mutant]]
+name = "a typeface is read without its family's table"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = 'group = next((table for head, table in _FAMILY.items() if name.startswith(head)), "any")'
+new = 'group = "any"'
+
+[[mutant]]
+name = "a wide character is counted as half a square"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = """    if ord(character) > 0x2E7F:
+        return 1.0"""
+new = """    if ord(character) > 0x2E7F:
+        return 0.5"""
