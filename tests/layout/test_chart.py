@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -885,6 +886,7 @@ class TheChartTravelsWithItsPage(unittest.TestCase):
         self.assertIn("<a:t>up</a:t>", slide)
         self.assertEqual([], checks.run_all(out))
 
+    @unittest.skipUnless(shutil.which("soffice"), "converts a deck for real: needs LibreOffice (soffice), which the machine that runs `task ci` before a commit has")
     def test_a_deck_with_charts_converts(self) -> None:
         """LibreOffice reading it end to end is the closest check to opening it."""
         out = self.dir / "built.pptx"

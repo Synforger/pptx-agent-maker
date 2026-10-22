@@ -8,13 +8,12 @@ name: CI
 # Visibility guard: public-repo runner minutes are free; on a private
 # repository this workflow refuses to run so it can never consume the
 # plan's minute quota. Local gates remain the source of truth there.
+#
+# LibreOffice is not installed here: it is 89 MB from a mirror that is slow on some runs, and the three tests
+# that convert a deck for real skip without it. They run on the machine that runs `task ci` before a commit.
 
 on:
   pull_request:
-  # A run on develop keeps the fetched packages where every pull request can read them (= a pull request's
-  # own cache is kept for that pull request only).
-  push:
-    branches: [develop]
   workflow_dispatch:
 
 concurrency:
@@ -25,51 +24,13 @@ jobs:
   gates:
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0   # the docs gate resolves references against history
       - name: Install go-task
         run: sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
-      - name: Bring back the packages earlier runs fetched
-        # The mirror the runners fetch from runs at a few hundred kB/s on some runs and tens of MB/s on others:
-        # LibreOffice is 89 MB, so a slow run ran out of time before the tests began. The packages earlier runs
-        # fetched are kept between runs, and only what is still missing is fetched again.
-        uses: actions/cache/restore@v6
-        with:
-          path: ~/apt-archives
-          key: apt-${{ runner.os }}-libreoffice-${{ github.run_id }}
-          restore-keys: apt-${{ runner.os }}-libreoffice-
-      - name: Install LibreOffice
-        # One test converts a built deck end to end — the closest thing to
-        # opening it in PowerPoint, and how the repair dialog would be caught.
-        # poppler-utils turns the converted pages into pictures (= the preview's
-        # own end-to-end test).
-        # Each fetch gives up after 30 s and is tried again, and the output stays on so the log shows which fetch
-        # is slow. The man-db index is not rebuilt (= minutes of the install, for manual pages nothing reads here).
-        timeout-minutes: 15
-        run: |
-          sudo rm -f /var/lib/man-db/auto-update
-          mkdir -p ~/apt-archives
-          sudo cp ~/apt-archives/*.deb /var/cache/apt/archives/ 2>/dev/null || true
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Dpkg::Use-Pty=0 \
-            -o APT::Keep-Downloaded-Packages=true install -y --no-install-recommends libreoffice-impress poppler-utils
-      - name: Gather the packages fetched so far
-        # Kept even when the install ran out of time: a slow run saves the packages it finished, and the next run
-        # fetches only the rest (= a cache kept only after a green run would never fill on a slow day).
-        if: always()
-        run: |
-          mkdir -p ~/apt-archives
-          rm -f ~/apt-archives/*.deb
-          cp /var/cache/apt/archives/*.deb ~/apt-archives/ 2>/dev/null || true
-      - name: Keep the packages for the next run
-        if: always()
-        uses: actions/cache/save@v6
-        with:
-          path: ~/apt-archives
-          key: apt-${{ runner.os }}-libreoffice-${{ github.run_id }}
       - name: Install uv
         # Every gate runs through `uv run`, which builds the environment from
         # .python-version and uv.lock the first time it is called.

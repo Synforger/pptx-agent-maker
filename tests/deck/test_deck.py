@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import struct
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -149,6 +150,7 @@ class DeckTest(unittest.TestCase):
             with Deck.open(self.specimen, self.dir / "empty.pptx"):
                 pass
 
+    @unittest.skipUnless(shutil.which("soffice"), "converts a deck for real: needs LibreOffice (soffice), which the machine that runs `task ci` before a commit has")
     def test_the_built_deck_converts(self) -> None:
         """LibreOffice reading it end to end is the closest check to opening it."""
         out = self.dir / "built.pptx"
