@@ -483,6 +483,38 @@ class WhatTheTypesRefuse(unittest.TestCase):
         self.assertIn("ページ b", folded)
         self.assertNotIn("ページ c", folded)
 
+    def test_the_list_can_be_numbered_chapters_by_the_disc_items_from_one_in_each_chapter(self):
+        """`list_marks = "numbers"` は章を右の丸と同じ数、 小項目を章ごとに 「(1)」 から、 下の段は印なしにする。
+
+        色と太字の決まりは印のままと同じ (= 今の章の印は差し色、 小項目の印は灰)。
+        """
+        page, p = build({**self.CARDS, "buckets": self.NESTED, "highlight": 2, "list_marks": "numbers"}), DEFAULT.palette
+        marks = self._kind(page, "agenda_mark")
+        self.assertEqual(["1", "(1)", "(2)", "2", "(1)", "(2)"], [e.text for e in marks])
+        self.assertEqual([p.ink, p.muted, p.muted, p.accent, p.muted, p.muted], [e.colour for e in marks])
+        self.assertEqual([e.text for e in self._kind(page, "agenda_number")], [e.text for e in marks if "(" not in e.text])
+        rows = {e.text: e for e in self._kind(page, "agenda_item")}
+        self.assertEqual(rows["ページ c"].rect.left, rows["ページ d"].rect.left)
+        self.assertLess(rows["ページ c"].rect.left, rows["なか 2"].rect.left + rows["なか 2"].rect.width)
+
+    def test_numbered_items_keep_the_words_of_one_level_in_one_line_down_the_page(self):
+        """「(9)」 と 「(10)」 の後の字の頭が揃う (= 印の幅は段ごとに一番広い物)。"""
+        chapter = ["しょう", [f"こうもく {index}" for index in range(1, 11)]]
+        page = build({**self.CARDS, "buckets": [chapter], "highlight": 1, "list_marks": "numbers"})
+        items = [e for e in self._kind(page, "agenda_item") if e.text.startswith("こうもく")]
+        self.assertEqual(1, len({e.rect.left for e in items}))
+
+    def test_the_marks_stay_as_they_are_when_the_list_is_not_numbered(self):
+        plain, said = build(self.CARDS), build({**self.CARDS, "list_marks": "marks"})
+        self.assertEqual([(e.text, e.rect) for e in self._kind(plain, "agenda_mark")],
+                         [(e.text, e.rect) for e in self._kind(said, "agenda_mark")])
+
+    def test_list_marks_is_refused_outside_the_cards_and_in_a_word_it_does_not_read(self):
+        with self.assertRaisesRegex(PageTypeError, r"`list_marks` sets the marks of the list `look = \"cards\"`"):
+            build({**self.AGENDA, "list_marks": "numbers"})
+        with self.assertRaisesRegex(PageTypeError, r"`list_marks` is 'letters'"):
+            build({**self.CARDS, "list_marks": "letters"})
+
     def test_an_item_to_mark_is_counted_among_the_items_not_the_names_under_them(self):
         page = build({**self.CARDS, "buckets": self.NESTED, "highlight": 2, "highlight_item": 2})
         self.assertEqual(["しょう 2", "なか 3"], [e.text for e in self._kind(page, "agenda_item") if e.bold])

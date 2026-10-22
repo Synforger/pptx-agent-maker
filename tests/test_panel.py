@@ -90,6 +90,21 @@ class TheLookOfAPanelIsTheLookOfTheDeck(unittest.TestCase):
         self.assertEqual((fill, edge), (box.colour, box.outline))
         self.assertEqual(P.ink, text_of(page, "Heading").colour)
 
+    def test_in_an_outlined_deck_a_named_ground_of_middle_lightness_is_carried_by_the_edge_as_a_deep_one_is(self) -> None:
+        """A bright colour that the body's words can be read on is still no pale ground: it takes the edge, not a fill."""
+        theme = theme_from({"grounds": {"Orange": "F79646", "Rust": "D9661F", "Blush": "FDECE3"}, "card_look": "outlined"})
+        for tone, edge in (("Orange", "F79646"), ("Rust", "D9661F")):
+            with self.subTest(tone=tone):
+                box = one(compose([row(panel(row(card()), tone=tone, heading="Heading"))], theme), "panel")
+                self.assertEqual((edge, P.thinned(P.CARD_WASH, edge)), (box.outline, box.colour))
+        # the heading of the bright one stays readable on the paper: the ink of the body
+        page = compose([row(panel(row(card()), tone="Orange", heading="Heading"))], theme)
+        self.assertEqual(P.ink, text_of(page, "Heading").colour)
+        # a ground as near the paper as the palette's own pale ones keeps its own ground
+        fill, _words, edge = Page("p", theme).ground("Blush")
+        box = one(compose([row(panel(row({"text": "x"}), tone="Blush", heading="Heading"))], theme), "panel")
+        self.assertEqual((fill, edge), (box.colour, box.outline))
+
     def test_a_panel_takes_the_tones_a_card_takes_and_the_grounds_a_project_named(self) -> None:
         for theme in (FILLED, OUTLINED):
             for tone in ("box", "band", "tint", "accent", "good", "bad", "Deep", "Pale"):
@@ -265,6 +280,28 @@ class TheHeightOfAPanel(unittest.TestCase):
                      row({"figure": "dot.png"}), row(card("Fixed", "words " * 200)))
         with self.assertRaisesRegex(PageFullError, r"row 1, cell 1, panel"):
             compose([row(tall), row(card("Under", "words " * 200))])
+
+    def test_a_panel_that_holds_a_panel_with_a_picture_takes_what_is_left_as_the_inner_one_would_alone(self) -> None:
+        inner = panel(row({"figure": "dot.png"}), heading="Inner")
+        lead = row({"text": "lead " * 200})
+        nested = compose([lead, row(panel(row(inner, weight=1), heading="Outer"), weight=1)])
+        alone = compose([lead, row(inner, weight=1)])
+        outer, little = kinds(nested, "panel")
+        self.assertEqual(one(alone, "panel").rect, outer.rect)
+        self.assertEqual(outer.rect.inset(S.pad).inset(top=text_of(nested, "Outer").rect.height + S.gap_s), little.rect)
+
+    def test_a_panel_left_too_low_by_the_rows_beside_it_names_the_panel_and_what_the_other_rows_take(self) -> None:
+        inner = panel(row({"figure": "dot.png"}), heading="Inner")
+        with self.assertRaisesRegex(
+                PageFullError,
+                r"row 2, cell 1, panel: row 1, cell 1: a panel has \d+ EMU of height inside and its heading takes \d+"
+                r".*compose: row 2 shares the \d+ EMU the other rows leave of \d+, and they take \d+"):
+            compose([row({"text": "lead " * 500}), row(panel(row(inner, weight=1), heading="Outer"), weight=1)])
+
+    def test_a_panel_too_low_with_nothing_beside_it_says_no_more_than_before(self) -> None:
+        with self.assertRaises(PageFullError) as stopped:
+            compose([row(panel(row({"figure": "dot.png"}), heading="Head " * 400), weight=1)])
+        self.assertNotIn("shares the", str(stopped.exception))
 
 
 class InADeckThatUsesThePageHeight(unittest.TestCase):
@@ -467,6 +504,46 @@ class WhatMayBeWritten(unittest.TestCase):
 
     def test_an_error_inside_a_panel_says_which_row_and_cell_of_which_panel(self) -> None:
         self.refused(panel(row(card()), row({"text": "x", "role": "huge"})), r"row 1, cell 1, panel: row 2, cell 1.*role")
+
+
+class ACardBesideAPanel(unittest.TestCase):
+    """A card in a row with a panel sets its words from the top, as the panel sets its heading, in every look."""
+
+    LOOKS = {"filled": FILLED, "outlined": OUTLINED, "page": FULL}
+
+    def test_the_heading_of_the_card_stands_at_the_height_of_the_heading_of_the_panel(self) -> None:
+        for name, theme in self.LOOKS.items():
+            for beside in (card("B", "Some words"), card("B", ""), card("B", "words " * 30)):
+                with self.subTest(look=name, body=beside["card"]["body"][:10]):
+                    page = compose([row(panel(row({"figure": "dot.png"}), heading="A", tone="accent"), beside)], theme)
+                    self.assertEqual(text_of(page, "A").rect.top, text_of(page, "B").rect.top)
+                    self.assertFalse(text_of(page, "B").middle)
+
+    def test_the_same_inside_a_panel(self) -> None:
+        inside = row(panel(row({"figure": "dot.png"}), heading="A"), card("B", "Some words"), weight=1)
+        page = compose([row(panel(inside, heading="Outer"), weight=1)], FULL)
+        self.assertEqual(text_of(page, "A").rect.top, text_of(page, "B").rect.top)
+
+    def test_a_card_in_a_row_without_a_panel_still_stands_in_the_middle_of_its_box(self) -> None:
+        page = compose([row({"figure": "dot.png"}, card("B", "Some words"), weight=1)], FULL)
+        box = one(page, "box").rect
+        self.assertGreater(text_of(page, "B").rect.top, box.top + S.pad)
+
+    def test_a_tag_beside_a_panel_keeps_its_word_in_the_middle(self) -> None:
+        page = compose([row(panel(row({"figure": "dot.png"}), heading="A"), card("Tag", "", tag=True))], FULL)
+        tag = text_of(page, "Tag")
+        self.assertTrue(tag.middle)
+
+    def test_written_out_the_checks_find_nothing_wrong(self) -> None:
+        for name, theme in self.LOOKS.items():
+            with self.subTest(look=name):
+                rows = [row(panel(row({"figure": "dot.png"}), heading="A", tone="accent"), card("B", "Some words"))]
+                page = compose(rows, theme)
+                with tempfile.TemporaryDirectory() as tmp:
+                    deck = new_deck(theme)
+                    add_page(deck, page.build(), theme)
+                    found = checks.run_all(save(deck, Path(tmp) / "beside.pptx"))
+                self.assertEqual([], [f for f in found if f.check == "near_alignment"])
 
 
 class WrittenOutTheChecksFindNothingWrong(unittest.TestCase):

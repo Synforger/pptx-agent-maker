@@ -330,3 +330,29 @@ name = "a panel takes its tone the way no card does"
 file = "src/pptx_agent_maker/layout/types/core/read.py"
 old = "return Panel(heading.strip(), read_style(spec, item, what, TONES[0]), rule)"
 new = 'return Panel(heading.strip(), read_style(spec, item, what, "accent"), rule)'
+
+# -- a card beside a panel, and a panel left too low --
+
+[[mutant]]
+name = "a card beside a panel sets its words in the middle of its box again"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "                       top=by_panel)"
+new = "                       top=False)"
+
+[[mutant]]
+name = "an outlined card asked to start at the top still stands in the middle"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "middle = outlined and not top"
+new = "middle = outlined"
+
+[[mutant]]
+name = "a panel left too low by the rows beside it does not say what they take"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if height is not None or not fixed:"
+new = "if True:"
+
+[[mutant]]
+name = "an outlined box of a named ground of middle lightness is filled with it again"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = " or (style.tone not in LIGHT and not p.pale(fill)):"
+new = ":"

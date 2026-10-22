@@ -7,13 +7,13 @@ tests = ["tests/test_chart.py", "tests/test_scatter.py"]
 [[mutant]]
 name = "with a highlight, everything is grey"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "return (palette.accent if standing_out else palette.muted), \"\""
+old = "return (_standing_colour(page, standing_tone) if standing_out else palette.muted), \"\""
 new = "return palette.muted, \"\""
 
 [[mutant]]
 name = "the category that stands out is not painted"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "points=((one_category, palette.accent),) if one_category is not None else (),"
+old = "points=((one_category, _standing_colour(page, plan.highlight_tone)),) if one_category is not None else (),"
 new = "points=(),"
 
 [[mutant]]
@@ -897,3 +897,33 @@ name = "the median ring is as small as the marks, so a point of the row hides it
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
 old = "outline=palette.ink, mark=STRIP_MARK + RING_OVER))"
 new = "outline=palette.ink, mark=STRIP_MARK))"
+
+[[mutant]]
+name = "the one that stands out is painted in the accent whatever `highlight_tone` says"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    return page.ground(tone)[0] if tone else page.theme.palette.accent"
+new = "    return page.theme.palette.accent"
+
+[[mutant]]
+name = "a `highlight_tone` with no `highlight` is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if not highlight:\n        raise PageTypeError(f\"{what}: `highlight_tone`"
+new = "    if False:\n        raise PageTypeError(f\"{what}: `highlight_tone`"
+
+[[mutant]]
+name = "bars lower than their names are drawn over each other"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if slot < line:\n            raise PageFullError(f\"{what}: each of the {len(plan.categories)} bars has {max(slot, 0)"
+new = "        if False:\n            raise PageFullError(f\"{what}: each of the {len(plan.categories)} bars has {max(slot, 0)"
+
+[[mutant]]
+name = "columns whose numbers take half the plot are squashed under them"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "        if plot <= 0 or (line + s.bar_pad_y) * 2 >= plot:"
+new = "        if plot <= 0:"
+
+[[mutant]]
+name = "only a chart with callouts or notes is held to the height its bars need"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    _readable(page, plan, rect, legend, what)\n"
+new = ""

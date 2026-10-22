@@ -97,8 +97,8 @@ new = "        table_look=table_look,\n"
 [[mutant]]
 name = "the words of a card with a heading and a body are set by the middle of a frame as well"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "alone = (outlined or said.tag) and not (heading and body)"
-new = "alone = outlined or said.tag"
+old = "alone = (middle or said.tag) and not (heading and body)"
+new = "alone = middle or said.tag"
 
 [[mutant]]
 name = "the frame of single words is worked out from their height again"
@@ -127,8 +127,8 @@ new = "bold=True, align=align))"
 [[mutant]]
 name = "a filled deck sets the words of a tag at the top again"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "alone = (outlined or said.tag) and not (heading and body)"
-new = "alone = outlined and not (heading and body)"
+old = "alone = (middle or said.tag) and not (heading and body)"
+new = "alone = middle and not (heading and body)"
 
 [[mutant]]
 name = "the writer puts words that ask for the middle at the top"

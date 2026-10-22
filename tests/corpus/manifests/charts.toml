@@ -26,6 +26,7 @@ footer = "Source: regions.csv"
 kind = "bar"
 data = "regions.csv"
 highlight = "South"
+highlight_tone = "good"
 
 [[pages]]
 kind = "declare"

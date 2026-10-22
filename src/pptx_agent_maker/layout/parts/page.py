@@ -378,10 +378,10 @@ class Page:
     def outlined_look(self, style: Style, points: float | None = None, bold: bool = False) -> tuple[Look, str]:
         """How a card is painted when its colour goes to its line (= `card_look = "outlined"`): the look, and the heading's colour.
 
-        色を運ぶ役 (= `accent` / `good` / `bad`、濃い地に名前を付けた物) は、地を色のごく薄い色にし、その色が
-        枠と見出しの字を持つ (= 本文は本文の色のまま)。色が意味を言う物は、塗らずに線と字で言う。
-        意味を持たない薄い地 (= `box` / `band` / `tint`、薄い地に名前を付けた物) は、もう「ほぼ紙の色に枠」
-        なので今までのまま。`tentative` (= 内容未定) は本文の色の線と字 (= 色の役の外にある「まだ決まって
+        色を運ぶ役 (= `accent` / `good` / `bad`、作り付けの薄い地ほど紙に近くない地に名前を付けた物) は、地を
+        色のごく薄い色にし、その色が枠を持つ。見出しの字は紙の上で読めればその色、読めない明るい色なら本文の色
+        (= 本文は本文の色のまま)。色が意味を言う物は、塗らずに線と字で言う。意味を持たない薄い地 (= `box` /
+        `band` / `tint`、それと同じくらい紙に近い地に名前を付けた物) は、もう「ほぼ紙の色に枠」なので今までのまま。`tentative` (= 内容未定) は本文の色の線と字 (= 色の役の外にある「まだ決まって
         いない」を、黒で言う。点線にはしない ― 色が言う)。`strong` は線を太くする (= 色は変えない)。
         `points` と `bold` は、地に載る字の大きさと太さ (= `ground` と同じ。今までのままの地の判定に使う)。
         """
@@ -389,8 +389,11 @@ class Page:
         if style.tentative:
             return Look(p.paper, p.ink, p.ink, heavy=style.strong), p.ink
         head = self.tone_ink(style.tone, points, bold)
-        if self.carries_colour(style.tone, points, bold):
-            return Look(p.thinned(p.CARD_WASH, head), p.ink, head, heavy=style.strong), head
+        fill = self.ground(style.tone, points, bold)[0]
+        # 名前を付けた地は、作り付けの薄い地ほど紙に近くなければ色を運ぶ (= 枠がその色になる)。見出しの字は
+        # 紙の上で読める色のまま (= 明るい色の字は紙に溶けるので、本文の色)
+        if self.carries_colour(style.tone, points, bold) or (style.tone not in LIGHT and not p.pale(fill)):
+            return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill, heavy=style.strong), head
         return self.look(style, points, bold), head
 
     def carries_colour(self, tone: str, points: float | None = None, bold: bool = False) -> bool:
@@ -433,12 +436,14 @@ class Page:
             self.elements.append(Text("label", Rect(x + s.swatch + s.gap_s, y, wide - s.swatch - s.gap_s, line),
                                       name, t.body, p.ink))
 
-    def boxes(self, rect: Rect, cards: list[Card], *, gap: int | None = None) -> None:
+    def boxes(self, rect: Rect, cards: list[Card], *, gap: int | None = None, top: bool = False) -> None:
         """Cards side by side inside an area you already divided off.
 
         地の色は箱ごとの `tone` (= `TONES`)。薄い地の箱は枠を持つ (= `ground`)。アイコンの
         在る箱は、左上にアイコン、文字はその右に置く。`card_look = "outlined"` の資料では、色を運ぶ箱は
         地ではなく枠と見出しの字で色を言い、角を丸め、字を縦の中央に置く (= `outlined_look`)。
+        `top` は、どの資料でも字を箱の中の上端から置く (= 入れ物の見出しと同じ式。入れ物と並ぶカードの見出しが
+        入れ物の見出しと同じ高さに並ぶ。札は 1 行なので中央のまま)。
 
         見出しも本文も省ける (= 本文だけのカード、空のカード)。`align = "center"` は字を中央寄せにし、
         本文の各行を「•」の行にもできる。札 (= `tag`) は薄い灰の地に、色の役の色の枠と太字を 1 行で置く。
@@ -475,10 +480,11 @@ class Page:
             align = "center" if said.tag else said.align
             head_tall, body_tall = card_text(self.theme, said, max(inner.width - 2 * s.text_inset, 1))
             # 字が 1 つだけ (= 札、本文だけ、見出しだけ) なら、字の枠は箱の内側いっぱいで、縦の中央揃えが置く
-            alone = (outlined or said.tag) and not (heading and body)
+            middle = outlined and not top
+            alone = (middle or said.tag) and not (heading and body)
             if alone:
                 head = rest = inner
-            elif outlined:
+            elif middle:
                 # 字の塊 (= 見出しと本文) の真ん中を、箱の真ん中に置く
                 total = head_tall + (s.gap_s if head_tall and body_tall else 0) + body_tall
                 # 字の頭は枠の上端から `TEXT_INSET_Y` 下がるので、そのぶん枠を上げて塊の真ん中を箱の真ん中に合わせる

@@ -59,14 +59,14 @@ new = '''dashed=look.dashed, heavy=look.heavy, rounded=False))
 [[mutant]]
 name = "an outlined card's colour is not on its line"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "return Look(p.thinned(p.CARD_WASH, head), p.ink, head, heavy=style.strong), head"
-new = "return Look(p.thinned(p.CARD_WASH, head), p.ink, p.ink, heavy=style.strong), head"
+old = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill, heavy=style.strong), head"
+new = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, p.ink, heavy=style.strong), head"
 
 [[mutant]]
 name = "a strong outlined card is not heavier"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "return Look(p.thinned(p.CARD_WASH, head), p.ink, head, heavy=style.strong), head"
-new = "return Look(p.thinned(p.CARD_WASH, head), p.ink, head), head"
+old = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill, heavy=style.strong), head"
+new = "return Look(p.thinned(p.CARD_WASH, fill), p.ink, fill), head"
 
 [[mutant]]
 name = "a tentative outlined card is dashed"
@@ -205,5 +205,5 @@ new = "            tall = height + (next(more) if grows else 0)"
 [[mutant]]
 name = "a card in a row that shares the rest stands at its words' height"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = '            page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)])'
-new = "            page.boxes(rect if own_row else fitted, [_the_card(spec, cell, what)])"
+old = '            page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)],'
+new = "            page.boxes(rect if own_row else fitted, [_the_card(spec, cell, what)],"

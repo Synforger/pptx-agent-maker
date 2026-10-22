@@ -65,6 +65,8 @@ class WhatIsDrawn(unittest.TestCase):
         p = DEFAULT.palette
         self.assertEqual([p.accent, p.muted], [series.colour for series in chart_of(page()).series])
         self.assertEqual([p.muted, p.accent], [s.colour for s in chart_of(page(highlight="B 案")).series])
+        self.assertEqual([p.muted, p.bad],
+                         [s.colour for s in chart_of(page(highlight="B 案", highlight_tone="bad")).series])
         toned = chart_of(page(series=[A, {**B, "tone": "good"}]))
         self.assertEqual(p.good, toned.series[1].colour)
 
@@ -479,6 +481,8 @@ class AStripOfPoints(unittest.TestCase):
         self.assertEqual([p.accent, p.muted], [series.colour for series in chart_of(strip_page()).series])
         self.assertEqual([p.muted, p.accent],
                          [series.colour for series in chart_of(strip_page(highlight="Large")).series])
+        self.assertEqual([p.muted, p.bad],
+                         [series.colour for series in chart_of(strip_page(highlight="Large", highlight_tone="bad")).series])
         self.assertEqual(p.bad, chart_of(strip_page(series=[SMALL, {**LARGE, "tone": "bad"}])).series[1].colour)
 
     def test_the_median_of_a_row_is_a_ring_of_its_own_series_over_every_point_of_the_row(self) -> None:

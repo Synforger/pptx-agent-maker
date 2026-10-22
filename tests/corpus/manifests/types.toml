@@ -280,6 +280,20 @@ why = "an agenda drawn as cards: a card per chapter sharing the column, its summ
 
 [[pages]]
 kind = "declare"
+type = "agenda"
+title = "The list numbered: chapters as their discs, items from one in each chapter"
+look = "cards"
+list_marks = "numbers"
+buckets = [
+  ["Pictures", [["Taken", ["1-1 One", "1-2 Side by side"]], "On a grid"]],
+  ["Diagrams", [["Drawn", ["2-1 Flow", "2-2 Roadmap"]], ["Timed", ["2-3 Timeline"]]]],
+  ["Scaffolding", ["Cards", "Board"]],
+]
+highlight = 2
+why = "an agenda whose list is numbered: the chapters as the discs, the items from (1) in each chapter, the pages under them unmarked"
+
+[[pages]]
+kind = "declare"
 type = "board"
 title = "Cells that stand on a ground as deep as their value"
 table = [

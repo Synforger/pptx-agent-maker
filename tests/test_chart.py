@@ -71,6 +71,15 @@ class WhatIsDrawn(unittest.TestCase):
         self.assertEqual([P.muted, P.accent, P.muted], colours(chart))
         self.assertTrue(all(series.points == () for series in chart.series))
 
+    def test_the_one_that_stands_out_takes_the_highlight_tone_a_role_or_a_named_ground(self) -> None:
+        """The accent may be another meaning's colour on the page: `highlight_tone` paints the one in another."""
+        bar = a_chart(highlight="Q3", highlight_tone="good")
+        self.assertEqual([P.muted], colours(bar))
+        self.assertEqual(((2, P.good),), bar.series[0].points)
+        inked = theme_from({"grounds": {"Ink": "333333"}})
+        lines = a_chart(series=(NORTH, SOUTH, WEST), highlight="South", highlight_tone="Ink", theme=inked)
+        self.assertEqual([P.muted, "333333", P.muted], colours(lines))
+
     def test_series_nobody_coloured_run_from_the_accent_into_greys(self) -> None:
         self.assertEqual([P.accent, P.muted], colours(a_chart(series=(NORTH, SOUTH))))
         self.assertEqual([P.accent, P.muted, P.rule], colours(a_chart(series=(NORTH, SOUTH, WEST))))
@@ -286,6 +295,10 @@ class WhatIsRefused(unittest.TestCase):
         self.refused({"highlight": 3}, "`highlight` is the name of")
         self.refused({"series": [{"name": "Q1", "values": [1, 2, 3, 4]}], "highlight": "Q1"},
                      "names both a series and a category")
+
+    def test_a_highlight_tone_without_a_highlight_or_with_a_tone_nobody_named(self) -> None:
+        self.refused({"highlight_tone": "good"}, "`highlight_tone` is the colour of the one `highlight` names")
+        self.refused({"highlight": "Q3", "highlight_tone": "violet"}, "`highlight_tone` has tone 'violet'")
 
     def test_a_category_cannot_stand_out_among_several_series(self) -> None:
         self.refused({"series": [NORTH, SOUTH], "highlight": "Q3"}, "with 2 series, `highlight` names one of them")
@@ -1149,3 +1162,37 @@ class ALineUnderEachName(unittest.TestCase):
             a_chart("bar", series=({"name": "N", "values": list(range(1, 15))},), categories=many,
                     notes=["a note"] * 14)
         self.assertIn("name and its note need", str(stopped.exception))
+
+
+class TooLowToRead(unittest.TestCase):
+    """A chart too low for its bars stops wherever it stands: alone on a page, or in a row of rows under a table.
+
+    ⚠ **下限は注記の在る横棒にだけ掛かっていた。**入れ子の段で表に高さを取られた横棒 6 本は、数 pt の高さに
+    重なって描かれ、build は通った。
+    """
+
+    BARS = {"kind": "bar", "categories": [f"Region {n}" for n in range(1, 7)],
+            "series": [{"name": "Sales", "values": [3, 5, 8, 2, 6, 4]}]}
+
+    def squeezed(self, chart: dict, table_rows: int) -> None:
+        table = [["Name", "Value"]] + [[f"Row {n}", "1"] for n in range(table_rows)]
+        build({"type": "compose", "title": "A page", "rows": [{"weight": 1, "cells": [
+            {"rows": [{"cells": [{"text": "Label", "role": "label"}]}, {"cells": [{"table": table}]},
+                      {"weight": 1, "cells": [{"chart": chart}]}, {"cells": [{"text": "A note", "role": "note"}]}]},
+            {"figure": "dot.png"}]}]})
+
+    def test_bars_with_room_for_their_names_stand(self) -> None:
+        self.squeezed(self.BARS, 4)
+
+    def test_bars_in_a_row_of_rows_lower_than_their_names_stop(self) -> None:
+        with self.assertRaisesRegex(PageFullError, r"row 3, cell 1, chart: each of the 6 bars has \d+ pt, "
+                                                   r"and its name needs \d+ — more room, or fewer bars"):
+            self.squeezed(self.BARS, 12)
+
+    def test_columns_whose_numbers_would_take_half_the_plot_stop(self) -> None:
+        columns = {"kind": "column", "categories": QUARTERS, "series": [NORTH]}
+        with self.assertRaisesRegex(PageFullError, r"the numbers on the bars would take half the plot"):
+            self.squeezed(columns, 12)
+
+    def test_columns_without_numbers_on_them_are_not_held_to_it(self) -> None:
+        self.squeezed({"kind": "column", "categories": QUARTERS, "series": [NORTH], "labels": False}, 12)
