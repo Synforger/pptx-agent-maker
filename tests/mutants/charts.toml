@@ -211,7 +211,7 @@ new = ""
 [[mutant]]
 name = "the value axis is always there"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "    chart.value_axis.visible = element.axis\n"
+old = "    chart.value_axis.visible = element.axis or bool(named)\n"
 new = "    chart.value_axis.visible = True\n"
 
 [[mutant]]
@@ -363,10 +363,10 @@ old = "            if cell.strip():\n                points[column - 2].append((
 new = "            if True:\n                points[column - 2].append((x, number(cell or \"0\", row_number, column)))"
 
 [[mutant]]
-name = "a chart of categories takes the names of a scatter's axes"
+name = "a chart of categories reads the names of its axes and drops them"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "    if named:\n        raise PageTypeError(f\"{what}: {' and '.join"
-new = "    if False:\n        raise PageTypeError(f\"{what}: {' and '.join"
+old = "highlight_tone=_highlight_tone(spec, written, highlight, what), titles=titles)"
+new = "highlight_tone=_highlight_tone(spec, written, highlight, what))"
 
 [[mutant]]
 name = "the points of a scatter are squares"
@@ -377,8 +377,8 @@ new = "        drawn.marker.style = XL_MARKER_STYLE.SQUARE\n        drawn.marker
 [[mutant]]
 name = "the axes of a scatter carry no name"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "        axis.has_title = True\n        words = axis.axis_title.text_frame\n        words.text = name\n"
-new = "        words = axis.axis_title.text_frame\n        axis.has_title = False\n"
+old = "    axis.has_title = True\n    words = axis.axis_title.text_frame\n    words.text = name\n"
+new = "    words = axis.axis_title.text_frame\n    axis.has_title = False\n"
 
 [[mutant]]
 name = "a scatter is drawn as a chart of categories"
@@ -389,8 +389,8 @@ new = "    if False:\n        _scatter(slide, element, theme)"
 [[mutant]]
 name = "the scale is read and dropped"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = 'callouts=callouts, scale=plan.scale, **look))'
-new = 'callouts=callouts, **look))'
+old = 'callouts=callouts, scale=plan.scale, x_title=plan.titles[0], y_title=plan.titles[1], **look))'
+new = 'callouts=callouts, x_title=plan.titles[0], y_title=plan.titles[1], **look))'
 
 [[mutant]]
 name = "a chart with a scale hides its axis once its numbers are on the bars"
@@ -653,8 +653,8 @@ new = '            lines.color.rgb = _colour("000000")'
 [[mutant]]
 name = "the written grid is not a hairline"
 file = "src/pptx_agent_maker/write/pptx.py"
-old = "            lines.width = Emu(theme.spacing.hairline)\n        axis.major_tick_mark = XL_TICK_MARK.NONE\n        axis.format.line.color.rgb = _colour(element.line)\n        if not name:"
-new = "            lines.width = Emu(1)\n        axis.major_tick_mark = XL_TICK_MARK.NONE\n        axis.format.line.color.rgb = _colour(element.line)\n        if not name:"
+old = "            lines.width = Emu(theme.spacing.hairline)\n        axis.major_tick_mark = XL_TICK_MARK.NONE\n        axis.format.line.color.rgb = _colour(element.line)\n        if name:"
+new = "            lines.width = Emu(1)\n        axis.major_tick_mark = XL_TICK_MARK.NONE\n        axis.format.line.color.rgb = _colour(element.line)\n        if name:"
 
 [[mutant]]
 name = "every written name is set to the right of its point"

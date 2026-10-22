@@ -85,8 +85,8 @@ new = "        left += 0"
 [[mutant]]
 name = "the legend gets no room under the plot"
 file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
-old = "    below = (line + s.gap_s if legend else 0)"
-new = "    below = 0"
+old = "    below = (line + s.gap_s if legend else 0) + (line + s.gap_s if plan.titles[0] else 0)\n    beside"
+new = "    below = 0 + (line + s.gap_s if plan.titles[0] else 0)\n    beside"
 
 [[mutant]]
 name = "on a bar chart the words hang below their bar"

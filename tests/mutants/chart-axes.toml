@@ -1,0 +1,106 @@
+# The axes of a chart of categories: their names (`x` across, `y` up), the room a held plot keeps for them,
+# the names of the categories at the outer end below zero, and the check for a value axis with no name.
+
+tests = ["tests/layout/test_chart_axes.py", "tests/checks/test_unnamed_axis.py"]
+
+[[mutant]]
+name = "below zero the names of the categories stay at zero, under the bars"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        chart.category_axis.tick_label_position = XL_TICK_LABEL_POSITION.LOW\n"
+new = "        pass\n"
+
+[[mutant]]
+name = "every chart puts the names of its categories at the outer end"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "if any(value < 0 for series in element.series"
+new = "if any(value >= 0 for series in element.series"
+
+[[mutant]]
+name = "a named value axis stays hidden with the numbers on the bars"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    chart.value_axis.visible = element.axis or bool(named)\n"
+new = "    chart.value_axis.visible = element.axis\n"
+
+[[mutant]]
+name = "a value axis kept for its name prints its numbers too"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "        chart.value_axis.tick_label_position = XL_TICK_LABEL_POSITION.NONE\n"
+new = "        pass\n"
+
+[[mutant]]
+name = "on a bar chart x names the axis of the categories"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "across, up = ((chart.value_axis, chart.category_axis) if element.plot == \"bar\""
+new = "across, up = ((chart.category_axis, chart.value_axis) if element.plot == \"bar\""
+
+[[mutant]]
+name = "a chart of categories writes no name on its axes"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    for axis, name in ((across, element.x_title), (up, element.y_title)):"
+new = "    for axis, name in ():"
+
+[[mutant]]
+name = "a name that says nothing is taken"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    if not isinstance(name, str) or not name.strip():"
+new = "    if not isinstance(name, str):"
+
+[[mutant]]
+name = "a held plot keeps no line under it for the name across"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    below = (line + s.gap_s if legend else 0) + (line + s.gap_s if plan.titles[0] else 0)\n    beside"
+new = "    below = (line + s.gap_s if legend else 0)\n    beside"
+
+[[mutant]]
+name = "a held plot keeps no line beside it for the name up"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    beside = line + s.gap_s if plan.titles[1] else 0"
+new = "    beside = 0"
+
+[[mutant]]
+name = "on a held bar chart the name up stands over the names of the bars"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "left = frame.left + pad + beside + longest + s.gap_s"
+new = "left = frame.left + pad + longest + s.gap_s"
+
+[[mutant]]
+name = "a bar chart asks whether its bars are tall enough without the name across"
+file = "src/pptx_agent_maker/layout/types/bodies/chart.py"
+old = "    below = (line + s.gap_s if legend else 0) + (line + s.gap_s if plan.titles[0] else 0)\n    if plan.kind == \"bar\":"
+new = "    below = (line + s.gap_s if legend else 0)\n    if plan.kind == \"bar\":"
+
+[[mutant]]
+name = "the check reads the value axis of a bar chart up"
+file = "src/pptx_agent_maker/checks/declared/unnamed_axis.py"
+old = "\"bar\": \"x\", \"column\": \"y\""
+new = "\"bar\": \"y\", \"column\": \"y\""
+
+[[mutant]]
+name = "the check says a bare chart with no value axis"
+file = "src/pptx_agent_maker/checks/declared/unnamed_axis.py"
+old = " and not chart.get(\"bare\", False)"
+new = ""
+
+[[mutant]]
+name = "the check reads no chart inside a cell"
+file = "src/pptx_agent_maker/checks/declared/unnamed_axis.py"
+old = "            if key != \"chart\":\n                found.extend(_unnamed(value))"
+new = "            pass"
+
+[[mutant]]
+name = "the check cannot be switched off"
+file = "src/pptx_agent_maker/checks/declared/unnamed_axis.py"
+old = "    if (config or {}).get(NAME, True) is False:\n        return []\n    findings"
+new = "    findings"
+
+[[mutant]]
+name = "the check reads pages copied from a specimen"
+file = "src/pptx_agent_maker/checks/declared/unnamed_axis.py"
+old = "        if entry.kind != \"declare\":\n            continue\n"
+new = ""
+
+[[mutant]]
+name = "the check does not run with the others"
+file = "src/pptx_agent_maker/checks/declared/__init__.py"
+old = "ALL = (long_title, unsourced, unnamed_axis)"
+new = "ALL = (long_title, unsourced)"
