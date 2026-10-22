@@ -1135,7 +1135,7 @@ gap_m = 0.3
 
 manifest を読む検査 (= `build` だけが回す):
 **題が 3 行以上** (`long_title`、宣言で組む頁) / **出所の無いデータの頁** (`unsourced`) /
-**値の軸の名前が無いグラフ** (`unnamed_axis`)
+**値の軸の名前が無いグラフ** (`unnamed_axis`) / **中の段ごとの目次の無い長い章** (`section_agenda`)
 
 - `long_title` ― 題は 2 行まで。3 行に達した題を知らせる (= 短く言い直す)
 - `unsourced` ― 宣言で組む頁が絵・表・グラフを持つのに `footer` が空なら知らせる (= どこから来たかを `footer` に
@@ -1143,6 +1143,10 @@ manifest を読む検査 (= `build` だけが回す):
 - `unnamed_axis` ― 宣言で組む頁の項目のグラフ (= `bar` / `column` / `line` / `stacked` / `waterfall`。`compose` の
   マスの中も) が値の軸の名前を持たなければ知らせる (= 縦のグラフは `y`、横棒は `x` に単位も含めて書く)。
   `bare` の棒と点の列は値の軸を持たないので対象外
+- `section_agenda` ― 章の頁 (= 目次を除く) が 6 を超え、中の段 (= 目次の小項目) が 2 つ以上あるのに、中の段の頭
+  ごとの目次 (= 同じ章を `highlight` し、その段を `highlight_item` で強調した `look = "cards"` の目次) が揃って
+  いなければ、章の頭の目次の頁で知らせる (= まだ無い段の番号も)。章の範囲は、章を `highlight` した目次から、別の章を
+  名指す目次の手前まで。長さは `[checks] section_agenda` で変えられる
 
 - `contrast` ― 字の色と地の色の明暗差が、普通の字で 4.5、大きい字 (= 18pt 以上、太字は 14pt 以上) で 3 に
   届かない字を知らせる (= Web の読みやすさの基準 WCAG 2 の AA)。地は字の図形の塗り → 下に敷かれた図形の
@@ -1167,6 +1171,7 @@ manifest を読む検査 (= `build` だけが回す):
 stale_words = ["案件名", "第 N 回"]
 unsourced = false       # 出所の検査を外す (= 絵が図解ばかりで、出所を書く物が無い案件)
 unnamed_axis = false    # 値の軸の名前の検査を外す
+section_agenda = 8      # 中の段ごとに目次が要る章の長さ (= 目次を除く頁の数。書かなければ 6。false で外す)
 long_title = false      # 題の長さの検査を外す
 type_floor = 10         # 文字の下限 (= 書かなければ資料の使い方の下限。read は 10、present は 14)
 contrast = false        # 字と地の明暗差の検査を外す

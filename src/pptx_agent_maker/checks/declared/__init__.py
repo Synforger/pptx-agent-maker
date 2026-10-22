@@ -5,8 +5,8 @@
 番号と同じ (= 1 つの宣言が 1 頁)。
 """
 
-from . import long_title, unnamed_axis, unsourced
+from . import long_title, section_agenda, unnamed_axis, unsourced
 
-ALL = (long_title, unsourced, unnamed_axis)
+ALL = (long_title, unsourced, unnamed_axis, section_agenda)
 
-__all__ = ["ALL", "long_title", "unnamed_axis", "unsourced"]
+__all__ = ["ALL", "long_title", "section_agenda", "unnamed_axis", "unsourced"]

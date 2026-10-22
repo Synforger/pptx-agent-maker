@@ -1,0 +1,63 @@
+# A long chapter of several parts comes back to its agenda at the head of each part.
+
+tests = ["tests/checks/test_section_agenda.py"]
+
+[[mutant]]
+name = "a chapter as long as the limit is said too"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "if chapter[\"parts\"] < 2 or chapter[\"pages\"] <= long:"
+new = "if chapter[\"parts\"] < 2 or chapter[\"pages\"] < long:"
+
+[[mutant]]
+name = "a chapter of one part is said too"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "if chapter[\"parts\"] < 2 or chapter[\"pages\"] <= long:"
+new = "if chapter[\"pages\"] <= long:"
+
+[[mutant]]
+name = "one agenda in the chapter is taken for all its parts"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "        if missing:\n"
+new = "        if len(missing) == chapter[\"parts\"]:\n"
+
+[[mutant]]
+name = "the agendas are counted as pages of the chapter"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "                current[\"marked\"].add(item)\n            continue\n"
+new = "                current[\"marked\"].add(item)\n            current[\"pages\"] += 1\n            continue\n"
+
+[[mutant]]
+name = "an agenda of the same chapter starts it again"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "            if current is None or current[\"chapter\"] != here:"
+new = "            if True:"
+
+[[mutant]]
+name = "an agenda that names no chapter does not end one"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "                current = None\n                continue\n"
+new = "                continue\n"
+
+[[mutant]]
+name = "the project's length is not read"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "    return said\n"
+new = "    return LONG\n"
+
+[[mutant]]
+name = "the check cannot be switched off"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "    if said is False:\n        return None\n"
+new = ""
+
+[[mutant]]
+name = "a length that is not a number of pages is taken"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "    if isinstance(said, bool) or not isinstance(said, int) or said < 1:"
+new = "    if False:"
+
+[[mutant]]
+name = "the check does not run with the others"
+file = "src/pptx_agent_maker/checks/declared/__init__.py"
+old = "ALL = (long_title, unsourced, unnamed_axis, section_agenda)"
+new = "ALL = (long_title, unsourced, unnamed_axis)"
