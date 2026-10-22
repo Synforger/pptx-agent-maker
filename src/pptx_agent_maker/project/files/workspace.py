@@ -27,6 +27,9 @@
 読み、この案件の設定をその上に重ねる (= 同じ表は鍵ごとに案件の値が勝つ)。`specimen.pptx` も、案件の folder に
 無ければテンプレートの folder の物を使う。テンプレートが上げ直されても、案件の側は替え直さなくてよい。
 指せるのは 1 段だけ (= テンプレートの `workspace.toml` は、さらに別のテンプレートを指せない)。
+**使い方 (= `[theme.uses.<名前>]`) は名前で 1 まとまりなので、鍵ごとには重ねない** ― テンプレートと同じ名前の
+使い方を案件が書けば拒む。重ねていた間は、案件が書かなかった鍵 (= 字の大きさ・余白) がテンプレートの物のまま
+混ざり、上書きのつもりか新しい使い方のつもりかが読めないまま焼けた。
 
 守っているのは 2 つ:
 
@@ -93,6 +96,7 @@ class Workspace:
             if "template" in inherited:
                 raise WorkspaceError(f"{path.name}: the template at {template} points at a template of its own — "
                                      "a project points at one template, and that template at none")
+            _refuse_shared_uses(path, template, inherited, data)
             data = _laid_over({key: value for key, value in inherited.items() if key not in OWN_KEYS}, data)
 
         folders = data.get("paths", {})
@@ -171,6 +175,23 @@ class Workspace:
         if not path.exists():
             raise WorkspaceError(f"{what} not found: {path}")
         return path
+
+
+def _uses_of(settings: dict) -> set[str]:
+    """The names of the uses a `workspace.toml` writes under `[theme.uses]`."""
+    theme = settings.get("theme")
+    uses = theme.get("uses") if isinstance(theme, dict) else None
+    return set(uses) if isinstance(uses, dict) else set()
+
+
+def _refuse_shared_uses(path: Path, template: Path, inherited: dict, data: dict) -> None:
+    """Stop a project that writes a use of the same name as one its template writes (= they would mix key by key)."""
+    shared = sorted(_uses_of(inherited) & _uses_of(data))
+    if shared:
+        raise WorkspaceError(
+            f"{path.name}: [theme.uses.{shared[0]}] is written here and in the template at {template} "
+            f"({', '.join(repr(name) for name in shared)}) — a use is one whole, so the two would mix key by key; "
+            "give this project's use a name of its own, or change the template's")
 
 
 def _laid_over(under: dict, over: dict) -> dict:
