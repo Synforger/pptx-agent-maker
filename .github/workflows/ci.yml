@@ -11,6 +11,10 @@ name: CI
 
 on:
   pull_request:
+  # A run on develop keeps the fetched packages where every pull request can read them (= a pull request's
+  # own cache is kept for that pull request only).
+  push:
+    branches: [develop]
   workflow_dispatch:
 
 concurrency:
@@ -21,28 +25,39 @@ jobs:
   gates:
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0   # the docs gate resolves references against history
       - name: Install go-task
         run: sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+      - name: Bring back the packages an earlier run fetched
+        # The mirror the runners fetch from runs at a few hundred kB/s on some runs and tens of MB/s on others:
+        # LibreOffice is 89 MB, so a slow run ran out of time before the tests began. The packages an earlier run
+        # fetched are kept between runs, and only what has changed since is fetched again.
+        uses: actions/cache@v6
+        with:
+          path: ~/apt-archives
+          key: apt-${{ runner.os }}-libreoffice-${{ github.run_id }}
+          restore-keys: apt-${{ runner.os }}-libreoffice-
       - name: Install LibreOffice
         # One test converts a built deck end to end — the closest thing to
         # opening it in PowerPoint, and how the repair dialog would be caught.
         # poppler-utils turns the converted pages into pictures (= the preview's
         # own end-to-end test).
-        # Each fetch gives up after 30 s and is tried again, and the step stops at 10 minutes: a slow mirror once
-        # held the step until the whole job was cancelled, with nothing in the log to say where. The output stays
-        # on so the log shows which fetch is slow. The man-db index is not rebuilt (= minutes of the install, for
-        # manual pages nothing reads here).
-        timeout-minutes: 10
+        # Each fetch gives up after 30 s and is tried again, and the output stays on so the log shows which fetch
+        # is slow. The man-db index is not rebuilt (= minutes of the install, for manual pages nothing reads here).
+        timeout-minutes: 15
         run: |
           sudo rm -f /var/lib/man-db/auto-update
+          mkdir -p ~/apt-archives
+          sudo cp ~/apt-archives/*.deb /var/cache/apt/archives/ 2>/dev/null || true
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update
           sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Dpkg::Use-Pty=0 \
-            install -y --no-install-recommends libreoffice-impress poppler-utils
+            -o APT::Keep-Downloaded-Packages=true install -y --no-install-recommends libreoffice-impress poppler-utils
+          rm -f ~/apt-archives/*.deb
+          cp /var/cache/apt/archives/*.deb ~/apt-archives/
       - name: Install uv
         # Every gate runs through `uv run`, which builds the environment from
         # .python-version and uv.lock the first time it is called.
