@@ -20,7 +20,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tests"))
 
-from support.pages import build  # noqa: E402
+from support.pages import asset, build  # noqa: E402
 
 from pptx_agent_maker import DEFAULT  # noqa: E402
 from pptx_agent_maker.layout.tokens import Band, TABLE_LOOKS, ThemeError, theme_from  # noqa: E402
@@ -74,7 +74,7 @@ class TheLookAProjectPicks(unittest.TestCase):
 
 class AnyRowThatDividesATable(unittest.TestCase):
     def test_a_band_is_one_cell_with_the_tone_it_asked_for(self) -> None:
-        rows = read_table(ROWS, "table")
+        rows = read_table(ROWS, "table", asset)
         self.assertEqual(6, len(rows))
         for number, words, tone in ((1, "Group one", "accent"), (4, "Group two", "")):
             with self.subTest(row=number):
@@ -94,20 +94,20 @@ class AnyRowThatDividesATable(unittest.TestCase):
         for band in ({"band": ""}, {"band": "  "}, {"tone": "accent"}, {"band": "x", "colour": "red"},
                      {"band": "x", "text": "y"}, {"band": "x", "tone": 3}):
             with self.subTest(band=band), self.assertRaises(PageTypeError) as refused:
-                read_table([["a", "b"], band, ["c", "d"]], "table")
+                read_table([["a", "b"], band, ["c", "d"]], "table", asset)
             self.assertIn("table: row 2", str(refused.exception))
 
     def test_the_heading_row_is_cells_and_something_stands_under_a_band(self) -> None:
         with self.assertRaises(PageTypeError) as refused:
-            read_table([{"band": "Group"}, ["a", "b"]], "table")
+            read_table([{"band": "Group"}, ["a", "b"]], "table", asset)
         self.assertIn("heading", str(refused.exception))
         with self.assertRaises(PageTypeError) as refused:
-            read_table([["a", "b"], ["c", "d"], {"band": "Group"}], "table")
+            read_table([["a", "b"], ["c", "d"], {"band": "Group"}], "table", asset)
         self.assertIn("row 3", str(refused.exception))
 
     def test_a_row_that_is_neither_a_list_nor_a_band_is_refused(self) -> None:
         with self.assertRaises(PageTypeError):
-            read_table([["a", "b"], "c, d"], "table")
+            read_table([["a", "b"], "c, d"], "table", asset)
 
     def test_every_table_takes_bands(self) -> None:
         pages = {
@@ -198,8 +198,8 @@ class WhatABandIsMeasuredAs(unittest.TestCase):
 
     def test_the_table_the_page_places_is_as_tall_as_the_measure_said(self) -> None:
         table = table_of(board(ROWS))
-        widths = DEFAULT.column_widths(read_table(ROWS, "table"), table.rect.width)
-        self.assertEqual(DEFAULT.table_height(read_table(ROWS, "table"), widths), table.rect.height)
+        widths = DEFAULT.column_widths(read_table(ROWS, "table", asset), table.rect.width)
+        self.assertEqual(DEFAULT.table_height(read_table(ROWS, "table", asset), widths), table.rect.height)
         self.assertEqual(tuple(widths), table.widths)
 
 

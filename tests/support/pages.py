@@ -20,9 +20,14 @@ from pptx_agent_maker.write import aspect  # noqa: E402
 DATA = REPO / "tests" / "data"
 
 
+def asset(name: str) -> Path:
+    """Where a test finds an asset by name (= a file of `tests/data`)."""
+    return DATA / name
+
+
 def build(spec: dict, theme: Theme = DEFAULT):
     """One declared page, as the toolkit builds it, with its pictures read from `tests/data`."""
-    return types.build(spec, lambda name: DATA / name, aspect, theme)
+    return types.build(spec, asset, aspect, theme)
 
 
 def named(built, text: str):

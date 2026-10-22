@@ -40,6 +40,12 @@ class ListingTheTypes(unittest.TestCase):
         for key in types.EXTRA_KEYS:
             self.assertIn(key, said)
 
+    def test_a_table_read_from_a_file_is_listed_with_the_keys_it_reads(self) -> None:
+        said = self._listing()
+        line = next(line for line in said.splitlines() if "a table from a file" in line)
+        for key in ("data", "columns", "cells", "row", "column", "after", "text"):
+            self.assertIn(key, line)
+
     def test_the_projects_recipes_are_listed_with_their_holes(self) -> None:
         said = self._listing()
         self.assertIn("result", said)

@@ -139,5 +139,9 @@ def describe() -> str:
     lines.append("  a table's cell: its words, or one mark — { harvey = 0 to 4 } (= quarters filled) "
                  f"or {{ mark = {' | '.join(MARKS)} }} — or its words on a ground as deep as its value: "
                  "{ text, shade = 0 to 4 }")
+    lines.append('  a table from a file: table = { data = "x.csv" (= its first row is the heading row), '
+                 'columns = [the headings to keep, in the order to show], '
+                 'cells = [{ row = "its first cell", column = "its heading", after = "words put after the value" '
+                 'or text = "words in place of it" }] }')
     lines.append(f"  the frame:   {', '.join(sorted(FRAME_KEYS - {'type', 'kind'}))}")
     return "\n".join(lines)

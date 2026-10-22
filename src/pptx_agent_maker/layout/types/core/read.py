@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import csv
 import math
 from dataclasses import dataclass
 from numbers import Real
@@ -61,7 +62,7 @@ class Spec:
         return out
 
     def rows(self, key: str = "table") -> list[list[str]]:
-        return read_table(self.data[key], key)
+        return read_table(self.data[key], key, self.asset)
 
     def cards(self) -> list[Card]:
         return [read_card(self, item, f"cards: card {number}")
@@ -124,15 +125,32 @@ def read_band(item: dict, what: str) -> Band:
     return Band(str(words), tone)
 
 
-def read_table(rows, what: str) -> list[list[str]]:
-    """A table as written: rows of cells, each cell read by `read_cell`, and bands that divide it.
+#: 表を素材の CSV から読む時に書けるキー (= 素材の名前、残す列、手で足す注)
+TABLE_DATA_KEYS = {"data", "columns", "cells"}
+#: `cells` の 1 件が書けるキー (= どのマスか 2 つ、足す字か置き換える字か 2 つ)
+TABLE_CELL_KEYS = {"row", "column", "after", "text"}
+
+
+def read_table(table, what: str, asset: Callable[[str], Path]) -> list[list[str]]:
+    """A table as written: rows of cells, or a CSV among the assets (= `{ data = "x.csv" }`).
+
+    表を読む所はここ 1 か所 (= 頁の `table` も `compose` のマスの `table` も通る)。素材の探し方 `asset` は
+    呼ぶ側 (= `Spec`) が渡す。
+    """
+    if isinstance(table, dict):
+        return _read_table_file(table, what, asset)
+    return _read_table_rows(table, what)
+
+
+def _read_table_rows(rows, what: str) -> list[list[str]]:
+    """A table written as rows of cells, each read by `read_cell`, and bands that divide it.
 
     ⚠ **見出しの行は、列のセルで書く。**区切りは見出しの下の行を分ける物で、その下に行が 1 つも無い区切りは
     何も分けない (= 書き忘れ)。
     """
     if not isinstance(rows, list) or not rows or not all(isinstance(row, (list, dict)) and row for row in rows):
         raise PageTypeError(f"{what}: a table is a list of rows, each a list of cells "
-                            "(or a band that divides it: { band = \"…\" })")
+                            "(or a band that divides it: { band = \"…\" }), or a CSV file: { data = \"x.csv\" }")
     read = []
     for r, row in enumerate(rows, start=1):
         where = f"{what}: row {r}"
@@ -145,6 +163,118 @@ def read_table(rows, what: str) -> list[list[str]]:
         else:
             read.append([read_cell(cell, f"{where}, column {c}") for c, cell in enumerate(row, start=1)])
     return read
+
+
+def _read_table_file(table: dict, what: str, asset: Callable[[str], Path]) -> list[list[str]]:
+    """A table read from a CSV among the assets: its first row is the heading row, the rest is the body.
+
+    マスは字のまま (= 数を整形しない。前後の空白だけ落とす)。残す列 (= `columns`) と、特定のマスの字を変える
+    注 (= `cells`) は、どちらも CSV の見出しの字と 1 列目の字で指す。**指した先が無い・2 つ以上ある時は止める**
+    (= 黙って捨てると、CSV の行の名前が変わった日に注が消えたのに気づけない)。
+    """
+    only_keys(table, TABLE_DATA_KEYS, what)
+    name = table.get("data")
+    if not isinstance(name, str) or Path(name).suffix.lower() != ".csv":
+        raise PageTypeError(f"{what}: `data` is the name of a CSV file among the assets, not {name!r}")
+    lines = _csv_lines(asset(name), name, what)
+    if len(lines) < 2:
+        raise PageTypeError(f"{what}: {name} needs a heading row and at least one row under it")
+    headings = lines[0][1]
+    for number, row in lines[1:]:
+        if len(row) != len(headings):
+            raise PageTypeError(f"{what}: {name}, line {number} has {len(row)} cells and the heading row has "
+                                f"{len(headings)} — every row has one cell for each heading")
+    grid = [row for _number, row in lines]
+    kept = _kept_columns(table.get("columns"), headings, name, what)
+    edited: dict[tuple[int, int], int] = {}
+    for edit_number, edit in enumerate(_listed(table.get("cells"), "cells", what), start=1):
+        where = f"{what}: cells, entry {edit_number}"
+        at = _edit_cell(grid, lines, headings, kept, edit, name, where)
+        if at in edited:
+            raise PageTypeError(f"{where}: this cell is already edited by entry {edited[at]} — one entry for a cell")
+        edited[at] = edit_number
+    return [[row[index] for index in kept] for row in grid]
+
+
+def _csv_lines(path: Path, name: str, what: str) -> list[tuple[int, list[str]]]:
+    """The rows of a CSV with the line each ended on in the file (= blank rows skipped, cells trimmed)."""
+    try:
+        with Path(path).open(encoding="utf-8-sig", newline="") as handle:
+            reader = csv.reader(handle)
+            return [(reader.line_num, [cell.strip() for cell in row]) for row in reader
+                    if any(cell.strip() for cell in row)]
+    except UnicodeDecodeError as reason:
+        raise PageTypeError(f"{what}: {name} is not UTF-8 text ({reason.reason} at byte {reason.start})") from reason
+
+
+def _listed(value, key: str, what: str) -> list:
+    """What a key holds as a list (= nothing when it is not written)."""
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise PageTypeError(f"{what}: `{key}` is a list, not {value!r}")
+    return value
+
+
+def _heading_index(headings: list[str], heading, name: str, what: str) -> int:
+    """Where a heading of the CSV stands (= its one place; a missing or a doubled heading stops)."""
+    found = [index for index, written in enumerate(headings) if isinstance(heading, str) and written == heading.strip()]
+    if not found:
+        raise PageTypeError(f"{what}: {heading!r} is not a heading of {name} (= its headings are "
+                            f"{', '.join(repr(written) for written in headings)})")
+    if len(found) > 1:
+        raise PageTypeError(f"{what}: {name} has the heading {heading!r} in columns "
+                            f"{' and '.join(str(index + 1) for index in found)} — it cannot say which one is meant")
+    return found[0]
+
+
+def _kept_columns(columns, headings: list[str], name: str, what: str) -> list[int]:
+    """The columns of the CSV the table keeps, in the order `columns` names them (= every column when it does not)."""
+    if columns is None:
+        return list(range(len(headings)))
+    if not isinstance(columns, list) or not columns:
+        raise PageTypeError(f"{what}: `columns` lists the headings of {name} to keep, as in "
+                            f'columns = ["method", "value"], not {columns!r}')
+    kept = [_heading_index(headings, heading, name, f"{what}: columns") for heading in columns]
+    twice = sorted({headings[index] for index in kept if kept.count(index) > 1})
+    if twice:
+        raise PageTypeError(f"{what}: `columns` names {', '.join(repr(heading) for heading in twice)} twice — "
+                            "a column stands once")
+    return kept
+
+
+def _edit_cell(grid: list[list[str]], lines: list[tuple[int, list[str]]], headings: list[str], kept: list[int],
+               edit, name: str, what: str) -> tuple[int, int]:
+    """One entry of `cells`: the words after a cell's value, or the cell's words in place of its value.
+
+    Returns the cell it changed (= its row and its column in the CSV), so a second entry for it can be refused.
+    """
+    only_keys(edit, TABLE_CELL_KEYS, what)
+    for key in ("row", "column"):
+        if not isinstance(edit.get(key), str):
+            raise PageTypeError(f"{what}: `{key}` is the words that name the cell, not {edit.get(key)!r}")
+    if ("after" in edit) == ("text" in edit):
+        raise PageTypeError(f"{what}: a cell takes `after` (= words put after its value) or `text` (= words in place "
+                            "of its value), one of the two")
+    way = "after" if "after" in edit else "text"
+    if not isinstance(edit[way], str):
+        raise PageTypeError(f"{what}: `{way}` is words, not {edit[way]!r}")
+    column = _heading_index(headings, edit["column"], name, f"{what}, column")
+    if column not in kept:
+        raise PageTypeError(f"{what}: the column {edit['column']!r} is not kept by `columns`, and a cell of it "
+                            "is not in the table")
+    rows = [index for index, row in enumerate(grid) if row[0] == edit["row"].strip()]
+    if not rows:
+        raise PageTypeError(f"{what}: {name} has no row whose first cell is {edit['row']!r}")
+    if len(rows) > 1:
+        where = " and ".join(str(lines[index][0]) for index in rows)
+        raise PageTypeError(f"{what}: {name} has {len(rows)} rows whose first cell is {edit['row']!r} "
+                            f"(= lines {where}) — it cannot say which one is meant")
+    if rows[0] == 0:
+        raise PageTypeError(f"{what}: {edit['row']!r} is the heading row of {name}, and the heading row is not edited")
+    row = grid[rows[0]]
+    row[column] = row[column] + edit["after"] if way == "after" else edit["text"]
+    return rows[0], column
 
 
 def only_keys(item, allowed: set, what: str, hint: str = "") -> None:

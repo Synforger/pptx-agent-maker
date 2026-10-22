@@ -10,7 +10,11 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "src"))
+sys.path.insert(0, str(REPO / "tests"))
+
+from support.pages import asset  # noqa: E402
 
 from pptx_agent_maker import DEFAULT  # noqa: E402
 from pptx_agent_maker.layout.geometry import cm  # noqa: E402
@@ -22,7 +26,7 @@ HEAD = ["項目", "列 1", "列 2", "列 3", "列 4", "列 5", "列 6"]
 def shaded(names: int = 12) -> list[list[str]]:
     """Names in the first column, the other six cells one word each on a ground as deep as its value."""
     return read_table([HEAD] + [[f"学習データの名前 {n}"] + [{"text": "多", "shade": 4}] * 6
-                                for n in range(1, names + 1)], "table")
+                                for n in range(1, names + 1)], "table", asset)
 
 
 class TheWidthOfAColumn(unittest.TestCase):
@@ -41,7 +45,7 @@ class TheWidthOfAColumn(unittest.TestCase):
             self.assertGreaterEqual(width, longest + pad, f"column {index + 1} folds its longest cell")
 
     def test_a_shaded_cell_is_measured_by_its_words(self) -> None:
-        plain = read_table([HEAD] + [[f"学習データの名前 {n}"] + ["多"] * 6 for n in range(1, 13)], "table")
+        plain = read_table([HEAD] + [[f"学習データの名前 {n}"] + ["多"] * 6 for n in range(1, 13)], "table", asset)
         self.assertEqual(DEFAULT.column_widths(shaded(), cm(14)), DEFAULT.column_widths(plain, cm(14)))
 
     def test_the_widths_add_up_to_the_table(self) -> None:
@@ -49,12 +53,12 @@ class TheWidthOfAColumn(unittest.TestCase):
             self.assertEqual(sum(DEFAULT.column_widths(shaded(), total)), total)
 
     def test_a_heading_is_measured_bold(self) -> None:
-        rows = read_table([["A heading wider than its cells", "B"], ["x", "y"]], "table")
+        rows = read_table([["A heading wider than its cells", "B"], ["x", "y"]], "table", asset)
         widths = DEFAULT.column_widths(rows, cm(30))
         self.assertGreaterEqual(widths[0], DEFAULT.width(rows[0][0], bold=True) + 2 * DEFAULT.spacing.cell_pad_x)
 
     def test_a_table_exactly_as_wide_as_its_words_gives_each_column_what_it_needs(self) -> None:
-        rows = read_table([["A heading longer than its cells", "Year"], ["x", "2020"], ["y", "2021"]], "table")
+        rows = read_table([["A heading longer than its cells", "Year"], ["x", "2020"], ["y", "2021"]], "table", asset)
         pad = 2 * DEFAULT.spacing.cell_pad_x
         needs = [DEFAULT.width(rows[0][0], bold=True) + pad,
                  max(DEFAULT.width("Year", bold=True), DEFAULT.width("2020"), DEFAULT.width("2021")) + pad]
@@ -64,7 +68,7 @@ class TheWidthOfAColumn(unittest.TestCase):
     def test_a_long_line_of_half_width_letters_that_fits_is_one_line(self) -> None:
         """全角 1 字ぶんで数えると、欧文の長い 1 行は倍に数えられて 2 行になる。"""
         rows = read_table([["Method", "Note"], ["B", "slower, and the label of this row is long enough to wrap"]],
-                          "table")
+                          "table", asset)
         widths = DEFAULT.column_widths(rows, cm(30))
         self.assertEqual(DEFAULT.table_height(rows, widths), len(rows) * DEFAULT.table_row_height())
 
