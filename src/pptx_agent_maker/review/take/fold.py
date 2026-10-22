@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 
 from ..diff.compare import Change, changes
-from ..base.ledger import touched_by_hand
+from ..ledger import touched_by_hand
 
 EDITS = "_edits"
 

@@ -14,8 +14,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 
-from pptx_agent_maker.layout.base.geometry import Rect  # noqa: E402
-from pptx_agent_maker.layout.base.tokens import DEFAULT  # noqa: E402
+from pptx_agent_maker.layout.geometry import Rect  # noqa: E402
+from pptx_agent_maker.layout.tokens import DEFAULT  # noqa: E402
 
 SHIPPED = REPO / "src" / "pptx_agent_maker" / "templates" / "project" / "specimen.pptx"
 LAYOUT = "ppt/slideLayouts/slideLayout1.xml"

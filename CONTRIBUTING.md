@@ -22,7 +22,7 @@ Two more checks are run by hand before a pull request, because they answer what 
 - `task snapshot:check` bakes the made-up project under `tests/corpus/` and compares every page's XML with what is kept in `tests/corpus/snapshot/`. A refactor leaves it identical, to the byte. A change that is meant to move a page is followed by `task snapshot`, and the pages it moved show in the pull request's diff.
 - `task mutate -- tests/mutants/_example.toml` breaks the code the ways a table lists and expects the tests to go red each time. A mutant that stays green is something no test is watching; write the table for what you changed next to that one.
 
-A new page type, part or look goes into the corpus in the same pull request — `tests/test_corpus.py` stays red until it does.
+A new page type, part or look goes into the corpus in the same pull request — `tests/layout/test_corpus.py` stays red until it does.
 
 ## Keeping private decks out of a push
 

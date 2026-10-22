@@ -1,6 +1,6 @@
 # A stand-in picture keeps the frame of the picture it replaces; a project's own picture is still fitted into it.
 
-tests = ["tests/test_lift.py", "tests/test_swap.py"]
+tests = ["tests/project/test_lift.py", "tests/deck/test_swap.py"]
 
 [[mutant]]
 name = "a stand-in picture is fitted into its frame again"

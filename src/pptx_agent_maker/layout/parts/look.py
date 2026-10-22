@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..base.tokens import ROLES
+from ..tokens import ROLES
 
 
 @dataclass(frozen=True)

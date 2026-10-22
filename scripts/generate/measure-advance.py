@@ -3,7 +3,7 @@
 
     uv run python scripts/generate/measure-advance.py GROUP=regular.ttf,bold.ttf[+regular.ttf,bold.ttf] ...
 
-A group is one row of `_ADVANCE` in `src/pptx_agent_maker/layout/base/tokens.py`: the typefaces that
+A group is one row of `_ADVANCE` in `src/pptx_agent_maker/layout/tokens.py`: the typefaces that
 share one table (`+` joins several, and the table takes the widest of them per character). The
 group named `any` is the one a typeface nobody measured falls back to, so give it the widest
 faces a deck is likely to use.

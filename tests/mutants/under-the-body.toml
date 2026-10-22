@@ -1,6 +1,6 @@
 # What sits under a body (= the table, the points, the reading): the room kept is the room it is placed in.
 
-tests = ["tests/test_types.py"]
+tests = ["tests/layout/test_types.py"]
 
 [[mutant]]
 name = "the room for the points is measured from the list written out as one string"

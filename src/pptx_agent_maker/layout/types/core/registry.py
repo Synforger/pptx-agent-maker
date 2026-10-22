@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Callable, Iterable
 
-from ...base.geometry import Rect
+from ...geometry import Rect
 from ...parts.page import Page
 
 

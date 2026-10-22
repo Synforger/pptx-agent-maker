@@ -1,0 +1,276 @@
+"""Each check must fire on a deck that is actually broken, and stay quiet on a good one.
+
+⚠ **検査は、わざと壊したもので効くことを見てから使う。**「赤 0」が意味を持つのは
+そのあと。ここで作る壊れた頁は、宣言層では**組めない**ものばかり ― だから
+python-pptx で直に置いている (= 複製と輸入で入ってくる頁と同じ立場)。
+"""
+
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+from PIL import Image
+from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.util import Emu, Pt
+
+REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "src"))
+sys.path.insert(0, str(REPO / "tests"))
+
+from pptx_agent_maker import DEFAULT, Page  # noqa: E402
+from pptx_agent_maker.checks import CHECKS, run_all  # noqa: E402
+from pptx_agent_maker.checks.rules import (  # noqa: E402
+    contrast, empty_cells, internal_names, long_title, low_resolution, near_alignment, off_page, overlap,
+    stretched, type_floor, unreplaced, untyped_parts)
+from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
+from deck.test_deck import make_dot  # noqa: E402
+
+CONFIG = {"stale_words": ["W3 の値"]}
+
+
+def raw_deck(destination: Path, place) -> Path:
+    """A deck built without the declarative layer — the way an imported page arrives."""
+    deck = Presentation()
+    deck.slide_width = Emu(DEFAULT.slide.width)
+    deck.slide_height = Emu(DEFAULT.slide.height)
+    place(deck.slides.add_slide(deck.slide_layouts[6]))
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    deck.save(str(destination))
+    return destination
+
+
+def text_at(slide, text: str, *, left=Emu(1000000), size=Pt(14)):
+    box = slide.shapes.add_textbox(left, Emu(1000000), Emu(3000000), Emu(500000))
+    run = box.text_frame.paragraphs[0].add_run()
+    run.text = text
+    run.font.size = size
+    return box
+
+
+class ChecksFireTest(unittest.TestCase):
+    """bad/ 側 — 壊れた頁で必ず鳴る。"""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_a_shape_past_the_edge_is_caught(self) -> None:
+        deck = raw_deck(self.dir / "off.pptx",
+                        lambda s: text_at(s, "はみ出した帯", left=Emu(DEFAULT.slide.width - 200000)))
+        self.assertTrue(off_page.run(deck, {}), "a shape hanging off the page went unreported")
+
+    def test_type_below_the_floor_is_caught(self) -> None:
+        deck = raw_deck(self.dir / "small.pptx", lambda s: text_at(s, "読めない注記", size=Pt(7)))
+        self.assertTrue(type_floor.run(deck, {}))
+
+    def test_a_blank_cell_is_caught(self) -> None:
+        def place(slide):
+            table = slide.shapes.add_table(2, 2, Emu(500000), Emu(500000),
+                                           Emu(4000000), Emu(1000000)).table
+            table.cell(0, 0).text = "手法"
+            table.cell(0, 1).text = "値"
+            table.cell(1, 0).text = "A"  # (1, 1) left blank on purpose
+        deck = raw_deck(self.dir / "blank.pptx", place)
+        self.assertTrue(empty_cells.run(deck, {}))
+
+    def test_an_internal_name_is_caught(self) -> None:
+        deck = raw_deck(self.dir / "internal.pptx",
+                        lambda s: text_at(s, "数値は src/scoring/main.py が出す"))
+        self.assertTrue(internal_names.run(deck, {}))
+
+    def test_words_the_specimen_left_behind_are_caught(self) -> None:
+        deck = raw_deck(self.dir / "stale.pptx", lambda s: text_at(s, "W3 の値をそのまま掲載"))
+        self.assertTrue(unreplaced.run(deck, CONFIG))
+
+    def test_words_printed_on_top_of_each_other_are_caught(self) -> None:
+        """⚠ **枠ではなく描かれた文字で見る** ― 枠で見ていた頃は、画面では離れている
+        物が上がり、実デッキでは上がったものが全部空振りだった。
+        """
+        def two_lines_in_one_place(slide):
+            text_at(slide, "うえに乗る長い文字の行")
+            box = slide.shapes.add_textbox(Emu(1000000), Emu(1050000),
+                                           Emu(3000000), Emu(500000))
+            run = box.text_frame.paragraphs[0].add_run()
+            run.text = "したに敷かれる長い文字の行"
+            run.font.size = Pt(14)
+
+        deck = raw_deck(self.dir / "stacked.pptx", two_lines_in_one_place)
+        self.assertTrue(overlap.run(deck), "重なっている文字が上がらない")
+
+    def test_a_part_with_no_content_type_is_caught(self) -> None:
+        """⚠ 頁には何も出ない壊れ方 ― 絵の file だけが写って、種類の登録が無い。"""
+        import zipfile
+        good = raw_deck(self.dir / "typed.pptx", lambda s: text_at(s, "ふつう"))
+        broken = self.dir / "untyped.pptx"
+        # 実際に起きた形 = 絵の file だけが入り、png の登録が無い (= 文字だけのデッキには無い)
+        with zipfile.ZipFile(good) as source, zipfile.ZipFile(broken, "w") as target:
+            self.assertNotRegex(source.read("[Content_Types].xml").decode(), 'Extension="png"')
+            for item in source.infolist():
+                target.writestr(item, source.read(item))
+            target.write(REPO / "tests" / "data" / "dot.png", "ppt/media/image9.png")
+        self.assertFalse(untyped_parts.run(good), "a sound package was reported")
+        self.assertTrue(untyped_parts.run(broken), "a part with no type went through")
+
+    def _titled(self, name: str, title: str) -> Path:
+        """A deck whose one page is the template's title slide (= a title placeholder, sized by the master)."""
+        deck = Presentation()
+        deck.slides.add_slide(deck.slide_layouts[0]).shapes.title.text = title
+        deck.save(str(self.dir / name))
+        return self.dir / name
+
+    def test_a_title_past_two_lines_is_caught(self) -> None:
+        """⚠ 題のプレースホルダは、幅も文字の大きさも頁には書いていない (= レイアウトとマスターから継ぐ)。
+        そこまで読まないと、行は数えられない。"""
+        long = self._titled("long.pptx", "題は結論の文で書くので長くなりやすい。" * 3)
+        found = long_title.run(long, {})
+        self.assertEqual(1, len(found), "a title of three lines or more went unreported")
+        self.assertIn("lines", found[0].why)
+        self.assertEqual([], long_title.run(self._titled("short.pptx", "題は結論の文で書く"), {}))
+        self.assertEqual([], long_title.run(long, {"long_title": False}), "the project could not switch it off")
+
+    def test_a_title_broken_by_hand_counts_each_line(self) -> None:
+        deck = Presentation()
+        frame = deck.slides.add_slide(deck.slide_layouts[0]).shapes.title.text_frame
+        frame.text = "一行目"
+        for line in ("二行目", "三行目"):
+            frame.paragraphs[0].add_line_break()
+            frame.paragraphs[0].add_run().text = line
+        deck.save(str(self.dir / "broken.pptx"))
+        self.assertTrue(long_title.run(self.dir / "broken.pptx", {}))
+
+    def _words_on(self, name: str, ink: str, ground: str | None, *, beneath: str | None = None,
+                  size: float = 14) -> Path:
+        """One box of words in `ink`, filled with `ground` (or on a box filled `beneath` under it)."""
+        def place(slide):
+            if beneath:
+                under = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(500000), Emu(500000),
+                                               Emu(5000000), Emu(2000000))
+                under.fill.solid()
+                under.fill.fore_color.rgb = RGBColor.from_string(beneath)
+            box = text_at(slide, "地に溶ける文字", size=Pt(size))
+            if ground:
+                box.fill.solid()
+                box.fill.fore_color.rgb = RGBColor.from_string(ground)
+            box.text_frame.paragraphs[0].runs[0].font.color.rgb = RGBColor.from_string(ink)
+        return raw_deck(self.dir / name, place)
+
+    def test_words_too_close_to_their_ground_are_caught(self) -> None:
+        """⚠ 地は字の図形の塗り、無ければ下に敷かれた図形の塗り。字の色を書いていない字は測らない。"""
+        self.assertTrue(contrast.run(self._words_on("pale.pptx", "BBBBBB", "FFFFFF"), {}))
+        self.assertTrue(contrast.run(self._words_on("dark.pptx", "333333", None, beneath="1F1F1F"), {}),
+                        "the ground under a clear box was not read")
+        self.assertEqual([], contrast.run(self._words_on("ok.pptx", "222222", "FFFFFF"), {}))
+        self.assertEqual([], contrast.run(self._words_on("light.pptx", "FFFFFF", None, beneath="1F3864"), {}))
+        # 4.5 には届かないが 3 は越える色 (= 大きい字なら通る)
+        self.assertTrue(contrast.run(self._words_on("grey14.pptx", "8A8A8A", "FFFFFF"), {}))
+        self.assertEqual([], contrast.run(self._words_on("grey24.pptx", "8A8A8A", "FFFFFF", size=24), {}))
+        self.assertEqual([], contrast.run(self._words_on("pale.pptx", "BBBBBB", "FFFFFF"), {"contrast": False}))
+
+    def _picture(self, name: str, pixels: tuple[int, int], frame: tuple[int, int]) -> Path:
+        image = self.dir / f"{name}.png"
+        Image.new("RGB", pixels, (90, 120, 160)).save(image)
+        return raw_deck(self.dir / f"{name}.pptx", lambda s: s.shapes.add_picture(
+            str(image), Emu(500000), Emu(500000), Emu(frame[0]), Emu(frame[1])))
+
+    def test_a_picture_pulled_out_of_its_shape_is_caught(self) -> None:
+        self.assertTrue(stretched.run(self._picture("squashed", (1600, 1600), (3600000, 1800000)), {}))
+        self.assertEqual([], stretched.run(self._picture("kept", (1600, 800), (3600000, 1800000)), {}))
+        self.assertEqual([], stretched.run(self._picture("near", (1600, 800), (3600000, 1820000)), {}),
+                         "a drift under 2% was reported")
+
+    def test_a_cropped_picture_is_compared_by_what_is_left(self) -> None:
+        deck = self._picture("cropped", (1600, 1600), (3600000, 1800000))
+        cropped = Presentation(str(deck))
+        picture = cropped.slides[0].shapes[0]
+        picture.crop_top = picture.crop_bottom = 0.25  # 正方形の上下を切って 2:1
+        cropped.save(str(deck))
+        self.assertEqual([], stretched.run(deck, {}))
+
+    def test_a_picture_blown_up_past_its_pixels_is_caught(self) -> None:
+        # 1 inch = 914400 EMU: 300 px を 4 inch に置けば 75 ppi、1200 px なら 300 ppi
+        self.assertTrue(low_resolution.run(self._picture("blurred", (300, 300), (3657600, 3657600)), {}))
+        self.assertEqual([], low_resolution.run(self._picture("sharp", (1200, 1200), (3657600, 3657600)), {}))
+
+    def _boxes(self, name: str, drop: int, *, height: int = 1000000) -> Path:
+        def place(slide):
+            slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(500000), Emu(1000000), Emu(2000000), Emu(1000000))
+            slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(3000000), Emu(1000000 + drop), Emu(2000000), Emu(height))
+        return raw_deck(self.dir / name, place)
+
+    def test_siblings_that_miss_by_a_hair_are_caught(self) -> None:
+        """⚠ 揃うはずの組 (= 同じ大きさで横に並ぶ) だけを比べる。1 mm 以上はわざとずらした物。"""
+        self.assertTrue(near_alignment.run(self._boxes("hair.pptx", 10800), {}), "0.3 mm went through")
+        self.assertEqual([], near_alignment.run(self._boxes("level.pptx", 0), {}))
+        self.assertEqual([], near_alignment.run(self._boxes("meant.pptx", 72000), {}), "2 mm is on purpose")
+        self.assertEqual([], near_alignment.run(self._boxes("other.pptx", 10800, height=600000), {}),
+                         "boxes of a different height are not siblings in a row")
+
+    def test_a_miss_that_shows_as_zero_is_lined_up(self) -> None:
+        """⚠ 絵が並ぶ頁で「0.00 mm ずれている」が 5 件出た ― 所見の桁 (= 0.01 mm) で 0 になるずれは揃っている。"""
+        self.assertEqual([], near_alignment.run(self._boxes("dust.pptx", 144), {}), "0.004 mm was reported")
+        shown = near_alignment.run(self._boxes("least.pptx", 180), {})
+        self.assertTrue(shown, "0.005 mm, which shows as 0.01 mm, went through")
+        self.assertIn("0.01 mm", shown[0].why)
+
+    def _words_beside_a_card(self, name: str, drop: int, *, both_boxed: bool) -> Path:
+        """A card holding one line, and a line of the same height beside it (= on the page, or in a card)."""
+        def place(slide):
+            for left in ((500000, 3000000) if both_boxed else (500000,)):
+                card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Emu(left), Emu(800000),
+                                              Emu(2000000), Emu(1400000))
+                card.fill.solid()
+            slide.shapes.add_textbox(Emu(600000), Emu(1000000), Emu(1800000), Emu(300000)).text_frame.text = "カードの中"
+            slide.shapes.add_textbox(Emu(3100000), Emu(1000000 + drop), Emu(1800000), Emu(300000)).text_frame.text = "となり"
+        return raw_deck(self.dir / name, place)
+
+    def test_words_in_a_card_and_words_on_the_page_are_not_siblings(self) -> None:
+        """⚠ 目次の右のカードの中の 1 行と、左の一覧の 1 行が、0.21 mm のずれで当たった (= 列ごとに別の割り方)。"""
+        self.assertEqual([], near_alignment.run(self._words_beside_a_card("beside.pptx", 7560, both_boxed=False), {}))
+        self.assertTrue(near_alignment.run(self._words_beside_a_card("cards.pptx", 7560, both_boxed=True), {}),
+                        "the headings of two cards side by side that miss by a hair went through")
+
+    def test_every_check_has_a_fixture_that_fires_it(self) -> None:
+        """A check nobody proved is a check nobody can trust."""
+        proven = {off_page.NAME, overlap.NAME, type_floor.NAME, empty_cells.NAME,
+                  internal_names.NAME, unreplaced.NAME, untyped_parts.NAME, long_title.NAME,
+                  contrast.NAME, stretched.NAME, low_resolution.NAME, near_alignment.NAME}
+        self.assertEqual({check.NAME for check in CHECKS}, proven,
+                         "a check exists with no fixture proving it fires")
+
+
+class ChecksStayQuietTest(unittest.TestCase):
+    """clean/ 側 — 宣言層で組んだ頁では 1 件も鳴らない。"""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        make_dot()
+        page = Page("読める頁", condition="条件", conclusion="結論", footer="出所")
+        left, right = page.body.columns([2, 1], gap=DEFAULT.spacing.gap_m)
+        page.figure(left, REPO / "tests" / "data" / "dot.png", 1.0, caption="図")
+        rows = [["列", "値"], ["A", "1"]]
+        table, note = right.split_top(DEFAULT.table_height(len(rows)), gap=DEFAULT.spacing.gap_s)
+        page.table(table, rows)
+        page.note(note, "読み方")
+        deck = new_deck()
+        add_page(deck, page.build())
+        self.deck = save(deck, self.dir / "clean.pptx")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_a_declared_page_reports_nothing(self) -> None:
+        findings = run_all(self.deck, CONFIG)
+        self.assertEqual(findings, [], "\n".join(f.render() for f in findings))
+
+
+if __name__ == "__main__":
+    unittest.main()

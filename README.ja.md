@@ -124,8 +124,10 @@ src/pptx_agent_maker/
 ├── deck/      テンプレートの複製と、過去デッキからの頁の輸入
 ├── checks/    焼いたものを読み直す検査 (= 1 検査 1 file)
 ├── review/    人の直しを守り、manifest に取り込む
-└── project/   repo の外の案件を指す
+├── project/   repo の外の案件を指す
+└── _common/   上の 3 つ以上が使う物 (= pptx の部品を file として触る所と、焼いた頁を読み直す所)
 templates/     案件を作るときのプロジェクトテンプレート (= 見た目の見本を 1 枚持つ)
+tests/         試験 (= src/ と scripts/ と同じ木。見本と壊し方の表も並ぶ)
 preview/       ライブプレビュー (= ツールと一緒に入る。履歴ごと取り込み、git subtree)
 ```
 

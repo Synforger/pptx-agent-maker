@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..base.finding import Finding
-from ..base.picture import ours, placed
+from ..finding import Finding
+from .._internal.picture import ours, placed
 
 NAME = "stretched"
 #: 元の比と枠の比の食い違いの上限 (= 2%)

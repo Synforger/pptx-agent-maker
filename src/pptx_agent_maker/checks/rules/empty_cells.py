@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..base.finding import Finding
-from ..base.slide import read
+from ..finding import Finding
+from ..._common.slide import read
 
 NAME = "empty_cells"
 

@@ -1,6 +1,6 @@
 # The title's band: as tall as the lines the title folds to, so the body starts below every one of them.
 
-tests = ["tests/test_page.py", "tests/test_story.py"]
+tests = ["tests/layout/test_page.py", "tests/checks/test_story.py"]
 
 [[mutant]]
 name = "a folded title takes the band of one line"
@@ -34,18 +34,18 @@ new = "kick, main = clear.split_top(s.title_height // 3)"
 
 [[mutant]]
 name = "a title is counted across the whole slide, margins included"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "room = right - left - 2 * s.text_inset\n"
 new = "room = self.slide.width\n"
 
 [[mutant]]
 name = "a title is counted without the room its own box keeps at each side"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "room = right - left - 2 * s.text_inset\n"
 new = "room = right - left\n"
 
 [[mutant]]
 name = "a title is counted in the light weight"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "needed = self.wraps(title, max(room, 1), self.type.title, bold=True)"
 new = "needed = self.wraps(title, max(room, 1), self.type.title, bold=False)"

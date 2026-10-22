@@ -1,6 +1,6 @@
 # A roadmap whose stages may leave their `nodes` out: the arrowheads stand alone, and a flow still wants its nodes.
 
-tests = ["tests/test_roadmap.py"]
+tests = ["tests/layout/test_roadmap.py"]
 
 [[mutant]]
 name = "a roadmap asks for the nodes of every stage again"

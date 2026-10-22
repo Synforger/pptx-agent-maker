@@ -1,6 +1,6 @@
 # A flow that runs down the page: stages top to bottom, the nodes of a stage side by side.
 
-tests = ["tests/test_flow_down.py"]
+tests = ["tests/layout/test_flow_down.py"]
 
 [[mutant]]
 name = "a flow told to run down runs right all the same"

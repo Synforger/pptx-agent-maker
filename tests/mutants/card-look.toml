@@ -1,54 +1,54 @@
 # What a card and a band may be written with: their own sizes, no heading, a tag, a list of bullets.
 
-tests = ["tests/test_card_look.py"]
+tests = ["tests/layout/test_card_look.py"]
 
-# -- the size of the band and of the big number (layout/base/tokens.py) ----------
+# -- the size of the band and of the big number (layout/tokens.py) ----------
 
 [[mutant]]
 name = "a band written under theme.type is not read"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.heading if self.band_set is None else self.band_set"
 new = "return self.heading"
 
 [[mutant]]
 name = "a display written under theme.type is not read"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.title * 2 if self.display_set is None else self.display_set"
 new = "return self.title * 2"
 
 [[mutant]]
 name = "a band left unsaid is the title and not the heading"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.heading if self.band_set is None else self.band_set"
 new = "return self.title if self.band_set is None else self.band_set"
 
 [[mutant]]
 name = "a display left unsaid is the same size as the title"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.title * 2 if self.display_set is None else self.display_set"
 new = "return self.title if self.display_set is None else self.display_set"
 
 [[mutant]]
 name = "the height of a band is still cut from the heading"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "round(base.band_height * type.band / read.band)"
 new = "round(base.band_height * type.heading / read.heading)"
 
 [[mutant]]
 name = "a band or a display under the floor is let through"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    for name in (*SIZED, *DERIVED):\n        value = getattr(sized, name)"
 new = "    for name in SIZED:\n        value = getattr(sized, name)"
 
 [[mutant]]
 name = "a band is a role nobody reads"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "set(declared) - {*SIZED, *DERIVED}"
 new = "set(declared) - {*SIZED}"
 
 [[mutant]]
 name = "a use of the project's does not list the derived roles when it refuses one"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "(*_USE_KEYS, *SIZED, *DERIVED))"
 new = "(*_USE_KEYS, *SIZED))"
 

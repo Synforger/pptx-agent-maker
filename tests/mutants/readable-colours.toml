@@ -1,61 +1,61 @@
 # Words reach the contrast floor their size and weight ask for on every ground the toolkit paints, and a
 # template's brand pairs pass the contrast check by name — and are said in the report.
 
-tests = ["tests/test_readable_colours.py"]
+tests = ["tests/checks/test_readable_colours.py"]
 
-# -- the words' colour (= layout/base/tokens.py) ------------------------------
+# -- the words' colour (= layout/tokens.py) ------------------------------
 
 [[mutant]]
 name = "words short of the floor stay as they are"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "            for step in range(self.STEPS + 1):"
 new = "            for step in range(1):"
 
 [[mutant]]
 name = "only the better of the ink and the paper is moved"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        for colour in ranked:"
 new = "        for colour in ranked[:1]:"
 
 [[mutant]]
 name = "words short of the floor go all the way to black or white"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "                moved = _towards(colour, end, step / self.STEPS)"
 new = "                moved = _towards(colour, end, 1 if step else 0)"
 
 [[mutant]]
 name = "the words are moved only to the large type's floor"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "                if contrast(ground, moved) >= floor:"
 new = "                if contrast(ground, moved) >= READABLE_LARGE:"
 
 [[mutant]]
 name = "words of any size take the normal floor"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        floor = reading_floor(points, bold)\n"
 new = "        floor = READABLE\n"
 
 [[mutant]]
 name = "bold words of 14pt are counted as normal"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    large = points is None or points >= LARGE_SIZE or (bold and points >= LARGE_BOLD)"
 new = "    large = points is None or points >= LARGE_SIZE"
 
 [[mutant]]
 name = "bold words must pass 14pt to be large"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "(bold and points >= LARGE_BOLD)"
 new = "(bold and points > LARGE_BOLD)"
 
 [[mutant]]
 name = "words of 18pt must pass 18pt to be large"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "points >= LARGE_SIZE or"
 new = "points > LARGE_SIZE or"
 
 [[mutant]]
 name = "words without a size are counted as normal"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    large = points is None or points >= LARGE_SIZE or (bold and points >= LARGE_BOLD)"
 new = "    large = points is not None and (points >= LARGE_SIZE or (bold and points >= LARGE_BOLD))"
 
@@ -119,13 +119,13 @@ new = "        if ratio < floor and ((colour, ground) in allowed or (ground, col
 
 [[mutant]]
 name = "a pair that is not two colours is taken"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        if not all(found):"
 new = "        if False:"
 
 [[mutant]]
 name = "a pair written in lower case never matches"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        pair = tuple(match.group(1).upper() for match in found)"
 new = "        pair = tuple(match.group(1) for match in found)"
 
@@ -147,29 +147,29 @@ file = "src/pptx_agent_maker/checks/__init__.py"
 old = "        lines.extend(f\"  {'pass':4}  {name:<16} {what}\" for check, what in getattr(findings, \"allowed\", ())"
 new = "        lines.extend(f\"\" for check, what in ()"
 
-# -- words are kept where the project lets the pair through (= layout/base/tokens.py, deck/build.py) --
+# -- words are kept where the project lets the pair through (= layout/tokens.py, deck/build.py) --
 
 [[mutant]]
 name = "words are moved even where the pair is let through"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        if (ranked[0].upper(), ground.upper()) in self.allowed:"
 new = "        if False:"
 
 [[mutant]]
 name = "words are kept for the pair the other way round too"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        if (ranked[0].upper(), ground.upper()) in self.allowed:"
 new = "        if (ranked[0].upper(), ground.upper()) in self.allowed or (ground.upper(), ranked[0].upper()) in self.allowed:"
 
 [[mutant]]
 name = "words of a colour are kept on every ground"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        if (ranked[0].upper(), ground.upper()) in self.allowed:"
 new = "        if ranked[0].upper() in {words for words, _ in self.allowed}:"
 
 [[mutant]]
 name = "words are kept on a ground for every colour"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        if (ranked[0].upper(), ground.upper()) in self.allowed:"
 new = "        if ground.upper() in {on for _, on in self.allowed}:"
 
@@ -181,6 +181,6 @@ new = "    look = replace(look, under=under)"
 
 [[mutant]]
 name = "the pairs can be written under the palette"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = '    known = tuple(f.name for f in fields(Palette) if f.name != "allowed")'
 new = "    known = tuple(f.name for f in fields(Palette))"

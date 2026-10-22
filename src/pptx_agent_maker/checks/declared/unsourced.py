@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from ..base.finding import Finding
+from ..finding import Finding
 
 NAME = "unsourced"
 

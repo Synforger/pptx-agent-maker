@@ -1,6 +1,6 @@
 # The red marks an imported page brought with it are dropped; a declared page keeps every shape it was given.
 
-tests = ["tests/test_deck.py"]
+tests = ["tests/deck/test_deck.py"]
 
 [[mutant]]
 name = "a declared page loses its red shapes too"

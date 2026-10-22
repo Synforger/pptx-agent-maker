@@ -1,24 +1,24 @@
 # A sticker beside the title, and a status mark in a table's cell.
 
-tests = ["tests/test_stickers_and_marks.py", "tests/test_page.py"]
+tests = ["tests/layout/test_stickers_and_marks.py", "tests/layout/test_page.py"]
 
 # -- the sticker ----------------------------------------------------------------
 
 [[mutant]]
 name = "a sticker is as wide as its words alone, with no room at its sides"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.width(sticker, self.type.body) + 2 * self.spacing.pad"
 new = "return self.width(sticker, self.type.body)"
 
 [[mutant]]
 name = "a title is counted as if no sticker stood beside it"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "room -= self.sticker_width(sticker) + s.gap_m"
 new = "room -= 0"
 
 [[mutant]]
 name = "the gap between a title and its sticker is not counted as taken"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "room -= self.sticker_width(sticker) + s.gap_m"
 new = "room -= self.sticker_width(sticker)"
 

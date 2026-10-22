@@ -1,7 +1,7 @@
 """Checking a deck after it is built.
 
-    base/slide.py    焼いたものを読み直す
-    base/finding.py  当たりの形
+    finding.py       当たりの形
+    _internal/       描かれる物・色・絵の読み方 (= 焼いたものを読み直すのは根の `_common/slide.py`)
     rules/           焼いた deck を見る検査、1 検査 1 file
     declared/        manifest を見る検査、1 検査 1 file (= 焼いた file からは分からない事)
 
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .base.finding import Finding, Findings
+from .finding import Finding, Findings
 from .declared import ALL as DECLARED
 from .rules import ALL as CHECKS
 

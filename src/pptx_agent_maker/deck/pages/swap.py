@@ -116,7 +116,7 @@ def describe(deck: Path, page_number: int) -> str:
     """What `pictures` and `tables` would be matched against on one page, in order."""
     import zipfile
 
-    from ..base.archive import Archive
+    from ..._common.archive import Archive
 
     order = Archive(deck.parent).order_of(deck)
     if not 1 <= page_number <= len(order):

@@ -1,6 +1,6 @@
 # Words on a ground the project coloured take the colour that reads on it.
 
-tests = ["tests/test_readable_grounds.py"]
+tests = ["tests/layout/test_readable_grounds.py"]
 
 [[mutant]]
 name = "a table's heading row keeps white words on any accent"
@@ -22,6 +22,6 @@ new = 'p.paper,'
 
 [[mutant]]
 name = "a template's picture is judged like the project's"
-file = "src/pptx_agent_maker/checks/base/picture.py"
+file = "src/pptx_agent_maker/checks/_internal/picture.py"
 old = "    return [picture for picture in pictures if picture.digest not in template]"
 new = "    return list(pictures)"

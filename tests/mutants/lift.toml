@@ -1,7 +1,7 @@
 # Lifting into a template keeps the template as it was, for the last few lifts only, and adds
 # its stand-in words to the template's stale_words however the person wrote that array.
 
-tests = ["tests/test_lift.py"]
+tests = ["tests/project/test_lift.py"]
 
 [[mutant]]
 name = "every copy ever made is kept"

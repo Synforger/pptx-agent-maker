@@ -1,6 +1,6 @@
 # A part that knows how tall it stands is not placed in less room: the page stops instead.
 
-tests = ["tests/test_page.py", "tests/test_types.py", "tests/test_compose.py", "tests/test_figure_floor.py"]
+tests = ["tests/layout/test_page.py", "tests/layout/test_types.py", "tests/layout/test_compose.py", "tests/layout/test_figure_floor.py"]
 
 [[mutant]]
 name = "a picture is placed although its name took all the room"
@@ -70,6 +70,6 @@ new = "        if area.height < self.theme.line_height() and area.width > area.h
 
 [[mutant]]
 name = "a use may not lower the floor of a picture"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = '"conclusion_height", "figure_floor")'
 new = '"conclusion_height")'

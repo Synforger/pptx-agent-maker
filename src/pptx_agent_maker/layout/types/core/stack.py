@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ...base.geometry import Rect
+from ...geometry import Rect
 from ...parts.page import Card, Page, card_text
 from .read import read_card, Spec
 from .registry import PageTypeError

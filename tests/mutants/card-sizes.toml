@@ -1,24 +1,24 @@
 # The size of a tag, the look of a table a use picks, and the single words of a card standing in the middle of their frame.
 
-tests = ["tests/test_card_sizes.py"]
+tests = ["tests/layout/test_card_sizes.py"]
 
-# -- the size of a tag (layout/base/tokens.py) -------------------------------------------------------------------
+# -- the size of a tag (layout/tokens.py) -------------------------------------------------------------------
 
 [[mutant]]
 name = "a tag written under theme.type is not read"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.heading if self.tag_set is None else self.tag_set"
 new = "return self.heading"
 
 [[mutant]]
 name = "a tag left unsaid is the title and not the heading"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return self.heading if self.tag_set is None else self.tag_set"
 new = "return self.title if self.tag_set is None else self.tag_set"
 
 [[mutant]]
 name = "tag is a role nobody reads"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'DERIVED = ("band", "display", "tag", "kicker")'
 new = 'DERIVED = ("band", "display", "kicker")'
 
@@ -48,47 +48,47 @@ file = "src/pptx_agent_maker/layout/parts/page.py"
 old = "t.tag if said.tag else t.heading, head_ink,"
 new = "t.tag, head_ink,"
 
-# -- the look of a table a use picks (layout/base/tokens.py) -----------------------------------------------------
+# -- the look of a table a use picks (layout/tokens.py) -----------------------------------------------------
 
 [[mutant]]
 name = "the look of the tables a use writes is not read"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "                       table_look_set=_picked(said, \"table_look\", TABLE_LOOKS, \"the look of a table\", where),"
 new = "                       table_look_set=None,"
 
 [[mutant]]
 name = "a look nobody pictured is let through as the look of a use's tables"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'table_look_set=_picked(said, "table_look", TABLE_LOOKS,'
 new = 'table_look_set=_picked(said, "table_look", (*TABLE_LOOKS, "outlined", "filled", ""),'
 
 [[mutant]]
 name = "table_look is not a key a use may write"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = '_USE_KEYS = ("like", "floor", "spacing", "box_height", "table_look", "leading")'
 new = '_USE_KEYS = ("like", "floor", "spacing", "box_height", "leading")'
 
 [[mutant]]
 name = "a use that says nothing takes the toolkit's look, not the deck's"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "table_look_set=sized.table_look_set or table_look,"
 new = 'table_look_set=sized.table_look_set or "accent",'
 
 [[mutant]]
 name = "a look in another use keeps the look of the tables of the first"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        table_look = type.table_look_set or self.table_look\n"
 new = "        table_look = self.table_look\n"
 
 [[mutant]]
 name = "a look in another use is not given the look of its tables"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "box_height=box_height,\n                       table_look=table_look)"
 new = "box_height=box_height)"
 
 [[mutant]]
 name = "a deck made in a use of its own does not take that use's look of tables"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        table_look=type.table_look_set,\n"
 new = "        table_look=table_look,\n"
 

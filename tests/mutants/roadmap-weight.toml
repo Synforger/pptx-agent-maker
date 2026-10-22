@@ -1,6 +1,6 @@
 # A roadmap whose stages may say `weight`: the columns are cut by it, and the nodes under a stage break over their own column.
 
-tests = ["tests/test_roadmap.py"]
+tests = ["tests/layout/test_roadmap.py"]
 
 [[mutant]]
 name = "the columns of a road are cut equally whatever the stages weigh"

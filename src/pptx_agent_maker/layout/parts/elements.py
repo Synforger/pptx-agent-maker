@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..base.geometry import Rect, pt
+from ..geometry import Rect, pt
 
 
 @dataclass(frozen=True)

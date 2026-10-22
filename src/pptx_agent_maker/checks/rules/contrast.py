@@ -11,7 +11,7 @@
 
 閾値は Web の読みやすさの基準 (= WCAG 2 の AA): 明暗差 4.5、大きい字 (= 18pt 以上、太字なら
 14pt 以上) は 3。大きさを書いていない字は大きい側で数える (= 迷ったら言わない側へ)。値と大きさの決まりは
-組む側と同じ物を読む (= `layout/base/tokens.py` の `READABLE` と `reading_floor`)。
+組む側と同じ物を読む (= `layout/tokens.py` の `READABLE` と `reading_floor`)。
 
 **通してよい組は、字の色と地の色の組で書く** (= `[checks] contrast_allowed`)。テンプレートのブランドの
 差し色 (= 差し色の地に白い字、白い地に差し色の字) は案件の側では動かせないが、検査ごと外すと
@@ -27,10 +27,10 @@ import re
 import zipfile
 from pathlib import Path
 
-from ...layout.base.tokens import ALLOWED, allowed_pairs
-from ..base.colour import Palette, contrast, reading_floor, solid
-from ..base.finding import Finding, Findings
-from ..base.slide import RUN, TEXT, BuiltSlide, Shape, read
+from ...layout.tokens import ALLOWED, allowed_pairs
+from .._internal.colour import Palette, contrast, reading_floor, solid
+from ..finding import Finding, Findings
+from ..._common.slide import RUN, TEXT, BuiltSlide, Shape, read
 
 NAME = "contrast"
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ...base.geometry import Rect
+from ...geometry import Rect
 from ...parts.page import Page
 from ..core.read import Spec
 from ..core.registry import PageTypeError, register

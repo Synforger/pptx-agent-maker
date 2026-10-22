@@ -16,9 +16,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..base.finding import Finding
-from ..base.ink import LEFT_INSET, RIGHT_INSET, lines_in
-from ..base.slide import EXTENT, TEXT, TITLE_PLACEHOLDER, BuiltSlide, read
+from ..finding import Finding
+from .._internal.ink import LEFT_INSET, RIGHT_INSET, lines_in
+from ..._common.slide import EXTENT, TEXT, TITLE_PLACEHOLDER, BuiltSlide, read
 
 NAME = "long_title"
 #: 題が取ってよい行の数

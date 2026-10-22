@@ -1,6 +1,6 @@
 # A few words pointing at one point of a chart: where the point is worked out to be, and what is written out.
 
-tests = ["tests/test_chart.py"]
+tests = ["tests/layout/test_chart.py"]
 
 # -- where things go (layout/types/bodies/chart.py) ------------------------------
 

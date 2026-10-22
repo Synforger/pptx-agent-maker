@@ -1,6 +1,6 @@
 # What an installed toolkit carries: the live preview is installed with it.
 
-tests = ["tests/test_install.py"]
+tests = ["tests/install/test_install.py"]
 
 [[mutant]]
 name = "the preview is left out of the toolkit's package search"

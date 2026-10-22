@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-from ...layout.base.tokens import Theme
-from ..base.finding import Finding
+from ...layout.tokens import Theme
+from ..finding import Finding
 from ..rules.long_title import LIMIT, NAME, off, why
 
 __all__ = ["NAME", "run"]

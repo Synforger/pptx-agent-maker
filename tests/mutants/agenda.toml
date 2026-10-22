@@ -1,6 +1,6 @@
 # An agenda marks its chapter in words, or with a ground the page names; its chapters are numbered plainly or in circles.
 
-tests = ["tests/test_types.py"]
+tests = ["tests/layout/test_types.py"]
 
 [[mutant]]
 name = "the chapter keeps its words under a ground that already says it"

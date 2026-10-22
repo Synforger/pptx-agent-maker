@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ...base.geometry import Rect
+from ...geometry import Rect
 from ...parts.elements import Ellipse, Fill, Text
 from ...parts.look import Style
 from ...parts.page import Card, Page, PageFullError

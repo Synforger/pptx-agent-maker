@@ -1,4 +1,4 @@
-"""One run of everything that writes a file on this machine, for `tests/test_platform_root.py` to watch.
+"""One run of everything that writes a file on this machine, for `tests/project/test_platform_root.py` to watch.
 
 `python tests/support/platform_root_scenario.py DECK` を、HOME・TMPDIR・作業 folder を空の
 folder に向け、`AGENT_PLATFORM_ROOT` を渡して走らせる。焼く (= LibreOffice まで通す)・開いた物を

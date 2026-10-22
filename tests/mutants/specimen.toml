@@ -1,6 +1,6 @@
 # The specimen the project template ships with: it is what the baker makes today.
 
-tests = ["tests/test_template.py"]
+tests = ["tests/project/test_template.py"]
 
 [[mutant]]
 name = "a filled shape keeps the theme's shape style"

@@ -182,7 +182,7 @@ def _checks(workspace, manifest=None, theme=None) -> dict:
     (= manifest が使い方を名指していれば、その使い方)。自分の使い方を名指した頁は、その使い方の下限で
     見る。案件が `[checks] type_floor` を書いていれば、どの頁でもそちらが勝つ。
     """
-    from .layout.base.tokens import theme_from
+    from .layout.tokens import theme_from
 
     asked = workspace.settings.get("checks", {})
     config = {"type_floor": (theme or theme_from(workspace.look)).type.minimum, **asked}
@@ -202,7 +202,7 @@ def _template_media(workspace, manifest=None) -> set[str]:
 
     この資料の manifest が分かればその雛形、分からなければ案件の manifest が使う雛形の全部。
     """
-    from .checks.base.picture import media_digests
+    from .checks._internal.picture import media_digests
     from .project.files.manifest import Manifest, ManifestError
 
     if manifest is not None:
@@ -406,7 +406,7 @@ def main(argv: list[str] | None = None) -> int:
 
             print(describe())
             from .layout.parts.look import TONES
-            from .layout.base.tokens import theme_from
+            from .layout.tokens import theme_from
 
             named = theme_from(workspace.look).ground_names()
             print(f"tone (= the ground of a box, a bar, a lane): {', '.join(TONES)}"

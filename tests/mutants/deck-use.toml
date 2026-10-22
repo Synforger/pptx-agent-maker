@@ -1,82 +1,82 @@
 # What a deck is for (read, or shown) decides how large its type is; a project may set a role of its own.
 
-tests = ["tests/test_theme.py"]
+tests = ["tests/layout/test_theme.py"]
 
 [[mutant]]
 name = "a deck to be shown has its title at the size of a deck to be read"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = '"present": Type(title=32, heading=24,'
 new = '"present": Type(title=24, heading=24,'
 
 [[mutant]]
 name = "a deck to be shown has the floor of a deck to be read"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "body=18, caption=14, minimum=14),"
 new = "body=18, caption=14, minimum=10),"
 
 [[mutant]]
 name = "the sizes a project sets are not laid over the table"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = '    sized = replace(base, **{f"{name}_set" if name in DERIVED else name: value for name, value in declared.items()})'
 new = "    sized = base"
 
 [[mutant]]
 name = "a size under the floor is taken"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        if value < sized.minimum:\n"
 new = "        if False:\n"
 
 [[mutant]]
 name = "the floor a size is held to is always that of a deck to be read"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        if value < sized.minimum:\n"
 new = "        if value < USES[\"read\"].minimum:\n"
 
 [[mutant]]
 name = "a role that is not the project's to set is taken"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    _refuse_unknown(sorted(set(declared) - {*SIZED, *DERIVED}), where, takes)\n"
 new = ""
 
 [[mutant]]
 name = "a use nobody knows is not refused"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "    if not isinstance(use, str) or use not in scales:\n"
 new = "    if False:\n"
 
 [[mutant]]
 name = "the bands keep their height whatever the type"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "        spacing=_furniture(type, kicker),\n"
 new = ""
 
 [[mutant]]
 name = "the title's band grows with the headings, not with the title"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "title_height=step + round((base.title_height - base.kicker_height) * type.title / read.title),"
 new = "title_height=step + round((base.title_height - base.kicker_height) * type.heading / read.heading),"
 
 [[mutant]]
 name = "the row of the small words above a title keeps its height whatever the type"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "step = round(base.kicker_height * small / read.caption)"
 new = "step = base.kicker_height"
 
 [[mutant]]
 name = "the row of the small words grows with the title, not with the small words"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = 'small = type.kicker if kicker == "above" else type.caption'
 new = "small = type.title"
 
 [[mutant]]
 name = "the footer keeps its height whatever the type"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "footer_height=round(base.footer_height * type.caption / read.caption),"
 new = "footer_height=base.footer_height,"
 
 [[mutant]]
 name = "the timeline keeps its two sizes whatever the type"
-file = "src/pptx_agent_maker/layout/base/tokens.py"
+file = "src/pptx_agent_maker/layout/tokens.py"
 old = "return tuple(sorted({self.stage, self.body}, reverse=True))"
 new = "return (14, 12)"
 
@@ -94,6 +94,6 @@ new = "    config = {**asked, \"type_floor\": (theme or theme_from(workspace.loo
 
 [[mutant]]
 name = "the use a project declares does not reach the pages it builds"
-file = "src/pptx_agent_maker/deck/base/look.py"
+file = "src/pptx_agent_maker/deck/_internal/look.py"
 old = 'look.update({key: value for key, value in declared.items() if key != "palette"})'
 new = 'look.update({key: value for key, value in declared.items() if key == "font"})'

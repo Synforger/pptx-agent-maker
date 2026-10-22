@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from ..checks.base.slide import read
+from .._common.slide import read
 from ..project.files.manifest import Manifest
 from ..project.files.workspace import Workspace
 
