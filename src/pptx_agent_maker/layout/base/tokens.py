@@ -378,6 +378,14 @@ class Palette:
     #: 色をこの割合だけ紙に混ぜる ― カードはほぼ白、帯はそれより一段濃い (= 案件の資料の見本の透け方)
     CARD_WASH: ClassVar[float] = 0.03
     BAND_WASH: ClassVar[float] = 0.12
+    #: 案件が名前を付けた地を「色で何も言わない薄い地」と見る明るさの下限: 作り付けの薄い地
+    #: (= `box` / `band` / `tint`) の一番暗い物の明るさに、この倍率を掛けた所 (= 薄い地の色を案件が
+    #: 変えれば線も動く)。中くらいの明るさの鮮やかな色は、本文の色の字が読めても薄い地ではない
+    PALE_SHARE: ClassVar[float] = 0.9
+
+    def pale(self, colour: str) -> bool:
+        """Whether a colour is as near the paper as the palette's own pale grounds (= says nothing by its colour)."""
+        return _luminance(colour) >= min(_luminance(c) for c in (self.box, self.band, self.tint)) * self.PALE_SHARE
 
     def thinned(self, share: float, hue: str | None = None) -> str:
         """A colour mixed into the paper: `share` of it is the colour (= 0 is the paper, 1 the colour).

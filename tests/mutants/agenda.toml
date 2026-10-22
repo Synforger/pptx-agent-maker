@@ -77,14 +77,14 @@ new = "zip(stack.split_top(stack.height * 3 // 4)[0].rows(len(buckets), gap=s.ga
 [[mutant]]
 name = "the items of the list are greyed like their marks"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "entry, t.body, p.accent if picked else p.ink,"
-new = "entry, t.body, p.accent if picked else p.muted,"
+old = "entry, t.body,\n                         p.accent if picked else p.ink,"
+new = "entry, t.body,\n                         p.accent if picked else p.muted,"
 
 [[mutant]]
 name = "the mark of the item in hand stays grey"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "rows.append((ITEM_MARK, p.accent if picked else p.muted,"
-new = "rows.append((ITEM_MARK, p.muted,"
+old = "if numbered else ITEM_MARK, p.accent if picked else p.muted,"
+new = "if numbered else ITEM_MARK, p.muted,"
 
 [[mutant]]
 name = "the chapters of the list are set as small as their items"
@@ -107,14 +107,14 @@ new = "            if False:"
 [[mutant]]
 name = "the mark of a chapter is grey like the marks of items"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "rows.append((CHAPTER_MARK, colour,"
-new = "rows.append((CHAPTER_MARK, p.muted,"
+old = "CHAPTER_MARK, colour, title"
+new = "CHAPTER_MARK, p.muted, title"
 
 [[mutant]]
 name = "the mark of a chapter goes back into the chapter's words"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "rows.append((CHAPTER_MARK, colour, title.split(SUMMARY, 1)[0], t.stage,"
-new = "rows.append((CHAPTER_MARK, colour, CHAPTER_MARK + \" \" + title.split(SUMMARY, 1)[0], t.stage,"
+old = "CHAPTER_MARK, colour, title.split(SUMMARY, 1)[0], t.stage,"
+new = "CHAPTER_MARK, colour, CHAPTER_MARK + \" \" + title.split(SUMMARY, 1)[0], t.stage,"
 
 [[mutant]]
 name = "the names under an item stand under every chapter, not only the one in hand"
@@ -131,8 +131,8 @@ new = "if False else []"
 [[mutant]]
 name = "the cards leave out the names under an item"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "s.row_gap) for name in under)"
-new = "s.row_gap) for name in under[:0])"
+old = "s.row_gap)\n                        for name in under)"
+new = "s.row_gap)\n                        for name in under[:0])"
 
 [[mutant]]
 name = "the names under an item stand one step in, level with the item"
@@ -157,3 +157,33 @@ name = "an item that is a name and a name is read as a name with names under it"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
 old = "or not isinstance(item[1], (list, tuple))"
 new = "or False"
+
+[[mutant]]
+name = "the numbered list keeps the dot in front of a chapter"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "rows.append((str(number) if numbered else CHAPTER_MARK,"
+new = "rows.append((CHAPTER_MARK,"
+
+[[mutant]]
+name = "the items of a numbered list count on from the chapter before"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "rows.append((f\"({index})\" if numbered else ITEM_MARK,"
+new = "rows.append((f\"({len(rows)})\" if numbered else ITEM_MARK,"
+
+[[mutant]]
+name = "the names under an item of a numbered list keep a dash"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "rows.extend((\"\" if numbered else ITEM_MARK,"
+new = "rows.extend((ITEM_MARK,"
+
+[[mutant]]
+name = "each mark of a level is as wide as itself, so the words after (9) and (10) do not line up"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "            widest[indent] = max(widest.get(indent, 0), theme.width(f\"{sign} \", size))\n    marks = [widest.get(indent, 0) for *_head, indent, _before in rows]"
+new = "            widest[indent] = max(widest.get(indent, 0), theme.width(f\"{sign} \", size))\n    marks = [theme.width(f\"{sign} \", size) if sign else 0 for sign, _s, _t, size, *_rest in rows]"
+
+[[mutant]]
+name = "list_marks is read in the boxes too"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        if look != \"cards\":\n            raise PageTypeError(\"agenda: `list_marks`"
+new = "        if False:\n            raise PageTypeError(\"agenda: `list_marks`"

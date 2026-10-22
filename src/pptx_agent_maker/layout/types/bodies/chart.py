@@ -57,7 +57,7 @@ from ..core.registry import PageTypeError, register
 #: `scatter` は点 (= 2 つの量の関係)、`strip` は行ごとの点の列 (= 1 件 1 点を、対数の軸に並べる)
 KINDS = ("bar", "column", "line", "stacked", "waterfall", "scatter", "strip")
 #: グラフが読むキー
-KEYS = ("kind", "categories", "series", "data", "highlight", "unit", "labels", "totals", "callouts", "x", "y",
+KEYS = ("kind", "categories", "series", "data", "highlight", "highlight_tone", "unit", "labels", "totals", "callouts", "x", "y",
         "scale", "bare", "notes")
 #: 数字も値の軸も持たない小さな棒 (= `bare`) が書ける種類
 BARE = ("bar", "column")
@@ -68,13 +68,13 @@ SCALE_KEYS = ("from", "to", "step")
 #: 目盛りの数の上限 (= これより細かい目盛りの線は、地の模様になって読めない)
 MOST_TICKS = 20
 #: 点のグラフが読むキー (= 項目も、棒に付ける数字も、柱を指す注記も持たない)
-POINT_KEYS = ("kind", "x", "y", "series", "data", "highlight", "grid")
+POINT_KEYS = ("kind", "x", "y", "series", "data", "highlight", "highlight_tone", "grid")
 #: 点の印の大きさ (pt)。点の横の言葉を置く場所は、この大きさから計算する (= 書き出す側の既定と同じ)
 MARK = 7
 #: 点のグラフの系列が読むキー
 POINT_SERIES_KEYS = ("name", "points", "tone")
 #: 点の列 (= `strip`) が読むキー。行 = 項目、1 件 = 点 1 つ
-STRIP_KEYS = ("kind", "categories", "series", "notes", "axis", "ticks", "median", "highlight", "legend")
+STRIP_KEYS = ("kind", "categories", "series", "notes", "axis", "ticks", "median", "highlight", "highlight_tone", "legend")
 #: 点の列の系列が読むキー (= `values` は項目ごとの、点の値の並び)
 STRIP_SERIES_KEYS = ("name", "values", "tone")
 #: 点の列の、行ごとの中央値を描く系列の名前 (= PowerPoint の表にも、この名前の列が並ぶ)
@@ -119,6 +119,8 @@ class _Plan:
     bare: bool = False
     #: 横棒の、項目ごとの 1 行の説明 (= 名前の下に置く。言葉の無い項目は空)
     notes: tuple[str, ...] = ()
+    #: `highlight` の 1 つを塗る色の役 (= 書かなければ空で、差し色)
+    highlight_tone: str = ""
 
     @property
     def axis(self) -> bool:
@@ -152,6 +154,7 @@ def place_chart(page: Page, spec: Spec, written, rect: Rect, what: str) -> None:
         return
     plan = _read(spec, written, what)
     series, legend = (_waterfall(page, plan, what) if plan.kind == "waterfall" else _plain(page, plan, what))
+    _readable(page, plan, rect, legend, what)
     frame, pinned, callouts = (_pointed(page, plan, rect, legend, what) if plan.callouts or plan.notes
                                else (None, None, ()))
     page.chart(Chart(
@@ -205,7 +208,8 @@ def _read(spec: Spec, written, what: str) -> _Plan:
     callouts = _callouts(written.get("callouts"), kind, categories, names, what)
     notes = _notes(written.get("notes"), kind, categories, what)
     plan = _Plan(kind, tuple(categories), tuple(series), highlight, unit, labels and not bare,
-                 tuple(str(name) for name in totals), callouts, bare=bare, notes=notes)
+                 tuple(str(name) for name in totals), callouts, bare=bare, notes=notes,
+                 highlight_tone=_highlight_tone(spec, written, highlight, what))
     if "scale" not in written:
         return plan
     return replace(plan, scale=_scale(written["scale"], plan, what))
@@ -450,9 +454,11 @@ def _points(page: Page, spec: Spec, written: dict, what: str) -> _Points:
     if highlight and toned:
         raise PageTypeError(f"{what}: `highlight` already says which one stands out — "
                             f"take the `tone` off {', '.join(toned)}")
+    standing = _highlight_tone(spec, written, highlight, what)
     drawn = []
     for index, (name, points, tone, _named) in enumerate(series):
-        colour, _edge = _series_colour(page, index, name, tone, (name == highlight) if highlight else None, what)
+        colour, _edge = _series_colour(page, index, name, tone, (name == highlight) if highlight else None, what,
+                                       standing)
         drawn.append(Series(name, tuple(y for _x, y in points), colour, xs=tuple(x for x, _y in points)))
     return _Points((titles[0], titles[1]), tuple(drawn), tuple(named for _n, _p, _t, named in series), grid)
 
@@ -623,6 +629,8 @@ class _Strip:
     highlight: str
     median: bool
     legend: bool | None
+    #: `highlight` の 1 つを塗る色の役 (= 書かなければ空で、差し色)
+    highlight_tone: str = ""
 
 
 def _strip_read(spec: Spec, written: dict, what: str) -> _Strip:
@@ -684,7 +692,8 @@ def _strip_read(spec: Spec, written: dict, what: str) -> _Strip:
         if key in written and not isinstance(written[key], bool):
             raise PageTypeError(f"{what}: `{key}` is true or false, not {written[key]!r}")
         flags[key] = written.get(key)
-    return _Strip(tuple(rows), notes, ticks, tuple(series), highlight, bool(flags["median"]), flags["legend"])
+    return _Strip(tuple(rows), notes, ticks, tuple(series), highlight, bool(flags["median"]), flags["legend"],
+                  _highlight_tone(spec, written, highlight, what))
 
 
 def _ticks(written, what: str) -> tuple[float, ...]:
@@ -789,7 +798,8 @@ def _strip(page: Page, spec: Spec, written: dict, rect: Rect, what: str, look: d
     highlight = plan.highlight
     drawn = []
     for index, (name, tone, _values) in enumerate(plan.series):
-        colour, _edge = _series_colour(page, index, name, tone, (name == highlight) if highlight else None, what)
+        colour, _edge = _series_colour(page, index, name, tone, (name == highlight) if highlight else None, what,
+                                       plan.highlight_tone)
         drawn.append(Series(name, tuple(columns[index]), colour, xs=tuple(xs[index]), mark=STRIP_MARK))
     if plan.median:
         # 白抜き (= 塗らず、縁だけ)。ほかの点の上に重なっても、下の点が輪の中に見える
@@ -819,15 +829,16 @@ def _strip(page: Page, spec: Spec, written: dict, rect: Rect, what: str, look: d
 
 
 def _series_colour(page: Page, index: int, name: str, tone: str, standing_out: bool | None,
-                   what: str) -> tuple[str, str]:
+                   what: str, standing_tone: str = "") -> tuple[str, str]:
     """(the colour, the edge) of one series, by the rule every chart shares.
 
-    `standing_out` は、グラフが `highlight` を持つ時だけ言う (= この系列がその 1 つか)。持たなければ、
-    書いた `tone`、書かなければ順番で決まる色 (= 最初が主役、続きは灰の濃淡)。
+    `standing_out` は、グラフが `highlight` を持つ時だけ言う (= この系列がその 1 つか)。その 1 つは
+    `standing_tone` の色 (= `highlight_tone`、書かなければ差し色)。持たなければ、書いた `tone`、書かなければ
+    順番で決まる色 (= 最初が主役、続きは灰の濃淡)。
     """
     palette = page.theme.palette
     if standing_out is not None:
-        return (palette.accent if standing_out else palette.muted), ""
+        return (_standing_colour(page, standing_tone) if standing_out else palette.muted), ""
     if tone:
         # 薄い地の系列は、箱と同じく地を濃くした色の枠を持つ (= 紙の上で棒の端が読める)
         colour, _words, edge = page.ground(tone)
@@ -837,6 +848,23 @@ def _series_colour(page: Page, index: int, name: str, tone: str, standing_out: b
     raise PageTypeError(
         f"{what}: series {index + 1} ({name}) has no colour of its own — past the first "
         f"{len(UNSAID)}, give each series a `tone` ({', '.join(TONES)}), or `highlight` one")
+
+
+def _highlight_tone(spec: Spec, written: dict, highlight: str, what: str) -> str:
+    """The tone the one `highlight` names is painted in (= `highlight_tone`, the agenda's word), or empty for the accent.
+
+    書けるのは目次の `highlight_tone` と同じ (= 道具の色の役と、案件が `[theme.grounds]` で名前を付けた地)。
+    """
+    if "highlight_tone" not in written:
+        return ""
+    if not highlight:
+        raise PageTypeError(f"{what}: `highlight_tone` is the colour of the one `highlight` names, and none is named")
+    return read_tone(spec, {"tone": written["highlight_tone"]}, f"{what}: `highlight_tone`", "")
+
+
+def _standing_colour(page: Page, tone: str) -> str:
+    """The colour of the one that stands out: the ground of `tone`, or the accent when no tone is written."""
+    return page.ground(tone)[0] if tone else page.theme.palette.accent
 
 
 def _places(values) -> int:
@@ -885,11 +913,11 @@ def _plain(page: Page, plan: _Plan, what: str) -> tuple[tuple[Series, ...], bool
     drawn = []
     for index, (name, values, tone) in enumerate(plan.series):
         colour, edge = _series_colour(page, index, name, tone,
-                                      (name == one_series) if plan.highlight else None, what)
+                                      (name == one_series) if plan.highlight else None, what, plan.highlight_tone)
         stacked = plan.kind == "stacked"
         drawn.append(Series(
             name, values, colour,
-            points=((one_category, palette.accent),) if one_category is not None else (),
+            points=((one_category, _standing_colour(page, plan.highlight_tone)),) if one_category is not None else (),
             number_format=number_format,
             # 段の中に置く数字は、その段の地の上で読める方の色。段の境は紙の色の細い線で切る
             label_colour=palette.words_on(colour, page.theme.type.body) if stacked else "",
@@ -949,6 +977,30 @@ def _waterfall(page: Page, plan: _Plan, what: str) -> tuple[tuple[Series, ...], 
         Series(f"{name} -", tuple(down), palette.bad, **labelled("-", palette.bad)),
         Series(f"{name} =", tuple(total), palette.accent, **labelled("", palette.accent)),
     ), False
+
+
+def _readable(page: Page, plan: _Plan, rect: Rect, legend: bool, what: str) -> None:
+    """Stop a chart too low for its bars to be read, wherever it is placed (= a page's body or a cell inside rows).
+
+    描く範囲は、注記の無いグラフでも同じ数え方で見積もる (= `_pointed` の 2 と同じ。凡例と、値の軸の字の行を除く)。
+    横棒は項目ごとの帯が名前の 1 行より低ければ、名前どうしが重なる。縦のグラフは、棒の外に付く数字が描く範囲の
+    半分を取れば、棒が数字の下に潰れる。どちらも縮めずに止まる (= 注記の在るグラフは `_pointed` が同じことを言う)。
+    """
+    theme, s = page.theme, page.theme.spacing
+    line, pad = theme.line_height(), s.gap_s
+    below = line + s.gap_s if legend else 0
+    if plan.kind == "bar":
+        plot = rect.height - 2 * pad - below - (0 if plan.labels else line + s.gap_s)
+        slot = plot / len(plan.categories)
+        if slot < line:
+            raise PageFullError(f"{what}: each of the {len(plan.categories)} bars has {max(slot, 0) / pt(1):.0f} pt, "
+                                f"and its name needs {line / pt(1):.0f} — more room, or fewer bars")
+        return
+    if plan.labels and plan.kind in ("column", "line"):
+        plot = rect.height - max(pad, line // 2) - (line + s.gap_s) - below
+        if plot <= 0 or (line + s.bar_pad_y) * 2 >= plot:
+            raise PageFullError(f"{what}: the numbers on the bars would take half the plot — more room, or "
+                                "`labels = false`")
 
 
 # -- pointing at a point ---------------------------------------------------------

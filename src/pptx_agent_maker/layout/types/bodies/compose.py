@@ -32,6 +32,9 @@
 * **入れ物 (`panel`)** は、中の段を同じ決まりで割る (= 中は自分の段とマスの入れ子)。入れ物の高さは、
   見出しの分と中の段の高さの合計。中に絵や型の段が在れば、入れ物は残りを取る。頁の高さを使う資料では、
   入れ物もカードと同じに、置かれたマスの高さを使い切り、中のカードはその中の高さを使う
+* **入れ物と同じ段のカード**は、字を入れ物の見出しと同じ上端から置く (= `outlined` の資料でも縦の中央に置かない。
+  見出しどうしが同じ高さに並ぶ)
+* 残りを分け合う段の中で高さが足りずに止まった時は、外の段が取っている高さも言う (= 動かせるのはそちら)
 
 ⚠ **この型は図を要らない頁として扱う。**カードだけで組む頁 (= 目標と柱) を拒むと、また指定を
 曲げて組むことになる。
@@ -104,11 +107,22 @@ def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> 
             tall = int(left_over * weight / shares)
         else:
             tall = height + (next(more) if grows and not shares else 0)
+        # 入れ物と並ぶカードは、字を入れ物の見出しと同じ上端から置く (= 見出しどうしが同じ高さに並ぶ)
+        by_panel = any("panel" in cell for cell, _column, _natural in cells)
         for index, (cell, column, natural) in enumerate(cells, start=1):
             rect = Rect(area.left + column.left, top, column.width, tall)
             at = len(seen)
             seen.append((str(cell["id"]) if "id" in cell else None, rect, _blank(cell)))
-            drawn = _place(page, spec, cell, rect, natural, height is not None, f"{where}: row {number}, cell {index}", seen)
+            try:
+                drawn = _place(page, spec, cell, rect, natural, height is not None, f"{where}: row {number}, cell {index}",
+                               seen, by_panel=by_panel)
+            except PageFullError as reason:
+                if height is not None or not fixed:
+                    raise
+                # 中で足りなくなった時、書く人が動かせるのは、この段の外で高さを取っている段の方
+                raise PageFullError(
+                    f"{reason} (= {where}: row {number} shares the {left_over} EMU the other rows leave of "
+                    f"{area.height}, and they take {fixed} — shorter rows beside it give it more)") from reason
             if drawn is not None:
                 # 矢印は描かれた矩形どうしで引く (= 入れ物が字の分の高さで止まる時は、マスより低い)
                 seen[at] = (seen[at][0], drawn, seen[at][2])
@@ -274,10 +288,11 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
 
 
 def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, own_row: bool,
-           what: str, seen: list) -> Rect | None:
+           what: str, seen: list, *, by_panel: bool = False) -> Rect | None:
     """Put one cell's part in its rect; the rect an enclosure is drawn in when that is not the cell's (= otherwise None).
 
     `own_row` は、段が中身の言葉ぶんの高さの段か (= その段のカードは段の高さに揃える)。
+    `by_panel` は、同じ段に入れ物が在るか (= カードの字を、入れ物の見出しと同じ上端から置く)。
     残りを分け合う段では、自分の高さを持つ部品は自分の高さのまま上に寄る (= 頁の高さを配らない)。
     頁の高さを使う資料 (= `box_height = "page"`) では、カードと入れ物はどの段でも置かれたマスを使い切る。
 
@@ -292,7 +307,8 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
     fitted = rect if natural is None else Rect(rect.left, rect.top, rect.width, min(natural, rect.height))
     try:
         if part == "card":
-            page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)])
+            page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)],
+                       top=by_panel)
         elif part == "panel":
             return _panel(page, spec, cell, rect if own_row or page.theme.box_height == "page" else fitted, what, seen)
         elif part == "table":
