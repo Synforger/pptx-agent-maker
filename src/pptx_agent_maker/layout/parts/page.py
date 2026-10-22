@@ -305,18 +305,29 @@ class Page:
         `band_look = "outlined"` の帯は枠と色を持つ。上 (= 条件) は差し色のごく薄い地に差し色の枠と太字、
         下 (= 結論) は灰のごく薄い地に灰の枠と本文の色の太字 ― 上は頁が前提にする読み、下は読み手に
         持ち帰らせる言葉で、下は本文の大きさ (= 上より一段小さい)。
+
+        ⚠ **帯は、文が折れる行ぶんの高さを取る** (= 題の帯と同じ)。1 行ぶんで固定していた間は、2 行に折れた
+        文の 2 行目が帯の枠の下へはみ出して描かれ、枠どうしは重ならないので検査も掴まなかった。1 行の帯は
+        今までの高さのままで、折れた行ごとに 1 行ぶん伸びる。
         """
         p, t, s = self.theme.palette, self.theme.type, self.theme.spacing
-        rect = self._take_bottom(s.conclusion_height) if conclusion else self._take_top(s.band_height)
-        if self.theme.band_look == "outlined":
+        outlined = self.theme.band_look == "outlined"
+        size = t.body if outlined and conclusion else t.band
+        bold = outlined or conclusion
+        # 字が使える幅 (= 帯の内側の余白と、文字の枠の左右の余白を除く)
+        room = self._remaining.width - 2 * s.pad - 2 * s.text_inset
+        folded = (self.theme.wraps(text, room, size, bold=bold) - 1) * self.theme.line_height(size)
+        rect = (self._take_bottom(s.conclusion_height + folded) if conclusion
+                else self._take_top(s.band_height + folded))
+        if outlined:
             hue = p.muted if conclusion else p.accent
             self.elements.append(Fill("band", rect, p.thinned(p.BAND_WASH, hue), outline=hue, rounded=True))
-            self.elements.append(Text("band_text", rect.inset(s.pad), text, t.body if conclusion else t.band,
-                                      p.ink if conclusion else hue, bold=True))
+            self.elements.append(Text("band_text", rect.inset(s.pad), text, size,
+                                      p.ink if conclusion else hue, bold=bold))
             return
         self.elements.append(Fill("band", rect, p.rule if conclusion else p.band))
         self.elements.append(
-            Text("band_text", rect.inset(s.pad), text, t.band, p.ink, bold=conclusion)
+            Text("band_text", rect.inset(s.pad), text, size, p.ink, bold=bold)
         )
 
     def ground(self, tone: str, points: float | None = None, bold: bool = False) -> tuple[str, str, str]:

@@ -95,8 +95,8 @@ new = "hue = p.accent"
 [[mutant]]
 name = "the conclusion is set at the size of a heading"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "text, t.body if conclusion else t.band,"
-new = "text, t.band,"
+old = "size = t.body if outlined and conclusion else t.band"
+new = "size = t.band"
 
 [[mutant]]
 name = "an outlined band is square"

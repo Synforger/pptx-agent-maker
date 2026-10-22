@@ -31,8 +31,52 @@ new = 'conclusion_height=said.get("conclusion_height", base.conclusion_height),'
 [[mutant]]
 name = "the band under a page is as tall as the one over it"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "self._take_bottom(s.conclusion_height)"
-new = "self._take_bottom(s.band_height)"
+old = "self._take_bottom(s.conclusion_height + folded)"
+new = "self._take_bottom(s.band_height + folded)"
+
+# -- a band as tall as its words (layout/parts/page.py) -------------------------------------------------------
+
+[[mutant]]
+name = "a band that folds keeps the height of one line"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "folded = (self.theme.wraps(text, room, size, bold=bold) - 1) * self.theme.line_height(size)"
+new = "folded = 0"
+
+[[mutant]]
+name = "a band grows by a line of the body, not of its own type"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "folded = (self.theme.wraps(text, room, size, bold=bold) - 1) * self.theme.line_height(size)"
+new = "folded = (self.theme.wraps(text, room, size, bold=bold) - 1) * self.theme.line_height(t.body)"
+
+[[mutant]]
+name = "a band's words are counted in the regular weight"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "folded = (self.theme.wraps(text, room, size, bold=bold) - 1) * self.theme.line_height(size)"
+new = "folded = (self.theme.wraps(text, room, size) - 1) * self.theme.line_height(size)"
+
+[[mutant]]
+name = "a band's words are counted across the whole frame"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "room = self._remaining.width - 2 * s.pad - 2 * s.text_inset"
+new = "room = self._remaining.width"
+
+[[mutant]]
+name = "only the band over the page grows"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "self._take_bottom(s.conclusion_height + folded)"
+new = "self._take_bottom(s.conclusion_height)"
+
+[[mutant]]
+name = "only the band under the page grows"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "else self._take_top(s.band_height + folded))"
+new = "else self._take_top(s.band_height))"
+
+[[mutant]]
+name = "a plain conclusion is counted in the regular weight"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "bold = outlined or conclusion"
+new = "bold = outlined"
 
 # -- the height of the boxes a use picks (layout/tokens.py) --------------------------------------------------
 

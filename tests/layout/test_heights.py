@@ -99,6 +99,85 @@ class ABandHasAHeightOfItsOwn(unittest.TestCase):
         self.assertEqual(DEFAULT.spacing, theme.using("tall").using("read").spacing)
 
 
+class ABandIsAsTallAsItsWords(unittest.TestCase):
+    """⚠ **帯を 1 行ぶんで固定していた間は、2 行に折れた文の 2 行目が帯の枠の下へはみ出した。**枠どうしは
+    重ならないので、重なりの検査も頁の外の検査も掴まない ― 帯は、文が折れる行ぶん伸びる (= 題の帯と同じ)。"""
+
+    OUTLINED = theme_from({"band_look": "outlined"})
+
+    @staticmethod
+    def _band(page: Page, conclusion: bool) -> Rect:
+        bands = [e.rect for e in page.elements if e.kind == "band"]
+        return max(bands, key=lambda r: r.top) if conclusion else min(bands, key=lambda r: r.top)
+
+    @staticmethod
+    def _room(theme) -> int:
+        """The width the words of a band have (= the frame, less the band's padding and the text box's own)."""
+        s = theme.spacing
+        return theme.frame().width - 2 * s.pad - 2 * s.text_inset
+
+    def _just_past(self, theme, size: float) -> str:
+        """Full-width characters one past what a line of the band holds."""
+        return "字" * (int(self._room(theme) / (size * 12700)) + 1)
+
+    def test_a_band_on_one_line_keeps_the_height_it_always_had(self) -> None:
+        s = DEFAULT.spacing
+        page = Page("T", condition="If this holds", conclusion="Then that follows")
+        self.assertEqual(s.band_height, self._band(page, False).height)
+        self.assertEqual(s.conclusion_height, self._band(page, True).height)
+
+    def test_a_condition_that_folds_takes_a_line_more_and_the_body_starts_under_it(self) -> None:
+        t, s = DEFAULT.type, DEFAULT.spacing
+        words = self._just_past(DEFAULT, t.band)
+        self.assertEqual(2, DEFAULT.wraps(words, self._room(DEFAULT), t.band),
+                         "the sentence chosen does not fold where this test says")
+        one, two = Page("T", condition="If this holds"), Page("T", condition=words)
+        self.assertEqual(s.band_height + DEFAULT.line_height(t.band), self._band(two, False).height)
+        self.assertEqual(one.body.top + DEFAULT.line_height(t.band), two.body.top)
+        self.assertFalse(two.body.overlaps(self._band(two, False)))
+
+    def test_a_conclusion_that_folds_takes_a_line_more_and_the_body_ends_over_it(self) -> None:
+        t, s = DEFAULT.type, DEFAULT.spacing
+        words = self._just_past(DEFAULT, t.band)
+        one, two = Page("T", conclusion="Then that follows"), Page("T", conclusion=words)
+        self.assertEqual(s.conclusion_height + DEFAULT.line_height(t.band), self._band(two, True).height)
+        self.assertEqual(one.body.bottom - DEFAULT.line_height(t.band), two.body.bottom)
+
+    def test_every_line_of_a_band_stands_inside_it(self) -> None:
+        """字は帯の字の枠の縦の真ん中に置かれる (= 枠は帯から余白を引いた物で、1 行の帯でも行より低い)。
+        行が全部帯の中に立つのは、帯が行の数ぶんの高さを持ち、字の枠がその真ん中に在る時。"""
+        t = DEFAULT.type
+        page = Page("T", condition=self._just_past(DEFAULT, t.band) * 2)
+        words = next(e for e in page.elements if e.kind == "band_text")
+        band = self._band(page, False)
+        lines = DEFAULT.wraps(words.text, self._room(DEFAULT), t.band)
+        self.assertEqual(3, lines)
+        self.assertGreaterEqual(band.height, lines * DEFAULT.line_height(t.band))
+        self.assertEqual(band.top + band.height // 2, words.rect.top + words.rect.height // 2)
+
+    def test_a_plain_conclusion_is_counted_in_bold_as_it_is_set(self) -> None:
+        """下の帯 (= 結論) は太字で置く。細字で数えると、太字で折れる文を 1 行と数える。"""
+        t = DEFAULT.type
+        words = " ".join(["WWWW"] * 8)
+        while DEFAULT.wraps(words + " WWWW", self._room(DEFAULT), t.band) == 1:
+            words += " WWWW"
+        self.assertEqual(1, DEFAULT.wraps(words, self._room(DEFAULT), t.band))
+        self.assertEqual(2, DEFAULT.wraps(words, self._room(DEFAULT), t.band, bold=True),
+                         "the sentence chosen does not sit on the boundary this test is about")
+        page = Page("T", conclusion=words)
+        self.assertEqual(DEFAULT.spacing.conclusion_height + DEFAULT.line_height(t.band), self._band(page, True).height)
+
+    def test_an_outlined_conclusion_is_counted_at_the_size_of_the_body_it_is_set_in(self) -> None:
+        t, s = self.OUTLINED.type, self.OUTLINED.spacing
+        self.assertLess(t.body, t.band, "the outlined conclusion is a step smaller than the band over the page")
+        words = self._just_past(self.OUTLINED, t.band)
+        self.assertEqual(1, self.OUTLINED.wraps(words, self._room(self.OUTLINED), t.body, bold=True))
+        page = Page("T", self.OUTLINED, conclusion=words)
+        self.assertEqual(s.conclusion_height, self._band(page, True).height)
+        folded = Page("T", self.OUTLINED, conclusion=self._just_past(self.OUTLINED, t.body))
+        self.assertEqual(s.conclusion_height + self.OUTLINED.line_height(t.body), self._band(folded, True).height)
+
+
 class AUseMayPickHowTallItsBoxesStand(unittest.TestCase):
     def test_a_use_that_says_nothing_has_the_height_of_the_deck(self) -> None:
         for deck in BOX_HEIGHTS:
