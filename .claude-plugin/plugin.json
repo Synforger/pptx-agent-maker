@@ -1,0 +1,10 @@
+{
+  "name": "pptx-agent-maker",
+  "displayName": "pptx-agent-maker",
+  "description": "How to make a slide deck with pptx-agent-maker, and how to edit a .pptx the toolkit did not build.",
+  "author": { "name": "Synforger" },
+  "homepage": "https://github.com/Synforger/pptx-agent-maker",
+  "repository": "https://github.com/Synforger/pptx-agent-maker",
+  "license": "Apache-2.0",
+  "keywords": ["pptx", "slides", "deck", "powerpoint"]
+}

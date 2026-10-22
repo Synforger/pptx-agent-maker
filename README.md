@@ -143,6 +143,22 @@ uv sync               # builds .venv from .python-version and uv.lock; `uv run` 
 task test:unit
 ```
 
+## Use it from an agent
+
+The repository is also a Claude Code plugin. It carries one skill, `making-decks`, which tells an
+agent how to go about a deck: which instructions to read first, where a new rule of craft goes, and
+how to edit a `.pptx` the toolkit did not build. Install the toolkit itself first (the lines under
+"Three layers"); the plugin adds the instructions, not the commands.
+
+```bash
+claude plugin marketplace add Synforger/pptx-agent-maker
+claude plugin install pptx-agent-maker@pptx-agent-maker
+```
+
+From a checkout, add the folder instead: `claude plugin marketplace add <path to this checkout>`.
+The skill is `/pptx-agent-maker:making-decks`, and Claude loads it on its own when a task is about
+slides. A pull of the checkout reaches the agent at the next session, or at `/reload-plugins`.
+
 ## Layout of this repository
 
 ```
