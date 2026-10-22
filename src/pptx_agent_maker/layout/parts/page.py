@@ -486,8 +486,8 @@ class Page:
                 # 字の塊 (= 見出しと本文) の真ん中を、箱の真ん中に置く
                 total = head_tall + (s.gap_s if head_tall and body_tall else 0) + body_tall
                 # 字の頭は枠の上端から `TEXT_INSET_Y` 下がるので、そのぶん枠を上げて塊の真ん中を箱の真ん中に合わせる
-                top = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y
-                head = Rect(inner.left, top, inner.width, head_tall)
+                start = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y
+                head = Rect(inner.left, start, inner.width, head_tall)
                 rest = Rect(inner.left, head.bottom + (s.gap_s if head_tall else 0), inner.width, body_tall)
             elif body and heading:
                 head, rest = inner.split_top(min(head_tall, max(inner.height - s.gap_s, 1)), gap=s.gap_s)

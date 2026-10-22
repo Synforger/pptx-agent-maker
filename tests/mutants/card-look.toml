@@ -131,14 +131,14 @@ new = "alone = middle and not (heading and body)"
 [[mutant]]
 name = "the middle of the words is the middle of the box, not allowing for the frame's own padding"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "top = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y"
-new = "top = inner.top + max((inner.height - total) // 2, 0)"
+old = "start = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y"
+new = "start = inner.top + max((inner.height - total) // 2, 0)"
 
 [[mutant]]
 name = "words that do not fit are put above the box"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "top = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y"
-new = "top = inner.top + (inner.height - total) // 2 - TEXT_INSET_Y"
+old = "start = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y"
+new = "start = inner.top + (inner.height - total) // 2 - TEXT_INSET_Y"
 
 [[mutant]]
 name = "the body stands against the heading with no gap"
@@ -283,3 +283,9 @@ name = "a bullet is not a dot"
 file = "src/pptx_agent_maker/write/pptx.py"
 old = '{"char": "\u2022"}'
 new = '{"char": "-"}'
+
+[[mutant]]
+name = "the top of the first card's words takes the place of the sign to set from the top"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "                start = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y\n                head = Rect(inner.left, start, inner.width, head_tall)"
+new = "                top = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y\n                head = Rect(inner.left, top, inner.width, head_tall)"

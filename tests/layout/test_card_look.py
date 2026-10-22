@@ -190,6 +190,21 @@ class AlignmentAndTheMiddleOfTheBox(unittest.TestCase):
         words, box = self.centre(built, "Head", "words")
         self.assertAlmostEqual(box, words, delta=2)
 
+    def test_every_card_of_a_row_stands_its_words_in_the_middle_not_only_the_first(self) -> None:
+        """⚠ 1 回で並べるカード (= `cards`) は、1 枚目の字の上端を数えた値が、上端から置くかどうかの印を上書きして、
+        2 枚目から見出しが箱の上端に置かれた。同じ段の見出しは同じ高さに並ぶ。"""
+        theme = theme_from({"card_look": "outlined", "box_height": "page", "grounds": {"Deep": "0092D1", "Pale": "F3F3F3"}})
+        built = cards(*({"heading": f"Head {n}", "body": "words\nand more", "tone": tone}
+                        for n, tone in enumerate(("accent", "Deep", "Pale"), start=1)), theme=theme)
+        boxes = elements(built, "box")
+        heads = [e for e in elements(built, "box_heading")]
+        bodies = [e for e in elements(built, "box_body")]
+        self.assertEqual([heads[0].rect.top] * 3, [head.rect.top for head in heads])
+        for box, head, body in zip(boxes, heads, bodies):
+            with self.subTest(card=head.text):
+                words = head.rect.top + TEXT_INSET_Y + (body.rect.bottom - head.rect.top) / 2
+                self.assertAlmostEqual(box.rect.top + box.rect.height / 2, words, delta=2)
+
     def test_single_words_in_an_outlined_deck_are_set_by_the_middle_of_a_frame_that_is_the_whole_box(self) -> None:
         """⚠ 字が 1 つだけの枠は、箱の内側いっぱい (= 縦の中央揃えが置く)。字の高さから枠の上端を数えると、隣の箱と
         字の大きさが違う時に上端が丸めの分ずれる。"""

@@ -273,7 +273,7 @@ class TheTitleBand(unittest.TestCase):
 
     def test_a_title_is_counted_in_the_weight_it_is_set_in(self) -> None:
         """題は太字で置く。同じ文でも太字は広く、細字で数えると折れる行を 1 行と数える。"""
-        title = " ".join(["mmmm"] * 8)
+        title = " ".join(["WWWW"] * 8)
         room = DEFAULT.frame().width - 2 * DEFAULT.spacing.text_inset
         self.assertEqual(1, DEFAULT.wraps(title, room, DEFAULT.type.title),
                          "the sentence chosen does not sit on the boundary this test is about")
