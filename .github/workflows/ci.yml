@@ -33,7 +33,16 @@ jobs:
         # opening it in PowerPoint, and how the repair dialog would be caught.
         # poppler-utils turns the converted pages into pictures (= the preview's
         # own end-to-end test).
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends libreoffice-impress poppler-utils
+        # Each fetch gives up after 30 s and is tried again, and the step stops at 10 minutes: a slow mirror once
+        # held the step until the whole job was cancelled, with nothing in the log to say where. The output stays
+        # on so the log shows which fetch is slow. The man-db index is not rebuilt (= minutes of the install, for
+        # manual pages nothing reads here).
+        timeout-minutes: 10
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Dpkg::Use-Pty=0 \
+            install -y --no-install-recommends libreoffice-impress poppler-utils
       - name: Install uv
         # Every gate runs through `uv run`, which builds the environment from
         # .python-version and uv.lock the first time it is called.
