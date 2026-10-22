@@ -245,7 +245,10 @@ class ALineAcrossThePage(unittest.TestCase):
 
 
 class TheRestGoesOnUnderTheLine(unittest.TestCase):
-    """題の帯の下に、レイアウトが頁を横切って描く線が残っていれば、頁はその下から続く。
+    """題の帯の下に、レイアウトが頁を横切って描く線が残っていれば、頁はその下から、題の下の間を空けて続く。
+
+    題の下の間は線から数える (= 道具が自分で線を引く頁と同じ)。題の枠から数えていた間は、題の枠のすぐ下に線を
+    持つテンプレートで、線から本体までが頁のほかの間より狭く見えた。
 
     題の帯の高さは使い方で変わるが、レイアウトの線は動かない。字の小さい使い方の頁 (= 紙 1 枚の頁) は帯が低く、
     本文がテンプレートの罫線より上から始まって、箱が罫線に乗った (= 検査は細い線を数えない)。
@@ -263,7 +266,7 @@ class TheRestGoesOnUnderTheLine(unittest.TestCase):
     def test_the_body_starts_under_a_line_left_below_the_band(self) -> None:
         line = self.line(DEFAULT.spacing.title_height + cm(0.4))
         page = Page(ONE, self.over(line))
-        self.assertEqual(line.bottom + DEFAULT.spacing.gap_s, page.body.top)
+        self.assertEqual(line.bottom + DEFAULT.spacing.title_gap, page.body.top)
         self.assertEqual(Page(ONE).body.bottom, page.body.bottom, "only the top of what is left moves")
         self.assertFalse(any(e.kind == "rule" for e in page.elements), "the line under the title is the layout's")
 
@@ -278,15 +281,34 @@ class TheRestGoesOnUnderTheLine(unittest.TestCase):
                 self.assertGreaterEqual(page.body.top, line.bottom)
                 self.assertFalse(any(e.rect.overlaps(line) for e in page.elements if e.kind != "title"))
         in_its_own_use = Page(ONE, self.over(line, theme=shown))
-        self.assertEqual(Page(ONE, shown).elements, in_its_own_use.elements, "a line at the foot of the band moves nothing")
+        self.assertEqual(line.bottom + shown.spacing.title_gap, in_its_own_use.body.top,
+                         "in its own use the line stands where the toolkit's own would, and the gap is counted from it")
+        self.assertFalse(any(e.kind == "rule" for e in in_its_own_use.elements))
 
     def test_a_line_inside_the_band_or_above_it_changes_nothing(self) -> None:
         for name, line in (("inside the band", self.line(DEFAULT.spacing.title_height - cm(0.2))),
-                           ("at the foot of the band", self.line(DEFAULT.spacing.title_height)),
-                           ("in the gap under the band, with room to spare", self.line(DEFAULT.spacing.title_height + cm(0.1))),
                            ("at the top of the page", Rect(0, cm(0.3), DEFAULT.slide.width, 12700))):
             with self.subTest(name):
                 self.assertEqual(Page(ONE).elements, Page(ONE, self.over(line)).elements)
+
+    def test_a_line_at_the_foot_of_the_band_or_in_the_gap_under_it_is_where_the_gap_is_counted_from(self) -> None:
+        for name, line in (("at the foot of the band", self.line(DEFAULT.spacing.title_height)),
+                           ("in the gap under the band", self.line(DEFAULT.spacing.title_height + cm(0.1)))):
+            with self.subTest(name):
+                page = Page(ONE, self.over(line))
+                self.assertEqual(line.bottom + DEFAULT.spacing.title_gap, page.body.top)
+                self.assertFalse(any(e.kind == "rule" for e in page.elements), "the line under the title is the layout's")
+
+    def test_under_the_layouts_title_and_its_line_the_gap_is_the_gap_between_the_other_bands(self) -> None:
+        """実際に出た形: 題の枠 0.25〜2.38 cm、そのすぐ下に題の幅の線 2.49 cm。本体は枠の下端から 0.6 cm の 2.98 cm で
+        始まり、線から本体までの 0.49 cm が、本体と結論の帯の間 (= 0.6 cm) より狭かった。"""
+        from pptx_agent_maker.layout.tokens import Under
+        seat = Rect(cm(1.2), cm(0.25), DEFAULT.slide.width - cm(2.4), cm(2.38) - cm(0.25))
+        rule = Rect(cm(1.2), cm(2.49), DEFAULT.slide.width - cm(2.4), 12700)
+        theme = replace(DEFAULT, under=Under(title=True, title_frame=seat, prints=(rule,), lines=(("rule", rule),)))
+        page = Page(ONE, theme, conclusion="what the reader takes away")
+        self.assertEqual(rule.bottom + DEFAULT.spacing.title_gap, page.body.top)
+        self.assertEqual(DEFAULT.spacing.band_gap, page.body.top - rule.bottom, "as wide as the gap over the conclusion")
 
     def test_what_reaches_the_lower_half_of_the_page_does_not_move_the_start(self) -> None:
         """(下半分の物が本文の終わる所を決めるのは `ThePageEndsAboveTheLayoutsFoot`)"""
@@ -304,17 +326,17 @@ class TheRestGoesOnUnderTheLine(unittest.TestCase):
 
     def test_a_block_over_the_title_that_ends_under_the_band_is_cleared_too(self) -> None:
         block = Rect(0, 0, DEFAULT.slide.width, DEFAULT.frame().top + DEFAULT.spacing.title_height + cm(0.8))
-        self.assertEqual(block.bottom + DEFAULT.spacing.gap_s, Page(ONE, self.over(block)).body.top)
+        self.assertEqual(block.bottom + DEFAULT.spacing.title_gap, Page(ONE, self.over(block)).body.top)
 
     def test_the_lowest_of_several_lines_decides(self) -> None:
         first, second = self.line(DEFAULT.spacing.title_height + cm(0.3)), self.line(DEFAULT.spacing.title_height + cm(0.8))
-        self.assertEqual(second.bottom + DEFAULT.spacing.gap_s, Page(ONE, self.over(first, second)).body.top)
+        self.assertEqual(second.bottom + DEFAULT.spacing.title_gap, Page(ONE, self.over(first, second)).body.top)
 
     def test_a_folded_title_that_clears_the_line_goes_on_under_it(self) -> None:
         folded = "題" * 60
         band = DEFAULT.spacing.title_height + DEFAULT.line_height(DEFAULT.type.title)
         line = self.line(band + cm(0.3))
-        self.assertEqual(line.bottom + DEFAULT.spacing.gap_s, Page(folded, self.over(line)).body.top)
+        self.assertEqual(line.bottom + DEFAULT.spacing.title_gap, Page(folded, self.over(line)).body.top)
 
 
 class ThePageEndsAboveTheLayoutsFoot(unittest.TestCase):

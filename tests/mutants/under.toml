@@ -277,8 +277,20 @@ new = "if band.bottom < thing.bottom <= half),"
 [[mutant]]
 name = "no gap is kept under the layout's line"
 file = "src/pptx_agent_maker/layout/tokens.py"
-old = "        return rest if lowest is None else max(rest, lowest + self.spacing.gap_s)"
-new = "        return rest if lowest is None else max(rest, lowest)"
+old = "        return (band.bottom if lowest is None else lowest) + self.spacing.title_gap"
+new = "        return band.bottom + self.spacing.title_gap if lowest is None else lowest"
+
+[[mutant]]
+name = "the gap under the title is counted from the title's frame, not from the line under it"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        return (band.bottom if lowest is None else lowest) + self.spacing.title_gap"
+new = "        return band.bottom + self.spacing.title_gap"
+
+[[mutant]]
+name = "the gap under the layout's line is the small gap"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        return (band.bottom if lowest is None else lowest) + self.spacing.title_gap"
+new = "        return (band.bottom if lowest is None else lowest) + self.spacing.gap_s"
 
 [[mutant]]
 name = "the highest of several lines decides"

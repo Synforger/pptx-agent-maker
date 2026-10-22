@@ -806,9 +806,12 @@ class Theme:
     def under_the_title(self, band: Rect) -> int:
         """Where the page may go on under its title band: under what the layout prints across the page there.
 
-        ふつうは、帯の下端から中くらいの間隔を空けた所 (= 今までと同じ)。題の帯の下端より下、頁の上半分の
-        うちに、レイアウトが頁を横切って印字する物 (= 題の下の罫線) が残っていて、そこから小さい間隔を空けた
-        所の方が低ければ、そちら。帯の下の間隔に収まっている線は、何も動かさない。
+        ふつうは、帯の下端から題の下の間 (= `title_gap`) を空けた所。題の帯の下端より下、頁の上半分のうちに、
+        レイアウトが頁を横切って印字する物 (= 題の下の罫線) が在れば、そのいちばん下から同じ間を空けた所。
+
+        ⚠ **題の下の間は、題の下の線から数える。**道具が自分で線を引く頁は、線が帯の下端に在るので、線から
+        数えたのと同じ。レイアウトの線が題の枠のすぐ下に在る頁で、題の枠から数えていた間は、線から本体までが
+        頁のほかの間より狭く見えた (= 線の太さと、枠から線までのぶん)。
 
         ⚠ **題の帯の高さは使い方で変わるが、レイアウトの線は動かない。**字の小さい使い方の頁 (= 紙 1 枚の頁) は
         帯が低く、本文がテンプレートの罫線より上から始まって、箱が罫線に乗った (= 検査は細い線を数えない)。
@@ -821,8 +824,7 @@ class Theme:
         lowest = max((thing.bottom for thing in self.under.prints
                       if thing.left < middle < thing.right and band.bottom < thing.bottom <= half),
                      default=None)
-        rest = band.bottom + self.spacing.gap_m
-        return rest if lowest is None else max(rest, lowest + self.spacing.gap_s)
+        return (band.bottom if lowest is None else lowest) + self.spacing.title_gap
 
     def title_band(self, title: str, sticker: str = "", kicker: str = "") -> tuple[int, int, int]:
         """(lines, left, right) of a page's title band: how far the title folds, and where it may run.

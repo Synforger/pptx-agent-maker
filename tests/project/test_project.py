@@ -254,6 +254,25 @@ class ATemplatePointedAt(unittest.TestCase):
         self.assertTrue(built.is_file())
         self.assertFalse((self.project / "specimen.pptx").exists(), "nothing is copied from the template")
 
+    def test_a_use_of_the_same_name_as_the_templates_is_refused(self) -> None:
+        """使い方は名前で 1 まとまり。鍵ごとに重ねると、案件が書かなかった字の大きさと余白がテンプレートのまま混ざる。"""
+        shared = self.template / "workspace.toml"
+        shared.write_text(shared.read_text(encoding="utf-8")
+                          + '\n[theme.uses.dense]\nlike = "read"\nbody = 10.5\n\n[theme.uses.dense.spacing]\npad = 0.2\n',
+                          encoding="utf-8")
+        with self.assertRaises(WorkspaceError) as refused:
+            self._project('\n[theme.uses.dense]\nlike = "read"\nbox_height = "text"\n')
+        for said in ("[theme.uses.dense]", "a name of its own"):
+            self.assertIn(said, str(refused.exception))
+
+    def test_uses_of_other_names_are_laid_side_by_side(self) -> None:
+        shared = self.template / "workspace.toml"
+        shared.write_text(shared.read_text(encoding="utf-8") + '\n[theme.uses.dense]\nlike = "read"\nbody = 10.5\n',
+                          encoding="utf-8")
+        workspace = self._project('\n[theme.uses.roomy]\nlike = "read"\nbox_height = "text"\n')
+        self.assertEqual({"dense", "roomy"}, set(workspace.look["uses"]))
+        self.assertEqual({"like": "read", "body": 10.5}, workspace.look["uses"]["dense"], "the template's stays whole")
+
     def test_a_template_that_is_not_one_is_said(self) -> None:
         (self.base / "empty").mkdir()
         (self.project / "workspace.toml").write_text('template = "../empty"\n', encoding="utf-8")
