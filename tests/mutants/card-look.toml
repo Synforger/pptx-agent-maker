@@ -283,3 +283,9 @@ name = "a bullet is not a dot"
 file = "src/pptx_agent_maker/write/pptx.py"
 old = '{"char": "\u2022"}'
 new = '{"char": "-"}'
+
+[[mutant]]
+name = "the top of the first card's words takes the place of the sign to set from the top"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "                start = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y\n                head = Rect(inner.left, start, inner.width, head_tall)"
+new = "                top = inner.top + max((inner.height - total) // 2, 0) - TEXT_INSET_Y\n                head = Rect(inner.left, top, inner.width, head_tall)"

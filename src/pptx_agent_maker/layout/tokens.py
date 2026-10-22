@@ -76,11 +76,67 @@ _ADVANCE = {
         1.02: "@",
     },
 }
+#: 太字の 1 文字の幅 (= 書体の太字の file を、細字と同じ道具で測った物)。太字は字によって広がり方が違い、Arial の
+#: 数字のように細字と同じ幅の字もある ― 小文字の平均の倍率を一律に掛けていた間は、数字と大文字の多い太字の見出しが
+#: 描くと 1 行に収まるのに 2 行と数えられ、同じ段のカードと見出しの高さがずれた
+_ADVANCE_BOLD = {
+    "any": {
+        0.34: "'",
+        0.36: " il",
+        0.38: ",.",
+        0.42: "!:;j",
+        0.44: "f",
+        0.46: "t",
+        0.48: "-",
+        0.50: "r",
+        0.56: "()IJ[]|",
+        0.60: "\"csz",
+        0.62: "?",
+        0.64: "L",
+        0.66: "Fvy",
+        0.68: "aekx",
+        0.70: "/ETZ\\bdgopq",
+        0.72: "$*0123456789S_`hnu{}",
+        0.74: "CPY",
+        0.78: "ABKVX",
+        0.80: "R",
+        0.82: "GU",
+        0.84: "DH",
+        0.86: "NOQ",
+        0.88: "#&+<=>^~",
+        0.96: "M",
+        0.98: "w",
+        1.02: "@",
+        1.06: "m",
+        1.14: "W",
+        1.28: "%",
+    },
+    "arial": {
+        0.24: "'",
+        0.28: " ,./I\\ijl|",
+        0.34: "!()-:;[]`ft",
+        0.40: "*r{}",
+        0.48: "\"",
+        0.50: "z",
+        0.56: "#$0123456789J_aceksvxy",
+        0.60: "+<=>^~",
+        0.62: "?FLTZbdghnopqu",
+        0.68: "EPSVXY",
+        0.74: "&ABCDHKNRU",
+        0.78: "GOQw",
+        0.84: "M",
+        0.90: "%m",
+        0.96: "W",
+        0.98: "@",
+    },
+}
 _ADVANCE_OF = {group: {character: wide for wide, characters in table.items() for character in characters}
                for group, table in _ADVANCE.items()}
+_ADVANCE_BOLD_OF = {group: {character: wide for wide, characters in table.items() for character in characters}
+                    for group, table in _ADVANCE_BOLD.items()}
 #: 等幅の書体は、半角が全部同じ幅 (= Consolas は 1 em の 1126/2048。PowerPoint の Mac 版に入っている 4 書体の
 #: 字幅の表を読んで確かめた。太字も同じ幅)
-_ADVANCE_OF["mono"] = {chr(code): 1126 / 2048 for code in range(0x20, 0x7F)}
+_ADVANCE_OF["mono"] = _ADVANCE_BOLD_OF["mono"] = {chr(code): 1126 / 2048 for code in range(0x20, 0x7F)}
 #: 表のセルの状態の印 (= ○◔◑◕● と ✓△×) を置く書体。**印の字形を全部持つ書体は限られる** ―
 #: 書体の file を読んで確かめたところ、Meiryo は 8 つとも持ち、Arial・Calibri・游ゴシックは 4 分の 1 と
 #: 4 分の 3 の円、✓ を持たない。案件の書体が何であっても、印だけはこの書体で置く (= 字のまま置けるので、
@@ -93,7 +149,7 @@ MONO_FACE = "Consolas"
 _FAMILY = {"arial": "arial", "helvetica": "arial", "consolas": "mono"}
 #: 表に無い半角 (= アクセント付きの字など) はこの幅で数える
 _ADVANCE_OTHER = 0.7
-#: 太字は同じ字でもこれだけ広い (= 測った書体の、小文字の平均)
+#: 表に無い字を太字で数える時の倍率 (= 測った書体の、小文字の平均。表に在る字は太字の表で数える)
 _BOLD = {"any": 1.14, "arial": 1.10, "mono": 1.0}
 
 
@@ -103,7 +159,9 @@ def advance(character: str, bold: bool = False, family: str = "") -> float:
         return 1.0
     name = family.strip().lower()
     group = next((table for head, table in _FAMILY.items() if name.startswith(head)), "any")
-    return _ADVANCE_OF[group].get(character, _ADVANCE_OTHER) * (_BOLD[group] if bold else 1)
+    if bold:
+        return _ADVANCE_BOLD_OF[group].get(character, _ADVANCE_OTHER * _BOLD[group])
+    return _ADVANCE_OF[group].get(character, _ADVANCE_OTHER)
 
 
 @dataclass(frozen=True)

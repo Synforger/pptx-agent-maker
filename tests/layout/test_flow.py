@@ -293,15 +293,27 @@ class TheWidthOfACharacter(unittest.TestCase):
     ASCII = string.ascii_letters + string.digits + " " + string.punctuation
 
     def test_every_printable_ascii_character_was_measured_in_every_table(self):
-        for group, table in tokens._ADVANCE_OF.items():
-            with self.subTest(group):
-                self.assertEqual([], [c for c in self.ASCII if c not in table])
+        for weight, tables in (("regular", tokens._ADVANCE_OF), ("bold", tokens._ADVANCE_BOLD_OF)):
+            for group, table in tables.items():
+                with self.subTest(weight=weight, group=group):
+                    self.assertEqual([], [c for c in self.ASCII if c not in table])
 
     def test_no_character_is_in_a_table_twice(self):
-        for group, table in tokens._ADVANCE.items():
-            with self.subTest(group):
-                listed = "".join(table.values())
-                self.assertEqual(len(listed), len(set(listed)))
+        for weight, tables in (("regular", tokens._ADVANCE), ("bold", tokens._ADVANCE_BOLD)):
+            for group, table in tables.items():
+                with self.subTest(weight=weight, group=group):
+                    listed = "".join(table.values())
+                    self.assertEqual(len(listed), len(set(listed)))
+
+    def test_bold_is_measured_character_by_character(self):
+        """Arial の太字の数字は細字と同じ幅 (= 一律の倍率を掛けると、数字の多い太字の見出しが 1 行多く数えられた)。"""
+        for character in "0123456789":
+            self.assertEqual(tokens.advance(character, family="Arial"), tokens.advance(character, True, family="Arial"))
+        self.assertGreater(tokens.advance("n", True, family="Arial"), tokens.advance("n", family="Arial"))
+        self.assertGreater(tokens.advance("n", True), tokens.advance("n"))
+        self.assertEqual(tokens.advance("é") * tokens._BOLD["any"], tokens.advance("é", True),
+                         "a character no table holds is counted with the factor")
+        self.assertEqual(1.0, tokens.advance("全", True))
 
     def test_characters_differ_by_a_factor_of_three(self):
         self.assertGreater(tokens.advance("m"), 3 * tokens.advance("i"))
