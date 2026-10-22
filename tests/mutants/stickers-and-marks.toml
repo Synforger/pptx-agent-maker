@@ -123,7 +123,7 @@ new = "                          if False)"
 [[mutant]]
 name = "a table laid into a cell reads its marks as words"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = 'return read_table(cell["table"], f"{what}: table")'
+old = 'return read_table(cell["table"], f"{what}: table", spec.asset)'
 new = 'return [[str(value) for value in row] for row in cell["table"]]'
 
 [[mutant]]

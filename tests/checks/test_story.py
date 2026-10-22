@@ -147,6 +147,17 @@ class DataWithNoSource(_Project):
         self.assertEqual([("unsourced", 1), ("unsourced", 3), ("unsourced", 4), ("unsourced", 5)],
                          self.found(manifest))
 
+    def test_a_table_read_from_a_file_is_data_with_a_source_to_name_like_one_written_out(self) -> None:
+        """表の形が行の並びでも CSV を指す表でも、頁の直下でもマスの中でも、同じ判定になる。"""
+        from_file = {"data": "results.csv", "columns": ["a"], "cells": [{"row": "x", "column": "a", "after": "*"}]}
+        manifest = self.write(
+            page(type="board", title="A", table=from_file),
+            page(type="board", title="B", table=from_file, footer="Source: the survey"),
+            page(type="cards", title="C", cards=[["a", "b"]], table=from_file),
+            page(type="compose", title="D", rows=[{"cells": [{"table": from_file}]}]),
+            page(type="compose", title="E", rows=[{"cells": [{"table": from_file}]}], footer="Source: the survey"))
+        self.assertEqual([("unsourced", 1), ("unsourced", 3), ("unsourced", 4)], self.found(manifest))
+
     def test_a_page_that_shows_no_data_is_not_asked_for_a_source(self) -> None:
         """カードと図解 (= 流れ図・道のり・線表) は、どこかから持ってきた数字を見せていない。"""
         manifest = self.write(

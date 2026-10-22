@@ -1,0 +1,209 @@
+# A table that names a CSV among the assets (`table = { data = "x.csv" }`): reading it, the columns it keeps and the notes on its cells.
+
+tests = ["tests/layout/test_table_data.py", "tests/layout/test_types_listing.py"]
+
+# -- who reads it -------------------------------------------------------------
+
+[[mutant]]
+name = "a table written as keys is read as rows"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if isinstance(table, dict):\n        return _read_table_file(table, what, asset)\n"
+new = ""
+
+[[mutant]]
+name = "the table of a page looks for its file beside the working folder, not among the assets"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "        return read_table(self.data[key], key, self.asset)"
+new = "        return read_table(self.data[key], key, Path)"
+
+[[mutant]]
+name = "the table of a cell looks for its file beside the working folder, not among the assets"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'return read_table(cell["table"], f"{what}: table", spec.asset)'
+new = 'return read_table(cell["table"], f"{what}: table", Path)'
+
+[[mutant]]
+name = "the listing of the types does not say a table may be a file"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = "'  a table from a file: table = { data = \"x.csv\" (= its first row is the heading row), '"
+new = "'  a table: { data = \"x.csv\" (= its first row is the heading row), '"
+
+# -- the file ------------------------------------------------------------------
+
+[[mutant]]
+name = "a key nobody reads is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'TABLE_DATA_KEYS = {"data", "columns", "cells"}'
+new = 'TABLE_DATA_KEYS = {"data", "columns", "cells", "sort", "rows", "mark", "shade", "band", "only"}'
+
+[[mutant]]
+name = "a table of keys is not checked for keys at all"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    only_keys(table, TABLE_DATA_KEYS, what)\n"
+new = ""
+
+[[mutant]]
+name = "a file that is not a CSV is read as one"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'if not isinstance(name, str) or Path(name).suffix.lower() != ".csv":'
+new = "if not isinstance(name, str):"
+
+[[mutant]]
+name = "the mark that starts a file saved from a spreadsheet stays in the first heading"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'Path(path).open(encoding="utf-8-sig", newline="")'
+new = 'Path(path).open(encoding="utf-8", newline="")'
+
+[[mutant]]
+name = "a blank row of the file is a row of the table"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "                    if any(cell.strip() for cell in row)]"
+new = "                    if True]"
+
+[[mutant]]
+name = "the spaces around a cell stay in the table"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "(reader.line_num, [cell.strip() for cell in row])"
+new = "(reader.line_num, list(row))"
+
+[[mutant]]
+name = "a row is named by a line that is not its own"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "return [(reader.line_num,"
+new = "return [(len(row),"
+
+[[mutant]]
+name = "a file with only a heading row is a table"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if len(lines) < 2:\n"
+new = "    if len(lines) < 1:\n"
+
+[[mutant]]
+name = "a row shorter than the heading row is let through"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "        if len(row) != len(headings):\n"
+new = "        if len(row) > len(headings):\n"
+
+[[mutant]]
+name = "a file that is not UTF-8 text stops with the reader's own words"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    except UnicodeDecodeError as reason:"
+new = "    except KeyError as reason:"
+
+# -- the columns it keeps ---------------------------------------------------------
+
+[[mutant]]
+name = "the last column is lost when columns says nothing"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "        return list(range(len(headings)))"
+new = "        return list(range(len(headings) - 1))"
+
+[[mutant]]
+name = "the table keeps the columns in the order of the file, not the order they are named in"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = '    kept = [_heading_index(headings, heading, name, f"{what}: columns") for heading in columns]'
+new = '    kept = sorted(_heading_index(headings, heading, name, f"{what}: columns") for heading in columns)'
+
+[[mutant]]
+name = "the table ignores columns and keeps every column"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    return [[row[index] for index in kept] for row in grid]"
+new = "    return [list(row) for row in grid]"
+
+[[mutant]]
+name = "a column named twice stands twice"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if twice:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "columns that name nothing keep nothing"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if not isinstance(columns, list) or not columns:"
+new = "    if not isinstance(columns, list):"
+
+[[mutant]]
+name = "a heading the file does not have is passed over"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if not found:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "a heading the file has twice is taken for the first"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if len(found) > 1:\n"
+new = "    if False:\n"
+
+# -- the notes on its cells ---------------------------------------------------------
+
+[[mutant]]
+name = "a note may name a key nobody reads"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = 'TABLE_CELL_KEYS = {"row", "column", "after", "text"}'
+new = 'TABLE_CELL_KEYS = {"row", "column", "after", "text", "shade"}'
+
+[[mutant]]
+name = "cells that are not a list are walked as one"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if not isinstance(value, list):\n        raise PageTypeError(f\"{what}: `{key}` is a list"
+new = "    if False:\n        raise PageTypeError(f\"{what}: `{key}` is a list"
+
+[[mutant]]
+name = "a note may say both after and text"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = '    if ("after" in edit) == ("text" in edit):'
+new = '    if "after" not in edit and "text" not in edit:'
+
+[[mutant]]
+name = "after replaces the value instead of following it"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = '    row[column] = row[column] + edit["after"] if way == "after" else edit["text"]'
+new = '    row[column] = edit["after"] if way == "after" else edit["text"]'
+
+[[mutant]]
+name = "text follows the value instead of replacing it"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = '    row[column] = row[column] + edit["after"] if way == "after" else edit["text"]'
+new = "    row[column] = row[column] + edit[way]"
+
+[[mutant]]
+name = "a note on a column that columns left out is dropped without a word"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if column not in kept:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "a row that is not in the file passes without a word"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if not rows:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "a row that is in the file twice is taken for the first"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if len(rows) > 1:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "the heading row is edited like any other"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if rows[0] == 0:\n"
+new = "    if False:\n"
+
+[[mutant]]
+name = "a row is found by the first cell the table keeps, not the first cell of the file"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = '    rows = [index for index, row in enumerate(grid) if row[0] == edit["row"].strip()]'
+new = '    rows = [index for index, row in enumerate(grid) if row[kept[0]] == edit["row"].strip()]'
+
+[[mutant]]
+name = "two notes on one cell are both taken, the second over the first"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "        if at in edited:\n"
+new = "        if False:\n"
+
+[[mutant]]
+name = "a note is taken to be on the first column of its row"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    return rows[0], column\n"
+new = "    return rows[0], 0\n"

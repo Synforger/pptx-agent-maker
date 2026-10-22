@@ -256,7 +256,7 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
         return (sum(height for _r, _c, height, _w, _g in laid) + s.gap_y * (len(laid) - 1)
                 + page.panel_head(panel, inside) + 2 * s.pad)
     if part == "table":
-        rows = _table(cell, what)
+        rows = _table(spec, cell, what)
         return theme.table_height(rows, theme.column_widths(rows, width))
     if part == "text" and cell.get("role") == "mono":
         try:
@@ -312,7 +312,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
         elif part == "panel":
             return _panel(page, spec, cell, rect if own_row or page.theme.box_height == "page" else fitted, what, seen)
         elif part == "table":
-            page.table(fitted, _table(cell, what))
+            page.table(fitted, _table(spec, cell, what))
         elif part == "text" and cell.get("role") == "mono":
             page.code(fitted, str(cell["text"]))
         elif part == "text" and _blank(cell):
@@ -442,8 +442,8 @@ def _the_panel(spec: Spec, cell: dict, what: str) -> Panel:
     return read_panel(spec, cell["panel"], f"{what}, panel")
 
 
-def _table(cell: dict, what: str) -> list[list[str]]:
-    return read_table(cell["table"], f"{what}: table")
+def _table(spec: Spec, cell: dict, what: str) -> list[list[str]]:
+    return read_table(cell["table"], f"{what}: table", spec.asset)
 
 
 def _voices(spec: Spec, cell: dict, what: str) -> list[Voice]:
