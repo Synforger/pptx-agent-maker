@@ -29,6 +29,12 @@ tasks:
     cmds:
       - '{{.MAKER}} titles . {{.CLI_ARGS}}'
 
+  frames:
+    desc: Print the frame each declared picture is given, as JSON, to draw it that size (= task frames -- w1)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} frames . {{.CLI_ARGS}}'
+
   check:
     desc: Read a built deck back and report what it found (= task check -- w1.pptx)
     deps: [_tool]

@@ -120,7 +120,7 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
     deck = new_deck(theme)
     where: dict = {}
     for position, (index, entry) in enumerate(declared, start=1):
-        page = _declared_page(workspace, manifest, entry, index, theme)
+        page = declared_page(workspace, manifest, entry, index, theme)
         # 頁は自分の使い方の見た目で書く (= 表の行の高さや箱の余白も、組んだ時と同じ大きさから出る)
         add_page(deck, page.build(), page.theme)
         where[index] = position
@@ -128,7 +128,7 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
     return where
 
 
-def _declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index: int,
+def declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index: int,
                    theme: Theme):
     """Build a declared page, saying which page of the manifest went wrong."""
     def asset(name: str):
