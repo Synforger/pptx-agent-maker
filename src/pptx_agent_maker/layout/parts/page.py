@@ -591,7 +591,7 @@ class Page:
         t, p, s = self.theme.type, self.theme.palette, self.theme.spacing
         area, tall = rect, 0
         if caption:
-            tall = self.theme.wrapped_height(caption, max(rect.width - 2 * s.text_inset, 1), t.caption)
+            tall = self.theme.caption_height(caption, rect.width)
             if rect.height <= tall + s.gap_s:
                 raise PageFullError(
                     f"a picture has {rect.height} EMU of height and its name alone takes {tall + s.gap_s} — "
@@ -609,7 +609,9 @@ class Page:
         self._figures += 1
         if caption:
             strip = Rect(rect.left, placed.bottom + s.gap_s, rect.width, tall)
-            self.elements.append(Text("caption", strip, caption, t.caption, p.muted, align="center"))
+            size, bold = self.theme.caption_face()
+            self.elements.append(Text("caption", strip, caption, size, p.ink if bold else p.muted, bold=bold,
+                                      align="center"))
         return placed
 
     def chart(self, chart: Chart) -> None:

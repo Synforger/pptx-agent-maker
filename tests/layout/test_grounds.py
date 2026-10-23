@@ -179,7 +179,7 @@ class TheLegend(unittest.TestCase):
             self.assertEqual((DEFAULT.spacing.swatch, DEFAULT.spacing.swatch), (swatch.rect.width, swatch.rect.height))
 
     def test_it_sits_just_under_the_body_and_above_the_table(self):
-        built = cards("Inside", table=[["a", "b"], ["1", "2"]])
+        built = cards("Inside", table=[["a", "b"], ["1", "2"]], legend=True)
         label = named(built, "Inside" if legend(built) else "missing")
         labels = [e for e in built.build() if e.kind == "label"]
         table = next(e for e in built.build() if isinstance(e, Table))
@@ -188,7 +188,7 @@ class TheLegend(unittest.TestCase):
 
     def test_a_body_that_fills_the_page_leaves_it_room(self):
         built = build({"type": "timeline", "periods": ["a", "b"], "lanes": [
-            {"name": f"L{n}", "tone": "Inside", "bars": [{"from": 0, "to": 2, "text": f"w{n}"}]} for n in range(8)]})
+            {"name": f"L{n}", "tone": "Inside", "bars": [{"from": 0, "to": 2, "text": f"w{n}"}]} for n in range(8)], "legend": True})
         label = next(e for e in built.build() if e.kind == "label" and e.text == "Inside")
         self.assertLess(named(built, "w7").rect.bottom, label.rect.top)
         self.assertLessEqual(label.rect.bottom, built.theme.frame().bottom)
@@ -203,8 +203,14 @@ class TheLegend(unittest.TestCase):
         width = built.theme.frame().right
         self.assertTrue(all(e.rect.right <= width for e in built.build() if e.kind == "label"))
 
+    def test_a_single_name_brings_no_legend_unless_asked(self):
+        """名前が 1 つだけの凡例は何も見分けない (= 名前の付いた地のカードだけの頁に、その名前 1 つの凡例が出ていた)。"""
+        self.assertEqual([], legend(cards("Shared", "Shared")))
+        self.assertEqual(["Shared"], legend(cards("Shared", "Shared", legend=True)))
+        self.assertEqual(["Inside", "Shared"], legend(cards("Shared", "Inside")))
+
     def test_legend_false_leaves_it_out(self):
-        self.assertEqual([], legend(cards("Inside", legend=False)))
+        self.assertEqual([], legend(cards("Inside", "Outside", legend=False)))
 
     def test_legend_is_true_or_false(self):
         with self.assertRaises(PageTypeError) as raised:
@@ -213,7 +219,7 @@ class TheLegend(unittest.TestCase):
 
     def test_a_name_inside_a_cell_of_a_type_inside_a_cell_is_found(self):
         built = build({"type": "compose", "rows": [{"cells": [{"rows": [{"cells": [{"flow": {"stages": [
-            {"name": "A", "nodes": [{"heading": "Deep", "tone": "Shared"}]}, {"name": "B", "nodes": [["m", ""]]}]}}]}]}]}]})
+            {"name": "A", "nodes": [{"heading": "Deep", "tone": "Shared"}]}, {"name": "B", "nodes": [["m", ""]]}]}}]}]}]}], "legend": True})
         self.assertEqual(["Shared"], legend(built))
 
     def test_once_baked_the_checks_find_nothing(self):
@@ -239,7 +245,7 @@ class ThroughTheProject(unittest.TestCase):
         (root / "workspace.toml").write_text('root = "."\n[theme.grounds]\n"内部向け" = "EAF0F8"\n', encoding="utf-8")
         (root / "deck.toml").write_text(
             'specimen = "specimen.pptx"\nout = "built.pptx"\n\n[[pages]]\nkind = "declare"\ntype = "cards"\n'
-            'title = "カード"\ncards = [{ heading = "内側", body = "ひとつ", tone = "内部向け" }]\n', encoding="utf-8")
+            'title = "カード"\nlegend = true\ncards = [{ heading = "内側", body = "ひとつ", tone = "内部向け" }]\n', encoding="utf-8")
         workspace = Workspace.load(root)
         built = build_deck(workspace, Manifest.load(workspace.manifest("deck")))
         with zipfile.ZipFile(built) as archive:

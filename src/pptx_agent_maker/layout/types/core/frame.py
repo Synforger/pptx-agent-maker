@@ -31,13 +31,17 @@ def reserve_legend(page: Page, spec: Spec, area: Rect) -> tuple[Rect, list[str] 
 
     ⚠ **色に意味を持たせたら凡例を置く** (= 作法)。書く人に任せると、色だけが意味を運ぶ頁が残る。
     消すのは `legend = false` を書いた頁だけ。並びは `[theme.grounds]` に書いた順で、どの頁でも同じ。
+
+    ⚠ **名前が 1 つだけの凡例は、書かなければ出さない** (= 何も見分けていない)。名前の付いた地のカードだけを
+    並べた頁に、その名前 1 つの凡例が出て、案件が頁ごとに `legend = false` を書いて消していた。1 つでも出したい
+    頁は `legend = true` と書く。
     """
-    shown = spec.get("legend", True)
-    if not isinstance(shown, bool):
+    shown = spec.get("legend")
+    if shown is not None and not isinstance(shown, bool):
         raise PageTypeError(f"`legend` is true or false, not {shown!r}")
     used = _named_grounds(spec.data, page.theme.ground_names())
     names = [name for name in page.theme.ground_names() if name in used]
-    if not shown or not names:
+    if shown is False or not names or (len(names) == 1 and shown is None):
         return area, None
     tall = page.legend_height(area.width, names) + page.theme.spacing.gap_s
     if tall >= area.height:

@@ -100,3 +100,6 @@ unnamed_axis = false
 # The manifests here lay the types out one after another; their chapters are not read as a story, so the check for
 # a long chapter without an agenda at the head of each part is off too.
 section_agenda = false
+# The corpus names its grounds to show them, not to give every card a meaning, so a card written without a
+# tone is not a slip here.
+untoned_cards = false
