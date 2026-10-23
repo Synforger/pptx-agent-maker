@@ -28,6 +28,8 @@ def test_an_album_shows_its_pictures_as_pages_with_their_notes(tmp_path):
     detail = deck.detail()
     assert detail["error"] is None
     assert detail["slides"] == 2
+    assert detail["numbers"] == [1, 2], "an album is not a deck, so its pages are counted by position"
+    assert detail["hidden"] == [False, False]
     assert detail["notes"] == ["業務の報告 / 1 頁目", "大きな数字\n2 行目の注記"]
     with Image.open(deck.cache.thumb_path(detail["pages"][1])) as thumb:
         assert max(thumb.size) <= 854, "the page list does not carry full-size pictures"

@@ -416,7 +416,9 @@ body {
   left: 5px;
   bottom: 5px;
   background: rgba(0, 0, 0, .68);
+  color: #ddd;
   font-size: 11px;
+  line-height: 1;
   padding: 3px 6px;
   border-radius: 3px;
 }

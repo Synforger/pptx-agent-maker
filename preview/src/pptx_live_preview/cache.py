@@ -58,13 +58,17 @@ class Render:
     at: float
     source: str  # 元 .pptx の hash (= これが同じなら焼き直す必要がない)
     pages: tuple[str, ...]  # 頁順の画像 hash
+    numbers: tuple[int, ...] = ()  # 頁に刷られる番号 (= 画面の札。頁と同じ長さ、無ければ位置の通し番号)
+    hidden: tuple[bool, ...] = ()  # 隠した頁か (= 頁と同じ長さ)
 
     def to_json(self) -> dict:
-        return {"at": self.at, "source": self.source, "pages": list(self.pages)}
+        return {"at": self.at, "source": self.source, "pages": list(self.pages),
+                "numbers": list(self.numbers), "hidden": list(self.hidden)}
 
     @staticmethod
     def from_json(d: dict) -> "Render":
-        return Render(at=d["at"], source=d["source"], pages=tuple(d["pages"]))
+        return Render(at=d["at"], source=d["source"], pages=tuple(d["pages"]),
+                      numbers=tuple(d.get("numbers", ())), hidden=tuple(d.get("hidden", ())))
 
 
 class DeckCache:
@@ -105,7 +109,8 @@ class DeckCache:
     def thumb_path(self, page_hash: str) -> Path:
         return self.thumbs_dir / f"{page_hash}.jpg"
 
-    def adopt(self, source: str, pages: list[Path], thumbs: list[Path]) -> Render:
+    def adopt(self, source: str, pages: list[Path], thumbs: list[Path], *,
+              numbers: tuple[int, ...] = (), hidden: tuple[bool, ...] = ()) -> Render:
         """Move freshly rendered images into the store and record what they are.
 
         絵は hash 名で置くので、同じ中身が既にあれば捨てて既存を使う。頁が
@@ -123,7 +128,8 @@ class DeckCache:
                 if not tdest.exists():
                     shutil.move(str(thumbs[i]), tdest)
 
-        self.current = Render(at=time.time(), source=source, pages=tuple(hashes))
+        self.current = Render(at=time.time(), source=source, pages=tuple(hashes),
+                              numbers=numbers, hidden=hidden)
         self._save()
         self._prune()
         return self.current

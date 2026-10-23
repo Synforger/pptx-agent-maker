@@ -23,7 +23,9 @@ Options: `--port` (0 = pick a free one), `--dpi` (default 200), `--no-open` (do 
 
 The page is built for reading a deck end to end, not just for watching it reload.
 
-- **Page list** down the left: click to jump; the current page follows your scrolling
+- **Page list** down the left: click to jump; the current page follows your scrolling. Each page
+  is labelled with the number PowerPoint prints on it (so a deck that starts counting at 0 after its
+  cover reads the same here), and a hidden page is drawn too, marked `hidden`
 - **Grid overview** (`g`) to see the whole deck at once
 - **Zoom** (`f`) fills the screen with one page, the way it will be presented
 - **Compare** (`c`) puts two decks side by side, each with its own page track underneath, so decks
@@ -32,7 +34,7 @@ The page is built for reading a deck end to end, not just for watching it reload
 - **Deck switching** from the menu at the top left, or `Ctrl`+`←` / `Ctrl`+`→`
 
 Keys: `←` `→` (or `PgUp` / `PgDn`) move a page, `Home` / `End` jump to the ends, typing digits
-followed by `Enter` goes to that page, `Space` goes back from an overlay, `?` lists the lot.
+followed by `Enter` goes to the page that prints that number, `Space` goes back from an overlay, `?` lists the lot.
 
 ## How it works
 
