@@ -18,7 +18,7 @@ from tempfile import TemporaryDirectory
 from . import notes as notes_mod
 from .cache import DeckCache, cache_root, deck_key, digest
 from .render import (ALBUM, DEFAULT_DPI, RENDERER, THUMB_DPI, ProfilePool, RenderError, album_pages,
-                     rasterize, read_album, to_pdf)
+                     rasterize, read_album, read_numbering, to_pdf)
 
 # 同時に走らせる soffice の数。変換は 1 本あたり CPU 1 コアと数百 MB を使うので、
 # デッキ数ぶん無制限に起動するとフォルダが育ったときにマシンごと詰まる。
@@ -127,10 +127,22 @@ class DeckState:
                     raster = rasterize(pdf, work, self.dpi)
             except RenderError as exc:
                 return self._fail(str(exc))
-            self.cache.adopt(source, raster.pages, raster.thumbs)
+            numbers, hidden = self._numbering(len(raster.pages))
+            self.cache.adopt(source, raster.pages, raster.thumbs, numbers=numbers, hidden=hidden)
         self.notes = self._notes()
         self.error = None
         return True
+
+    def _numbering(self, count: int) -> tuple[tuple[int, ...], tuple[bool, ...]]:
+        """The number each of `count` drawn pages prints, and whether it is hidden.
+
+        写真の束は資料ではないので位置の通し番号。資料は PowerPoint が刷る番号 (= 開始 + 位置 - 1)。
+        読めない時と頁数が合わない時 (= 頁の札を誤らせるより位置で数える方がまし) も位置の通し番号。
+        """
+        numbering = None if self.is_album else read_numbering(self.pptx)
+        if numbering is None or len(numbering.numbers) != count:
+            return tuple(range(1, count + 1)), (False,) * count
+        return numbering.numbers, numbering.hidden
 
     def _fail(self, message: str) -> bool:
         had = self.error
@@ -161,9 +173,13 @@ class DeckState:
         """Full payload for the deck being viewed."""
         cur = self.cache.current
         pages = list(cur.pages) if cur else []
+        # 古い索引 (= 札の情報を持たない) は位置の通し番号で出す。RENDERER の版が上がれば焼き直される
+        known = cur is not None and len(cur.numbers) == len(pages) == len(cur.hidden)
         return {
             **self.summary(),
             "pages": pages,
+            "numbers": list(cur.numbers) if known else list(range(1, len(pages) + 1)),
+            "hidden": list(cur.hidden) if known else [False] * len(pages),
             "notes": (self.notes + [""] * len(pages))[:len(pages)],
         }
 

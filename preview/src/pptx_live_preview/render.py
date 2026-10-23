@@ -32,9 +32,9 @@ from .platform_root import tool_folder
 # 焼く時間の差は小さい (= 頁を分けて並列に焼くため)。
 DEFAULT_DPI = 200
 
-# 描き方の版。描く前に deck へ手を入れる処理 (= 頁番号の開始) を変えたら上げる。キャッシュは deck の
+# 描き方の版。描く前に deck へ手を入れる処理 (= 頁番号の開始、隠した頁) を変えたら上げる。キャッシュは deck の
 # 中身の hash で引くので、上げないと、前の描き方で焼いた絵が使われ続ける。
-RENDERER = 2
+RENDERER = 3
 
 # 頁一覧に並べる小さい絵の解像度。本画像を CSS で縮めると 100 頁ぶんの原寸を
 # 読み込むことになるので、専用に低い解像度でもう一度焼く。PDF は既に手元に
@@ -154,54 +154,97 @@ class ProfilePool:
             self._free.put(number)
 
 
-_FIRST_NUMBER = re.compile(rb'<p:presentation\b[^>]*\bfirstSlideNum="(\d+)"')
+_FIRST_NUMBER = re.compile(rb'<p:presentation\b[^>]*\bfirstSlideNum="(-?\d+)"')
 _SLIDE_IDS = re.compile(rb'<p:sldId\b[^>]*\br:id="([^"]+)"')
 _RELATION = re.compile(rb'<Relationship\b[^>]*>')
+_SLIDE_TAG = re.compile(rb'<p:sld\b[^>]*>')
+_HIDDEN_ATTRIBUTE = re.compile(rb'\s+show="(?:0|false)"')
 _NUMBER_FIELD = re.compile(rb'<a:fld\b[^>]*\btype="slidenum"[^>]*>(.*?)</a:fld>', re.S)
 _RUN_PROPERTIES = re.compile(rb'<a:rPr\b[^>]*/>|<a:rPr\b.*?</a:rPr>', re.S)
 
 
+@dataclass(frozen=True)
+class SlideNumbering:
+    """What PowerPoint prints on each slide of a deck, in reading order.
+
+    ``numbers`` は頁に刷られる番号 (= 開始 + 頁の位置 - 1。隠した頁も数に入れる)、``hidden`` は隠した
+    頁か。``parts`` は各頁の部品の名前 (= 解けなかった頁は None)。
+    """
+
+    start: int
+    parts: tuple[str | None, ...]
+    numbers: tuple[int, ...]
+    hidden: tuple[bool, ...]
+
+
+def read_numbering(pptx: Path) -> SlideNumbering | None:
+    """The numbers a deck's slides print, or None when the deck cannot be read as a zip of slides."""
+    try:
+        with zipfile.ZipFile(pptx) as deck:
+            names = set(deck.namelist())
+            presentation = deck.read("ppt/presentation.xml")
+            relations = deck.read("ppt/_rels/presentation.xml.rels")
+            first = _FIRST_NUMBER.search(presentation)
+            start = int(first.group(1)) if first else 1
+            targets = {}
+            for relation in _RELATION.findall(relations):
+                rid = re.search(rb'\bId="([^"]+)"', relation)
+                target = re.search(rb'\bTarget="([^"]+)"', relation)
+                if rid and target:
+                    targets[rid.group(1)] = posixpath.normpath(
+                        posixpath.join("ppt", target.group(1).decode()))
+            parts = tuple(targets.get(rid) for rid in _SLIDE_IDS.findall(presentation))
+            hidden = tuple(part in names and _is_hidden(deck, part) for part in parts)
+    except (zipfile.BadZipFile, KeyError):
+        return None
+    return SlideNumbering(start=start, parts=parts,
+                          numbers=tuple(start + position for position in range(len(parts))), hidden=hidden)
+
+
+def _is_hidden(deck: zipfile.ZipFile, part: str) -> bool:
+    tag = _SLIDE_TAG.search(deck.read(part))
+    return bool(tag and _HIDDEN_ATTRIBUTE.search(tag.group(0)))
+
+
 def numbered_as_powerpoint(pptx: Path, work_dir: Path) -> Path:
-    """The deck to hand LibreOffice: a copy whose page numbers start where the deck says.
+    """The deck to hand LibreOffice: a copy whose pages are numbered and counted as PowerPoint does.
 
     ⚠ **LibreOffice は頁番号の開始 (= presentation.xml の firstSlideNum) を読まない。**表紙に番号を
     付けない資料は開始を 0 にして表紙の次を 1 にするが、LibreOffice は表紙から数えて 2 と描くので、
     プレビューだけが PowerPoint と違う番号を見せる。開始が 1 以外の資料に限り、写しの中で各頁の
     頁番号の欄を、PowerPoint が出す数 (= 開始 + 頁の位置 - 1) の文字に置き換えてから渡す。
     レイアウトとマスターの欄は頁ごとに数が違うので置き換えない (= 頁に置いた欄だけが対象)。
+
+    ⚠ **隠した頁 (= `show="0"`) は、LibreOffice の PDF には出ない。**後ろの頁の位置が詰まり、頁を
+    位置で引く画面が PowerPoint の頁とずれる。隠した頁を持つ資料は、同じ写しの中で隠す印を外して
+    渡す (= 隠した頁も絵になる。隠した頁かどうかは `read_numbering` が元の資料から読む)。
     """
-    with zipfile.ZipFile(pptx) as deck:
-        names = set(deck.namelist())
-        presentation = deck.read("ppt/presentation.xml") if "ppt/presentation.xml" in names else b""
-        first = _FIRST_NUMBER.search(presentation)
-        if first is None or int(first.group(1)) == 1:
-            return pptx
-        start = int(first.group(1))
-        targets = {}
-        for relation in _RELATION.findall(deck.read("ppt/_rels/presentation.xml.rels")):
-            rid = re.search(rb'\bId="([^"]+)"', relation)
-            target = re.search(rb'\bTarget="([^"]+)"', relation)
-            if rid and target:
-                targets[rid.group(1)] = posixpath.normpath(
-                    posixpath.join("ppt", target.group(1).decode()))
-        order = [targets.get(rid) for rid in _SLIDE_IDS.findall(presentation)]
-        numbers = {name: str(start + position).encode()
-                   for position, name in enumerate(order) if name}
+    numbering = read_numbering(pptx)
+    if numbering is None or (numbering.start == 1 and not any(numbering.hidden)):
+        return pptx
+    renumbered = {part: str(number).encode() for part, number in zip(numbering.parts, numbering.numbers)
+                  if part and numbering.start != 1}
+    unhidden = {part for part, hidden in zip(numbering.parts, numbering.hidden) if hidden}
 
-        def literal(number: bytes):
-            def run(field: re.Match) -> bytes:
-                props = _RUN_PROPERTIES.search(field.group(1))
-                return b"<a:r>" + (props.group(0) if props else b"") + b"<a:t>" + number + b"</a:t></a:r>"
-            return run
+    def literal(number: bytes):
+        def run(field: re.Match) -> bytes:
+            props = _RUN_PROPERTIES.search(field.group(1))
+            return b"<a:r>" + (props.group(0) if props else b"") + b"<a:t>" + number + b"</a:t></a:r>"
+        return run
 
-        copy = work_dir / "numbered" / pptx.name
-        copy.parent.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(copy, "w", zipfile.ZIP_DEFLATED) as out:
-            for item in deck.infolist():
-                data = deck.read(item)
-                if item.filename in numbers:
-                    data = _NUMBER_FIELD.sub(literal(numbers[item.filename]), data)
-                out.writestr(item, data)
+    def shown(tag: re.Match) -> bytes:
+        return _HIDDEN_ATTRIBUTE.sub(b"", tag.group(0))
+
+    copy = work_dir / "numbered" / pptx.name
+    copy.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(pptx) as deck, zipfile.ZipFile(copy, "w", zipfile.ZIP_DEFLATED) as out:
+        for item in deck.infolist():
+            data = deck.read(item)
+            if item.filename in renumbered:
+                data = _NUMBER_FIELD.sub(literal(renumbered[item.filename]), data)
+            if item.filename in unhidden:
+                data = _SLIDE_TAG.sub(shown, data, count=1)
+            out.writestr(item, data)
     return copy
 
 

@@ -8,7 +8,7 @@ const S = {
   active: null,     // 開いているデッキ名
   project: null,    // この画面が見ている案件 (= 束ねて見る時だけ。問い合わせのたびに名乗る)
   details: {},      // デッキ名 -> 全情報 (= 開いている 1 本と、並べ比較の相手)
-  page: 1,          // 1 始まりの現在頁
+  page: 1,          // 1 始まりの現在頁 (= 位置。刷られた番号は printedNumber で引く)
   notesOpen: false,
   overlay: null,    // 'grid' | 'viewer' | 'compare' | 'help' | null
   cmpLeft: null,    // 並べ比較の左のデッキ
@@ -78,6 +78,19 @@ function fmtTime(epochSeconds) {
   if (!epochSeconds) return 'not rendered yet';
   return new Date(epochSeconds * 1000).toLocaleTimeString();
 }
+/* 頁の札は、その頁に PowerPoint が刷る番号を出す。位置 (= S.page、URL、メモの紐づけ) とは別物で、
+   開始が 1 でない資料や隠した頁があるとずれる。server が頁ごとに持つ (= i は 0 始まりの位置)。 */
+const printedNumber = (d, i) => (d && d.numbers ? d.numbers[i] : i + 1);
+const pageLabel = (d, i) => printedNumber(d, i) + (d && d.hidden && d.hidden[i] ? ' · hidden' : '');
+const labelsKey = (d) => (d && d.numbers ? d.numbers.join(',') + '|' + d.hidden.join(',') : '');
+
+/* 操作者が打った刷られた番号を、位置 (= 1 始まり) に引き直す。範囲の外は端の頁へ寄せる。 */
+function positionOfNumber(d, printed) {
+  if (!d || !d.pages.length) return 1;
+  const first = d.numbers ? d.numbers[0] : 1;
+  return Math.min(Math.max(printed - first + 1, 1), d.pages.length);
+}
+
 function visiblePages() {
   const d = current();
   return d ? d.pages.map((_, i) => i) : [];
@@ -161,17 +174,17 @@ function renderStrip() {
   if (!d || !d.pages.length) { strip.innerHTML = ''; strip.dataset.key = ''; return; }
 
   const wanted = visiblePages();
-  const key = S.active + '|' + wanted.join(',') + '|' + d.pages.join(',');
+  const key = S.active + '|' + wanted.join(',') + '|' + d.pages.join(',') + '|' + labelsKey(d);
   if (strip.dataset.key !== key) {
     strip.innerHTML = '';
     for (const i of wanted) {
       const cell = document.createElement('div');
       cell.className = 'thumb';
       cell.dataset.page = String(i + 1);
-      const img = lazyImage(thumbUrl(S.active, d.pages[i]), 'page ' + (i + 1));
+      const img = lazyImage(thumbUrl(S.active, d.pages[i]), 'page ' + printedNumber(d, i));
       const num = document.createElement('span');
       num.className = 'num';
-      num.textContent = String(i + 1);
+      num.textContent = pageLabel(d, i);
       cell.append(img, num);
       cell.onclick = () => { closeStrip(); setPage(i + 1, { scroll: true }); };
       strip.appendChild(cell);
@@ -252,7 +265,7 @@ function renderStage() {
     // 頁そのものは押しても何も起きない。触れば開く作りにすると、スクロール中の
     // 指の当たりで別の見え方に飛ばされる (= 一度撤去した挙動を形を変えて戻さない)。
     // 全画面は f キーと上のボタンから。
-    fig.appendChild(lazyImage(url, 'page ' + num));
+    fig.appendChild(lazyImage(url, 'page ' + printedNumber(d, i)));
     host.appendChild(fig);
   }
   host.dataset.key = key;
@@ -315,7 +328,7 @@ function scrollStageToPage(behavior) {
 }
 
 function afterPageChange(scroll) {
-  $('pageInput').value = String(S.page);
+  $('pageInput').value = String(printedNumber(current(), S.page - 1));
   markCurrent();
   renderNotes();
   if (S.overlay === 'viewer') renderViewer();
@@ -411,7 +424,7 @@ function renderViewer() {
   const d = current();
   if (!d || !d.pages.length) return;
   $('viewerImg').src = pageUrl(S.active, d.pages[S.page - 1]);
-  $('viewerLabel').textContent = S.active + ' · page ' + S.page + ' / ' + d.pages.length;
+  $('viewerLabel').textContent = S.active + ' · page ' + pageLabel(d, S.page - 1) + ' / ' + d.pages.length;
 }
 
 function renderGrid() {
@@ -423,10 +436,10 @@ function renderGrid() {
     const cell = document.createElement('div');
     cell.className = 'cell';
     cell.dataset.page = String(i + 1);
-    const img = lazyImage(thumbUrl(S.active, d.pages[i]), 'page ' + (i + 1));
+    const img = lazyImage(thumbUrl(S.active, d.pages[i]), 'page ' + printedNumber(d, i));
     const num = document.createElement('span');
     num.className = 'num';
-    num.textContent = String(i + 1);
+    num.textContent = pageLabel(d, i);
     cell.append(img, num);
     cell.onclick = () => { closeOverlay(); setPage(i + 1, { scroll: true }); };
     host.appendChild(cell);
@@ -515,11 +528,12 @@ function paintCompareSide(side, detail) {
     img.alt = 'no page ' + page + ' in ' + deck;
   }
 
-  $(isLeft ? 'cmpLeftName' : 'cmpRightName').textContent = deck + '  ' + page + ' / ' + total;
+  $(isLeft ? 'cmpLeftName' : 'cmpRightName').textContent =
+    deck + '  ' + (detail && detail.pages.length ? pageLabel(detail, page - 1) : page) + ' / ' + total;
 
   // 帯は中身が変わったときだけ組み直す (= 頁を送るたびに作り直すと画像を読み直す)
   const strip = $(isLeft ? 'cmpLeftStrip' : 'cmpRightStrip');
-  const key = deck + '|' + (detail ? detail.pages.join(',') : '');
+  const key = deck + '|' + (detail ? detail.pages.join(',') + '|' + labelsKey(detail) : '');
   if (strip.dataset.key !== key) {
     strip.innerHTML = '';
     if (detail) {
@@ -527,10 +541,10 @@ function paintCompareSide(side, detail) {
         const cell = document.createElement('div');
         cell.className = 'cell';
         cell.dataset.page = String(i + 1);
-        const thumb = lazyImage(thumbUrl(deck, h), deck + ' page ' + (i + 1));
+        const thumb = lazyImage(thumbUrl(deck, h), deck + ' page ' + printedNumber(detail, i));
         const num = document.createElement('span');
         num.className = 'num';
-        num.textContent = String(i + 1);
+        num.textContent = pageLabel(detail, i);
         cell.append(thumb, num);
         cell.onclick = () => setComparePage(side, i + 1);
         strip.appendChild(cell);
@@ -610,7 +624,7 @@ async function loadDetail(opts) {
   if (S.overlay === 'grid') renderGrid();
   if (S.overlay === 'viewer') renderViewer();
   if (S.overlay === 'compare') renderCompare();
-  $('pageInput').value = String(S.page);
+  $('pageInput').value = String(printedNumber(detail, S.page - 1));
   if (opts && opts.scroll) scrollStageToPage('auto');
 }
 
@@ -663,7 +677,7 @@ function onKey(e) {
   if (typing) {
     if (e.key === 'Enter') {
       const n = parseInt($('pageInput').value, 10);
-      if (!Number.isNaN(n)) setPage(n, { scroll: true });
+      if (!Number.isNaN(n)) setPage(positionOfNumber(current(), n), { scroll: true });
       e.target.blur();
     } else if (e.key === 'Escape') {
       e.target.blur();
@@ -679,7 +693,7 @@ function onKey(e) {
     return;
   }
   if (e.key === 'Enter' && S.numBuf) {
-    setPage(parseInt(S.numBuf, 10), { scroll: true });
+    setPage(positionOfNumber(current(), parseInt(S.numBuf, 10)), { scroll: true });
     S.numBuf = '';
     return;
   }
@@ -755,7 +769,7 @@ $('refreshBtn').onclick = async () => {
 
 $('pageInput').onchange = () => {
   const n = parseInt($('pageInput').value, 10);
-  if (!Number.isNaN(n)) setPage(n, { scroll: true });
+  if (!Number.isNaN(n)) setPage(positionOfNumber(current(), n), { scroll: true });
 };
 
 // 幅が変わって頁一覧が現れたら組み立て直す (= 回転や窓のサイズ変更)
