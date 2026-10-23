@@ -12,12 +12,14 @@ from __future__ import annotations
 import shutil
 import subprocess
 import zipfile
+from pathlib import Path
 
 import pytest
 from pptx import Presentation
 from pptx.util import Inches
 from lxml import etree
 
+from pptx_live_preview import render
 from pptx_live_preview.render import (RenderError, numbered_as_powerpoint, pdftoppm_bin, read_numbering,
                                       soffice_bin, to_pdf)
 from pptx_live_preview.state import DeckState
@@ -101,6 +103,43 @@ def test_a_file_that_is_not_a_deck_has_no_numbering(tmp_path):
     broken = tmp_path / "broken.pptx"
     broken.write_bytes(b"not a zip")
     assert read_numbering(broken) is None
+
+
+def _rewritten_while_read(monkeypatch, member: str) -> None:
+    """The build writes the deck again while the preview is reading it: when `member` is read, the file has
+    just been cut back to the end of that part's header (= the archive's list was read whole, the part runs off
+    the end of the file)."""
+
+    class Rewritten(zipfile.ZipFile):
+        def read(self, name, pwd=None):
+            if getattr(name, "filename", name) == member:  # 名前でも ZipInfo でも読まれる
+                info = self.getinfo(member)
+                path = Path(self.filename)
+                path.write_bytes(path.read_bytes()[:info.header_offset + 30 + len(info.orig_filename.encode())
+                                                   + len(info.extra)])
+                self.fp.close()  # 開いた時の読み込みの溜めに、小さい deck は丸ごと載っている
+                self.fp = open(path, "rb")
+            return super().read(name, pwd)
+
+    monkeypatch.setattr(render.zipfile, "ZipFile", Rewritten)
+
+
+def test_a_deck_caught_half_written_has_no_numbering(tmp_path, monkeypatch):
+    """⚠ 書きかけの deck は目録が読め、部品を読む所で中身が尽きる (= EOFError)。読めない deck として扱う。"""
+    deck = _deck(tmp_path / "w.pptx", first=0)
+    _rewritten_while_read(monkeypatch, "ppt/slides/slide3.xml")
+    assert read_numbering(deck) is None
+
+
+@needs_libreoffice
+def test_a_deck_caught_half_written_goes_to_libreoffice_rather_than_raising(tmp_path, monkeypatch):
+    """⚠ 写しを作る途中で中身が尽きた例外が、見張りの thread まで抜けて thread ごと止まった。"""
+    deck = _deck(tmp_path / "w.pptx", first=0)
+    _rewritten_while_read(monkeypatch, "docProps/app.xml")  # 番号は読め、写しを作る所で尽きる
+    try:
+        to_pdf(deck, tmp_path / "work", tmp_path / "profile")
+    except RenderError:
+        pass  # LibreOffice が読めないと言うのは正しい失敗 (= 画面に出て、次の書き込みで描き直す)
 
 
 def test_a_hidden_page_is_handed_over_shown_and_the_rest_is_left_as_it_is(tmp_path):

@@ -223,6 +223,43 @@ def test_rasterise_failure_keeps_the_previous_pages(deck, fake):
     assert deck.slides == 2
 
 
+def test_an_unexpected_failure_of_one_deck_does_not_stop_the_round(tmp_path, fake, monkeypatch):
+    """⚠ 1 本の想定外の例外が巡回の外へ抜け、見張りの thread ごと止まった (= 組み直しても画面が古いまま)。
+    その資料の失敗として画面に出し、ほかの資料は描き、巡回は次へ回る。"""
+    (tmp_path / "w1.pptx").write_bytes(b"x")
+    (tmp_path / "w2.pptx").write_bytes(b"x")
+    drawn = fake.to_pdf
+
+    def to_pdf(pptx, work_dir, profile):
+        if pptx.stem == "w1":
+            raise EOFError
+        return drawn(pptx, work_dir, profile)
+
+    monkeypatch.setattr(st, "to_pdf", to_pdf)
+    deckset = st.DeckSet(tmp_path)
+    deckset.rescan_and_rerender(force=True)
+    assert "EOFError" in deckset.deck("w1").error
+    assert deckset.deck("w2").error is None and deckset.deck("w2").slides == 2
+
+
+def test_the_watch_goes_on_past_a_round_that_fails(monkeypatch):
+    """巡回 1 回が例外で終わっても、見張りは次の巡回へ回る。"""
+    rounds = []
+
+    class Rounds:
+        def rescan_and_rerender(self):
+            rounds.append(1)
+            if len(rounds) == 1:
+                raise OSError("the folder went away")
+            if len(rounds) == 3:
+                raise SystemExit  # 試験から抜ける口 (= Exception ではないので見張りは拾わない)
+
+    monkeypatch.setattr(st.time, "sleep", lambda seconds: None)
+    with pytest.raises(SystemExit):
+        st.watch(Rounds())
+    assert len(rounds) == 3
+
+
 # ---- payloads -------------------------------------------------------------
 
 def test_detail_lines_up_pages_changes_and_notes(deck, fake, monkeypatch):
