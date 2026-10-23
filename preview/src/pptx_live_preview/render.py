@@ -17,6 +17,7 @@ import re
 import shutil
 import subprocess
 import zipfile
+import zlib
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -154,6 +155,10 @@ class ProfilePool:
             self._free.put(number)
 
 
+#: 読めない deck の例外。⚠ **書き直しの途中の deck は、目録が読めて部品を読む所で中身が尽きる**
+#: (= EOFError、圧縮した部品なら zlib.error)。BadZipFile だけを拾うと、例外が見張りの thread まで抜けた
+UNREADABLE = (zipfile.BadZipFile, KeyError, EOFError, zlib.error)
+
 _FIRST_NUMBER = re.compile(rb'<p:presentation\b[^>]*\bfirstSlideNum="(-?\d+)"')
 _SLIDE_IDS = re.compile(rb'<p:sldId\b[^>]*\br:id="([^"]+)"')
 _RELATION = re.compile(rb'<Relationship\b[^>]*>')
@@ -195,7 +200,7 @@ def read_numbering(pptx: Path) -> SlideNumbering | None:
                         posixpath.join("ppt", target.group(1).decode()))
             parts = tuple(targets.get(rid) for rid in _SLIDE_IDS.findall(presentation))
             hidden = tuple(part in names and _is_hidden(deck, part) for part in parts)
-    except (zipfile.BadZipFile, KeyError):
+    except UNREADABLE:
         return None
     return SlideNumbering(start=start, parts=parts,
                           numbers=tuple(start + position for position in range(len(parts))), hidden=hidden)
@@ -256,8 +261,8 @@ def to_pdf(pptx: Path, work_dir: Path, profile: Path) -> Path:
     work_dir.mkdir(parents=True, exist_ok=True)
     try:
         pptx = numbered_as_powerpoint(pptx, work_dir)
-    except (zipfile.BadZipFile, KeyError):
-        pass  # 壊れた deck は LibreOffice に渡し、その失敗をそのまま画面へ出す
+    except UNREADABLE:
+        pass  # 壊れた deck は LibreOffice に渡し、その失敗をそのまま画面へ出す (= 書きかけなら次の書き込みで描き直す)
 
     result = subprocess.run(
         [

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import threading
+import traceback
 from collections.abc import Iterable
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -244,7 +245,12 @@ class DeckSet:
         self.cond.notify_all()
 
     def _rerender_one(self, deck: DeckState, force: bool, rebuild: bool) -> None:
-        if deck.rerender_if_stale(force=force, rebuild=rebuild):
+        try:
+            changed = deck.rerender_if_stale(force=force, rebuild=rebuild)
+        except Exception as exc:  # 1 本の想定外の失敗は、その資料の失敗として画面に出し、ほかの資料は描く
+            traceback.print_exc()
+            changed = deck._fail(f"render failed: {exc!r}")
+        if changed:
             with self.lock:
                 self._bump_locked()
 
@@ -272,7 +278,10 @@ class DeckSet:
 
 def watch(deckset: DeckSet, interval: float = 0.5) -> None:
     while True:
-        deckset.rescan_and_rerender()
+        try:
+            deckset.rescan_and_rerender()
+        except Exception:  # 巡回 1 回の失敗で見張りを止めない (= 止まると、組み直しても画面が古いまま残る)
+            traceback.print_exc()
         time.sleep(interval)
 
 
