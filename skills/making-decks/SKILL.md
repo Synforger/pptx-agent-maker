@@ -16,9 +16,11 @@ carried by files that already exist, so this skill names them and does not copy 
 
 ## Read the craft file before designing a page
 
-How a deck should read — the order of the story, how a page looks, how real material and numbers
-are handled, wording and facts, how to work, and which type to use for which page — is one file,
-`craft.md`. Types and checks can only guard coordinates and shapes; the rest is the author's.
+The steps of making a deck, in the order they must not be skipped, open the project's `deck` skill.
+How a deck should read — the order of the story, how a page looks, figures and charts, how real
+material and numbers are handled, wording and facts, how to work, what a report, a proposal and a
+deck for an outside party each need, and which type to use for which page — is one file, `craft.md`.
+Types and checks can only guard coordinates and shapes; the rest is the author's.
 
 - In a project, read the `craft.md` that sits beside the project's `deck` skill.
   `task refresh` replaces a stale copy
