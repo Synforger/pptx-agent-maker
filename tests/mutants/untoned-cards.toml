@@ -1,0 +1,48 @@
+# A card with no `tone`, in a project that names its own grounds.
+
+tests = ["tests/checks/test_untoned_cards.py"]
+
+[[mutant]]
+name = "a card written as a pair is taken as toned"
+file = "src/pptx_agent_maker/checks/declared/untoned_cards.py"
+old = 'count += sum(1 for card in value if not (isinstance(card, dict) and "tone" in card))'
+new = 'count += sum(1 for card in value if isinstance(card, dict) and "tone" not in card)'
+
+[[mutant]]
+name = "a card of a cell is not read"
+file = "src/pptx_agent_maker/checks/declared/untoned_cards.py"
+old = """                count += 0 if isinstance(value, dict) and "tone" in value else 1
+"""
+new = ""
+
+[[mutant]]
+name = "a cell inside a cell is not read"
+file = "src/pptx_agent_maker/checks/declared/untoned_cards.py"
+old = "    elif isinstance(written, list):\n        count += sum(_untoned(value) for value in written)\n"
+new = ""
+
+[[mutant]]
+name = "a project that names no ground is read too"
+file = "src/pptx_agent_maker/checks/declared/untoned_cards.py"
+old = "or theme is None or not theme.ground_names():"
+new = "or theme is None:"
+
+[[mutant]]
+name = "the check cannot be switched off"
+file = "src/pptx_agent_maker/checks/declared/untoned_cards.py"
+old = "if (config or {}).get(NAME, True) is False or theme"
+new = "if theme"
+
+[[mutant]]
+name = "a copied page is read"
+file = "src/pptx_agent_maker/checks/declared/untoned_cards.py"
+old = """        if entry.kind != "declare":
+            continue
+"""
+new = ""
+
+[[mutant]]
+name = "the check does not run with the others"
+file = "src/pptx_agent_maker/checks/declared/__init__.py"
+old = "ALL = (long_title, unsourced, unnamed_axis, section_agenda, untoned_cards)"
+new = "ALL = (long_title, unsourced, unnamed_axis, section_agenda)"

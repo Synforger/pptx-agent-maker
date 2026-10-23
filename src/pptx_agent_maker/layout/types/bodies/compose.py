@@ -343,15 +343,14 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
                 arrange.marked_figure(page, rect, source, aspect, arrange.read_marks(cell["marks"], what),
                                       caption, what)
                 return
-            s, ty = page.theme.spacing, page.theme.type
+            s = page.theme.spacing
             inset = cm(cell.get("inset", 0))
             if 2 * inset >= rect.width:
                 raise PageFullError(f"{what}: `inset` leaves {inset} EMU on each side of a cell {rect.width} EMU "
                                     "wide, and no room for the picture — a smaller `inset`, or a wider cell")
             frame = rect.inset(x=inset)
             wanted = round(frame.width / aspect) + (
-                s.gap_s + page.theme.wrapped_height(caption, max(frame.width - 2 * s.text_inset, 1),
-                                                    ty.caption) if caption else 0)
+                s.gap_s + page.theme.caption_height(caption, frame.width) if caption else 0)
             block = min(wanted, frame.height)
             spare = frame.height - block                # 絵がマスより低い時の余り (= 絵が縦に詰められた時は 0)
             top = frame.top + {"top": 0, "middle": spare // 2, "bottom": spare}[cell.get("valign", "top")]

@@ -164,7 +164,8 @@ class OnABar(unittest.TestCase):
 
     def test_a_named_tone_on_a_bar_brings_the_legend(self):
         built = build({"type": "timeline", "periods": ["a", "b"],
-                       "lanes": [{"name": "L", "bars": [{"from": 0, "to": 2, "text": "x", "tone": "Inside"}]}]})
+                       "lanes": [{"name": "L", "bars": [{"from": 0, "to": 2, "text": "x", "tone": "Inside"}]}],
+                       "legend": True})
         self.assertIn("Inside", [e.text for e in built.build() if e.kind == "label"])
 
     def test_a_name_that_fits_alone_may_go_beside_once_an_icon_takes_its_room(self):

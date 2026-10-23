@@ -1,0 +1,39 @@
+# The name under a picture: grey and small, or bold in the body colour (= `[theme] caption_look`).
+
+tests = ["tests/layout/test_caption_look.py"]
+
+[[mutant]]
+name = "a label is set at the size of a caption"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = 'return (self.type.stage, True) if self.caption_look == "label" else (self.type.caption, False)'
+new = 'return (self.type.caption, True) if self.caption_look == "label" else (self.type.caption, False)'
+
+[[mutant]]
+name = "a label is not bold"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = 'return (self.type.stage, True) if self.caption_look == "label" else (self.type.caption, False)'
+new = 'return (self.type.stage, False) if self.caption_look == "label" else (self.type.caption, False)'
+
+[[mutant]]
+name = "the look a project writes is not read"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        caption_look=caption_look,\n"
+new = ""
+
+[[mutant]]
+name = "the height kept for a name is counted in the regular weight"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "return self.wrapped_height(caption, max(width - 2 * self.spacing.text_inset, 1), size, bold=bold)"
+new = "return self.wrapped_height(caption, max(width - 2 * self.spacing.text_inset, 1), size)"
+
+[[mutant]]
+name = "a label is grey"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'caption, size, p.ink if bold else p.muted, bold=bold,'
+new = 'caption, size, p.muted, bold=bold,'
+
+[[mutant]]
+name = "a cell keeps room for its picture's name in the size of a caption"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "s.gap_s + page.theme.caption_height(caption, frame.width) if caption else 0)"
+new = "s.gap_s + page.theme.wrapped_height(caption, max(frame.width - 2 * s.text_inset, 1), page.theme.type.caption) if caption else 0)"

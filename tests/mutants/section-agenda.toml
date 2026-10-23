@@ -59,5 +59,5 @@ new = "    if False:"
 [[mutant]]
 name = "the check does not run with the others"
 file = "src/pptx_agent_maker/checks/declared/__init__.py"
-old = "ALL = (long_title, unsourced, unnamed_axis, section_agenda)"
-new = "ALL = (long_title, unsourced, unnamed_axis)"
+old = "ALL = (long_title, unsourced, unnamed_axis, section_agenda, untoned_cards)"
+new = "ALL = (long_title, unsourced, unnamed_axis, untoned_cards)"

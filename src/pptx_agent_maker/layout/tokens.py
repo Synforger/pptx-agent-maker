@@ -277,6 +277,10 @@ CARD_LOOKS = ("filled", "outlined")
 #: 条件の帯と結論の帯の見た目。`plain` は枠の無い帯 (= 既定)、`outlined` は枠と色を持つ (= 上は差し色、
 #: 下は灰)。案件が `[theme] band_look` で決める
 BAND_LOOKS = ("plain", "outlined")
+#: 絵の下の名の見た目。`plain` は出所と同じ小さい灰の字 (= 既定。絵の読み方を添える)、`label` は本文の色の太字で
+#: `compose` の `role = "label"` と同じ大きさ (= 絵が何かを示す名。灰の字だと読み飛ばされる)。案件が
+#: `[theme] caption_look` で決める
+CAPTION_LOOKS = ("plain", "label")
 #: 表の見た目。`accent` は見出しの行を差し色で塗り、本文を 1 行おきに薄く敷く (= 既定。罫線は引かない)、
 #: `plain` は見出しの行を灰の地に本文の色の太字にして、本文は紙の色のまま、どのセルにも灰の罫線を引く。
 #: 資料全体の見た目なので案件が `[theme] table_look` で決め、使い方ごと (= `[theme.uses.<名前>]`) にも選べる
@@ -592,6 +596,8 @@ class Theme:
     box_height: str = "text"
     card_look: str = "filled"
     band_look: str = "plain"
+    #: 絵の下の名の見た目 (= `CAPTION_LOOKS`)
+    caption_look: str = "plain"
     #: 表の見た目 (= `TABLE_LOOKS`)。これも既定は今までの見た目
     table_look: str = "accent"
     #: この見た目の使い方の名前 (= 道具の `read` / `present` か、案件が `[theme.uses]` で名付けたもの)
@@ -620,6 +626,15 @@ class Theme:
         table_look = type.table_look_set or self.table_look
         return replace(self, use=use, type=type, spacing=_furniture(type, self.kicker), box_height=box_height,
                        table_look=table_look)
+
+    def caption_face(self) -> tuple[float, bool]:
+        """The size and the weight of a picture's name (= `caption_look`)."""
+        return (self.type.stage, True) if self.caption_look == "label" else (self.type.caption, False)
+
+    def caption_height(self, caption: str, width: int) -> int:
+        """How tall a picture's name runs under a picture that wide (= its words have the width less the text box's own)."""
+        size, bold = self.caption_face()
+        return self.wrapped_height(caption, max(width - 2 * self.spacing.text_inset, 1), size, bold=bold)
 
     def ground_names(self) -> tuple[str, ...]:
         return tuple(name for name, _colour in self.grounds)
@@ -928,7 +943,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "band_look", "leading",
+_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "band_look", "caption_look", "leading",
          "table_look", "layout_of_page")
 
 
@@ -980,6 +995,7 @@ def theme_from(settings: dict | None) -> Theme:
     box_height = _choice(settings, "box_height", BOX_HEIGHTS, "the height of a page's boxes")
     card_look = _choice(settings, "card_look", CARD_LOOKS, "the look of a card")
     band_look = _choice(settings, "band_look", BAND_LOOKS, "the look of the bands over and under a page")
+    caption_look = _choice(settings, "caption_look", CAPTION_LOOKS, "the look of the name under a picture")
     table_look = _choice(settings, "table_look", TABLE_LOOKS, "the look of a table")
     # 型の頁を乗せるレイアウトは、見本を読む所が使う (= `deck/_internal/under.py`)。ここは書き方だけ確かめる
     on = settings.get("layout_of_page")
@@ -1016,6 +1032,7 @@ def theme_from(settings: dict | None) -> Theme:
         box_height=type.box_height_set,
         card_look=card_look,
         band_look=band_look,
+        caption_look=caption_look,
         table_look=type.table_look_set,
     )
 

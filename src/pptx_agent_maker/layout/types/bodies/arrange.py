@@ -311,8 +311,7 @@ def marked_figure(page: Page, rect: Rect, source, aspect: float, marks: list[tup
     left = rect.left + (widths["left"] + s.gap_l if widths["left"] else 0)
     right = rect.right - (widths["right"] + s.gap_l if widths["right"] else 0)
     # 絵は上に寄る (= 印の無い絵と同じ。同じ段の物と上端が揃う)。取る高さは絵の幅で決まる高さと名の行だけ
-    named = s.gap_s + page.theme.wrapped_height(caption, max(right - left - 2 * s.text_inset, 1), ty.caption) \
-        if caption else 0
+    named = s.gap_s + page.theme.caption_height(caption, right - left) if caption else 0
     tall = min(round((right - left) / aspect) + named, rect.height)
     placed = page.figure(Rect(left, rect.top, right - left, tall), source, aspect, caption=caption)
     for side, group in sides.items():
