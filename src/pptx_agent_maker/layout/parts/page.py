@@ -605,7 +605,7 @@ class Page:
                 "(= `figure_floor`) — "
                 "too small to read as a picture; take something off the page, or split it in two")
         placed = area.fit(aspect)
-        self.elements.append(Figure("figure", placed, Path(source), aspect))
+        self.elements.append(Figure("figure", placed, Path(source), aspect, frame=area))
         self._figures += 1
         if caption:
             strip = Rect(rect.left, placed.bottom + s.gap_s, rect.width, tall)

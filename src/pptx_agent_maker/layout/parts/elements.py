@@ -108,6 +108,8 @@ class Ellipse(Element):
 class Figure(Element):
     source: Path
     aspect: float
+    #: 絵に渡した枠 (= 名を除いた残り。絵は縦横比を保ってこの中に置かれ、`rect` はその置かれた所)。アイコンは持たない
+    frame: Rect | None = None
 
 
 class Mark(str):

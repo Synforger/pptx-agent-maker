@@ -1,0 +1,35 @@
+# The frame each declared picture is given, read without building.
+
+tests = ["tests/deck/test_frames.py"]
+
+[[mutant]]
+name = "the frame is where the picture was placed, not what it was given"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'Figure("figure", placed, Path(source), aspect, frame=area)'
+new = 'Figure("figure", placed, Path(source), aspect, frame=placed)'
+
+[[mutant]]
+name = "the frame takes in the picture's name"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'Figure("figure", placed, Path(source), aspect, frame=area)'
+new = 'Figure("figure", placed, Path(source), aspect, frame=rect)'
+
+[[mutant]]
+name = "a copied page is laid out as if declared"
+file = "src/pptx_agent_maker/deck/frames.py"
+old = """        if entry.kind != "declare":
+            continue
+"""
+new = ""
+
+[[mutant]]
+name = "the page is counted among the declared pages only"
+file = "src/pptx_agent_maker/deck/frames.py"
+old = """    for index, entry in enumerate(manifest.entries, start=1):"""
+new = """    for index, entry in enumerate([e for e in manifest.entries if e.kind == "declare"], start=1):"""
+
+[[mutant]]
+name = "inches are read off the other side"
+file = "src/pptx_agent_maker/deck/frames.py"
+old = '"width_in": round(rect.width / EMU_PER_INCH, 3)'
+new = '"width_in": round(rect.height / EMU_PER_INCH, 3)'

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import importlib.util
 import os
 import sys
@@ -289,6 +290,10 @@ def main(argv: list[str] | None = None) -> int:
     titled.add_argument("path", help="the project folder")
     titled.add_argument("manifest", help="a manifest name, with or without .toml")
 
+    framed = sub.add_parser("frames", help="print, as JSON, the frame each declared picture is given (= draw it that size)")
+    framed.add_argument("path", help="the project folder")
+    framed.add_argument("manifest", help="a manifest name, with or without .toml")
+
     checked = sub.add_parser("check", help="check a deck that is already built")
     checked.add_argument("path", help="the project folder")
     checked.add_argument("deck", help="a built deck in the project, or a path")
@@ -491,6 +496,12 @@ def main(argv: list[str] | None = None) -> int:
 
             for line in titles(workspace, Manifest.load(workspace.manifest(args.manifest))):
                 print(line)
+            return 0
+
+        if args.command == "frames":
+            from .deck.frames import frames
+
+            print(json.dumps(frames(workspace, Manifest.load(workspace.manifest(args.manifest))), indent=2))
             return 0
 
         from .checks import report, run_all, run_built
