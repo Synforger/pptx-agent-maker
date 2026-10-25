@@ -249,3 +249,72 @@ def test_a_project_that_cannot_be_read_stays_and_says_why(tmp_path, monkeypatch)
         assert board.get("beta").version > version, "the page is woken to drop the note"
     finally:
         server.shutdown()
+
+
+def test_with_nothing_to_show_the_page_stays_up_and_says_why(tmp_path, monkeypatch):
+    """⚠ 案件の無い機械の常駐が起動を断り、launchd が起こし直しては落ち続けた。空のまま起きて理由を言う。"""
+    _fake_render(monkeypatch)
+    board = st.Switchboard({}, discover=lambda: {}, waiting=lambda: "no projects here yet",
+                           opened=st.Opened(tmp_path / "opened.json"))
+    board.REDISCOVER_SECONDS = 0
+    board.rescan_and_rerender(force=True)  # 見張りの巡回が空でも回る
+    server, base = _serve(board)
+    try:
+        assert _json(base + "/api/projects") == {"projects": [], "active": None, "problems": {}}
+        assert _json(base + "/api/decks") == []
+        meta = _json(base + "/api/meta")
+        assert meta["problem"] == "no projects here yet"
+        assert meta["title"] == st.Nothing.TITLE, "the tab is not titled after nothing"
+    finally:
+        server.shutdown()
+
+
+def test_the_first_project_to_appear_is_shown_and_wakes_the_empty_page(tmp_path, monkeypatch):
+    """空の画面を開いたままでも、最初の案件が出たら欄に出て、待っている画面へ通知が届く。"""
+    _fake_render(monkeypatch)
+    (tmp_path / "alpha").mkdir()
+    (tmp_path / "alpha" / "a1.pptx").write_bytes(b"x")
+    offered: dict = {}
+    board = st.Switchboard({}, discover=lambda: dict(offered), waiting=lambda: "none yet",
+                           opened=st.Opened(tmp_path / "opened.json"))
+    board.REDISCOVER_SECONDS = 0
+    empty = board.get(None)
+    before = empty.version
+    assert board.projects() == [] and board.project is None
+    offered["alpha"] = (tmp_path / "alpha", [])
+    assert board.projects() == ["alpha"]
+    assert board.project == "alpha"
+    assert empty.version != before, "the page waiting on the empty board is told"
+    for _ in range(50):
+        if board.get("alpha").deck_names() == ["a1"]:
+            break
+        time.sleep(0.05)
+    assert board.get("alpha").deck_names() == ["a1"]
+
+
+def test_the_reason_for_nothing_follows_what_the_machine_says(tmp_path):
+    """理由は探し直すたびに取り直す (= 設定の file を置いた後も、前の理由が残らない)。"""
+    reason = ["no places file"]
+    board = st.Switchboard({}, discover=lambda: {}, waiting=lambda: reason[0],
+                           opened=st.Opened(tmp_path / "opened.json"))
+    board.REDISCOVER_SECONDS = 0
+    assert board.get(None).problem == "no places file"
+    reason[0] = "nothing to show yet"
+    board.projects()
+    assert board.get(None).problem == "nothing to show yet"
+
+
+def test_an_empty_board_looks_for_projects_on_its_own_round(tmp_path, monkeypatch):
+    """⚠ 探し直すのは画面が一覧を取りに来た時だけだった。空の画面は通知を待つだけで何も取りに来ないので、
+    案件を作っても画面が乗り換えなかった。空の間は、見張りの巡回でも探し直す。"""
+    _fake_render(monkeypatch)
+    (tmp_path / "alpha").mkdir()
+    offered: dict = {}
+    board = st.Switchboard({}, discover=lambda: dict(offered), waiting=lambda: "none yet",
+                           opened=st.Opened(tmp_path / "opened.json"))
+    board.REDISCOVER_SECONDS = 0
+    before = board.get(None).version
+    offered["alpha"] = (tmp_path / "alpha", [])
+    board.rescan_and_rerender()
+    assert board.project == "alpha"
+    assert board.get(None).version != before

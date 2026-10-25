@@ -98,11 +98,32 @@ def _offers(places: dict, started: str, since: str):
     return found
 
 
-def _preview_places(places: dict, port: int, no_open: bool) -> int:
+#: 見せる物が 1 つも無い時の画面の帯 (= 案件を作れば、画面が一覧を取りに来た時に出る)
+NOTHING_YET = ("nothing to show yet — no deck project and no folder the places name exists; "
+               "a project shows here as soon as it is made")
+
+
+def _places_of_this_machine() -> tuple[dict, str | None]:
+    """The machine's places file as it stands now, and why it could not be read (= None when it could).
+
+    ⚠ **常駐は、置き場の設定が無い・読めない機械でも起きている。**断って終わると launchd が起こし直しては
+    落ち、落ちた log だけが積もる (= 案件の無い機械で 1 日に数千回)。読めない理由は画面の帯に出し、
+    file を置くか直せば、次に画面が一覧を取りに来た時に読む。
+    """
+    from .project.files.places import load
+
+    try:
+        return load(), None
+    except (ValueError, OSError) as error:  # PlacesError と、toml として読めない file
+        return {}, str(error)
+
+
+def _preview_places(read, port: int, no_open: bool) -> int:
     """Everything a places file offers behind one page, one of them looked at.
 
     1 案件の起動と同じ画面を使い、上の欄で選ぶ。描くのは選んだ物だけ。一覧は画面が
-    取りに来るたびに探し直す (= 常駐のまま、新しい案件が欄に出る)。
+    取りに来るたびに探し直す (= 常駐のまま、新しい案件が欄に出る)。`read` は置き場と、読めなかった
+    理由を返す (= 探し直すたびに呼ぶ)。見せる物が 1 つも無くても起動し、空の画面に理由を出して待つ。
     """
     try:
         entry, state = _preview_package()
@@ -110,17 +131,22 @@ def _preview_places(places: dict, port: int, no_open: bool) -> int:
         print(f"error: the live preview is not available ({error})", file=sys.stderr)
         return 1
     started, since = _fingerprint(), time.strftime("%Y-%m-%d %H:%M")
-    found = _offers(places, started, since)
-    if not found:
-        print("error: nothing to show — no deck project and no folder the places name exists",
-              file=sys.stderr)
-        return 1
-    print(f"{len(found)} to choose from: {', '.join(sorted(found))}")
+    unread: list[str | None] = [None]  # 最後に探した時、置き場を読めなかった理由
+
+    def offers() -> dict:
+        places, unread[0] = read()
+        return _offers(places, started, since)
+
+    found = offers()
+    if found:
+        print(f"{len(found)} to choose from: {', '.join(sorted(found))}")
+    else:
+        print(f"{unread[0] or NOTHING_YET} (waiting)", file=sys.stderr)
     first = {}
     for name, offer in found.items():
         first[name] = state.DeckSet(offer.folder, skip=offer.skip)
         first[name].set_problem(offer.problem, offer.skip)
-    board = state.Switchboard(first, discover=lambda: _offers(places, started, since))
+    board = state.Switchboard(first, discover=offers, waiting=lambda: unread[0] or NOTHING_YET)
     _watch_the_toolkit(started)
     return entry.serve(board, port, no_open)
 
@@ -340,13 +366,15 @@ def main(argv: list[str] | None = None) -> int:
 
             if args.path is not None and not args.places:
                 places = {"search": [{"path": str(Path(args.path).expanduser().resolve())}]}
-            else:
+            elif args.places:  # 打った人が名指した file は、読めなければその場で言う
                 try:
-                    places = load(args.places or None)
+                    places = load(args.places)
                 except PlacesError as error:
                     print(f"error: {error}", file=sys.stderr)
                     return 1
-            return _preview_places(places, args.port, args.no_open)
+            else:
+                return _preview_places(_places_of_this_machine, args.port, args.no_open)
+            return _preview_places(lambda: (places, None), args.port, args.no_open)
 
         workspace = Workspace.load(args.path)
         if args.command == "show" and args.page:

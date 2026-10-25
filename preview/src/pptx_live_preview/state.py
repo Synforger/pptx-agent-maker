@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
 import traceback
 from collections.abc import Iterable
@@ -328,6 +329,19 @@ class Opened:
             self._write(data)
 
 
+class Nothing(DeckSet):
+    """What the page shows while there is no project to choose from: no decks, and why, in the band on top."""
+
+    TITLE = "nothing to show yet"
+
+    def __init__(self, dpi: int = DEFAULT_DPI) -> None:
+        super().__init__(Path(os.devnull), dpi)
+        self.title = self.TITLE
+
+    def _discover(self) -> list[Path]:
+        return []
+
+
 class Switchboard:
     """Several projects behind one page, one of them looked at.
 
@@ -342,19 +356,23 @@ class Switchboard:
     REDISCOVER_SECONDS = 2.0
 
     def __init__(self, projects: dict[str, DeckSet], first: str | None = None, *,
-                 discover=None, dpi: int = DEFAULT_DPI, opened: Opened | None = None) -> None:
+                 discover=None, dpi: int = DEFAULT_DPI, opened: Opened | None = None,
+                 waiting=None) -> None:
         """`discover` は名前 → (folder, 一覧から外す名前) を返す (= 在れば一覧を探し直す)。
+        `waiting` は、見せる案件が 1 つも無い理由を返す (= 画面の上の帯に出す)。
 
         ⚠ **新しい案件は再起動なしで欄に出す。**常駐の画面は止めないので、`init` した案件が
         出てこないと、見るために再起動が要ることになる。
+
+        ⚠ **案件が 1 つも無くても起きている。**案件の無い機械の常駐が起動を断ると、launchd が起こし
+        直しては落ちる。空の間は `Nothing` を見せ、最初の案件が見つかった時にそれへ切り替える。
         """
-        if not projects:
-            raise ValueError("no projects to show")
         self._projects = dict(projects)
         self.opened = opened or Opened()
-        if first is None:
-            first = self.opened.project()  # 再起動しても、最後に選んだ物から始める
-        self._name = first if first in self._projects else sorted(self._projects)[0]
+        self._nothing = Nothing(dpi)
+        self._waiting = waiting
+        self._name: str | None = None
+        self._choose(first)
         self._switches = 0
         self._discover = discover
         self._dpi = dpi
@@ -362,12 +380,22 @@ class Switchboard:
         self._seen: dict[str, float] = {}   # 画面が最後に見に来た時刻 (= 見張る相手)
         self._drawn: set[str] = set()       # 一度でも描き始めた物
 
+    def _choose(self, first: str | None = None) -> None:
+        """Look at `first`, else the one last chosen, else the first by name (= none while there are none)."""
+        if first is None:
+            first = self.opened.project()  # 再起動しても、最後に選んだ物から始める
+        if not self._projects:
+            self._name = None
+            self._nothing.set_problem(self._waiting() if self._waiting else None, ())
+            return
+        self._name = first if first in self._projects else sorted(self._projects)[0]
+
     def __getattr__(self, name):  # 画面と server が触る残りは、今の案件のもの
-        return getattr(self._projects[self._name], name)
+        return getattr(self.active, name)
 
     @property
     def active(self) -> DeckSet:
-        return self._projects[self._name]
+        return self._nothing if self._name is None else self._projects[self._name]
 
     @property
     def cond(self) -> threading.Condition:
@@ -382,8 +410,10 @@ class Switchboard:
     #: (= 発表用に 1 案件へ絞った画面は既定の案件でなくても、file を直せば描き直される)
     WATCH_SECONDS = 600.0
 
-    def get(self, name: str) -> DeckSet:
+    def get(self, name: str | None) -> DeckSet:
         """The decks of `name`, starting to draw them the first time they are asked for."""
+        if name is None:  # 案件が 1 つも無い間
+            return self._nothing
         decks = self._projects[name]
         self._seen[name] = time.monotonic()
         if name not in self._drawn:
@@ -394,9 +424,13 @@ class Switchboard:
 
     def rescan_and_rerender(self, force: bool = False, rebuild: bool = False) -> None:
         """Keep the default project, and every project looked at lately, up to date."""
+        if self._name is None:  # 空の画面は通知を待つだけで一覧を取りに来ないので、巡回が探し直す
+            self._rediscover()
         now = time.monotonic()
-        watched = {self._name} | {name for name, at in self._seen.items()
-                                  if now - at < self.WATCH_SECONDS and name in self._projects}
+        watched = {name for name, at in self._seen.items()
+                   if now - at < self.WATCH_SECONDS and name in self._projects}
+        if self._name is not None:
+            watched.add(self._name)
         self._drawn.update(watched)
         for name in sorted(watched):
             self._projects[name].rescan_and_rerender(force=force, rebuild=rebuild)
@@ -427,9 +461,16 @@ class Switchboard:
         for name in list(self._projects):
             if name not in found and name != self._name:  # 今見ている物は外さない
                 del self._projects[name]
+        if self._name is None:
+            self._choose()
+            if self._name is not None:  # 最初の案件が出た (= 空の画面を起こして乗り換えさせる)
+                self._switches += 1
+                with self._nothing.cond:
+                    self._nothing.version += 1
+                    self._nothing.cond.notify_all()
 
     @property
-    def project(self) -> str:
+    def project(self) -> str | None:
         return self._name
 
     def select(self, name: str) -> None:

@@ -155,6 +155,60 @@ class ReadingThePlaces(unittest.TestCase):
             load(self.base / "missing.toml")
 
 
+class StartingWithNothingToShow(unittest.TestCase):
+    """⚠ 案件の無い機械の常駐が起動を断り、launchd が 10 秒ごとに起こし直しては落ちた (= 1 日に数千回)。
+    置き場の設定が無くても、在って何も見つからなくても、起動して空の画面に理由を出す。"""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        patcher = mock.patch.dict("os.environ", {"AGENT_PLATFORM_ROOT": str(self.root)})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def _start(self) -> tuple[int, object]:
+        """What `preview` returned, and the board it served (= serving itself is stood in for)."""
+        from pptx_agent_maker import __main__ as entry
+        preview_entry, _state = entry._preview_package()
+        with mock.patch.object(preview_entry, "serve", return_value=0) as serve, \
+                mock.patch.object(entry, "_watch_the_toolkit"):
+            code = entry.main(["preview", "--port", "0", "--no-open"])
+        serve.assert_called_once()
+        return code, serve.call_args.args[0]
+
+    def test_with_no_places_file_it_starts_and_says_where_the_file_goes(self) -> None:
+        code, board = self._start()
+        self.assertEqual(0, code)
+        self.assertEqual([], board.projects())
+        self.assertIn("no places file", board.get(None).problem)
+
+    def test_with_places_that_find_nothing_it_starts_and_waits(self) -> None:
+        places = self.root / "config" / "pptx-agent-maker" / "preview.toml"
+        places.parent.mkdir(parents=True)
+        places.write_text("", encoding="utf-8")
+        code, board = self._start()
+        self.assertEqual(0, code)
+        self.assertIn("nothing to show yet", board.get(None).problem)
+
+    def test_a_places_file_written_later_is_read_without_a_restart(self) -> None:
+        code, board = self._start()
+        board.REDISCOVER_SECONDS = 0
+        cases = self.root / "cases"
+        create(cases / "client-one")
+        places = self.root / "config" / "pptx-agent-maker" / "preview.toml"
+        places.parent.mkdir(parents=True)
+        places.write_text(f'[[search]]\npath = "{cases}"\n', encoding="utf-8")
+        self.assertEqual(1, len(board.projects()))
+        self.assertIsNotNone(board.project)
+
+    def test_a_places_file_named_on_the_command_line_must_be_there(self) -> None:
+        from pptx_agent_maker import __main__ as entry
+        self.assertEqual(1, entry.main(["preview", "--places", str(self.root / "typo.toml"), "--no-open"]))
+
+
 class _Stop(Exception):
     """Ends the watching loop from inside a test."""
 

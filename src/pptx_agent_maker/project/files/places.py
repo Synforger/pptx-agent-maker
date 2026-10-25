@@ -78,7 +78,7 @@ def load(path: Path | str | None = None) -> dict:
     if not path.is_file():
         raise PlacesError(
             f"no places file at {path} — write one with [[search]] and [[folder]] entries "
-            "(see `pptx_agent_maker.project.places`)")
+            "(see `pptx_agent_maker.project.files.places`)")
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     unknown = sorted(set(data) - {"search", "folder", "labels"})
     if unknown:
