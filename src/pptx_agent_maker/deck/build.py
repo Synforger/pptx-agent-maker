@@ -28,6 +28,25 @@ class HandEditedError(RuntimeError):
     """The deck on disk was edited by a person; building would erase that."""
 
 
+class OpenInPowerPointError(RuntimeError):
+    """The deck is open in PowerPoint; writing it now loses either this build or the person's edits."""
+
+
+def _open_in_powerpoint(deck: Path) -> Path | None:
+    """The lock file PowerPoint keeps beside `deck` while it is open (= None when it is not open).
+
+    ⚠ **開いたままの PowerPoint は、次に保存した時か閉じた時に、自分が持っている中身で file を書き戻す。**
+    開いている最中に書き出すと、書き出した版か人の直しのどちらかが消える。手で直した後に閉じた資料は
+    `touched_by_hand` が止めるが、開いている最中はまだ file に何も書かれていないので、そちらでは分からない。
+    印の名前は `~$` + 資料の名前 (= 長い名前では頭の 2 字が `~$` に置き換わる)。
+    """
+    for name in ("~$" + deck.name, "~$" + deck.name[2:]):
+        lock = deck.with_name(name)
+        if lock.exists():
+            return lock
+    return None
+
+
 def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
     """The look this manifest's declared pages are built in: the specimen's, with the project's laid over.
 
@@ -62,6 +81,13 @@ def build(workspace: Workspace, manifest: Manifest) -> Path:
     specimen = workspace.specimen(manifest.specimen).resolve()
 
     destination = workspace.out(manifest.out)
+    lock = _open_in_powerpoint(destination)
+    if lock is not None:
+        raise OpenInPowerPointError(
+            f"{destination.name} is open in PowerPoint (its lock file {lock.name} is beside it) — writing it now "
+            "would lose either this build or the edits made in PowerPoint. Ask for it to be saved and closed, "
+            "fold the edits in (`review`), then build again."
+        )
     if touched_by_hand(destination):
         shelved = keep_safe(destination)
         raise HandEditedError(

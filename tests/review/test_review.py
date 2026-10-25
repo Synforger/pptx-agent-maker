@@ -19,7 +19,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tests"))
 
-from pptx_agent_maker.deck.build import HandEditedError, build  # noqa: E402
+from pptx_agent_maker.deck.build import HandEditedError, OpenInPowerPointError, build  # noqa: E402
 from pptx_agent_maker.project import Workspace, create  # noqa: E402
 from pptx_agent_maker.project.files.manifest import Manifest  # noqa: E402
 from pptx_agent_maker.review import changes, keep_safe, last_machine_build  # noqa: E402
@@ -77,6 +77,22 @@ class ReviewTest(unittest.TestCase):
         edit(self.deck, "一枚目", "人が直した")
         with self.assertRaises(HandEditedError):
             build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
+
+    def test_a_deck_open_in_powerpoint_is_not_written(self) -> None:
+        """⚠ 開いたままの PowerPoint は、次に保存した時か閉じた時に自分の中身で file を書き戻す。開いている
+        最中に書き出すと、書き出した版か人の直しのどちらかが消える (= 人の直しが消えた実例が在る)。"""
+        before = self.deck.read_bytes()
+        for lock in ("~$" + self.deck.name, "~$" + self.deck.name[2:]):  # 長い名前は頭の 2 字が印になる
+            with self.subTest(lock):
+                marker = self.deck.with_name(lock)
+                marker.write_bytes(b"")
+                try:
+                    with self.assertRaises(OpenInPowerPointError):
+                        build(self.workspace, Manifest.load(self.workspace.manifest("deck")))
+                finally:
+                    marker.unlink()
+                self.assertEqual(before, self.deck.read_bytes(), "the open deck was written")
+        build(self.workspace, Manifest.load(self.workspace.manifest("deck")))  # 閉じたら組める
 
     def test_the_hand_edit_is_shelved_before_anything_else(self) -> None:
         edit(self.deck, "一枚目", "人が直した")
