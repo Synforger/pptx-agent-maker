@@ -14,7 +14,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from .state import DeckSet, Opened
+from .state import DeckSet, Nothing, Opened
 
 ASSETS = Path(__file__).parent / "assets"
 
@@ -63,6 +63,8 @@ def make_handler(deckset: DeckSet):
             return deckset, str(deckset.source)
         wanted = (query.get("p") or [None])[0]
         name = wanted if wanted in board.projects() else board.project
+        if name is None:  # 案件が 1 つも無い間は、空の画面と理由の帯
+            return board.get(None), Nothing.TITLE
         return board.get(name), name
 
     class Handler(BaseHTTPRequestHandler):

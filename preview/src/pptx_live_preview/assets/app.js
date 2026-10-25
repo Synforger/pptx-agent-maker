@@ -7,6 +7,7 @@ const S = {
   decks: [],        // 一覧用の軽い情報
   active: null,     // 開いているデッキ名
   project: null,    // この画面が見ている案件 (= 束ねて見る時だけ。問い合わせのたびに名乗る)
+  listed: false,    // 案件を束ねて起動した server か (= /api/projects が答えた)
   details: {},      // デッキ名 -> 全情報 (= 開いている 1 本と、並べ比較の相手)
   page: 1,          // 1 始まりの現在頁 (= 位置。刷られた番号は printedNumber で引く)
   notesOpen: false,
@@ -789,7 +790,15 @@ let events = null;
 function connectEvents() {
   if (events) events.close();
   events = new EventSource(at('events'));
-  events.onmessage = () => { loadDecks(); loadMeta(); };  // 帯の出し入れも変化として届く
+  events.onmessage = async () => {
+    // 案件が 1 つも無い間に開いた画面は、最初の案件が出たら欄を組み、その案件の通知へ乗り換える
+    if (S.listed && S.project === null && listingIsShared()) {
+      await loadProjects();
+      if (S.project !== null) { connectEvents(); }
+    }
+    loadDecks();
+    loadMeta();  // 帯の出し入れも変化として届く
+  };
 }
 
 function loadMeta() {
@@ -806,6 +815,9 @@ function loadMeta() {
     .catch(() => {});
 }
 
+/* 欄を持つ画面か (= 発表用のリンク ?only= は 1 案件に固定で、欄を持たない) */
+const listingIsShared = () => new URLSearchParams(location.search).get('only') === null;
+
 /* 案件を束ねて起動した時だけ、上に案件を選ぶ欄を出す (= 1 案件の起動では /api/projects が 404)。
    選び直したら、覚えているデッキの情報は全部前の案件のものなので捨てる。 */
 async function loadProjects() {
@@ -815,6 +827,7 @@ async function loadProjects() {
     if (!r.ok) return;
     listing = await r.json();
   } catch (e) { return; }
+  S.listed = true;
   // 発表用のリンク (?only=<表示名>) = その案件だけ。欄を出さず、画面から切り替えられない
   const only = new URLSearchParams(location.search).get('only');
   if (only !== null) {
@@ -831,7 +844,7 @@ async function loadProjects() {
     option.selected = name === listing.active;
     select.appendChild(option);
   }
-  select.hidden = false;
+  select.hidden = !listing.projects.length;  // 案件が 1 つも無い間は、空の欄を出さない (= 理由は上の帯)
   select.onchange = async () => {
     S.project = select.value;
     // 既定の案件として覚えさせる (= 名乗らずに開いた画面と、次の起動がここから始まる)
