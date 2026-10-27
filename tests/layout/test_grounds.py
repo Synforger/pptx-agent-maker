@@ -71,6 +71,12 @@ class Declaring(unittest.TestCase):
                 theme_from({"grounds": {role: "EAF0F8"}})
             self.assertIn("[theme.palette]", str(raised.exception))
 
+    def test_the_name_of_the_white_a_panel_may_stand_on_is_refused_too(self):
+        """A ground named `paper` would be hidden by a panel's `tone = "paper"`, so the name is kept."""
+        with self.assertRaises(ThemeError) as raised:
+            theme_from({"grounds": {"paper": "EAF0F8"}})
+        self.assertIn("the white a panel may stand on", str(raised.exception))
+
     def test_a_colour_is_six_hex_digits(self):
         for value in ("#EAF0F8", "blue", "EAF0F"):
             with self.subTest(value), self.assertRaises(ThemeError):

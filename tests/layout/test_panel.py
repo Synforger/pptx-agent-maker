@@ -570,5 +570,64 @@ class WrittenOutTheChecksFindNothingWrong(unittest.TestCase):
         self.assertEqual([], self.written(rows, FILLED))
 
 
+class APanelMayStandOnThePaper(unittest.TestCase):
+    """`tone = "paper"` is the white of the page itself, with the edge of a pale panel; only a panel may choose it."""
+
+    LOOKS = {"filled": FILLED, "outlined": OUTLINED}
+
+    def paper_panel(self, theme, **keys):
+        return compose([row(panel(row(card("In", "Some words")), tone="paper", heading="Heading", **keys))], theme)
+
+    def test_the_ground_is_the_paper_and_the_edge_is_the_neutral_edge_of_the_pale_grounds(self) -> None:
+        for name, theme in self.LOOKS.items():
+            with self.subTest(look=name):
+                box = one(self.paper_panel(theme), "panel")
+                self.assertEqual((P.paper, P.edge(P.wash)), (box.colour, box.outline))
+                self.assertNotEqual(box.colour, box.outline)
+
+    def test_the_corners_follow_the_look_of_the_deck_as_they_do_for_every_other_tone(self) -> None:
+        self.assertFalse(one(self.paper_panel(FILLED), "panel").rounded)
+        self.assertTrue(one(self.paper_panel(OUTLINED), "panel").rounded)
+
+    def test_the_heading_and_the_rule_are_in_the_ink_of_the_body(self) -> None:
+        for name, theme in self.LOOKS.items():
+            with self.subTest(look=name):
+                page = self.paper_panel(theme, rule=True)
+                self.assertEqual(P.ink, text_of(page, "Heading").colour)
+                (under,) = [e for e in kinds(page, "rule") if one(page, "panel").rect.contains(e.rect)]
+                self.assertEqual(P.ink, under.colour)
+
+    def test_a_panel_of_the_paper_can_hold_words_directly_because_the_ink_reads_on_it(self) -> None:
+        for name, theme in self.LOOKS.items():
+            with self.subTest(look=name):
+                page = compose([row(panel(row({"text": "Words"}), row({"points": ["one"]}), tone="paper"))], theme)
+                self.assertEqual(P.ink, text_of(page, "Words").colour)
+
+    def test_a_dashed_or_strong_panel_of_the_paper_keeps_those_looks(self) -> None:
+        dashed = one(self.paper_panel(FILLED, tentative=True), "panel")
+        self.assertTrue(dashed.dashed)
+        strong = one(self.paper_panel(FILLED, strong=True), "panel")
+        self.assertTrue(strong.heavy)
+        pending = one(self.paper_panel(OUTLINED, tentative=True), "panel")
+        self.assertEqual((P.paper, P.ink), (pending.colour, pending.outline))
+
+    def test_only_a_panel_may_choose_it_and_the_error_of_a_panel_lists_it_among_the_tones(self) -> None:
+        with self.assertRaisesRegex(PageTypeError, "has tone 'paper'"):
+            compose([row({"card": {"heading": "A", "tone": "paper"}})], FILLED)
+        with self.assertRaisesRegex(PageTypeError, r"panel has tone 'blue' — a tone is one of the palette's roles: "
+                                                   r"box, band, tint, accent, good, bad, paper"):
+            compose([row(panel(row(card()), tone="blue"))], FILLED)
+
+    def test_written_out_the_checks_find_nothing_wrong(self) -> None:
+        for name, theme in self.LOOKS.items():
+            with self.subTest(look=name):
+                page = compose([row(panel(row(card("In", "Some words")), row({"text": "Words"}), tone="paper",
+                                          heading="Heading", rule=True))], theme)
+                with tempfile.TemporaryDirectory() as tmp:
+                    deck = new_deck(theme)
+                    add_page(deck, page.build(), theme)
+                    self.assertEqual([], checks.run_all(save(deck, Path(tmp) / "paper.pptx")))
+
+
 if __name__ == "__main__":
     unittest.main()

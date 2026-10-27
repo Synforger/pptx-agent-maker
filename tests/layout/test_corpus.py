@@ -19,7 +19,7 @@ sys.path.insert(0, str(REPO / "src"))
 from pptx_agent_maker.layout import types  # noqa: E402
 from pptx_agent_maker.layout.types.bodies import chart as charts  # noqa: E402
 from pptx_agent_maker.layout.types.bodies.arrange import LINK_KEYS  # noqa: E402
-from pptx_agent_maker.layout.types.bodies.compose import BODIES, PARTS, ROLES, TEXT_LOOKS  # noqa: E402
+from pptx_agent_maker.layout.types.bodies.compose import BACKDROP_KEYS, BODIES, GRID_KEYS, PARTS, ROLES, TEXT_LOOKS  # noqa: E402
 from pptx_agent_maker.layout.parts.look import TONES  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import TYPES, EXTRA_KEYS, FRAME_KEYS  # noqa: E402
 from pptx_agent_maker.layout.tokens import DERIVED  # noqa: E402
@@ -55,7 +55,12 @@ def cells(rows: list) -> list[dict]:
     return found
 
 
-CELLS = [cell for page in DECLARED if page["type"] == "compose" for cell in cells(page["rows"])]
+def body(page: dict) -> list[dict]:
+    """The rows of a compose page, or its grid's cells as one row (= both are lists of `{ cells = [ … ] }`)."""
+    return page.get("rows", []) + ([{"cells": page["cells"]}] if "cells" in page else [])
+
+
+CELLS = [cell for page in DECLARED if page["type"] == "compose" for cell in cells(body(page))]
 
 
 def bodies(name: str) -> list[dict]:
@@ -121,16 +126,61 @@ class TheCorpusUsesEverything(unittest.TestCase):
             with self.subTest(name):
                 pages = [page for manifest in sorted(folder.glob("*.toml")) for page in _toml(manifest)["pages"]]
                 written = [cell["panel"] for page in pages if page.get("type") == "compose"
-                           for cell in cells(page["rows"]) if "panel" in cell]
+                           for cell in cells(body(page)) if "panel" in cell]
                 self.assertEqual(set(PANEL_KEYS), {key for panel in written for key in panel})
                 self.assertTrue(any("panel" in cell for panel in written for row in panel["rows"]
                                     for cell in row["cells"]), f"{name}: no panel holds a panel")
                 linked = [page for page in pages if page.get("type") == "compose" and page.get("links")]
-                inside = {cell["id"] for page in linked for cell in cells(page["rows"]) if "id" in cell}
+                inside = {cell["id"] for page in linked for cell in cells(body(page)) if "id" in cell}
                 self.assertTrue(inside, f"{name}: no cell has an id a link can use")
 
+    def test_every_key_of_a_grid_its_cells_and_its_backdrops_in_both_looks(self) -> None:
+        """A grid fills its squares by the look of the deck, so each look of the corpus has a grid with all of its keys."""
+        decks = {"the main project": CORPUS / "manifests",
+                 **{path.parent.name: path.parent / "manifests" for path in DECKS
+                    if _toml(path).get("theme", {}).get("card_look") == "outlined"}}
+        for name, folder in decks.items():
+            with self.subTest(name):
+                pages = [page for manifest in sorted(folder.glob("*.toml")) for page in _toml(manifest)["pages"]
+                         if page.get("type") == "compose" and "grid" in page]
+                self.assertTrue(pages, f"{name}: no page is laid out on a grid")
+                self.assertEqual(set(GRID_KEYS), {key for page in pages for key in page["grid"]})
+                cells = [cell for page in pages for cell in page["cells"]]
+                self.assertEqual({"at", "span"}, {"at", "span"} & {key for cell in cells for key in cell})
+                self.assertTrue(any("span" not in cell for cell in cells), f"{name}: every cell says its span")
+                backdrops = [backdrop for page in pages for backdrop in page.get("backdrops", [])]
+                self.assertEqual(set(BACKDROP_KEYS), {key for backdrop in backdrops for key in backdrop})
+                self.assertTrue(any(cell.get("legend") for cell in cells), f"{name}: no grid has a cell with the legend")
+                self.assertTrue(any(cell.get("span", [1, 1])[0] > 1 for cell in cells), f"{name}: no cell spans rows")
+                self.assertTrue(any("links" in page for page in pages), f"{name}: no grid has a link")
+
+    def test_a_grid_has_a_cell_that_spans_columns_and_a_backdrop_that_covers_a_row(self) -> None:
+        cells = [cell for page in DECLARED if "grid" in page for cell in page["cells"]]
+        self.assertTrue(any(cell.get("span", [1, 1])[1] > 1 for cell in cells) or
+                        any(backdrop.get("span", [1, 1])[1] > 1 for page in DECLARED if "grid" in page
+                            for backdrop in page.get("backdrops", [])), "nothing spans columns")
+
+    def test_a_panel_stands_on_the_paper_in_every_look_of_the_corpus(self) -> None:
+        decks = {"the main project": CORPUS / "manifests",
+                 **{path.parent.name: path.parent / "manifests" for path in DECKS
+                    if _toml(path).get("theme", {}).get("card_look") == "outlined"}}
+        for name, folder in decks.items():
+            with self.subTest(name):
+                pages = [page for manifest in sorted(folder.glob("*.toml")) for page in _toml(manifest)["pages"]
+                         if page.get("type") == "compose"]
+                self.assertTrue(any(cell["panel"].get("tone") == "paper" for page in pages
+                                    for cell in cells(body(page)) if "panel" in cell), f"{name}: no panel on the paper")
+
+    def test_a_link_between_boxes_that_do_not_face_leaves_both_ways_the_use_that_widens_the_gap_across_is_named(self) -> None:
+        uses = _toml(CORPUS / "workspace.toml")["theme"]["uses"]
+        wide = [name for name, use in uses.items()
+                if use.get("spacing", {}).get("gap_x", 0) > use.get("spacing", {}).get("gap_y", 0) > 0]
+        self.assertTrue(wide, "no use of the corpus has a gap across wider than the gap down")
+        named = {page["use"] for page in DECLARED if "use" in page and page.get("links")}
+        self.assertTrue(set(wide) & named, "no page with a link is set in a use whose gap across is the wider")
+
     def test_a_panel_holds_each_kind_of_part_the_corpus_can_lay_in_a_cell_of_it(self) -> None:
-        held = {key for page in DECLARED if page["type"] == "compose" for cell in cells(page["rows"])
+        held = {key for page in DECLARED if page["type"] == "compose" for cell in cells(body(page))
                 if "panel" in cell for row in cell["panel"]["rows"] for inner in row["cells"] for key in inner}
         self.assertLessEqual({"text", "points", "table", "chart", "card", "figure", "panel"}, held)
 
@@ -257,7 +307,7 @@ class TheCorpusUsesEverything(unittest.TestCase):
         self.assertEqual(set(VALIGNS), {cell["valign"] for cell in CELLS if "figure" in cell and "valign" in cell})
 
     def test_a_row_of_cells_with_no_words(self) -> None:
-        rows = [row for page in DECLARED if page["type"] == "compose" for row in page["rows"]]
+        rows = [row for page in DECLARED if page["type"] == "compose" for row in page.get("rows", [])]
         self.assertTrue(any(all("text" in cell and not cell["text"].strip() for cell in row["cells"]) for row in rows),
                         "no row is empty from end to end")
 

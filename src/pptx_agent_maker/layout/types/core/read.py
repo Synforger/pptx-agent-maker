@@ -12,7 +12,7 @@ from numbers import Real
 from pathlib import Path
 from typing import Callable
 
-from ...tokens import DEFAULT, Band, Palette, Theme
+from ...tokens import DEFAULT, PAPER, Band, Palette, Theme
 from ...parts.elements import Mark, Shade
 from ...parts.look import Style, TONES
 from ...parts.page import CARD_ALIGNS, Card, Panel
@@ -299,19 +299,20 @@ def read_weight(item: dict, what: str) -> float:
     return float(value)
 
 
-def read_tone(spec: Spec, item: dict, what: str, unsaid: str) -> str:
+def read_tone(spec: Spec, item: dict, what: str, unsaid: str, *, also: tuple[str, ...] = ()) -> str:
     """The tone a table asks for, or `unsaid` when it asks for none.
 
-    書けるのは道具の色の役 (= `TONES`) と、案件が `[theme.grounds]` で名前を付けた地。
+    書けるのは道具の色の役 (= `TONES`) と、案件が `[theme.grounds]` で名前を付けた地。`also` は、その箱だけが
+    選べる地 (= 入れ物の白い地)。
     """
     tone = str(item.get("tone", unsaid))
     named = spec.theme.ground_names()
-    if tone not in TONES and tone not in named:
+    if tone not in TONES and tone not in named and tone not in also:
         grounds = (f"; this project names {', '.join(named)} in [theme.grounds]" if named
                    else "; a project may name its own in [theme.grounds]")
         raise PageTypeError(
             f"{what} has tone {tone!r} — a tone is one of the palette's roles: "
-            f"{', '.join(TONES)}{grounds}")
+            f"{', '.join((*TONES, *also))}{grounds}")
     return tone
 
 
@@ -326,7 +327,7 @@ def _flag(item: dict, key: str, what: str) -> bool:
     return value
 
 
-def read_style(spec: Spec, item: dict, what: str, unsaid: str) -> Style:
+def read_style(spec: Spec, item: dict, what: str, unsaid: str, *, also: tuple[str, ...] = ()) -> Style:
     """The four looks a table carries, read here for every part shaped like a box.
 
     `unsaid` は `tone` を書かなかった時の地で、部品ごとに違う (= 箱は `box`、道のりの段は薄い地か
@@ -335,7 +336,7 @@ def read_style(spec: Spec, item: dict, what: str, unsaid: str) -> Style:
     ⚠ **読むのはここ 1 か所。**部品ごとに読んでいた間は、同じ 4 つを 3 か所が別の順で読み、1 つ足す
     たびに 3 か所を直すことになった。
     """
-    return Style(read_tone(spec, item, what, unsaid) if "tone" in item else unsaid, _icon(spec, item, what),
+    return Style(read_tone(spec, item, what, unsaid, also=also) if "tone" in item else unsaid, _icon(spec, item, what),
                  tentative=_flag(item, "tentative", what), strong=_flag(item, "strong", what))
 
 
@@ -410,7 +411,8 @@ PANEL_KEYS = ("heading", "rule", "rows", *(key for key in LOOK_KEYS if key != "i
 def read_panel(spec: Spec, item, what: str) -> Panel:
     """A panel as written: `{ tone = …, heading = "…", rule = true, rows = [ … ] }` (= all but `rows` may be left out).
 
-    見た目 (= `tone` `tentative` `strong`) はカードと同じ 1 つの読み方 (= `read_style`)。`rule` は見出しの下の線で、
+    見た目 (= `tone` `tentative` `strong`) はカードと同じ 1 つの読み方 (= `read_style`)。入れ物は、それに加えて白い地
+    (= `tone = "paper"`) を選べる。`rule` は見出しの下の線で、
     見出しが無ければ引く場所が無いので止める。
     """
     only_keys(item, set(PANEL_KEYS), what)
@@ -423,7 +425,7 @@ def read_panel(spec: Spec, item, what: str) -> Panel:
     rule = _flag(item, "rule", what)
     if rule and not heading.strip():
         raise PageTypeError(f"{what}: `rule` is the line under the heading, and this panel has no heading")
-    return Panel(heading.strip(), read_style(spec, item, what, TONES[0]), rule)
+    return Panel(heading.strip(), read_style(spec, item, what, TONES[0], also=(PAPER,)), rule)
 
 
 def _icon(spec: Spec, item: dict, what: str) -> tuple[Path, float] | None:

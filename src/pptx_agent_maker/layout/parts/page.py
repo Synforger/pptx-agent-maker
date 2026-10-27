@@ -37,8 +37,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..geometry import Rect, cm
-from ..tokens import DEFAULT, MONO_FACE, Band, Theme, divides
-from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Lead, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
+from ..tokens import DEFAULT, MONO_FACE, PAPER, Band, Theme, divides
+from .elements import BENDS, Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Lead, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -341,6 +341,9 @@ class Page:
         an edge, or they melt into whatever lies behind them.
         """
         p = self.theme.palette
+        if tone == PAPER:
+            # 紙の色そのものは自分の枠を導けない (= 白の枠は白) ので、列の地の枠を借りる
+            return p.paper, p.ink, p.edge(p.wash)
         if tone in LIGHT:
             fill = getattr(p, tone)
             return fill, p.ink, p.edge(fill)
@@ -351,23 +354,35 @@ class Page:
         words = p.words_on(fill, self.theme.type.body if points is None else points, bold)
         return fill, words, p.edge(fill) if words == p.ink else ""
 
-    def _legend_layout(self, rect: Rect, names: list[str]):
-        """Where each entry of a legend goes: (left, top, width) per name, wrapping to a new line."""
+    def _legend_layout(self, rect: Rect, names: list[str], *, down: bool = False):
+        """Where each entry of a legend goes: (left, top, width) per name, wrapping to a new line.
+
+        `down` は 1 行に 1 つ (= 上から下へ並べる)。
+        """
         s = self.theme.spacing
         line = self.theme.line_height(self.theme.type.body)
         x, y = rect.left, rect.top
         for name in names:
             wide = s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body)
+            if down:
+                yield name, x, y, wide
+                y += line
+                continue
             if x > rect.left and x + wide > rect.right:
                 x, y = rect.left, y + line
             yield name, x, y, wide
             x += wide + s.gap_m
 
-    def legend_height(self, width: int, names: list[str]) -> int:
+    def legend_height(self, width: int, names: list[str], *, down: bool = False) -> int:
         """How tall a legend of these names runs at this width."""
         line = self.theme.line_height(self.theme.type.body)
-        tops = [top for _n, _x, top, _w in self._legend_layout(Rect(0, 0, width, line), names)]
+        tops = [top for _n, _x, top, _w in self._legend_layout(Rect(0, 0, width, line), names, down=down)]
         return max(tops) + line
+
+    def legend_width(self, names: list[str]) -> int:
+        """How wide the longest entry of a legend runs (= what a legend set one name to a line needs)."""
+        s = self.theme.spacing
+        return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in names)
 
     def look(self, style: Style, points: float | None = None, bold: bool = False) -> Look:
         """How a box, a bar or an arrowhead is painted, from the looks every one of them takes.
@@ -434,11 +449,11 @@ class Page:
         square = Rect(left, rect.top + (rect.height - side) // 2, side, side)
         self.elements.append(Figure("icon", square.fit(aspect), Path(source), aspect))
 
-    def legend(self, rect: Rect, names: list[str]) -> None:
-        """What each named ground means: a swatch and its name, left to right, in the order declared."""
+    def legend(self, rect: Rect, names: list[str], *, down: bool = False) -> None:
+        """What each named ground means: a swatch and its name, left to right (= `down`: top to bottom), in the order declared."""
         t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
         line = self.theme.line_height(t.body)
-        for name, x, y, wide in self._legend_layout(rect, names):
+        for name, x, y, wide in self._legend_layout(rect, names, down=down):
             fill, _words, edge = self.ground(name)
             self.elements.append(Fill("swatch", Rect(x, y + (line - s.swatch) // 2, s.swatch, s.swatch),
                                       fill, outline=edge))
@@ -909,15 +924,18 @@ class Page:
         self.elements.append(Fill("stripe", rect, self.theme.palette.wash))
 
     def line(self, start: tuple[int, int], end: tuple[int, int], *, arrow: bool = False,
-             tone: str | None = None) -> None:
-        """A thin straight line in the colour of quiet ink (= what joins things, not a thing itself).
+             tone: str | None = None, bend: str = "") -> None:
+        """A thin line in the colour of quiet ink (= what joins things, not a thing itself).
 
-        `tone` を書けば、その色の役の線 (= `tone_ink`)。矢じりも線と同じ色。
+        `tone` を書けば、その色の役の線 (= `tone_ink`)。矢じりも線と同じ色。`bend` を書けば、直角に 1 回曲がる線
+        (= `BENDS`。空は真っすぐ)。
         """
+        if bend and bend not in BENDS:
+            raise ValueError(f"a line bends {' or '.join(repr(name) for name in BENDS)}, not {bend!r}")
         left, right = sorted((start[0], end[0]))
         top, bottom = sorted((start[1], end[1]))
         self.elements.append(Line("line", Rect(left, top, right - left, bottom - top), start, end,
-                                  self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow))
+                                  self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow, bend=bend))
 
     def words(self, rect: Rect, text: str, size: float, *, bold: bool = False, align: str = "center") -> None:
         """Words that name a part of a diagram (= a circle's name, what two circles share, a mark on a picture)."""
@@ -960,6 +978,14 @@ class Page:
         """What one lane of a timeline is (= who, or which line of work)."""
         t, p = self.theme.type, self.theme.palette
         self.elements.append(Text("lane", rect, name, t.stage, p.ink, bold=True))
+
+    def backdrop(self, rect: Rect, tone: str) -> None:
+        """A ground laid under boxes (= the ground of its tone, with that ground's edge).
+
+        背景なので、箱がその上に重なるのが正常 (= 入れ物の地と同じ)。置くのは箱より先 (= 下の層)。
+        """
+        fill, _words, edge = self.ground(tone)
+        self.elements.append(Fill("backdrop", rect, fill, outline=edge))
 
     def _footer(self, text: str) -> None:
         """Where the numbers came from."""
