@@ -231,7 +231,9 @@ def _grid(page: Page, spec: Spec, area: Rect, seen: list) -> None:
         natural = _natural(page, spec, cell, rect.width, what)
         at = len(seen)
         seen.append((str(cell["id"]) if "id" in cell else None, rect, _blank(cell)))
-        drawn = _place(page, spec, cell, rect, natural, True, what, seen)
+        # 格子のカードは字を箱の上端から置く (= 行をまたぐカードと 1 行のカードで箱の高さが違い、縦の中央に
+        # 置くと、同じ行から始まるカードの見出しの上端がずれる)
+        drawn = _place(page, spec, cell, rect, natural, True, what, seen, by_panel=True)
         if drawn is not None:
             seen[at] = (seen[at][0], drawn, seen[at][2])
 
