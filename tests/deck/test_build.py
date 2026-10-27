@@ -116,7 +116,7 @@ class BuildTest(unittest.TestCase):
             'periods = ["a", "b"]\n' + lanes, encoding="utf-8")
         with self.assertRaises(ManifestError) as raised:
             build(self.workspace, Manifest.load(self.workspace.manifest("full")))
-        self.assertIn("page 2:", str(raised.exception))
+        self.assertIn("page 2 of the manifest:", str(raised.exception))
         self.assertIn("will not shrink", str(raised.exception))
 
     def test_an_unknown_page_type_says_which_ones_exist(self) -> None:

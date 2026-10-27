@@ -22,3 +22,12 @@ def page_number(page: int, first_number: int = 1) -> str:
 def page_label(page: int, first_number: int = 1) -> str:
     """`page_number` with the word in front (= "page 3 (printed 2)")."""
     return f"page {page_number(page, first_number)}"
+
+
+def manifest_page_label(index: int) -> str:
+    """A page as the manifest counts it (= the `index`th `[[pages]]`), for a message raised before any deck exists.
+
+    ⚠ **組んでいる途中の失敗は、刷られる番号をまだ言えない。**数え始めは、全部の頁を置いてから決まる
+    (= 表紙の次から数える資料は 0)。画面の頁と取り違えないよう、manifest の何番目かだと言い切る。
+    """
+    return f"page {index} of the manifest"

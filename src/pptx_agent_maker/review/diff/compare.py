@@ -13,6 +13,7 @@ import difflib
 from dataclasses import dataclass
 from pathlib import Path
 
+from ..._common.page_label import page_label
 from ..._common.slide import read
 
 
@@ -32,12 +33,14 @@ class Change:
             return "removed"
         return "changed"
 
-    def render(self) -> str:
+    def render(self, first_number: int = 1) -> str:
+        """The change as a line, its page named by the number printed on it (= `first_number` is the deck's first)."""
+        where = page_label(self.page, first_number)
         if self.kind == "added":
-            return f"page {self.page}: + {self.after!r}"
+            return f"{where}: + {self.after!r}"
         if self.kind == "removed":
-            return f"page {self.page}: - {self.before!r}"
-        return f"page {self.page}: {self.before!r} -> {self.after!r}"
+            return f"{where}: - {self.before!r}"
+        return f"{where}: {self.before!r} -> {self.after!r}"
 
 
 def changes(built: Path, edited: Path) -> list[Change]:

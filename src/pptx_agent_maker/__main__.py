@@ -576,10 +576,11 @@ def main(argv: list[str] | None = None) -> int:
                                fold_churn=not args.raw))
             print()
             found = changes(reference, edited)
+            first_number = first_slide_number(edited)
             for change in found:
-                print(change.render())
+                print(change.render(first_number))
             print()
-            print(as_manifest_entries(found))
+            print(as_manifest_entries(found, first_number))
             return 0
 
         if args.command == "check":

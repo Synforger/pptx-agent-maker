@@ -73,3 +73,119 @@ name = "build does not say where the numbers start"
 file = "src/pptx_agent_maker/__main__.py"
 old = "counted = f\"; the page numbers printed start at {first_number}\" if first_number != 1 else \"\""
 new = "counted = \"\""
+
+# ---- review, titles and the failures of a build name their pages the same way ----
+
+[[mutant]]
+name = "a deck to import that is not there is named by a bare page number"
+file = "src/pptx_agent_maker/deck/build.py"
+old = "f\"{manifest_page_label(index)}: deck to import"
+new = "f\"page {index}: deck to import"
+
+[[mutant]]
+name = "a picture or table that cannot be swapped in is named by a bare page number"
+file = "src/pptx_agent_maker/deck/build.py"
+old = "    except (ValueError, WorkspaceError) as reason:\n        raise ManifestError(f\"{manifest_page_label(index)}: {reason}\") from reason"
+new = "    except (ValueError, WorkspaceError) as reason:\n        raise ManifestError(f\"page {index}: {reason}\") from reason"
+
+[[mutant]]
+name = "a declared page that cannot be built is named by a bare page number"
+file = "src/pptx_agent_maker/deck/build.py"
+old = "    except (ValueError, KeyError, WorkspaceError, PageFullError) as reason:\n        raise ManifestError(f\"{manifest_page_label(index)}: {reason}\") from reason"
+new = "    except (ValueError, KeyError, WorkspaceError, PageFullError) as reason:\n        raise ManifestError(f\"page {index}: {reason}\") from reason"
+
+[[mutant]]
+name = "a failure while building does not say it is the manifest's page"
+file = "src/pptx_agent_maker/_common/page_label.py"
+old = "return f\"page {index} of the manifest\""
+new = "return f\"page {index}\""
+
+[[mutant]]
+name = "titles name the place only"
+file = "src/pptx_agent_maker/deck/titles.py"
+old = "labels = [page_number(number, first_number) for number in range(1, len(manifest.entries) + 1)]"
+new = "labels = [str(number) for number in range(1, len(manifest.entries) + 1)]"
+
+[[mutant]]
+name = "titles take the count from one whatever the built deck says"
+file = "src/pptx_agent_maker/deck/titles.py"
+old = "first_number = first_slide_number(built) if built.is_file() else 1"
+new = "first_number = 1"
+
+[[mutant]]
+name = "titles do not keep to a column"
+file = "src/pptx_agent_maker/deck/titles.py"
+old = "width = max([3, *map(len, labels)])"
+new = "width = 3"
+
+[[mutant]]
+name = "a difference names the place only"
+file = "src/pptx_agent_maker/review/diff/compare.py"
+old = "where = page_label(self.page, first_number)"
+new = "where = f\"page {self.page}\""
+
+[[mutant]]
+name = "the page note of a replacement names the place only"
+file = "src/pptx_agent_maker/review/take/fold.py"
+old = "   # {page_label(change.page, first_number)}')"
+new = "   # page {change.page}')"
+
+[[mutant]]
+name = "the differences that are not text swaps name the place only"
+file = "src/pptx_agent_maker/review/take/fold.py"
+old = "c.render(first_number)"
+new = "c.render()"
+
+[[mutant]]
+name = "review prints its differences without where the numbers start"
+file = "src/pptx_agent_maker/__main__.py"
+old = "print(change.render(first_number))"
+new = "print(change.render())"
+
+[[mutant]]
+name = "review pastes its replacements without where the numbers start"
+file = "src/pptx_agent_maker/__main__.py"
+old = "print(as_manifest_entries(found, first_number))"
+new = "print(as_manifest_entries(found))"
+
+[[mutant]]
+name = "taking an edit in reads the first numbers the wrong way round"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "reference_first, edited_first = first_slide_number(reference), first_slide_number(shelved)"
+new = "reference_first, edited_first = first_slide_number(shelved), first_slide_number(reference)"
+
+[[mutant]]
+name = "a page taken out is named by the edited deck's first number"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "{page_label(i + 1, reference_first)}: removed in PowerPoint"
+new = "{page_label(i + 1, edited_first)}: removed in PowerPoint"
+
+[[mutant]]
+name = "a page added is named by the original's first number"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "{page_label(j + 1, edited_first)} (edited): added in PowerPoint"
+new = "{page_label(j + 1, reference_first)} (edited): added in PowerPoint"
+
+[[mutant]]
+name = "the page a note is about is named by the edited deck's first number"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "page = page_label(i + 1, reference_first)"
+new = "page = page_label(i + 1, edited_first)"
+
+[[mutant]]
+name = "the page kept as edited is named by the original's first number"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "from {shelf} {page_label(j + 1, edited_first)}"
+new = "from {shelf} {page_label(j + 1, reference_first)}"
+
+[[mutant]]
+name = "a refused take is not told where the numbers start"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "assets=manifest.assets, first_number=edited_first)"
+new = "assets=manifest.assets)"
+
+[[mutant]]
+name = "a refused take names the place only"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "where = page_label(number, first_number)"
+new = "where = f\"page {number}\""
