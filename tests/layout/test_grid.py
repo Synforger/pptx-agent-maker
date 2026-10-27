@@ -434,3 +434,17 @@ class TheLegendInACell(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CardsStartingOnOneRowLineUp(unittest.TestCase):
+    """⚠ 色の枠のカード (= `card_look = "outlined"`) は字を箱の縦の中央に置くので、同じ行から始まって
+    2 行をまたぐカードと 1 行のカードで、見出しの上端がずれた (= 揃いの検査 `near_alignment` が赤にした)。
+    格子のカードは、字を箱の上端から置く。"""
+
+    def test_a_card_over_two_rows_and_a_card_on_one_put_their_headings_at_one_height(self) -> None:
+        outlined = theme_from({"grounds": GROUNDS, "card_look": "outlined"})
+        page = grid_page([card("One row", tone="Deep", at=[1, 1]),
+                          card("Two rows", "1\n2\n3\n4", tone="Deep", at=[1, 2], span=[2, 1])],
+                         columns=(1, 1), rows=(1, 1), theme=outlined)
+        tops = {e.text: e.rect.top for e in page.build() if getattr(e, "text", None) in ("One row", "Two rows")}
+        self.assertEqual(tops["One row"], tops["Two rows"])
