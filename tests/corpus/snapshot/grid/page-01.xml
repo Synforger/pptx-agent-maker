@@ -1034,7 +1034,10 @@
 <p:cxnSp>
 <p:nvCxnSpPr>
 <p:cNvPr id="33" name="Connector 32"/>
-<p:cNvCxnSpPr/>
+<p:cNvCxnSpPr>
+<a:stCxn id="23" idx="3"/>
+<a:endCxn id="26" idx="2"/>
+</p:cNvCxnSpPr>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>

@@ -1,0 +1,325 @@
+# The arrows between cells: where they run (round the cells, through the gaps), where they leave and enter, where they hop,
+# and how they are written into the file.
+
+tests = ["tests/layout/test_link_routes.py", "tests/layout/test_link_lines.py", "tests/layout/test_arrange.py",
+         "tests/layout/test_grid.py", "tests/layout/test_text_links.py"]
+
+# -- what a link joins --
+
+[[mutant]]
+name = "a link between cells that do not face each other is drawn straight anyway"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    elif a.left < b.right and b.left < a.right:\n        facing = \"down\""
+new = "    elif True:\n        facing = \"down\""
+
+[[mutant]]
+name = "a link crosses the cell between"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "        if (other.left < between.right and between.left < other.right"
+new = "        if (False and between.left < other.right"
+
+[[mutant]]
+name = "a cell that holds both ends of a link stands between them"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "                   and not other.contains(link.first) and not other.contains(link.second)] for link in items]"
+new = "                   and True] for link in items]"
+
+[[mutant]]
+name = "a link backwards points forwards"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "            return (0, 2) if a.right <= b.left else (2, 0)"
+new = "            return (0, 2)"
+
+[[mutant]]
+name = "a bent line carries words"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "        facing = \"\"\n        if words:"
+new = "        facing = \"\"\n        if False:"
+
+[[mutant]]
+name = "a line with no way through is drawn across the cells"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    if route.blocked:\n        a, b = link.ends"
+new = "    if False:\n        a, b = link.ends"
+
+[[mutant]]
+name = "a line keeps no room from the cells it passes"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    room = Room(page.body, s.gap_x // 2, s.gap_y // 2, s.gap_s // 2)"
+new = "    room = Room(page.body, 0, 0, s.gap_s // 2)"
+
+[[mutant]]
+name = "a cell with an id in the way of a bent line is named as one with none"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = """    if named:
+        return f"the cell {named[0]!r}\""""
+new = """    if False:
+        return f"the cell {named[0]!r}\""""
+
+[[mutant]]
+name = "the lines of a page hop over nothing"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "hops=hops(points, drawn, room.hop),"
+new = "hops=(),"
+
+[[mutant]]
+name = "a line is attached to the middle of an edge it does not meet"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return (box, port.side) if port in middle_ports(box) else None"
+new = "    return (box, port.side)"
+
+[[mutant]]
+name = "every line leaves and enters by the middle of its edge"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    coordinates = spread(attaches, straights)"
+new = "    coordinates = {(each.link, each.last): sum(edge_span(each.box, each.side)) // 2 for each in attaches}"
+
+# -- where along the edge they leave --
+
+[[mutant]]
+name = "the lines of an edge are not at equal steps"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "(end - start) * (rank + 1) / (len(group) + 1))"
+new = "(end - start) * (rank + 1) / (len(group) + 2))"
+
+[[mutant]]
+name = "the lines that turn down stand above the lines that turn up"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "    return each.turn, (each.reach"
+new = "    return -each.turn, (each.reach"
+
+[[mutant]]
+name = "of the lines that turn the same way the farther turn stands first"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "(each.reach if each.turn < 0 else -each.reach if each.turn > 0 else 0)"
+new = "(-each.reach if each.turn < 0 else each.reach if each.turn > 0 else 0)"
+
+[[mutant]]
+name = "the two ends of a straight line are not level"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "        placed[first] = placed[second] = at"
+new = "        placed[first] = at"
+
+[[mutant]]
+name = "a straight line alone on both edges leaves at the low end of where the boxes face"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "            at = (low + high) // 2"
+new = "            at = low"
+
+[[mutant]]
+name = "a straight line may stand beyond where the boxes face each other"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "            at = min(max(placed[first if crowd[first] >= crowd[second] else second], low), high)"
+new = "            at = placed[first if crowd[first] >= crowd[second] else second]"
+
+[[mutant]]
+name = "a straight line follows the emptier edge"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "first if crowd[first] >= crowd[second] else second"
+new = "first if crowd[first] <= crowd[second] else second"
+
+# -- which way they run --
+
+[[mutant]]
+name = "a line passes a box with no room at all"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "r.left - room.margin_x, r.top - room.margin_y, r.right + room.margin_x, r.bottom + room.margin_y)"
+new = "r.left, r.top, r.right, r.bottom)"
+
+[[mutant]]
+name = "a line may bend six times"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "MAX_BENDS = 4"
+new = "MAX_BENDS = 6"
+
+[[mutant]]
+name = "the middle of a gap is not a place to turn"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "        found = {(a + b) // 2 for a, b in zip(edges, edges[1:])}"
+new = "        found = set()"
+
+[[mutant]]
+name = "there is no lane along the edge of the body"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "        found.update(coordinate for coordinate in (edges[0] - margin, edges[-1] + margin) if low <= coordinate <= high)"
+new = "        found.update([])"
+
+[[mutant]]
+name = "a crossing of a line already drawn costs nothing"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "                    crossing += 1"
+new = "                    crossing += 0"
+
+[[mutant]]
+name = "passing through a point of a line already drawn is not a crossing"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "            through = 0 if fresh else self._through(i, j, way)"
+new = "            through = 0"
+
+[[mutant]]
+name = "running along a line already drawn costs nothing"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "                elif self.strict:\n                    touching += 1"
+new = "                elif False:\n                    touching += 1"
+
+[[mutant]]
+name = "a way with fewer bends is taken before a way that crosses nothing is looked for"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "            yield (len(blocked), touching, crossing + through, 0, length, 0), (ni, nj, way, bends, False), blocked"
+new = "            yield (len(blocked), touching, 0, 0, length, 0), (ni, nj, way, bends, False), blocked"
+
+[[mutant]]
+name = "a line leaves by the side with the wider gap when the ways are equal"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "self._gap_along(port.side) * len(SIDES) + port.side)"
+new = "-self._gap_along(port.side) * len(SIDES) + port.side)"
+
+# -- where two runs meet --
+
+[[mutant]]
+name = "a crossing near an end of the run is a clean crossing"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/crossings.py"
+old = "    return CROSS if bx1 - ax1 >= clear and ax2 - bx1 >= clear else TOUCH"
+new = "    return CROSS"
+
+[[mutant]]
+name = "the end of a run on another line is a crossing"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/crossings.py"
+old = "        return END"
+new = "        return CROSS"
+
+[[mutant]]
+name = "the end of another line on a run is not a touch"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/crossings.py"
+old = "    if ay1 in (by1, by2):                           # 相手の端が自分の上にある\n        return TOUCH"
+new = "    if ay1 in (by1, by2):                           # 相手の端が自分の上にある\n        return APART"
+
+[[mutant]]
+name = "a shared stretch of two sideways runs is not a touch"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/crossings.py"
+old = "        return TOUCH if ay1 == by1 and max(ax1, bx1) <= min(ax2, bx2) else APART"
+new = "        return APART"
+
+[[mutant]]
+name = "the hops of a line are not in the order the line goes"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/crossings.py"
+old = "        on_run.sort(key=lambda at: abs(at[0] - run[0][0]) + abs(at[1] - run[0][1]))"
+new = "        on_run.sort(key=lambda at: 0)"
+
+[[mutant]]
+name = "two hops are made where their half circles would run into each other"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/crossings.py"
+old = "            if not kept or abs(at[0] - kept[-1][0]) + abs(at[1] - kept[-1][1]) >= 2 * radius:"
+new = "            if True:"
+
+[[mutant]]
+name = "a crossing is put where the other run lies"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/crossings.py"
+old = "    horizontal, vertical = (run, other) if run[0][1] == run[1][1] else (other, run)"
+new = "    horizontal, vertical = (other, run)"
+
+# -- what a line keeps --
+
+[[mutant]]
+name = "a bent line is let run aslant"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "                if first[0] != second[0] and first[1] != second[1]:"
+new = "                if False:"
+
+[[mutant]]
+name = "the box round a line leaves out its corners"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        left, right = min(x for x, _ in points), max(x for x, _ in points)\n        top, bottom = min(y for _, y in points), max(y for _, y in points)"
+new = "        left, right = min(start[0], end[0]), max(start[0], end[0])\n        top, bottom = min(start[1], end[1]), max(start[1], end[1])"
+
+[[mutant]]
+name = "the corners of a line are kept as places on the page, which do not move with its start"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "corners=tuple((x - start[0], y - start[1]) for x, y in corners),"
+new = "corners=tuple(corners),"
+
+[[mutant]]
+name = "a line takes no colour of its own"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow,"
+new = "self.theme.palette.muted, arrow=arrow,"
+
+# -- how they are written --
+
+[[mutant]]
+name = "a bent line is written as one preset more than it has runs"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "    geometry.set(\"prst\", f\"bentConnector{len(fitted['adjustments']) + 2}\")"
+new = "    geometry.set(\"prst\", f\"bentConnector{len(fitted['adjustments']) + 3}\")"
+
+[[mutant]]
+name = "the turn of a line with two bends is put in the middle whatever it is"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "        return [_unit(x1, wide)] if fits and wide >= 1 else None"
+new = "        return [ADJ_UNIT // 2] if fits and wide >= 1 else None"
+
+[[mutant]]
+name = "lines that bend three or more times are written as presets"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "PRESET_BENDS = 2"
+new = "PRESET_BENDS = 4"
+
+[[mutant]]
+name = "a line drawn from its end has its head at its end"
+file = "src/pptx_agent_maker/write/lines.py"
+old = '"a:headEnd" if reversed_path else "a:tailEnd"'
+new = '"a:tailEnd"'
+
+[[mutant]]
+name = "no arrowhead is written"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "    if element.arrow:\n        line = shape.line._get_or_add_ln()"
+new = "    if False:\n        line = shape.line._get_or_add_ln()"
+
+[[mutant]]
+name = "a connector keeps the theme's line style"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "    if style is not None:                      # テーマの線の書式を引かない"
+new = "    if False:                      # テーマの線の書式を引かない"
+
+[[mutant]]
+name = "a hop over a line that goes left is made on the wrong side"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "                start, sweep = (180, 180) if direction > 0 else (0, -180)"
+new = "                start, sweep = (180, 180)"
+
+[[mutant]]
+name = "a hop over a line that goes up is made from the wrong side of the circle"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "                start, sweep = (270, 180) if direction > 0 else (90, -180)"
+new = "                start, sweep = (270, 180)"
+
+[[mutant]]
+name = "the frame of a hopping line leaves out its half circles"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "            ys.append(hy - radius if sideways else hy)"
+new = "            ys.append(hy)"
+
+[[mutant]]
+name = "a free-form line is written as a connector, which a viewer draws its own way"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "    if element.hops or (element.corners and fitted is None):"
+new = "    if False:"
+
+[[mutant]]
+name = "the sites of a rectangle are numbered from the right"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "SITES = (3, 2, 1, 0)"
+new = "SITES = (0, 1, 2, 3)"
+
+[[mutant]]
+name = "a connector is attached to no shape"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "        if found is not None:\n            holder.append"
+new = "        if False:\n            holder.append"
+
+[[mutant]]
+name = "the ends of a connector drawn backwards keep their places"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "            _join(slide, shape, *((element.ends_on, element.begins_on) if reversed_path else (element.begins_on, element.ends_on)))"
+new = "            _join(slide, shape, element.begins_on, element.ends_on)"

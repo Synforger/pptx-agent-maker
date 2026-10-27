@@ -1,0 +1,106 @@
+# An arrow between two boxes that do not face each other runs round the boxes, through the empty squares and the gaps
+# between them, bending as few times as it can. Lines that leave or enter by one edge stand in equal steps along it, and a
+# line that has to cross another hops over it.
+
+specimen = "specimen.pptx"
+out = "link-routes.pptx"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "From the top right to the bottom left, between the boxes"
+grid = { columns = [1.1, 1.3, 1.7, 1.8, 1.6, 2.2, 2.2], rows = [1.15, 1.15, 0.56, 1.14] }
+links = [
+  { from = "data", to = "sdk", tone = "accent" },
+]
+
+[[pages.cells]]
+at = [1, 7]
+id = "data"
+card = { heading = "Data", body = "Where it starts" }
+
+[[pages.cells]]
+at = [2, 7]
+span = [2, 1]
+id = "below"
+card = { heading = "Below", body = "Stands under it" }
+
+[[pages.cells]]
+at = [3, 3]
+span = [2, 1]
+id = "sdk"
+card = { heading = "SDK", body = "Where it ends" }
+
+[[pages.cells]]
+at = [1, 4]
+card = { heading = "Hub", body = "Stands beside it" }
+
+[[pages.cells]]
+at = [1, 5]
+span = [1, 2]
+card = { heading = "Library", body = "Stands beside it" }
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Three arrows leave one box by the same edge"
+condition = "They leave at a quarter, a half and three quarters of the edge: the nearer turn stands higher, the straight one lowest"
+conclusion = "No two arrows run along the same stretch, and none crosses another"
+grid = { columns = [1, 1, 1, 1], rows = [1, 1, 1] }
+links = [
+  { from = "source", to = "far" },
+  { from = "source", to = "first" },
+  { from = "source", to = "second" },
+]
+
+[[pages.cells]]
+at = [3, 1]
+id = "source"
+card = { heading = "Source", body = "Three go out" }
+
+[[pages.cells]]
+at = [3, 4]
+id = "far"
+card = { heading = "Across", body = "Straight on" }
+
+[[pages.cells]]
+at = [1, 2]
+id = "first"
+card = { heading = "First", body = "Turns up near" }
+
+[[pages.cells]]
+at = [1, 3]
+id = "second"
+card = { heading = "Second", body = "Turns up far" }
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Two arrows that cross"
+condition = "The one drawn second hops over the first where they cross, and only there"
+conclusion = "A hop is a small half circle: the lines cross, they do not branch"
+grid = { columns = [1, 1, 1], rows = [1, 1, 1] }
+links = [
+  { from = "left", to = "right" },
+  { from = "top", to = "bottom", tone = "accent" },
+]
+
+[[pages.cells]]
+at = [2, 1]
+id = "left"
+card = { heading = "Left", body = "Goes across" }
+
+[[pages.cells]]
+at = [2, 3]
+id = "right"
+card = { heading = "Right", body = "Is reached" }
+
+[[pages.cells]]
+at = [1, 2]
+id = "top"
+card = { heading = "Top", body = "Goes down" }
+
+[[pages.cells]]
+at = [3, 2]
+id = "bottom"
+card = { heading = "Bottom", body = "Is reached" }

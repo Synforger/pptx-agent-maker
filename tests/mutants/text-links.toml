@@ -116,14 +116,14 @@ new = 'tone = None'
 [[mutant]]
 name = "an arrow is grey whatever its tone"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "page.line(start, end, arrow=True, tone=tone, bend=bend)"
-new = "page.line(start, end, arrow=True, bend=bend)"
+old = "page.line(points[0], points[-1], arrow=True, tone=link.tone, corners=points[1:-1]"
+new = "page.line(points[0], points[-1], arrow=True, corners=points[1:-1]"
 
 [[mutant]]
 name = "a line takes no colour of its own"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow, bend=bend))"
-new = "self.theme.palette.muted, arrow=arrow, bend=bend))"
+old = "self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow,"
+new = "self.theme.palette.muted, arrow=arrow,"
 
 # -- the words beside an arrow --
 
@@ -198,8 +198,8 @@ new = "words, ty.caption, bold=True, align=align)"
 [[mutant]]
 name = "an empty cell stops a link"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "if other not in (a, b) and other not in blank"
-new = "if other not in (a, b)"
+old = "if other not in (link.first, link.second) and other not in blank"
+new = "if other not in (link.first, link.second)"
 
 [[mutant]]
 name = "nothing counts as an empty cell"
