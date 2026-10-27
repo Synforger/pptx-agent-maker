@@ -4,7 +4,7 @@
 
 * **読む** (`_read`) ― 書かれた物を、文字の大きさにも頁の広さにも依らない形で 1 度だけ
 * **測る** (`_measure`) ― 文字の大きさを 1 つ決めて、段と高さと名前の側を。収まらなければ止まる
-* **置く** (`_place`) ― 上から帯を取り、その中を割る
+* **置く** (`_place`) ― 上から帯を取り、その中を割る。棒を全部置いた後に、棒どうしの矢印 (`links`) を引く
 
 横の位置を決めるのは `_Plot` 1 つ (= 期間の番号から横の位置、名前を隣に出せる側、レーンの高さ)。
 """
@@ -20,6 +20,7 @@ from ...parts.look import Style, TONES
 from ...parts.page import Page, PageFullError
 from ..core.read import LOOK_KEYS, Spec, only_keys, read_style, read_tone
 from ..core.registry import PageTypeError, register
+from . import arrange
 
 
 #: 余った高さを棒へ配る上限 (= 棒 1 段の高さに対する比)。頁の下に空きを残さないために配るが、
@@ -43,6 +44,8 @@ class _Piece:
     row: int = 0
     #: 棒が書いた見た目 (= 地が空ならレーンの色)
     style: Style = Style(tone="")
+    #: 棒の `id` (= `links` が棒を指す名前。無ければ空)
+    ident: str = ""
 
     def room(self, gap: int) -> tuple[int, int]:
         """What it keeps clear of its neighbours: itself, and its name when that sits beside it."""
@@ -67,6 +70,8 @@ class _Written:
     reach: int
     #: 地が空なら「書かれていない」(= レーンの色)
     style: Style
+    #: `links` が棒を指す名前 (= 無ければ空)
+    ident: str = ""
 
 
 @dataclass(frozen=True)
@@ -92,6 +97,8 @@ class _Plan:
     #: 全レーンを貫く日付 (= 時点, 名前)
     dates: list[tuple[float, str]]
     lanes: list[_Lane]
+    #: 棒どうしの矢印 (= 書かれたまま。読んで描くのは `arrange.links`)。書かなければ None
+    links: object = None
 
 
 @dataclass
@@ -141,6 +148,16 @@ def _stretch(item: dict, count: int, what: str) -> tuple[float, float]:
         raise PageTypeError(
             f"timeline: {what} runs from {start:g} to {end:g} — it has to end after it starts")
     return start, end
+
+
+def _ident(bar: dict, what: str) -> str:
+    """The name a bar is pointed at by in `links` (= `id`; unsaid, none)."""
+    if "id" not in bar:
+        return ""
+    value = bar["id"]
+    if not isinstance(value, str) or not value.strip():
+        raise PageTypeError(f"timeline: {what} needs `id` as a name (= the word `links` points at it by), not {value!r}")
+    return value
 
 
 def _reach(bar: dict, left: int, what: str) -> int:
@@ -283,7 +300,7 @@ def _read(spec: Spec) -> _Plan:
     if not lanes:
         raise PageTypeError("timeline: `lanes` is empty — a timeline needs at least one lane")
     count = len(periods)
-    misplaced = (" `phases` and `milestones` belong to the page: in TOML, write them above the "
+    misplaced = (" `phases`, `milestones` and `links` belong to the page: in TOML, write them above the "
                  "first `[[pages.lanes]]`.")
 
     spans = []
@@ -307,12 +324,12 @@ def _read(spec: Spec) -> _Plan:
         bars, marks = [], []
         for number, bar in enumerate(lane.get("bars") or [], start=1):
             what = f"lane {index}, bar {number}"
-            only_keys(bar, {"from", "to", "text", "spans", *LOOK_KEYS}, f"timeline: {what}")
+            only_keys(bar, {"from", "to", "text", "spans", "id", *LOOK_KEYS}, f"timeline: {what}")
             start, end = _stretch(bar, count, what)
             reach = _reach(bar, len(lanes) - index + 1, what)
             # 地を書かなかった棒は空のまま持つ (= レーンの色。置くときに決まる)
             bars.append(_Written(what, start, end, str(bar.get("text", "")), reach,
-                                 read_style(spec, bar, f"timeline: {what}", "")))
+                                 read_style(spec, bar, f"timeline: {what}", ""), _ident(bar, what)))
             if reach > 1:
                 for under in range(index - 1, index - 1 + reach):
                     covered[under].append((start, end, what))
@@ -348,9 +365,18 @@ def _read(spec: Spec) -> _Plan:
                         f"timeline: {other} sits on {what}, which spans lane {index} from "
                         f"{start:g} to {end:g} — a spanning bar takes the whole lane; move the "
                         "mark off its periods")
+    named: dict[str, str] = {}
+    for _name, _tone, bars, _marks in read:
+        for written in bars:
+            if written.ident in named:
+                raise PageTypeError(f"timeline: {named[written.ident]} and {written.what} have the same id "
+                                    f"{written.ident!r} — an id names one bar")
+            if written.ident:
+                named[written.ident] = written.what
     return _Plan(periods, spans, dates,
                  [_Lane(name, tone, bars, marks, walls)
-                  for (name, tone, bars, marks), walls in zip(read, covered)])
+                  for (name, tone, bars, marks), walls in zip(read, covered)],
+                 spec.get("links"))
 
 
 def _measure(plot: _Plot, plan: _Plan, size: float) -> _Layout:
@@ -396,24 +422,27 @@ def _measure(plot: _Plot, plan: _Plan, size: float) -> _Layout:
                 raise PageFullError(
                     f"{what} is too short for its icon at {size:g}pt — a longer stretch, or no icon")
             wide, inner = theme.width(text, size), right - left - 2 * s.bar_pad_x - lead
+            # 書かれた改行の数 (= 折り返す前の行の数。`width` は最長の行の幅なので、改行は幅に出ない)
+            breaks = text.count("\n") + 1
             if reach > 1:
                 # 名前はいつも棒の中 (= 隣へ出すと、覆うレーン全部でその場所を空けることになる)。
                 # 棒が高いので、折れる行は中に収まる
-                lines = 1 if wide <= inner else theme.wraps(text, max(inner, 1), size)
+                lines = breaks if wide <= inner else theme.wraps(text, max(inner, 1), size)
                 across.append((number, reach, _Piece(left, right, text, "in",
                                                      lines * line + 2 * s.bar_pad_y, wide,
-                                                     style=written.style)))
+                                                     style=written.style, ident=written.ident)))
                 continue
             if wide <= inner:
-                side, lines = "in", 1
-            elif theme.unbreakable(text, size) <= inner and theme.wraps(text, inner, size) == 2:
-                side, lines = "in", 2      # 語の切れ目で 2 行に収まる (= 語の途中では折らない)
+                side, lines = "in", breaks
+            elif theme.unbreakable(text, size) <= inner and theme.wraps(text, inner, size) == breaks + 1:
+                # 語の切れ目で、折り返しが 1 行足されるだけで収まる (= 語の途中では折らない)
+                side, lines = "in", breaks + 1
             elif plot.beside(left, right, wide, walls):
-                side, lines = plot.beside(left, right, wide, walls), 1
+                side, lines = plot.beside(left, right, wide, walls), breaks
             else:
                 side, lines = "in", theme.wraps(text, max(inner, 1), size)
             pieces.append(_Piece(left, right, text, side, lines * line + 2 * s.bar_pad_y, wide,
-                                 style=written.style))
+                                 style=written.style, ident=written.ident))
         for what, position, text in lane.marks:
             where = plot.at(position)
             left, right = where - s.mark // 2, where - s.mark // 2 + s.mark
@@ -451,7 +480,7 @@ def _measure(plot: _Plot, plan: _Plan, size: float) -> _Layout:
     return _Layout(size, line, cell, span_height, stones, stone_rows, packed, across, wanted)
 
 
-def _place(page: Page, plot: _Plot, plan: _Plan, layout: _Layout) -> None:
+def _place(page: Page, spec: Spec, plot: _Plot, plan: _Plan, layout: _Layout) -> None:
     """Put a measured timeline on the page: bands off the top, then everything inside them."""
     s, area, count = page.theme.spacing, plot.area, plot.count
     size, line, cell, packed = layout.size, layout.line, layout.cell, layout.packed
@@ -493,6 +522,9 @@ def _place(page: Page, plot: _Plot, plan: _Plan, layout: _Layout) -> None:
     for index, period in enumerate(plan.periods):
         page.period(plot.over(period_band, index, index + 1), period, size=size)
 
+    # 矢印が棒を指す先 (= 棒の `id` から棒の枠) と、矢印が横切れない物 (= 棒・印・棒の隣の名前の枠)
+    named: dict[str, Rect] = {}
+    solid: list[Rect] = []
     for band, lane in zip(bands, packed):
         inner = band.inset(y=s.row_gap)
         page.lane(Rect(plot.names.left, inner.top, plot.names.width, inner.height), lane.name)
@@ -502,21 +534,33 @@ def _place(page: Page, plot: _Plot, plan: _Plan, layout: _Layout) -> None:
         for piece in lane.pieces:
             top, tall = tops[piece.row], lane.heights[piece.row] + extra
             if piece.point:
-                page.diamond(Rect(piece.left, top + (tall - s.mark) // 2, s.mark, s.mark))
+                shape = Rect(piece.left, top + (tall - s.mark) // 2, s.mark, s.mark)
+                page.diamond(shape)
             else:
-                page.bar(Rect(piece.left, top, piece.right - piece.left, tall),
-                         piece.text if piece.side == "in" else "", piece.style_on(lane.tone), size=size)
+                shape = Rect(piece.left, top, piece.right - piece.left, tall)
+                page.bar(shape, piece.text if piece.side == "in" else "", piece.style_on(lane.tone), size=size)
+                if piece.ident:
+                    named[piece.ident] = shape
+            solid.append(shape)
             if piece.side == "right":
-                page.label(Rect(piece.right + s.gap_s, top, piece.wide, tall), piece.text, size=size)
+                solid.append(Rect(piece.right + s.gap_s, top, piece.wide, tall))
+                page.label(solid[-1], piece.text, size=size)
             elif piece.side == "left":
-                page.label(Rect(piece.left - s.gap_s - piece.wide, top, piece.wide, tall),
-                           piece.text, align="right", size=size)
+                solid.append(Rect(piece.left - s.gap_s - piece.wide, top, piece.wide, tall))
+                page.label(solid[-1], piece.text, align="right", size=size)
 
     # またがる棒は区切りの線の上に置く (= 覆うレーンの間の線を棒が隠し、1 本に見える)
     for number, reach, piece in layout.across:
         top, bottom = plot.reaches(packed, number, number + reach - 1, extra, lanes_top)
-        page.bar(Rect(piece.left, top, piece.right - piece.left, bottom - top), piece.text,
-                 piece.style_on(packed[number].tone), size=size)
+        shape = Rect(piece.left, top, piece.right - piece.left, bottom - top)
+        page.bar(shape, piece.text, piece.style_on(packed[number].tone), size=size)
+        solid.append(shape)
+        if piece.ident:
+            named[piece.ident] = shape
+
+    # 棒どうしの矢印は、棒の上に重ねる (= 読み方も向き合う棒の選び方も、マスどうしの線と同じ 1 つ)
+    if plan.links is not None:
+        arrange.links(page, spec, plan.links, named, solid, [], "timeline")
 
     for stone in layout.stones:
         top = flags_top + stone.row * line
@@ -528,7 +572,7 @@ def _place(page: Page, plot: _Plot, plan: _Plan, layout: _Layout) -> None:
                        stone.text, align="right", role="accent", size=size)
 
 
-@register("timeline", needs=["periods", "lanes"], takes=["phases", "milestones"])
+@register("timeline", needs=["periods", "lanes"], takes=["phases", "milestones", "links"])
 def _timeline(page: Page, spec: Spec, area: Rect) -> None:
     """Periods left to right, lanes top to bottom, bars and marks on the lanes.
 
@@ -545,6 +589,10 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
     描く)。またがる棒は、覆うレーンの高さを全部取る ― その時期、覆われるレーンには何も
     置けない (= 重なる棒と印は拒む)。色は書いたレーンのもの、名前はいつも棒の中。
 
+    棒の名前は `\n` で行を分けられる (= 全部の行が同じ揃え。行の数は折り返しと同じに数えて、棒の高さに入る)。
+    棒に `id` を付けると、頁の `links` で棒どうしを矢印でつなげる (= 書き方も読み方も描き方も、`compose` の
+    マスどうしの線 `arrange.links` と同じ 1 つ)。棒の塗り方は資料の `bar_look` が決める (= `Page.bar`)。
+
     ⚠ **文字は全部 pptx の文字のまま置く。**この型は、絵で描いて貼った計画の頁を人が
     直せなかったために在る。棒の名前は棒の中に持たせ、2 行でも収まらない名前は棒の隣へ
     出す (= 縮めない、切らない)。隣にも置けなければ棒の中で折り返す。
@@ -552,7 +600,8 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
     ⚠ **文字の大きさは `plan` の中から、頁に収まる最初のものを採る** (= 余った高さは文字と
     棒の高さに配る)。いちばん小さいものでも収まらなければ `PageFullError` で止める。
 
-    ⚠ **向きは矢印の図形で描かない** (= `flow` と同じ理由)。順序は棒の並びが示す。
+    ⚠ **向きは矢印の図形で描かない** (= `flow` と同じ理由)。順序は棒の並びが示し、`links` の矢印は
+    線の端の矢じりで引く。
     """
     plan = _read(spec)
     plot = _Plot(page.theme, area, plan)
@@ -566,4 +615,4 @@ def _timeline(page: Page, spec: Spec, area: Rect) -> None:
     else:
         raise refused
     page.drew_a_diagram()  # レーンと棒で組んだ線表そのものが、この頁の図解
-    _place(page, plot, plan, layout)
+    _place(page, spec, plot, plan, layout)

@@ -274,6 +274,9 @@ BOX_HEIGHTS = ("text", "page", "middle")
 #: カードの見た目。`filled` は地を色で塗る (= 既定)、`outlined` は地をほぼ紙の色にして、色は枠と見出しの字が
 #: 持つ (= 色の役が同じなら、枠と見出しの色も同じ)。案件が `[theme] card_look` で決める
 CARD_LOOKS = ("filled", "outlined")
+#: 線表の棒の見た目。`filled` は地を色で塗る (= 既定)、`outlined` はカードの `outlined` と同じ色の決まりで、地を
+#: ほぼ紙の色にして色は枠が持つ (= 色の役が同じなら、カードと棒が同じ見た目)。案件が `[theme] bar_look` で決める
+BAR_LOOKS = ("filled", "outlined")
 #: 条件の帯と結論の帯の見た目。`plain` は枠の無い帯 (= 既定)、`outlined` は枠と色を持つ (= 上は差し色、
 #: 下は灰)。案件が `[theme] band_look` で決める
 BAND_LOOKS = ("plain", "outlined")
@@ -596,6 +599,8 @@ class Theme:
     box_height: str = "text"
     card_look: str = "filled"
     band_look: str = "plain"
+    #: 線表の棒の見た目 (= `BAR_LOOKS`)
+    bar_look: str = "filled"
     #: 絵の下の名の見た目 (= `CAPTION_LOOKS`)
     caption_look: str = "plain"
     #: 表の見た目 (= `TABLE_LOOKS`)。これも既定は今までの見た目
@@ -943,7 +948,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "band_look", "caption_look", "leading",
+_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "bar_look", "band_look", "caption_look", "leading",
          "table_look", "layout_of_page")
 
 
@@ -994,6 +999,7 @@ def theme_from(settings: dict | None) -> Theme:
             f"{' or '.join(repr(place) for place in KICKERS)} it")
     box_height = _choice(settings, "box_height", BOX_HEIGHTS, "the height of a page's boxes")
     card_look = _choice(settings, "card_look", CARD_LOOKS, "the look of a card")
+    bar_look = _choice(settings, "bar_look", BAR_LOOKS, "the look of a bar of a timeline")
     band_look = _choice(settings, "band_look", BAND_LOOKS, "the look of the bands over and under a page")
     caption_look = _choice(settings, "caption_look", CAPTION_LOOKS, "the look of the name under a picture")
     table_look = _choice(settings, "table_look", TABLE_LOOKS, "the look of a table")
@@ -1031,6 +1037,7 @@ def theme_from(settings: dict | None) -> Theme:
         kicker=kicker,
         box_height=type.box_height_set,
         card_look=card_look,
+        bar_look=bar_look,
         band_look=band_look,
         caption_look=caption_look,
         table_look=type.table_look_set,

@@ -349,7 +349,7 @@
 | 工程を左から右へ (= 替えた段だけ色) | `flow` | 段の中にノード。色は `tone`、段の下の 1 行は `settled` |
 | 入力から出力への縦の流れと、横への分岐 | `flow` | `direction = "down"`。段のノードが 2 つ以上なら分岐、次が 1 つなら合流 |
 | 到達点までの道のり | `roadmap` | 段は矢羽根。到達点は濃い地 |
-| 工程表 (= 縦にレーン、横に期間) | `timeline` | `phases` が期間の性格、`milestones` が全レーンを貫く日付 |
+| 工程表 (= 縦にレーン、横に期間) | `timeline` | `phases` が期間の性格、`milestones` が全レーンを貫く日付。棒の名前は `\n` で補足を 2 行目から。棒どうしの順序は棒の `id` と頁の `links` の矢印。資料のカードが `outlined` なら `bar_look = "outlined"` で棒も揃える |
 | 数字を比べる・移り変わり・内訳・増減 | `chart` | `bar` / `column` / `line` / `stacked` / `waterfall`。軸の名前は `x` `y`。絵で貼らない |
 | 2 つの量の関係 (= 2 軸に点) | `chart` | `kind = "scatter"`。軸の名前 `x` `y` は必須。系列の名前は凡例に出る |
 | 手法・案・声を札で並べる | `cards` | 色は `tone`、絵は `icon`、列の数は `card_columns` |

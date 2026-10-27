@@ -134,6 +134,20 @@ class TheCorpusUsesEverything(unittest.TestCase):
                 if "panel" in cell for row in cell["panel"]["rows"] for inner in row["cells"] for key in inner}
         self.assertLessEqual({"text", "points", "table", "chart", "card", "figure", "panel"}, held)
 
+    def test_a_bar_with_an_id_a_name_on_several_lines_and_an_arrow_between_bars_in_every_look(self) -> None:
+        """棒が読む `id`・名前の中の改行・棒どうしの `links` は、見た目の違う資料のそれぞれで書かれている。"""
+        decks = {"the main project": CORPUS / "manifests",
+                 **{path.parent.name: path.parent / "manifests" for path in DECKS
+                    if _toml(path).get("theme", {}).get("bar_look") == "outlined"}}
+        for name, folder in decks.items():
+            with self.subTest(name):
+                pages = [page for manifest in sorted(folder.glob("*.toml")) for page in _toml(manifest)["pages"]
+                         if page.get("type") == "timeline"]
+                bars = [bar for page in pages for lane in page["lanes"] for bar in lane.get("bars", [])]
+                self.assertTrue(any("id" in bar for bar in bars), f"{name}: no bar has an id")
+                self.assertTrue(any("\n" in bar.get("text", "") for bar in bars), f"{name}: no name breaks a line")
+                self.assertTrue(any(page.get("links") for page in pages), f"{name}: no arrow between bars")
+
     def test_every_look_on_everything_shaped_like_a_box(self) -> None:
         bars = [bar for body in bodies("timeline") for lane in body["lanes"] for bar in lane.get("bars", [])]
         boxes = {
@@ -162,12 +176,12 @@ class TheCorpusUsesEverything(unittest.TestCase):
 
     def test_the_look_a_deck_sets_for_all_its_pages_is_kept_in_a_deck_of_its_own(self) -> None:
         """⚠ 見た目は案件に 1 つなので、既定の見た目の資料は、別の見た目が頁に何をするかを守れない。"""
-        from pptx_agent_maker.layout.tokens import BAND_LOOKS, BOX_HEIGHTS, CARD_LOOKS, TABLE_LOOKS
+        from pptx_agent_maker.layout.tokens import BAND_LOOKS, BAR_LOOKS, BOX_HEIGHTS, CARD_LOOKS, TABLE_LOOKS
         main = _toml(CORPUS / "workspace.toml").get("theme", {})
         looks = {key: {main.get(key)} | {_toml(path).get("theme", {}).get(key) for path in DECKS}
-                 for key in ("card_look", "band_look", "box_height", "table_look")}
-        for key, options in (("card_look", CARD_LOOKS), ("band_look", BAND_LOOKS), ("box_height", BOX_HEIGHTS),
-                             ("table_look", TABLE_LOOKS)):
+                 for key in ("card_look", "bar_look", "band_look", "box_height", "table_look")}
+        for key, options in (("card_look", CARD_LOOKS), ("bar_look", BAR_LOOKS), ("band_look", BAND_LOOKS),
+                             ("box_height", BOX_HEIGHTS), ("table_look", TABLE_LOOKS)):
             with self.subTest(key):
                 self.assertEqual(set(options), {value or options[0] for value in looks[key]},
                                  f"{key}: a look no project of the corpus is set in")

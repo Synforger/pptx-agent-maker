@@ -1,0 +1,188 @@
+# What a timeline's bars take beyond their own stretch: a line break in a name, an arrow between two bars, and the
+# pale look of a bar (= `[theme] bar_look`).
+
+tests = ["tests/layout/test_timeline_bars.py", "tests/layout/test_timeline.py", "tests/layout/test_corpus.py"]
+
+# -- a line break in a name -----------------------------------------------------
+
+[[mutant]]
+name = "the line breaks of a name are kept in one run"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '''    for index, line in enumerate(element.text.split("\n")):
+        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.alignment = ALIGN[element.align]
+        run = paragraph.add_run()'''
+new = '''    for index, line in enumerate([element.text]):
+        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.alignment = ALIGN[element.align]
+        run = paragraph.add_run()'''
+
+[[mutant]]
+name = "only the first line of a name is aligned"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '''        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.alignment = ALIGN[element.align]
+        run = paragraph.add_run()'''
+new = '''        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        if index == 0:
+            paragraph.alignment = ALIGN[element.align]
+        run = paragraph.add_run()'''
+
+[[mutant]]
+name = "the breaks written in a name are not counted"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = 'breaks = text.count("\n") + 1'
+new = "breaks = 1"
+
+[[mutant]]
+name = "a bar across lanes counts one line for a name that fits"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "lines = breaks if wide <= inner else theme.wraps(text, max(inner, 1), size)"
+new = "lines = 1 if wide <= inner else theme.wraps(text, max(inner, 1), size)"
+
+[[mutant]]
+name = "a name that fits inside its bar takes one line however many it breaks into"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = '''            if wide <= inner:
+                side, lines = "in", breaks'''
+new = '''            if wide <= inner:
+                side, lines = "in", 1'''
+
+[[mutant]]
+name = "a name that wraps once more than it breaks is only let in at two lines"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "theme.wraps(text, inner, size) == breaks + 1:"
+new = "theme.wraps(text, inner, size) == 2:"
+
+[[mutant]]
+name = "the wrapped line a name takes inside its bar is counted as the second"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = 'side, lines = "in", breaks + 1'
+new = 'side, lines = "in", 2'
+
+[[mutant]]
+name = "a name set beside its bar keeps the room of one line"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "plot.beside(left, right, wide, walls), breaks"
+new = "plot.beside(left, right, wide, walls), 1"
+
+# -- an arrow between bars ------------------------------------------------------
+
+[[mutant]]
+name = "a bar does not read an id"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = 'only_keys(bar, {"from", "to", "text", "spans", "id", *LOOK_KEYS}'
+new = 'only_keys(bar, {"from", "to", "text", "spans", *LOOK_KEYS}'
+
+[[mutant]]
+name = "two bars may have the same id"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "if written.ident in named:"
+new = "if False and written.ident in named:"
+
+[[mutant]]
+name = "an id of blanks is a name"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "if not isinstance(value, str) or not value.strip():"
+new = "if not isinstance(value, str):"
+
+[[mutant]]
+name = "a bar in a lane cannot be pointed at"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = '''                if piece.ident:
+                    named[piece.ident] = shape
+            solid.append(shape)'''
+new = "            solid.append(shape)"
+
+[[mutant]]
+name = "a bar across lanes cannot be pointed at"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = '''        solid.append(shape)
+        if piece.ident:
+            named[piece.ident] = shape
+'''
+new = "        solid.append(shape)\n"
+
+[[mutant]]
+name = "an arrow goes through a bar standing between its ends"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = '''            solid.append(shape)
+            if piece.side == "right":'''
+new = '''            if piece.side == "right":'''
+
+[[mutant]]
+name = "an arrow goes through the name set to the right of a bar"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = '''                solid.append(Rect(piece.right + s.gap_s, top, piece.wide, tall))
+                page.label(solid[-1], piece.text, size=size)'''
+new = "                page.label(Rect(piece.right + s.gap_s, top, piece.wide, tall), piece.text, size=size)"
+
+[[mutant]]
+name = "an arrow goes through the name set to the left of a bar"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = '''                solid.append(Rect(piece.left - s.gap_s - piece.wide, top, piece.wide, tall))
+                page.label(solid[-1], piece.text, align="right", size=size)'''
+new = '''                page.label(Rect(piece.left - s.gap_s - piece.wide, top, piece.wide, tall),
+                           piece.text, align="right", size=size)'''
+
+[[mutant]]
+name = "the arrows are given nothing to keep clear of"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = 'arrange.links(page, spec, plan.links, named, solid, [], "timeline")'
+new = 'arrange.links(page, spec, plan.links, named, [], [], "timeline")'
+
+[[mutant]]
+name = "the links of a page are not drawn"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "if plan.links is not None:"
+new = "if False:"
+
+[[mutant]]
+name = "a timeline does not take links"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = 'takes=["phases", "milestones", "links"]'
+new = 'takes=["phases", "milestones"]'
+
+[[mutant]]
+name = "links in a lane are not told where they belong"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "`phases`, `milestones` and `links` belong to the page"
+new = "`phases` and `milestones` belong to the page"
+
+# -- the look of a bar ----------------------------------------------------------
+
+[[mutant]]
+name = "a bar is painted by the filled look whatever the deck asks"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'look = self.outlined_look(style, size)[0] if self.theme.bar_look == "outlined" else self.look(style, size)'
+new = "look = self.look(style, size)"
+
+[[mutant]]
+name = "a bar is painted by the outlined look whatever the deck asks"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'look = self.outlined_look(style, size)[0] if self.theme.bar_look == "outlined" else self.look(style, size)'
+new = "look = self.outlined_look(style, size)[0]"
+
+[[mutant]]
+name = "a bar follows the look of the cards and not its own"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'self.theme.bar_look == "outlined" else self.look(style, size)'
+new = 'self.theme.card_look == "outlined" else self.look(style, size)'
+
+[[mutant]]
+name = "the look a project writes for its bars is not read"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        bar_look=bar_look,\n"
+new = ""
+
+[[mutant]]
+name = "the bars of a deck are outlined unless it says otherwise"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = 'BAR_LOOKS = ("filled", "outlined")'
+new = 'BAR_LOOKS = ("outlined", "filled")'
+
+[[mutant]]
+name = "a project may not write the look of its bars"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = '"card_look", "bar_look", "band_look"'
+new = '"card_look", "band_look"'

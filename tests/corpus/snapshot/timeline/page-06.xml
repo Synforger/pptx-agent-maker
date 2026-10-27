@@ -1,0 +1,1239 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<p:cSld>
+<p:spTree>
+<p:nvGrpSpPr>
+<p:cNvPr id="1" name=""/>
+<p:cNvGrpSpPr/>
+<p:nvPr/>
+</p:nvGrpSpPr>
+<p:grpSpPr/>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="2" name="TextBox 1"/>
+<p:cNvSpPr txBox="1"/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="324000"/>
+<a:ext cx="11328000" cy="540000"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:noFill/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr wrap="square" anchor="ctr">
+<a:spAutoFit/>
+</a:bodyPr>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="l"/>
+<a:r>
+<a:rPr sz="2400" b="1">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Arrows between bars</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="3" name="Rectangle 2"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="864000"/>
+<a:ext cx="11328000" cy="12700"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="4" name="Rectangle 3"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="2949248" y="1424210"/>
+<a:ext cx="1747751" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="F3F3F3"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="5" name="Rectangle 4"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="6444749" y="1424210"/>
+<a:ext cx="1747750" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="F3F3F3"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="6" name="Rectangle 5"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="9940250" y="1424210"/>
+<a:ext cx="1747750" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="F3F3F3"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="7" name="Rectangle 6"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="1195148" y="1424210"/>
+<a:ext cx="12700" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="8" name="Rectangle 7"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="2942898" y="1424210"/>
+<a:ext cx="12700" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="9" name="Rectangle 8"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="4690649" y="1424210"/>
+<a:ext cx="12700" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="10" name="Rectangle 9"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="6438399" y="1424210"/>
+<a:ext cx="12700" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="11" name="Rectangle 10"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="8186149" y="1424210"/>
+<a:ext cx="12700" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="12" name="Rectangle 11"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="9933900" y="1424210"/>
+<a:ext cx="12700" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="13" name="Rectangle 12"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="11681650" y="1424210"/>
+<a:ext cx="12700" cy="3982100"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="14" name="Rectangle 13"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="1532210"/>
+<a:ext cx="11328000" cy="12700"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="15" name="Rectangle 14"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="2500735"/>
+<a:ext cx="11328000" cy="12700"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="16" name="Rectangle 15"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="3469260"/>
+<a:ext cx="11328000" cy="12700"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="17" name="Rectangle 16"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="4437785"/>
+<a:ext cx="11328000" cy="12700"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="18" name="Rectangle 17"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="5393610"/>
+<a:ext cx="11328000" cy="12700"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="D9D9D9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="19" name="Rectangle 18"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="1219498" y="1080000"/>
+<a:ext cx="1711750" cy="344210"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="1F5FA9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="FFFFFF"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Jan</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="20" name="Rectangle 19"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="2967248" y="1080000"/>
+<a:ext cx="1711751" cy="344210"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="1F5FA9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="FFFFFF"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Feb</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="21" name="Rectangle 20"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="4714999" y="1080000"/>
+<a:ext cx="1711750" cy="344210"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="1F5FA9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="FFFFFF"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Mar</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="22" name="Rectangle 21"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="6462749" y="1080000"/>
+<a:ext cx="1711750" cy="344210"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="1F5FA9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="FFFFFF"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Apr</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="23" name="Rectangle 22"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="8210499" y="1080000"/>
+<a:ext cx="1711751" cy="344210"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="1F5FA9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="FFFFFF"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>May</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="24" name="Rectangle 23"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="9958250" y="1080000"/>
+<a:ext cx="1711750" cy="344210"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="1F5FA9"/>
+</a:solidFill>
+<a:ln>
+<a:noFill/>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="FFFFFF"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Jun</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="25" name="TextBox 24"/>
+<p:cNvSpPr txBox="1"/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="1586210"/>
+<a:ext cx="589498" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:noFill/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr wrap="square" lIns="0" rIns="0" tIns="0" bIns="0" anchor="ctr">
+<a:spAutoFit/>
+</a:bodyPr>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="l"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Core</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="26" name="Rectangle 25"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="1219498" y="1586210"/>
+<a:ext cx="3459501" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="FFF4E5"/>
+</a:solidFill>
+<a:ln w="12700">
+<a:solidFill>
+<a:srgbClr val="FFBD63"/>
+</a:solidFill>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="0">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>design</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="27" name="Rectangle 26"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="4714999" y="1586210"/>
+<a:ext cx="3459500" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="FFF4E5"/>
+</a:solidFill>
+<a:ln w="12700">
+<a:solidFill>
+<a:srgbClr val="FFBD63"/>
+</a:solidFill>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="0">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>build</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="28" name="Rectangle 27"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="8210499" y="1586210"/>
+<a:ext cx="3459501" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="FFF4E5"/>
+</a:solidFill>
+<a:ln w="12700">
+<a:solidFill>
+<a:srgbClr val="FFBD63"/>
+</a:solidFill>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="0">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>ship</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="29" name="TextBox 28"/>
+<p:cNvSpPr txBox="1"/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="2554735"/>
+<a:ext cx="589498" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:noFill/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr wrap="square" lIns="0" rIns="0" tIns="0" bIns="0" anchor="ctr">
+<a:spAutoFit/>
+</a:bodyPr>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="l"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Docs</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="30" name="Rectangle 29"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="6462749" y="2554735"/>
+<a:ext cx="5207251" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="EAF0F8"/>
+</a:solidFill>
+<a:ln w="12700">
+<a:solidFill>
+<a:srgbClr val="81A5D5"/>
+</a:solidFill>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="0">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>docs</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="31" name="TextBox 30"/>
+<p:cNvSpPr txBox="1"/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="3523260"/>
+<a:ext cx="589498" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:noFill/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr wrap="square" lIns="0" rIns="0" tIns="0" bIns="0" anchor="ctr">
+<a:spAutoFit/>
+</a:bodyPr>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="l"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Base</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="32" name="Rectangle 31"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="1219498" y="3523260"/>
+<a:ext cx="2585626" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="FFF4E5"/>
+</a:solidFill>
+<a:ln w="12700">
+<a:solidFill>
+<a:srgbClr val="FFBD63"/>
+</a:solidFill>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="0">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>base</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="33" name="TextBox 32"/>
+<p:cNvSpPr txBox="1"/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="432000" y="4491785"/>
+<a:ext cx="589498" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:noFill/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr wrap="square" lIns="0" rIns="0" tIns="0" bIns="0" anchor="ctr">
+<a:spAutoFit/>
+</a:bodyPr>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="l"/>
+<a:r>
+<a:rPr sz="1400" b="1">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>Plan</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:sp>
+<p:nvSpPr>
+<p:cNvPr id="34" name="Rectangle 33"/>
+<p:cNvSpPr/>
+<p:nvPr/>
+</p:nvSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="2093373" y="4491785"/>
+<a:ext cx="4333376" cy="860525"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+<a:solidFill>
+<a:srgbClr val="EAF0F8"/>
+</a:solidFill>
+<a:ln w="12700">
+<a:solidFill>
+<a:srgbClr val="81A5D5"/>
+</a:solidFill>
+</a:ln>
+<a:effectLst/>
+</p:spPr>
+<p:txBody>
+<a:bodyPr rtlCol="0" anchor="ctr" wrap="square" lIns="54000" rIns="54000" tIns="0" bIns="0"/>
+<a:lstStyle/>
+<a:p>
+<a:pPr algn="ctr"/>
+<a:r>
+<a:rPr sz="1400" b="0">
+<a:solidFill>
+<a:srgbClr val="1A1A1A"/>
+</a:solidFill>
+<a:latin typeface="Meiryo"/>
+</a:rPr>
+<a:t>plan</a:t>
+</a:r>
+</a:p>
+</p:txBody>
+</p:sp>
+<p:cxnSp>
+<p:nvCxnSpPr>
+<p:cNvPr id="35" name="Connector 34"/>
+<p:cNvCxnSpPr/>
+<p:nvPr/>
+</p:nvCxnSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="4678999" y="2016472"/>
+<a:ext cx="36000" cy="0"/>
+</a:xfrm>
+<a:prstGeom prst="line">
+<a:avLst/>
+</a:prstGeom>
+<a:ln w="19050">
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:tailEnd type="triangle" w="med" len="med"/>
+</a:ln>
+</p:spPr>
+</p:cxnSp>
+<p:cxnSp>
+<p:nvCxnSpPr>
+<p:cNvPr id="36" name="Connector 35"/>
+<p:cNvCxnSpPr/>
+<p:nvPr/>
+</p:nvCxnSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="7318624" y="2446735"/>
+<a:ext cx="0" cy="108000"/>
+</a:xfrm>
+<a:prstGeom prst="line">
+<a:avLst/>
+</a:prstGeom>
+<a:ln w="19050">
+<a:solidFill>
+<a:srgbClr val="B3261E"/>
+</a:solidFill>
+<a:tailEnd type="triangle" w="med" len="med"/>
+</a:ln>
+</p:spPr>
+</p:cxnSp>
+<p:cxnSp>
+<p:nvCxnSpPr>
+<p:cNvPr id="37" name="Connector 36"/>
+<p:cNvCxnSpPr/>
+<p:nvPr/>
+</p:nvCxnSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="8174499" y="2016472"/>
+<a:ext cx="36000" cy="0"/>
+</a:xfrm>
+<a:prstGeom prst="line">
+<a:avLst/>
+</a:prstGeom>
+<a:ln w="19050">
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:tailEnd type="triangle" w="med" len="med"/>
+</a:ln>
+</p:spPr>
+</p:cxnSp>
+<p:cxnSp>
+<p:nvCxnSpPr>
+<p:cNvPr id="38" name="Connector 37"/>
+<p:cNvCxnSpPr/>
+<p:nvPr/>
+</p:nvCxnSpPr>
+<p:spPr>
+<a:xfrm>
+<a:off x="2949248" y="4383785"/>
+<a:ext cx="0" cy="108000"/>
+</a:xfrm>
+<a:prstGeom prst="line">
+<a:avLst/>
+</a:prstGeom>
+<a:ln w="19050">
+<a:solidFill>
+<a:srgbClr val="6B6B6B"/>
+</a:solidFill>
+<a:tailEnd type="triangle" w="med" len="med"/>
+</a:ln>
+</p:spPr>
+</p:cxnSp>
+</p:spTree>
+</p:cSld>
+<p:clrMapOvr>
+<a:masterClrMapping/>
+</p:clrMapOvr>
+</p:sld>

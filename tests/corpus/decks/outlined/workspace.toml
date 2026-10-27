@@ -10,6 +10,7 @@ assets = "assets"
 
 [theme]
 card_look = "outlined"
+bar_look = "outlined"
 band_look = "outlined"
 table_look = "plain"
 box_height = "page"

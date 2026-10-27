@@ -148,3 +148,63 @@ bars = [
   { from = 2, to = 5.5, text = "測って、結果を表にまとめる" },
 ]
 marks = [{ at = 5.75, text = "完了" }]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "A line break in the name of a bar"
+periods = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+
+[[pages.lanes]]
+name = "Core"
+bars = [
+  { from = 0, to = 2, text = "名前\n(補足の 1)\n(補足の 2)" },
+  { from = 2, to = 4, text = "build\nand test", tentative = true },
+  { from = 4, to = 6, text = "a first line long enough to wrap inside its bar\nthen a short one" },
+]
+
+[[pages.lanes]]
+name = "Docs"
+bars = [{ from = 2, to = 6, text = "write\nthe whole guide", spans = 2 }]
+
+[[pages.lanes]]
+name = "Covered only"
+
+[[pages.lanes]]
+name = "Site"
+bars = [
+  { from = 0, to = 0.4, text = "a name that goes beside\nits bar, on two lines" },
+  { from = 3, to = 6, text = "publish\non the day" },
+]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "Arrows between bars"
+periods = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+links = [
+  { from = "design", to = "build" },
+  { from = "build", to = "docs", tone = "bad" },
+  { from = "build", to = "ship" },
+  { from = "base", to = "plan" },
+]
+
+[[pages.lanes]]
+name = "Core"
+bars = [
+  { from = 0, to = 2, text = "design", id = "design" },
+  { from = 2, to = 4, text = "build", id = "build" },
+  { from = 4, to = 6, text = "ship", id = "ship" },
+]
+
+[[pages.lanes]]
+name = "Docs"
+bars = [{ from = 3, to = 6, text = "docs", id = "docs" }]
+
+[[pages.lanes]]
+name = "Base"
+bars = [{ from = 0, to = 1.5, text = "base", id = "base" }]
+
+[[pages.lanes]]
+name = "Plan"
+bars = [{ from = 0.5, to = 3, text = "plan", id = "plan" }]

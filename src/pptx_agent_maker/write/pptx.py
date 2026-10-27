@@ -179,17 +179,20 @@ def _bar(slide, element: Bar, theme: Theme) -> None:
     frame.margin_left = frame.margin_right = Emu(theme.spacing.bar_pad_x)
     frame.margin_left = Emu(theme.spacing.bar_pad_x + element.lead)
     frame.margin_top = frame.margin_bottom = Emu(0)
-    paragraph = frame.paragraphs[0]
     if not element.text.strip():
-        paragraph.text = ""  # never write an empty run
+        frame.paragraphs[0].text = ""  # never write an empty run
         return
-    paragraph.alignment = ALIGN[element.align]
-    run = paragraph.add_run()
-    run.text = element.text
-    run.font.size = Pt(element.size)
-    run.font.bold = element.bold
-    run.font.color.rgb = _colour(element.colour)
-    run.font.name = theme.type.family
+    # 名前の中の改行は行ごとの段落にし、揃えは全部の段落に書く (= 1 つの run に改行を入れると、
+    # 2 行目からは揃えが段落の既定に戻る)
+    for index, line in enumerate(element.text.split("\n")):
+        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.alignment = ALIGN[element.align]
+        run = paragraph.add_run()
+        run.text = line
+        run.font.size = Pt(element.size)
+        run.font.bold = element.bold
+        run.font.color.rgb = _colour(element.colour)
+        run.font.name = theme.type.family
 
 
 def _voice(shape, element: Bar, theme: Theme) -> None:

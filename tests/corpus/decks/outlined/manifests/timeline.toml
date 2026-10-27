@@ -1,0 +1,64 @@
+# What `bar_look = "outlined"` does to the bars of a timeline: a colour on the line, the ground nearly the paper's,
+# the same rule as an outlined card of that tone. The deck's grounds are one named for what it means, one pale and one deep.
+
+specimen = "specimen.pptx"
+out = "timeline.pptx"
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "A bar in every tone, painted as a card of that tone is"
+periods = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+links = [{ from = "plan", to = "build" }, { from = "build", to = "ship", tone = "bad" }]
+
+[[pages.lanes]]
+name = "Colours"
+bars = [
+  { from = 0, to = 2, text = "accent", tone = "accent" },
+  { from = 2, to = 4, text = "good", tone = "good" },
+  { from = 4, to = 6, text = "bad", tone = "bad" },
+]
+
+[[pages.lanes]]
+name = "Named grounds"
+bars = [
+  { from = 0, to = 3, text = "Late (deep)", tone = "Late" },
+  { from = 3, to = 6, text = "Inside (pale)", tone = "Inside" },
+]
+
+[[pages.lanes]]
+name = "Pale grounds"
+bars = [
+  { from = 0, to = 2, text = "box", tone = "box" },
+  { from = 2, to = 4, text = "band", tone = "band" },
+  { from = 4, to = 6, text = "tint", tone = "tint" },
+]
+
+[[pages.lanes]]
+name = "Open and strong"
+bars = [
+  { from = 0, to = 2, text = "not decided", tentative = true, tone = "Late" },
+  { from = 2, to = 4, text = "the critical one", strong = true, tone = "accent" },
+  { from = 4, to = 6, text = "icon", icon = "circle.png", tone = "good" },
+]
+
+[[pages.lanes]]
+name = "A lane of its own tone"
+tone = "Late"
+bars = [{ from = 0, to = 2, text = "plan", id = "plan" }, { from = 2, to = 4, text = "build\nand test", id = "build" }, { from = 4, to = 6, text = "ship", id = "ship" }]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "A bar across lanes, and a name on two lines"
+periods = ["Jan", "Feb", "Mar", "Apr"]
+
+[[pages.lanes]]
+name = "Core"
+bars = [
+  { from = 0, to = 3, text = "shared work\nover two lanes", spans = 2, tone = "Late" },
+  { from = 3, to = 4, text = "demo", tone = "accent" },
+]
+
+[[pages.lanes]]
+name = "Covered only"
