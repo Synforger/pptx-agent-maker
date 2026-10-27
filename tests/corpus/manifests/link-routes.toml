@@ -82,7 +82,7 @@ conclusion = "A hop is a small half circle: the lines cross, they do not branch"
 grid = { columns = [1, 1, 1], rows = [1, 1, 1] }
 links = [
   { from = "left", to = "right" },
-  { from = "top", to = "bottom", tone = "accent" },
+  { from = "top", to = "bottom", tone = "accent", tentative = true },
 ]
 
 [[pages.cells]]

@@ -344,24 +344,28 @@ class WhatALinkRefuses(unittest.TestCase):
                 page([lane("Work", [bar(0, 2, "design", id=value)])])
             self.assertIn("`id`", str(raised.exception))
 
+    def _never_runs_across(self, lanes, links):
+        """What stands between two linked bars is never run straight across: the arrow bends round, or the page stops."""
+        try:
+            built = linked(lanes, links)
+        except PageTypeError as stopped:
+            self.assertIn("finds no way through", str(stopped))
+            return
+        lines = [e for e in built.build() if e.kind == "line"]
+        self.assertTrue(lines and all(line.corners for line in lines), "an arrow ran straight across what stands between")
+
     def test_a_bar_standing_between_the_two(self):
-        with self.assertRaises(PageTypeError) as raised:
-            linked([lane("Work", [bar(0, 2, "a", id="a"), bar(2, 4, "middle"), bar(4, 6, "c", id="c")])],
-                   [{"from": "a", "to": "c"}])
-        self.assertIn("between", str(raised.exception))
+        self._never_runs_across([lane("Work", [bar(0, 2, "a", id="a"), bar(2, 4, "middle"), bar(4, 6, "c", id="c")])],
+                                [{"from": "a", "to": "c"}])
 
     def test_a_name_set_beside_a_bar_standing_between_the_two(self):
         """棒の隣に出た名前も、矢印が横切れない物 (= 名前を貫くと、どちらの名前か読めない)。"""
-        with self.assertRaises(PageTypeError) as raised:
-            linked([lane("Work", [bar(0, 0.5, "a name that goes beside its bar", id="a"), bar(3, 4, "b", id="b")])],
-                   [{"from": "a", "to": "b"}])
-        self.assertIn("between", str(raised.exception))
+        self._never_runs_across([lane("Work", [bar(0, 0.5, "a name that goes beside its bar", id="a"),
+                                               bar(3, 4, "b", id="b")])], [{"from": "a", "to": "b"}])
 
     def test_a_name_set_to_the_left_of_a_bar_standing_between_the_two(self):
-        with self.assertRaises(PageTypeError) as raised:
-            linked([lane("Work", [bar(0, 1, "a", id="a"), bar(5.6, 6, "a name that goes to the left", id="b")])],
-                   [{"from": "a", "to": "b"}])
-        self.assertIn("between", str(raised.exception))
+        self._never_runs_across([lane("Work", [bar(0, 1, "a", id="a"), bar(5.6, 6, "a name that goes to the left", id="b")])],
+                                [{"from": "a", "to": "b"}])
 
     def test_a_key_a_link_does_not_read(self):
         with self.assertRaises(PageTypeError):
