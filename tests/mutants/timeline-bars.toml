@@ -31,7 +31,7 @@ new = '''        paragraph = frame.paragraphs[0] if index == 0 else frame.add_pa
 [[mutant]]
 name = "the breaks written in a name are not counted"
 file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
-old = 'breaks = text.count("\n") + 1'
+old = 'breaks = _written_lines(text)'
 new = "breaks = 1"
 
 [[mutant]]
@@ -184,5 +184,5 @@ new = 'BAR_LOOKS = ("outlined", "filled")'
 [[mutant]]
 name = "a project may not write the look of its bars"
 file = "src/pptx_agent_maker/layout/tokens.py"
-old = '"card_look", "bar_look", "band_look"'
-new = '"card_look", "band_look"'
+old = '"card_look", "bar_look", "tentative_look", "band_look"'
+new = '"card_look", "tentative_look", "band_look"'

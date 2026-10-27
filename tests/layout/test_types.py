@@ -15,7 +15,7 @@ from pathlib import Path
 from pptx_agent_maker.layout import types
 from pptx_agent_maker.layout.parts.elements import Figure, Fill, Table, Text
 from pptx_agent_maker import Page
-from pptx_agent_maker.layout.tokens import DEFAULT
+from pptx_agent_maker.layout.tokens import DEFAULT, theme_from
 from pptx_agent_maker.layout.parts.page import PageFullError
 from pptx_agent_maker.layout.types.core.registry import PageTypeError
 from pptx_agent_maker.project.files.manifest import Manifest, ManifestError
@@ -29,6 +29,9 @@ DATA = REPO / "tests" / "data"
 SQUARE = "dot.png"      # 8 x 8
 WIDE = "wide.png"       # 16 x 4
 
+
+#: 案件が地に名前を付けた資料 (= 目次の今の章の色の役に、名前の付いた地も書ける)
+TONED = theme_from({"grounds": {"Inside": "EAF0F8", "Deep": "1F3A5F"}})
 
 #: 型それぞれの、本体に最小限そろった宣言
 MINIMAL = {
@@ -425,6 +428,45 @@ class WhatTheTypesRefuse(unittest.TestCase):
         self.assertEqual([("1", p.ink), ("2", p.paper), ("3", p.ink)], [(n.text, n.colour) for n in numbers])
         self.assertTrue(all(disc.rect.width == disc.rect.height for disc in discs), "a number sits in a circle")
 
+    def _marked(self, **more):
+        """(card, disc, number, name) of the chapter in hand, as drawn."""
+        page = build({**self.CARDS, **more}, TONED)
+        pick = lambda kind, text=None: sorted(self._kind(page, kind), key=lambda e: e.rect.top)[1]  # noqa: E731
+        return (pick("agenda_card").colour, pick("agenda_disc").colour, pick("agenda_number").colour,
+                pick("agenda_chapter").colour)
+
+    def test_the_chapter_in_hand_takes_the_colour_of_the_tone_a_page_names(self):
+        p = TONED.palette
+        for tone, colour in (("good", p.good), ("bad", p.bad), ("Deep", "1F3A5F")):
+            with self.subTest(tone=tone):
+                card, disc, number, name = self._marked(highlight_tone=tone)
+                self.assertEqual((p.thinned(p.FAINT, colour), colour, colour), (card, disc, name))
+                self.assertEqual(p.words_on(colour, TONED.type.heading, True), number)
+
+    def test_the_other_chapters_stay_grey_whatever_the_tone(self):
+        p = TONED.palette
+        page = build({**self.CARDS, "highlight_tone": "good"}, TONED)
+        cards = sorted(self._kind(page, "agenda_card"), key=lambda e: e.rect.top)
+        discs = sorted(self._kind(page, "agenda_disc"), key=lambda e: e.rect.top)
+        self.assertEqual([p.wash, p.wash], [cards[0].colour, cards[2].colour])
+        self.assertEqual([p.rule, p.rule], [discs[0].colour, discs[2].colour])
+
+    def test_a_pale_tone_is_the_ground_of_the_card_with_a_disc_drawn_darker_in_it(self):
+        p = TONED.palette
+        for tone, ground in (("tint", p.tint), ("Inside", "EAF0F8")):
+            with self.subTest(tone=tone):
+                card, disc, number, name = self._marked(highlight_tone=tone)
+                self.assertEqual((ground, p.edge(ground), p.ink), (card, disc, name))
+                self.assertEqual(p.words_on(disc, TONED.type.heading, True), number)
+
+    def test_the_accent_named_is_the_accent_unsaid(self):
+        self.assertEqual(self._marked(), self._marked(highlight_tone="accent"))
+
+    def test_a_tone_for_the_cards_needs_the_chapter_it_is_for(self):
+        with self.assertRaises(PageTypeError) as refused:
+            build({**self.CARDS, "highlight": 0, "highlight_tone": "good"})
+        self.assertIn("no chapter is named", str(refused.exception))
+
     def test_a_chapter_name_and_its_summary_are_two_lines(self):
         """`名前 ― 要旨` は、 名前を太字の 1 行目、 要旨を 2 行目にする。 要旨の無い章は名前だけ。"""
         page = build(self.CARDS)
@@ -539,7 +581,8 @@ class WhatTheTypesRefuse(unittest.TestCase):
                            ({**self.CARDS, "highlight_item": 9}, "highlight_item"),
                            ({**self.CARDS, "highlight_item": True}, "highlight_item"),
                            ({**self.AGENDA, "highlight_item": 1}, "highlight_item"),
-                           ({**self.CARDS, "highlight_tone": "accent"}, "highlight_tone"),
+                           ({**self.CARDS, "highlight": 0, "highlight_tone": "accent"}, "highlight_tone"),
+                           ({**self.CARDS, "highlight_tone": "pink"}, "highlight_tone"),
                            ({**self.CARDS, "numbers": "circled"}, "numbers")):
             with self.subTest(word=word, spec=spec), self.assertRaises(PageTypeError) as refused:
                 build(spec)

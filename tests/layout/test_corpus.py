@@ -226,12 +226,14 @@ class TheCorpusUsesEverything(unittest.TestCase):
 
     def test_the_look_a_deck_sets_for_all_its_pages_is_kept_in_a_deck_of_its_own(self) -> None:
         """⚠ 見た目は案件に 1 つなので、既定の見た目の資料は、別の見た目が頁に何をするかを守れない。"""
-        from pptx_agent_maker.layout.tokens import BAND_LOOKS, BAR_LOOKS, BOX_HEIGHTS, CARD_LOOKS, TABLE_LOOKS
+        from pptx_agent_maker.layout.tokens import (BAND_LOOKS, BAR_LOOKS, BOX_HEIGHTS, CARD_LOOKS, TABLE_LOOKS,
+                                                    TENTATIVE_LOOKS)
         main = _toml(CORPUS / "workspace.toml").get("theme", {})
         looks = {key: {main.get(key)} | {_toml(path).get("theme", {}).get(key) for path in DECKS}
-                 for key in ("card_look", "bar_look", "band_look", "box_height", "table_look")}
+                 for key in ("card_look", "bar_look", "band_look", "box_height", "table_look", "tentative_look")}
         for key, options in (("card_look", CARD_LOOKS), ("bar_look", BAR_LOOKS), ("band_look", BAND_LOOKS),
-                             ("box_height", BOX_HEIGHTS), ("table_look", TABLE_LOOKS)):
+                             ("box_height", BOX_HEIGHTS), ("table_look", TABLE_LOOKS),
+                             ("tentative_look", TENTATIVE_LOOKS)):
             with self.subTest(key):
                 self.assertEqual(set(options), {value or options[0] for value in looks[key]},
                                  f"{key}: a look no project of the corpus is set in")

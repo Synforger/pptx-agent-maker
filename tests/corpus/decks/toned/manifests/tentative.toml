@@ -1,0 +1,87 @@
+# What `tentative_look = "toned"` does to a deck whose cards are filled: an unfinished box is a dotted line and words
+# in the colour of its tone, on the paper; a tone with no colour of its own falls to the ink.
+
+specimen = "specimen.pptx"
+out = "tentative.pptx"
+
+[[pages]]
+kind = "declare"
+type = "cards"
+title = "An unfinished card keeps the colour of its tone"
+card_columns = 3
+cards = [
+  { heading = "accent", body = "not decided yet", tone = "accent", tentative = true },
+  { heading = "good", body = "not decided yet", tone = "good", tentative = true },
+  { heading = "bad", body = "not decided yet", tone = "bad", tentative = true },
+  { heading = "A named ground", body = "not decided yet", tone = "Late", tentative = true },
+  { heading = "A pale ground", body = "falls to the ink", tone = "Inside", tentative = true },
+  { heading = "A plain ground, strong", body = "a heavy dotted line", tone = "box", tentative = true, strong = true },
+]
+table = [
+  ["Look", "Key"],
+  { band = "Kept", tone = "accent" },
+  ["colour", "tentative_look"],
+  { band = "Left alone" },
+  ["grey", "unsaid"],
+]
+
+[[pages]]
+kind = "declare"
+type = "flow"
+title = "So do the nodes of a flow and the arrowheads of a roadmap"
+
+[[pages.stages]]
+name = "Now"
+nodes = [{ heading = "Draft", body = "a first version", tone = "good" }]
+
+[[pages.stages]]
+name = "Maybe"
+nodes = [{ heading = "Extras", body = "if there is time", tone = "accent", tentative = true }]
+
+[[pages]]
+kind = "declare"
+type = "roadmap"
+title = "A road with an unfinished stage"
+
+[[pages.stages]]
+name = "Now"
+nodes = [["Draft", "a first version"]]
+
+[[pages.stages]]
+name = "Maybe"
+tone = "good"
+tentative = true
+nodes = [{ heading = "Extras", tone = "good", tentative = true }]
+
+[[pages.stages]]
+name = "Goal"
+goal = true
+nodes = [{ heading = "Release" }]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "And the bars of a timeline"
+periods = ["Q1", "Q2", "Q3", "Q4"]
+
+[[pages.lanes]]
+name = "Default"
+bars = [
+  { from = 0, to = 1, text = "decided" },
+  { from = 1, to = 2, text = "if any", tentative = true },
+  { from = 2, to = 3, text = "both", tentative = true, strong = true },
+]
+
+[[pages.lanes]]
+name = "Accent"
+tone = "accent"
+bars = [
+  { from = 0, to = 2, text = "not yet", tentative = true },
+  { from = 2, to = 4, text = "bad news", tone = "bad", tentative = true },
+]
+
+[[pages.lanes]]
+name = "Named"
+tone = "Late"
+bars = [{ from = 1, to = 3, text = "its own colour", tentative = true }]
+

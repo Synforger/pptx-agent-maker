@@ -182,15 +182,22 @@ def _bar(slide, element: Bar, theme: Theme) -> None:
     if not element.text.strip():
         frame.paragraphs[0].text = ""  # never write an empty run
         return
-    # 名前の中の改行は行ごとの段落にし、揃えは全部の段落に書く (= 1 つの run に改行を入れると、
-    # 2 行目からは揃えが段落の既定に戻る)
+    _name_lines(frame, element, theme, bold=element.bold)
+
+
+def _name_lines(frame, element: Bar, theme: Theme, *, bold: bool | None) -> None:
+    """Write the words of a shape, a paragraph to each line, every one set the same way.
+
+    ⚠ **名前の中の改行は行ごとの段落にし、揃えは全部の段落に書く。**1 つの run に改行を入れると、
+    2 行目からは揃えが段落の既定に戻る。`bold` が None なら太さは書かない (= 図形の既定のまま)。
+    """
     for index, line in enumerate(element.text.split("\n")):
         paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
         paragraph.alignment = ALIGN[element.align]
         run = paragraph.add_run()
         run.text = line
         run.font.size = Pt(element.size)
-        run.font.bold = element.bold
+        run.font.bold = bold
         run.font.color.rgb = _colour(element.colour)
         run.font.name = theme.type.family
 
@@ -215,13 +222,7 @@ def _voice(shape, element: Bar, theme: Theme) -> None:
     frame.word_wrap = True
     frame.vertical_anchor = MSO_ANCHOR.MIDDLE
     frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = Emu(s.pad)
-    paragraph = frame.paragraphs[0]
-    paragraph.alignment = ALIGN[element.align]
-    run = paragraph.add_run()
-    run.text = element.text
-    run.font.size = Pt(element.size)
-    run.font.color.rgb = _colour(element.colour)
-    run.font.name = theme.type.family
+    _name_lines(frame, element, theme, bold=None)
 
 
 def _line(slide, element: Line, theme: Theme) -> None:

@@ -1,0 +1,111 @@
+# A line break in a name is a line of its own wherever a name is written: the marks, dates and periods of a timeline
+# count the lines they are written in, and the words of a speech bubble are a paragraph to each line.
+
+tests = ["tests/layout/test_line_breaks.py"]
+
+# -- the words of a speech bubble -----------------------------------------------
+
+[[mutant]]
+name = "the words of a speech bubble are written as one run, breaks and all"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "    _name_lines(frame, element, theme, bold=None)\n"
+new = '''    paragraph = frame.paragraphs[0]
+    paragraph.alignment = ALIGN[element.align]
+    run = paragraph.add_run()
+    run.text = element.text
+    run.font.size = Pt(element.size)
+    run.font.color.rgb = _colour(element.colour)
+    run.font.name = theme.type.family
+'''
+
+[[mutant]]
+name = "a speech bubble is as tall as one line whatever it is written in"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "bubble = max(self.theme.wrapped_height(voice.text, room) for voice in row) + 2 * s.pad"
+new = "bubble = self.theme.line_height() + 2 * s.pad"
+
+# -- the marks of a lane --------------------------------------------------------
+
+[[mutant]]
+name = "the name beside a mark is one line tall whatever it is written in"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "max(s.mark, _written_lines(text) * line + 2 * s.bar_pad_y), wide, point=True))"
+new = "max(s.mark, cell), wide, point=True))"
+
+# -- the dates across the page ---------------------------------------------------
+
+[[mutant]]
+name = "the name of a date is one line tall whatever it is written in"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "stones.append(_Piece(where, where, text, side, _written_lines(text) * line, wide))"
+new = "stones.append(_Piece(where, where, text, side, line, wide))"
+
+[[mutant]]
+name = "every row of date names is one line tall"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "    stone_rows = [max(stone.tall for stone in stones if stone.row == row) for row in range(rows_of_stones)]"
+new = "    stone_rows = [line for row in range(rows_of_stones)]"
+
+[[mutant]]
+name = "a date name is set in a box of one line"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "            page.label(Rect(stone.left + s.bar_pad_x, top, stone.wide, stone.tall), stone.text,"
+new = "            page.label(Rect(stone.left + s.bar_pad_x, top, stone.wide, page.theme.line_height(size)), stone.text,"
+
+[[mutant]]
+name = "a date name in the second row starts where one line of the first would end"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "        top = flags_top + sum(layout.stone_rows[:stone.row])\n        if stone.side == \"right\":"
+new = "        top = flags_top + stone.row * page.theme.line_height(size)\n        if stone.side == \"right\":"
+
+[[mutant]]
+name = "the line of a date starts where one line of the rows above would end"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "        top = flags_top + sum(layout.stone_rows[:stone.row])\n        page.rule("
+new = "        top = flags_top + stone.row * page.theme.line_height(size)\n        page.rule("
+
+[[mutant]]
+name = "the page does not count the height of date names it keeps"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "        + (sum(stone_rows) + s.gap_s if stones else 0)"
+new = "        + (len(stone_rows) * line + s.gap_s if stones else 0)"
+
+[[mutant]]
+name = "the band for date names is cut at one line a row"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "        _band, rest = rest.split_top(sum(layout.stone_rows), gap=s.gap_s)"
+new = "        _band, rest = rest.split_top(len(layout.stone_rows) * page.theme.line_height(size), gap=s.gap_s)"
+
+# -- the periods ----------------------------------------------------------------
+
+[[mutant]]
+name = "the name of a period is one line tall whatever it is written in"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "    period_tall = max(_written_lines(period) for period in plan.periods) * line + 2 * s.bar_pad_y"
+new = "    period_tall = cell"
+
+[[mutant]]
+name = "the page does not count the height of the period names it keeps"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "    head = (span_height + s.row_gap if plan.phases else 0) + period_tall + s.gap_s"
+new = "    head = (span_height + s.row_gap if plan.phases else 0) + cell + s.gap_s"
+
+# -- every name of every page ---------------------------------------------------
+
+[[mutant]]
+name = "a break in a name of a timeline is not counted as a line"
+file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
+old = "    return text.count(\"\\n\") + 1\n"
+new = "    return 1\n"
+
+[[mutant]]
+name = "the lines of a text are written as one run"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = '''    for index, line in enumerate(element.text.split("\n")):
+        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.alignment = ALIGN[element.align]
+        _leaded(paragraph, element.size, theme)'''
+new = '''    for index, line in enumerate([element.text]):
+        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.alignment = ALIGN[element.align]
+        _leaded(paragraph, element.size, theme)'''
