@@ -327,3 +327,40 @@ class LinesThatCrossAndOnesThatOnlyMeet(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FacingCellsWithABoxBetween(unittest.TestCase):
+    """⚠ 向き合う 2 つの間に別の箱があると、`another cell stands between` で止まっていた。向き合わない 2 つと同じく、
+    空いた通り道を通る折れ線で結ぶ。"""
+
+    def test_a_box_between_two_facing_cells_is_gone_round(self) -> None:
+        cells = [card("A", (2, 3), (2, 1), id="a"), card("B", (2, 7), id="b"), card("Between", (2, 5), (1, 2)),
+                 card("Under", (4, 3), (1, 4))]
+        page = grid_page(cells, columns=(1, 1, 1, 1, 1, 1, 1), rows=(1, 1, 1, 1),
+                         links=[{"from": "b", "to": "a"}])
+        line, = lines_of(page)
+        self.assertTrue(line.corners, "the line goes round the box between, so it bends")
+        between = box_of(page, "Between").rect
+        for first, second in zip(line.points(), line.points()[1:]):
+            run = Rect(min(first[0], second[0]), min(first[1], second[1]),
+                       abs(second[0] - first[0]) or 1, abs(second[1] - first[1]) or 1)
+            self.assertFalse(run.left < between.right and between.left < run.right
+                             and run.top < between.bottom and between.top < run.bottom, "the line runs across the box")
+
+
+class ADottedLink(unittest.TestCase):
+    """構想の段の流れを、実線の流れと見分ける (= カードの `tentative` と同じ書き方)。"""
+
+    def test_a_link_written_tentative_is_dotted_and_keeps_its_tone(self) -> None:
+        cells = [card("A", (1, 1), id="a"), card("B", (1, 2), id="b"), card("C", (1, 3), id="c")]
+        page = grid_page(cells, columns=(1, 1, 1), rows=(1,),
+                         links=[{"from": "a", "to": "b", "tentative": True, "tone": "accent"}, {"from": "b", "to": "c"}])
+        dotted, solid = lines_of(page)
+        self.assertTrue(dotted.dashed)
+        self.assertFalse(solid.dashed)
+        self.assertEqual(page.tone_ink("accent"), dotted.colour)
+
+    def test_tentative_is_true_or_false(self) -> None:
+        cells = [card("A", (1, 1), id="a"), card("B", (1, 2), id="b")]
+        with self.assertRaises(Exception):
+            grid_page(cells, columns=(1, 1), rows=(1,), links=[{"from": "a", "to": "b", "tentative": "yes"}])

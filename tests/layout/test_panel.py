@@ -439,15 +439,23 @@ class LinksAcrossAPanel(unittest.TestCase):
         (arrow,) = self.arrows(page)
         self.assertEqual(box.bottom, arrow.start[1])
 
-    def test_a_cell_between_the_two_ends_inside_the_panel_stops_the_link(self) -> None:
-        a, c = {**card("A"), "id": "a"}, {**card("C"), "id": "c"}
-        with self.assertRaisesRegex(PageTypeError, "another cell stands between"):
-            compose([row(panel(row(a), row(card("Middle")), row(c)))], OUTLINED, links=[{"from": "a", "to": "c"}])
+    def _goes_round_or_finds_no_way(self, rows) -> None:
+        """A link with something between its two ends never runs straight across it: it bends round, or stops saying why."""
+        try:
+            page = compose(rows, OUTLINED, links=[{"from": "a", "to": "c"}])
+        except PageTypeError as stopped:
+            self.assertIn("finds no way through", str(stopped))
+            return
+        (arrow,) = self.arrows(page)
+        self.assertTrue(arrow.corners, "the link ran straight across what stands between its ends")
 
-    def test_a_panel_standing_between_two_cells_stops_the_link(self) -> None:
+    def test_a_cell_between_the_two_ends_inside_the_panel_is_gone_round(self) -> None:
         a, c = {**card("A"), "id": "a"}, {**card("C"), "id": "c"}
-        with self.assertRaisesRegex(PageTypeError, "another cell stands between"):
-            compose([row(a, panel(row(card("Middle"))), c)], OUTLINED, links=[{"from": "a", "to": "c"}])
+        self._goes_round_or_finds_no_way([row(panel(row(a), row(card("Middle")), row(c)))])
+
+    def test_a_panel_standing_between_two_cells_is_gone_round(self) -> None:
+        a, c = {**card("A"), "id": "a"}, {**card("C"), "id": "c"}
+        self._goes_round_or_finds_no_way([row(a, panel(row(card("Middle"))), c)])
 
     def test_a_panel_is_not_joined_to_what_stands_inside_it(self) -> None:
         enclosure = {"panel": {"rows": [row({**card("In"), "id": "in"})]}, "id": "p"}

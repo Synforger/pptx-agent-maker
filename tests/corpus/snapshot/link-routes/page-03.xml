@@ -670,6 +670,7 @@
 <a:solidFill>
 <a:srgbClr val="1F5FA9"/>
 </a:solidFill>
+<a:prstDash val="dash"/>
 <a:tailEnd type="triangle" w="med" len="med"/>
 </a:ln>
 <a:effectLst/>

@@ -1,0 +1,27 @@
+# Links between cells that face each other with a cell between them, and dotted links (= a link's `tentative`).
+
+tests = ["tests/layout/test_link_routes.py", "tests/layout/test_link_lines.py", "tests/layout/test_arrange.py"]
+
+[[mutant]]
+name = "two facing cells with a cell between them stop instead of going round"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = 'items = [replace(link, facing="") if link.facing and _blocked('
+new = 'items = [link if link.facing and _blocked('
+
+[[mutant]]
+name = "a link written tentative is drawn solid"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "ends_on=joined[1], dashed=link.dashed)"
+new = "ends_on=joined[1], dashed=False)"
+
+[[mutant]]
+name = "a dotted line is written without its dash"
+file = "src/pptx_agent_maker/write/lines.py"
+old = "        shape.line.dash_style = MSO_LINE_DASH_STYLE.DASH\n"
+new = "        pass\n"
+
+[[mutant]]
+name = "tentative takes any value"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    if not isinstance(dashed, bool):\n"
+new = "    if False:\n"

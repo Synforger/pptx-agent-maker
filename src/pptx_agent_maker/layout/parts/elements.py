@@ -103,6 +103,8 @@ class Line(Element):
     #: 曲がる線だけが書く。人が箱を動かすと、線がその辺の接続点に付いて来る
     begins_on: tuple[Rect, int] | None = None
     ends_on: tuple[Rect, int] | None = None
+    #: 点線 (= 構想の段の流れ)
+    dashed: bool = False
 
     def points(self) -> list[tuple[int, int]]:
         """The line's points from the start to the end, corners included, on the slide."""

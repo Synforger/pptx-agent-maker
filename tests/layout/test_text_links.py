@@ -291,13 +291,19 @@ class WordsBesideAnArrow(unittest.TestCase):
         self.assertEqual((left.right, right.left), (line.start[0], line.end[0]))
         self.assertEqual((left.right, right.left), (words.rect.left, words.rect.right))
 
-    def test_a_cell_with_something_in_it_still_stops_the_arrow(self) -> None:
+    def test_a_cell_with_something_in_it_is_not_run_across(self) -> None:
+        """An empty cell lets the arrow run straight across; a cell with something in it is gone round, or stops the page."""
         for between in ({"text": "x"}, {"text": "", "role": "mono"}, {"card": {}}):
-            with self.subTest(between=between), self.assertRaises(PageTypeError) as stopped:
-                build({"type": "compose", "title": "A page", "links": [{"from": "a", "to": "b"}],
-                       "rows": [row({"id": "a", "card": {"heading": "Left"}}, between,
-                                    {"id": "b", "card": {"heading": "Right"}})]})
-            self.assertIn("stands between", str(stopped.exception))
+            with self.subTest(between=between):
+                try:
+                    page = build({"type": "compose", "title": "A page", "links": [{"from": "a", "to": "b"}],
+                                  "rows": [row({"id": "a", "card": {"heading": "Left"}}, between,
+                                               {"id": "b", "card": {"heading": "Right"}})]})
+                except PageTypeError as stopped:
+                    self.assertIn("finds no way through", str(stopped))
+                    continue
+                (line,) = kinds(page, "line")
+                self.assertTrue(line.corners, "the arrow ran straight across a cell with something in it")
 
     def test_an_empty_cell_beside_a_downward_arrow_does_not_stop_its_words(self) -> None:
         page = build({"type": "compose", "title": "A page", "links": [{"from": "a", "to": "b", "text": "Then"}],
