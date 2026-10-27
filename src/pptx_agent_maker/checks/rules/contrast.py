@@ -29,7 +29,8 @@ from pathlib import Path
 
 from ...layout.tokens import ALLOWED, allowed_pairs
 from .._internal.colour import Palette, contrast, reading_floor, solid
-from ..finding import Finding, Findings, page_number
+from ..finding import Finding, Findings
+from ..._common.page_label import page_number
 from ..._common.slide import RUN, TEXT, BuiltSlide, Shape, first_slide_number, read
 
 NAME = "contrast"

@@ -16,11 +16,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .finding import Finding, Findings, page_label, page_number
+from .finding import Finding, Findings
 from .declared import ALL as DECLARED
 from .rules import ALL as CHECKS
 
-__all__ = ["Finding", "Findings", "page_label", "page_number", "CHECKS", "DECLARED",
+__all__ = ["Finding", "Findings", "CHECKS", "DECLARED",
            "run_all", "run_declared", "run_built", "report"]
 
 

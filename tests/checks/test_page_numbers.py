@@ -26,9 +26,10 @@ from checks.test_checks import text_at  # noqa: E402
 from support.templates import a_template, with_a_cover  # noqa: E402
 
 from pptx_agent_maker import DEFAULT  # noqa: E402
+from pptx_agent_maker._common.page_label import page_label  # noqa: E402
 from pptx_agent_maker._common.slide import first_slide_number  # noqa: E402
 from pptx_agent_maker.__main__ import main  # noqa: E402
-from pptx_agent_maker.checks import Finding, Findings, page_label, report, run_all  # noqa: E402
+from pptx_agent_maker.checks import Finding, Findings, report, run_all  # noqa: E402
 from pptx_agent_maker.project import create  # noqa: E402
 
 WHITE_ON_BRAND = {"words": "FFFFFF", "ground": "2E9E5B"}

@@ -4,19 +4,19 @@ tests = ["tests/checks/test_page_numbers.py"]
 
 [[mutant]]
 name = "a deck counted from one is given a printed number too"
-file = "src/pptx_agent_maker/checks/finding.py"
+file = "src/pptx_agent_maker/_common/page_label.py"
 old = "if first_number == 1 or page < 1:"
 new = "if page < 1:"
 
 [[mutant]]
 name = "the whole deck is given a printed number"
-file = "src/pptx_agent_maker/checks/finding.py"
+file = "src/pptx_agent_maker/_common/page_label.py"
 old = "if first_number == 1 or page < 1:"
 new = "if first_number == 1:"
 
 [[mutant]]
 name = "the printed number is one too many"
-file = "src/pptx_agent_maker/checks/finding.py"
+file = "src/pptx_agent_maker/_common/page_label.py"
 old = "return f\"{page} (printed {first_number + page - 1})\""
 new = "return f\"{page} (printed {first_number + page})\""
 
