@@ -503,3 +503,44 @@ nodes = [["Review", "what held"]]
 [[pages.stages]]
 name = "Winter | open"
 goal = true
+
+[[pages]]
+kind = "declare"
+type = "agenda"
+title = "The chapter in hand takes the colour of a tone: bad"
+look = "cards"
+buckets = [
+  ["Pictures ― taken and set", ["Taken", "On a grid"]],
+  ["Diagrams ― drawn and timed", ["Drawn", "Timed"]],
+  ["Scaffolding", ["Cards", "Board"]],
+]
+highlight = 2
+highlight_tone = "bad"
+why = "an agenda drawn as cards whose chapter in hand takes the colour of a tone: the card washed in it, the disc in it, the name in it"
+
+[[pages]]
+kind = "declare"
+type = "agenda"
+title = "The chapter in hand takes a pale ground the project named"
+look = "cards"
+buckets = [
+  ["Pictures ― taken and set", ["Taken", "On a grid"]],
+  ["Diagrams ― drawn and timed", ["Drawn", "Timed"]],
+  ["Scaffolding", ["Cards", "Board"]],
+]
+highlight = 1
+highlight_tone = "Inside"
+why = "an agenda drawn as cards whose chapter in hand takes a pale ground: the card is the ground, the disc a darker shade of it, the name in the ink"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A voice written on two lines"
+why = "a speech bubble whose words break in two lines, each a paragraph aligned the same"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+voices = [
+  { text = "\"The display was easy to follow\nand the sound was good\"", who = "Work A" },
+  { text = "\"Thank you\"", who = "Work B" },
+]

@@ -1274,8 +1274,9 @@
 </a:solidFill>
 <a:ln w="12700">
 <a:solidFill>
-<a:srgbClr val="1A1A1A"/>
+<a:srgbClr val="8B1E3F"/>
 </a:solidFill>
+<a:prstDash val="dash"/>
 </a:ln>
 <a:effectLst/>
 </p:spPr>

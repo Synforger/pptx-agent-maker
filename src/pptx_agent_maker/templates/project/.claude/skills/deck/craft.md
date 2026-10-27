@@ -342,14 +342,15 @@
 
 | 作りたい頁 | 型 | 要点 |
 |---|---|---|
-| 章立て (= 章の頭ごとに 1 枚、今の章だけ強調) | `agenda` | `highlight` に章の番号。`highlight_tone` で地の色、`numbers = "circled"` で丸の数字。`look = "cards"` で右の章を列の高さいっぱいのカードに (= `highlight_item` で章の途中の小項目も強調)。小項目を `["中の段", ["頁の名前", …]]` と書けば 3 段 (= 下の段は今の章だけ) |
+| 章立て (= 章の頭ごとに 1 枚、今の章だけ強調) | `agenda` | `highlight` に章の番号。`highlight_tone` で地の色、`numbers = "circled"` で丸の数字。`look = "cards"` で右の章を列の高さいっぱいのカードに (= `highlight_tone` で今の章のカードの色を選べる。`highlight_item` で章の途中の小項目も強調)。小項目を `["中の段", ["頁の名前", …]]` と書けば 3 段 (= 下の段は今の章だけ) |
 | 実物の絵 1 枚と読み方 | `figure` | 絵は縦横比を保つ。`caption` に読み方 |
 | 絵を並べて比べる | `figures` | 2 つ以上を横に。名前は絵の下 |
 | 行 × 列の実物の比較 (= 手法 × 条件) | `figure_grid` | 絵は先に、行ごとに共通の枠で切っておく。名前と数字は絵に焼かず、頁の文字で置く |
 | 工程を左から右へ (= 替えた段だけ色) | `flow` | 段の中にノード。色は `tone`、段の下の 1 行は `settled` |
 | 入力から出力への縦の流れと、横への分岐 | `flow` | `direction = "down"`。段のノードが 2 つ以上なら分岐、次が 1 つなら合流 |
 | 到達点までの道のり | `roadmap` | 段は矢羽根。到達点は濃い地 |
-| 工程表 (= 縦にレーン、横に期間) | `timeline` | `phases` が期間の性格、`milestones` が全レーンを貫く日付。棒の名前は `\n` で補足を 2 行目から。棒どうしの順序は棒の `id` と頁の `links` の矢印。資料のカードが `outlined` なら `bar_look = "outlined"` で棒も揃える |
+| 工程表 (= 縦にレーン、横に期間) | `timeline` | `phases` が期間の性格、`milestones` が全レーンを貫く日付。棒・印・日付・期間の名前は `\n` で補足を 2 行目から (= 細い箱で名前が語の途中で折れる時は、`\n` で折る位置を決める)。棒どうしの順序は棒の `id` と頁の `links` の矢印。資料のカードが `outlined` なら `bar_look = "outlined"` で棒も揃える |
+| 構想の段の物を、決まった物の隣に点線で置く | `cards` `flow` `roadmap` `timeline` `compose` | 箱・棒・段に `tentative = true`。色の意味を保つなら `[theme] tentative_look = "toned"` (= 点線のまま枠と字が `tone` の色。書かなければ灰の点線) |
 | 数字を比べる・移り変わり・内訳・増減 | `chart` | `bar` / `column` / `line` / `stacked` / `waterfall`。軸の名前は `x` `y`。絵で貼らない |
 | 2 つの量の関係 (= 2 軸に点) | `chart` | `kind = "scatter"`。軸の名前 `x` `y` は必須。系列の名前は凡例に出る |
 | 手法・案・声を札で並べる | `cards` | 色は `tone`、絵は `icon`、列の数は `card_columns` |

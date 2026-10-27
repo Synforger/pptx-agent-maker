@@ -1,0 +1,19 @@
+# A fourth made-up project, whose unfinished boxes keep the colour of their tone (= `tentative_look = "toned"`): a dotted
+# line and words in the colour, the ground the paper's. The main corpus keeps them grey, and the look of the unfinished is
+# one per project, so it is kept here (the cards of this deck are filled, as in the main corpus).
+
+root = "."
+
+[paths]
+assets = "assets"
+
+[theme]
+tentative_look = "toned"
+
+[theme.grounds]
+"Inside" = "EAF0F8"
+"Late" = "8B1E3F"
+
+[checks]
+stale_words = ["案件名", "第 N 回"]
+unsourced = false

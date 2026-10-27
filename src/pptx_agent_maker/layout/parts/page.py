@@ -387,12 +387,15 @@ class Page:
     def look(self, style: Style, points: float | None = None, bold: bool = False) -> Look:
         """How a box, a bar or an arrowhead is painted, from the looks every one of them takes.
 
-        `tentative` (= 点線) は地を紙の色にし、字と枠を灰色の点線にする ― 決まった物の隣で同じ重さに
-        見えないように。`strong` (= 強調) は枠を本文の色の太い線にする (= 地の色を変えずに目を集める)。
+        `tentative` (= 点線) は地を紙の色にし、字と枠を点線にする ― 決まった物の隣で同じ重さに見えないように。
+        点線の色は資料の `tentative_look` が決める (= `muted` は灰、`toned` は色の役の色 ― 色の意味を保つ。
+        読めない色の役は `tone_ink` が本文の色に倒す)。`strong` (= 強調) は枠を本文の色の太い線にする
+        (= 地の色を変えずに目を集める)。
         """
         p = self.theme.palette
         if style.tentative:
-            fill, ink, outline = p.paper, p.muted, p.muted
+            ink = self.tone_ink(style.tone, points, bold) if self.theme.tentative_look == "toned" else p.muted
+            fill, outline = p.paper, ink
         else:
             fill, ink, outline = self.ground(style.tone, points, bold)
         if style.strong:
@@ -406,13 +409,16 @@ class Page:
         色のごく薄い色にし、その色が枠を持つ。見出しの字は紙の上で読めればその色、読めない明るい色なら本文の色
         (= 本文は本文の色のまま)。色が意味を言う物は、塗らずに線と字で言う。意味を持たない薄い地 (= `box` /
         `band` / `tint`、それと同じくらい紙に近い地に名前を付けた物) は、もう「ほぼ紙の色に枠」なので今までのまま。`tentative` (= 内容未定) は本文の色の線と字 (= 色の役の外にある「まだ決まって
-        いない」を、黒で言う。点線にはしない ― 色が言う)。`strong` は線を太くする (= 色は変えない)。
+        いない」を、黒で言う。点線にはしない ― 色が言う)。資料の `tentative_look = "toned"` では、色の役の色の
+        点線の枠と見出しで、地は紙の色 (= 色の意味を保ったまま、決まっていないと言う)。`strong` は線を太くする (= 色は変えない)。
         `points` と `bold` は、地に載る字の大きさと太さ (= `ground` と同じ。今までのままの地の判定に使う)。
         """
         p = self.theme.palette
-        if style.tentative:
-            return Look(p.paper, p.ink, p.ink, heavy=style.strong), p.ink
         head = self.tone_ink(style.tone, points, bold)
+        if style.tentative:
+            if self.theme.tentative_look == "toned":
+                return Look(p.paper, p.ink, head, dashed=True, heavy=style.strong), head
+            return Look(p.paper, p.ink, p.ink, heavy=style.strong), p.ink
         fill = self.ground(style.tone, points, bold)[0]
         # 名前を付けた地は、作り付けの薄い地ほど紙に近くなければ色を運ぶ (= 枠がその色になる)。見出しの字は
         # 紙の上で読める色のまま (= 明るい色の字は紙に溶けるので、本文の色)

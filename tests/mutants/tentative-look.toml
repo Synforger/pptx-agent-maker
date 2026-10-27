@@ -1,0 +1,82 @@
+# What a tentative box, bar or arrowhead is painted in: the grey it always was, or (`[theme] tentative_look = "toned"`)
+# the colour of its tone in a dotted line.
+
+tests = ["tests/layout/test_tentative_look.py", "tests/layout/test_look.py", "tests/layout/test_page_look.py"]
+
+# -- reading it from the theme ---------------------------------------------------
+
+[[mutant]]
+name = "the look a project asks for is dropped"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        tentative_look=tentative_look,"
+new = '        tentative_look="muted",'
+
+[[mutant]]
+name = "a look nobody knows is let through"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = 'tentative_look = _choice(settings, "tentative_look", TENTATIVE_LOOKS, "the look of a tentative box, bar or arrow")'
+new = 'tentative_look = str(settings.get("tentative_look", "muted"))'
+
+[[mutant]]
+name = "a deck that says nothing is toned"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = '    tentative_look: str = "muted"'
+new = '    tentative_look: str = "toned"'
+
+# -- a box, a bar, an arrowhead ---------------------------------------------------
+
+[[mutant]]
+name = "a toned tentative part is grey all the same"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = '            ink = self.tone_ink(style.tone, points, bold) if self.theme.tentative_look == "toned" else p.muted'
+new = "            ink = p.muted"
+
+[[mutant]]
+name = "a toned tentative part takes the colour of a pale tone too"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = '            ink = self.tone_ink(style.tone, points, bold) if self.theme.tentative_look == "toned" else p.muted'
+new = '            ink = self.ground(style.tone, points, bold)[0] if self.theme.tentative_look == "toned" else p.muted'
+
+[[mutant]]
+name = "a toned tentative part is filled with its colour"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            fill, outline = p.paper, ink"
+new = "            fill, outline = ink, ink"
+
+[[mutant]]
+name = "a toned tentative part keeps the grey line"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            fill, outline = p.paper, ink"
+new = "            fill, outline = p.paper, p.muted"
+
+[[mutant]]
+name = "a strong toned tentative part has a line in the ink, not in its colour"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            outline = ink if style.tentative else p.ink"
+new = "            outline = p.ink"
+
+# -- a card of a deck in the outlined look ---------------------------------------
+
+[[mutant]]
+name = "a toned tentative card of an outlined deck stays the ink"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if self.theme.tentative_look == \"toned\":\n"
+new = "            if False:\n"
+
+[[mutant]]
+name = "a toned tentative card of an outlined deck is not dotted"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return Look(p.paper, p.ink, head, dashed=True, heavy=style.strong), head"
+new = "return Look(p.paper, p.ink, head, dashed=False, heavy=style.strong), head"
+
+[[mutant]]
+name = "a toned tentative card of an outlined deck has its line in the ink"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return Look(p.paper, p.ink, head, dashed=True, heavy=style.strong), head"
+new = "return Look(p.paper, p.ink, p.ink, dashed=True, heavy=style.strong), head"
+
+[[mutant]]
+name = "a toned tentative card of an outlined deck has its heading in the ink"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return Look(p.paper, p.ink, head, dashed=True, heavy=style.strong), head"
+new = "return Look(p.paper, p.ink, head, dashed=True, heavy=style.strong), p.ink"

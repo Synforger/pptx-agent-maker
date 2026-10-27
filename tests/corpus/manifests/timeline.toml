@@ -208,3 +208,19 @@ bars = [{ from = 0, to = 1.5, text = "base", id = "base" }]
 [[pages.lanes]]
 name = "Plan"
 bars = [{ from = 0.5, to = 3, text = "plan", id = "plan" }]
+
+[[pages]]
+kind = "declare"
+type = "timeline"
+title = "A line break in the name of a mark, a date and a period"
+periods = ["Jan\n2026", "Feb", "Mar", "Apr", "May", "Jun"]
+milestones = [{ at = 1.5, text = "review\nwith the board" }, { at = 4, text = "release" }]
+
+[[pages.lanes]]
+name = "Core"
+bars = [{ from = 0, to = 3, text = "build" }]
+marks = [{ at = 3.5, text = "demo\nfor partners" }, { at = 5.5, text = "ship" }]
+
+[[pages.lanes]]
+name = "Docs"
+bars = [{ from = 2, to = 6, text = "write\nthe guide" }]

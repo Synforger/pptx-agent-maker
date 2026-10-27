@@ -41,26 +41,26 @@ new = "    if False:"
 [[mutant]]
 name = "the chapter in hand keeps the grey ground of the other cards"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = 'Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash, rounded=True)'
+old = 'Fill("agenda_card", band, marked_card if marked else p.wash, rounded=True)'
 new = 'Fill("agenda_card", band, p.wash, rounded=True)'
 
 [[mutant]]
 name = "the cards have square corners"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = 'Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash, rounded=True)'
-new = 'Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash)'
+old = 'Fill("agenda_card", band, marked_card if marked else p.wash, rounded=True)'
+new = 'Fill("agenda_card", band, marked_card if marked else p.wash)'
 
 [[mutant]]
 name = "the number of the chapter in hand is set in the ink on the accent"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = 'p.paper if marked else p.ink, bold=True, align="center"))'
+old = 'marked_number if marked else p.ink, bold=True, align="center"))'
 new = 'p.ink, bold=True, align="center"))'
 
 [[mutant]]
 name = "the numbers of the other chapters are grey on a grey circle"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = 'p.paper if marked else p.ink, bold=True, align="center"))'
-new = 'p.paper if marked else p.muted, bold=True, align="center"))'
+old = 'marked_number if marked else p.ink, bold=True, align="center"))'
+new = 'marked_number if marked else p.muted, bold=True, align="center"))'
 
 [[mutant]]
 name = "a chapter's summary stays on its name's line"
@@ -97,12 +97,6 @@ name = "true is read as the first item"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
 old = "        if (not here or isinstance(item, bool) or not isinstance(item, int)"
 new = "        if (not here or not isinstance(item, int)"
-
-[[mutant]]
-name = "the cards take the tone and the numbering of the boxes without a word"
-file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "            if spec.get(taken) is not None:"
-new = "            if False:"
 
 [[mutant]]
 name = "the mark of a chapter is grey like the marks of items"
@@ -187,3 +181,53 @@ name = "list_marks is read in the boxes too"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
 old = "        if look != \"cards\":\n            raise PageTypeError(\"agenda: `list_marks`"
 new = "        if False:\n            raise PageTypeError(\"agenda: `list_marks`"
+
+# -- the colour of the chapter in hand, in the cards ------------------------------
+
+[[mutant]]
+name = "the cards are not told the tone a page names"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = '_agenda_cards(page, area, buckets, here, item or 0, marks == "numbers", ground or "")'
+new = '_agenda_cards(page, area, buckets, here, item or 0, marks == "numbers", "")'
+
+[[mutant]]
+name = "the card of the chapter in hand is washed in the accent whatever the tone"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "card, disc, name = p.thinned(p.FAINT, fill), fill, page.tone_ink(tone, t.stage, True)"
+new = "card, disc, name = p.thinned(p.FAINT), fill, page.tone_ink(tone, t.stage, True)"
+
+[[mutant]]
+name = "the disc of the chapter in hand is the accent whatever the tone"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "card, disc, name = p.thinned(p.FAINT, fill), fill, page.tone_ink(tone, t.stage, True)"
+new = "card, disc, name = p.thinned(p.FAINT, fill), p.accent, page.tone_ink(tone, t.stage, True)"
+
+[[mutant]]
+name = "the name of the chapter in hand is the accent whatever the tone"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "card, disc, name = p.thinned(p.FAINT, fill), fill, page.tone_ink(tone, t.stage, True)"
+new = "card, disc, name = p.thinned(p.FAINT, fill), fill, p.accent"
+
+[[mutant]]
+name = "a pale tone is taken for a colour"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "    if page.carries_colour(tone, t.heading, True):"
+new = "    if True:"
+
+[[mutant]]
+name = "the disc in a pale card is as pale as the card"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "card, disc, name = fill, p.edge(fill), p.ink"
+new = "card, disc, name = fill, fill, p.ink"
+
+[[mutant]]
+name = "the number in the disc is always the colour of the paper"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "return card, disc, p.words_on(disc, t.heading, True), name"
+new = "return card, disc, p.paper, name"
+
+[[mutant]]
+name = "the cards let the circled numbers through"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = '        if spec.get("numbers") is not None:'
+new = "        if False:"

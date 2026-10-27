@@ -41,8 +41,8 @@ new = "return Card(heading, body, tag=tag, align=align, bullets=bullets)"
 [[mutant]]
 name = "a tentative part keeps its ground"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if style.tentative:\n            fill, ink, outline = p.paper, p.muted, p.muted"
-new = "        if False:\n            fill, ink, outline = p.paper, p.muted, p.muted"
+old = "        if style.tentative:\n            ink = self.tone_ink(style.tone, points, bold) if self.theme.tentative_look == \"toned\" else p.muted\n            fill, outline = p.paper, ink"
+new = "        if False:\n            ink = self.tone_ink(style.tone, points, bold) if self.theme.tentative_look == \"toned\" else p.muted\n            fill, outline = p.paper, ink"
 
 [[mutant]]
 name = "a tentative part is not dashed"

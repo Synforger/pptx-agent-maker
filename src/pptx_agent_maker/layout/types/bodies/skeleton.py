@@ -98,7 +98,26 @@ def _read_buckets(raw: list, here: int) -> list[Chapter]:
     return chapters
 
 
-def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, item: int, numbered: bool) -> None:
+def _marked_colours(page: Page, tone: str) -> tuple[str, str, str, str]:
+    """(the card's ground, the disc, the number in it, the chapter's name) of the chapter in hand.
+
+    色の役を書かなければ差し色 (= 差し色のごく薄い地、差し色の丸に紙の色の数字、差し色の題)。書けば、
+    色を運ぶ役 (= `Page.carries_colour`) は同じ形をその色で、薄い地の役は地そのものをカードの地にして、丸は
+    その地を濃くした色 (= `Palette.edge`)、題は本文の色にする。数字の色は丸の色で読める方 (= `words_on`)。
+    """
+    t, p = page.theme.type, page.theme.palette
+    if not tone:
+        return p.thinned(p.FAINT), p.accent, p.paper, p.accent
+    fill = page.ground(tone, t.heading, True)[0]
+    if page.carries_colour(tone, t.heading, True):
+        card, disc, name = p.thinned(p.FAINT, fill), fill, page.tone_ink(tone, t.stage, True)
+    else:
+        card, disc, name = fill, p.edge(fill), p.ink
+    return card, disc, p.words_on(disc, t.heading, True), name
+
+
+def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, item: int, numbered: bool,
+                  tone: str = "") -> None:
     """The agenda drawn as cards: the list on the left, a heading and one card per chapter on the right.
 
     左の一覧は章を `•` で章の大きさの字に、 小項目を一段下げた `–` で本文の字に、 小項目の下の段をもう一段
@@ -106,6 +125,8 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, ite
     太字にする。 章の途中から入り直す頁のため)。 ほかは本文の色で、 小項目と下の段の印だけ灰。 右のカードは列の
     高さを章の数で等分し、 番号は塗りの丸に置く。 今の章は差し色の丸に紙の色の数字、 差し色のごく薄い地、 差し色の題。 ほかの章は灰の丸に本文の色の数字、 灰の地、
     灰の題 (= 灰の丸の上の白や灰の数字は読めない)。 枠は引かない。
+    `tone` (= `highlight_tone`) を書けば、 今の章のカードの地と丸と題がその色の役になる (= `_marked_colours`。
+    ほかの章の灰と、 左の一覧の差し色はそのまま)。
     `numbered` (= `list_marks = "numbers"`) は左の一覧の印を番号にする (= 章は右のカードの丸と同じ数、 小項目は章ごとに
     「(1)」 から、 下の段は印なし)。 印の幅は段ごとに一番広い物に揃え、 同じ段の字の頭を揃える。
     """
@@ -155,10 +176,11 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, ite
     page.elements.append(Text("agenda_heading", head, CARDS_HEADING, t.stage, p.ink, bold=True))
     # 番号の丸は見出しの行 2 つ分 (= 案件の資料の丸の大きさ)
     disc = 2 * theme.line_height(t.heading)
+    marked_card, marked_disc, marked_number, marked_name = _marked_colours(page, tone)
     for band, (number, (title, _items)) in zip(stack.rows(len(buckets), gap=s.gap_s),
                                                 enumerate(buckets, start=1)):
         marked = number == here
-        colour = p.accent if marked else p.muted
+        colour = marked_name if marked else p.muted
         name, _, summary = title.partition(SUMMARY)
         circle = Rect(band.left + s.gap_m, band.top + (band.height - disc) // 2, disc, disc)
         words = Rect(circle.right + s.gap_m, band.top + s.pad,
@@ -170,12 +192,12 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, ite
             raise PageFullError(
                 f"agenda: chapter {number} needs {max(named + said, disc) + 2 * s.pad} EMU of height and its "
                 f"share of the page is {band.height} — fewer chapters, or shorter names; it will not shrink")
-        page.elements.append(Fill("agenda_card", band, p.thinned(p.FAINT) if marked else p.wash, rounded=True))
-        page.elements.append(Ellipse("agenda_disc", circle, p.accent if marked else p.rule))
+        page.elements.append(Fill("agenda_card", band, marked_card if marked else p.wash, rounded=True))
+        page.elements.append(Ellipse("agenda_disc", circle, marked_disc if marked else p.rule))
         # ほかの章の番号は本文の色 (= 灰の丸の上の灰の字は、テンプレートによって読めない。 案件のテンプレートで
         # 丸 E7E6E6 に字 8B8B8B が比 2.7 になり、 contrast の検査が赤にした)
         page.elements.append(Text("agenda_number", circle, str(number), t.heading,
-                                  p.paper if marked else p.ink, bold=True, align="center"))
+                                  marked_number if marked else p.ink, bold=True, align="center"))
         top = words.top + (words.height - named - said) // 2
         page.elements.append(Text("agenda_chapter", Rect(words.left, top, words.width, named), name, t.stage,
                                   colour, bold=True))
@@ -196,7 +218,8 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     出るのは `highlight` の章だけ (= 章を名指さない目次は全部の章)。
 
     強調は、書かなければ章の名前の下の言葉 (= `◀ この章`)。`highlight_tone` を書けば、その章の箱が
-    その地になり、言葉は置かない (= 地が言っていることを、もう 1 度言葉で言わない)。`numbers = "circled"`
+    その地になり、言葉は置かない (= 地が言っていることを、もう 1 度言葉で言わない)。`look = "cards"` では、
+    今の章のカードの地と丸と題がその色の役になる (= 書かなければ差し色)。`numbers = "circled"`
     は章の番号を丸の数字で書く。`look = "cards"` の `list_marks = "numbers"` は、左の一覧の印を番号にする。
 
     ⚠ **一覧も章の箱も、自分の言葉ぶんの高さが取れなければ止まる。**取れる高さに切り詰めて置いて
@@ -229,20 +252,17 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
         if not isinstance(marks, str) or marks not in LIST_MARKS:
             raise PageTypeError(
                 f"agenda: `list_marks` is {marks!r} — the list is marked {' or '.join(map(repr, LIST_MARKS))}")
-    if look == "cards":
-        for taken in ("highlight_tone", "numbers"):
-            if spec.get(taken) is not None:
-                raise PageTypeError(
-                    f"agenda: `{taken}` is for the boxes; the cards number their chapters in discs and "
-                    "mark this one in the accent")
-        _agenda_cards(page, area, buckets, here, item or 0, marks == "numbers")
-        return
     ground = spec.get("highlight_tone")
     if ground is not None:
         if not here:
             raise PageTypeError(
                 "agenda: `highlight_tone` is the ground of the chapter `highlight` names, and no chapter is named")
         ground = read_tone(spec, {"tone": ground}, "agenda: `highlight_tone`", "box")
+    if look == "cards":
+        if spec.get("numbers") is not None:
+            raise PageTypeError("agenda: `numbers` is for the boxes; the cards number their chapters in discs")
+        _agenda_cards(page, area, buckets, here, item or 0, marks == "numbers", ground or "")
+        return
     number_of = _numbered(spec, len(buckets))
     listing, right = area.columns([1, 1], gap=page.theme.spacing.gap_l)
     lines: list[str] = []
