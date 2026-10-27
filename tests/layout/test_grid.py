@@ -163,7 +163,7 @@ class TheGridSharesOutTheBody(unittest.TestCase):
         page = grid_page([card("A", at=[1, 1], id="a"), {"text": "", "at": [1, 2]}, card("B", at=[1, 3], id="b")],
                          links=[{"from": "a", "to": "b"}])
         (arrow,) = kinds(page, "line")
-        self.assertEqual("", arrow.bend)
+        self.assertEqual((), arrow.corners)
 
 
 class BackdropsLieUnderTheBoxes(unittest.TestCase):
@@ -302,7 +302,7 @@ class LinksOnAGrid(unittest.TestCase):
     def test_boxes_that_face_each_other_are_joined_straight_and_a_box_over_two_rows_faces_both(self) -> None:
         page = grid_page(self.CELLS, links=[{"from": "hub", "to": "up"}, {"from": "hub", "to": "down"}])
         straight_up, straight_down = kinds(page, "line")
-        self.assertEqual(("", ""), (straight_up.bend, straight_down.bend))
+        self.assertEqual(((), ()), (straight_up.corners, straight_down.corners))
         self.assertEqual(straight_up.start[1], straight_up.end[1])
         self.assertEqual(box_of(page, "Hub").rect.right, straight_up.start[0])
 
@@ -310,15 +310,18 @@ class LinksOnAGrid(unittest.TestCase):
         page = grid_page(self.CELLS[:2] + [card("Far", at=[2, 3], id="far")], links=[{"from": "up", "to": "far"}])
         (line,) = kinds(page, "line")
         up, far = box_of(page, "Upper").rect, box_of(page, "Far").rect
-        self.assertEqual("across", line.bend)
+        self.assertEqual(1, len(line.corners))
         self.assertEqual((up.right, up.top + up.height // 2), line.start)
         self.assertEqual((far.left + far.width // 2, far.top), line.end)
 
-    def test_a_line_that_would_run_across_a_box_stops_the_page(self) -> None:
-        with self.assertRaisesRegex(PageTypeError, r"link 1: the line from 'up' to 'late' bends once \(= out of 'up' "
-                                                   r"sideways, then vertically into 'late'\) and runs across the cell "
-                                                   r"'between'"):
-            grid_page(self.CELLS + [card("Between", at=[1, 3], id="between")], links=[{"from": "up", "to": "late"}])
+    def test_a_line_whose_short_way_is_shut_goes_round_by_the_gap_between_the_boxes(self) -> None:
+        page = grid_page(self.CELLS + [card("Between", at=[1, 3], id="between")], links=[{"from": "up", "to": "late"}])
+        (line,) = kinds(page, "line")
+        between = box_of(page, "Between").rect
+        self.assertGreater(len(line.corners), 1)
+        self.assertFalse(any(between.left < max(x1, x2) and min(x1, x2) < between.right
+                             and between.top < max(y1, y2) and min(y1, y2) < between.bottom
+                             for (x1, y1), (x2, y2) in zip(line.points(), line.points()[1:])))
 
 
 class TheDeckOfAGridIsPassedByTheChecks(unittest.TestCase):

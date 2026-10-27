@@ -1,5 +1,5 @@
-# Arrangements in a compose cell: a ring, a tree, circles that overlap, and the line that bends once between two cells
-# that do not face each other.
+# Arrangements in a compose cell: a ring, a tree, circles that overlap, and the pictures with marks on them. The arrows between
+# cells are in link-routes.toml.
 
 tests = ["tests/layout/test_arrange.py"]
 
@@ -58,18 +58,6 @@ old = "x, y = cx + dx / reach * away, cy + dy / reach * away"
 new = "x, y = cx, cy"
 
 [[mutant]]
-name = "no arrowhead is written"
-file = "src/pptx_agent_maker/write/pptx.py"
-old = "    if element.arrow:\n        line = shape.line._get_or_add_ln()"
-new = "    if False:\n        line = shape.line._get_or_add_ln()"
-
-[[mutant]]
-name = "a connector keeps the theme's line style"
-file = "src/pptx_agent_maker/write/pptx.py"
-old = "    if style is not None:                      # テーマの線の書式を引かない"
-new = "    if False:                      # テーマの線の書式を引かない"
-
-[[mutant]]
 name = "every name of a mark goes in the right column"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
 old = 'sides = {"left": [m for m in marks if m[0] < 0.5], "right": [m for m in marks if m[0] >= 0.5]}'
@@ -88,139 +76,7 @@ old = "point = (round(placed.left + x * placed.width), round(placed.top + y * pl
 new = "point = (round(placed.left + x * placed.width), round(placed.top + y * placed.height / 2))"
 
 [[mutant]]
-name = "a link between cells that do not face each other is drawn straight anyway"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "elif a.left < b.right and b.left < a.right:                     # 縦に向き合う"
-new = "elif True:                     # 縦に向き合う"
-
-[[mutant]]
-name = "a link crosses the cell between"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "            if (other.left < between.right and between.left < other.right"
-new = "            if (False and between.left < other.right"
-
-[[mutant]]
-name = "a cell that holds both ends of a link stands between them"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "                  and not other.contains(a) and not other.contains(b)]"
-new = "                  and True]"
-
-[[mutant]]
-name = "a link backwards points forwards"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "start, end = ((a.right, y), (b.left, y)) if a.right <= b.left else ((a.left, y), (b.right, y))"
-new = "start, end = ((a.right, y), (b.left, y)) if a.right <= b.left else ((b.right, y), (a.left, y))"
-
-[[mutant]]
 name = "a marked picture floats in the middle of its cell"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
 old = "tall = min(round((right - left) / aspect) + named, rect.height)"
 new = "tall = rect.height"
-
-# -- the line that bends once --
-
-[[mutant]]
-name = "a line between corner cells leaves downwards when the gaps are equal"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "    if gap_x <= gap_y:"
-new = "    if gap_x < gap_y:"
-
-[[mutant]]
-name = "a line between corner cells leaves sideways when the gap down is narrower"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "    if gap_x <= gap_y:"
-new = "    if gap_x >= gap_y:"
-
-[[mutant]]
-name = "a line that leaves sideways leaves by the far edge"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = 'return (a.right if right else a.left, a_y), (b_x, a_y), (b_x, b.top if below else b.bottom), "across"'
-new = 'return (a.left if right else a.right, a_y), (b_x, a_y), (b_x, b.top if below else b.bottom), "across"'
-
-[[mutant]]
-name = "a line that leaves sideways goes into the far edge"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = 'return (a.right if right else a.left, a_y), (b_x, a_y), (b_x, b.top if below else b.bottom), "across"'
-new = 'return (a.right if right else a.left, a_y), (b_x, a_y), (b_x, b.bottom if below else b.top), "across"'
-
-[[mutant]]
-name = "a line that leaves downwards leaves by the far edge"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = 'return (a_x, a.bottom if below else a.top), (a_x, b_y), (b.left if right else b.right, b_y), "down"'
-new = 'return (a_x, a.top if below else a.bottom), (a_x, b_y), (b.left if right else b.right, b_y), "down"'
-
-[[mutant]]
-name = "a line that leaves downwards goes into the far edge"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = 'return (a_x, a.bottom if below else a.top), (a_x, b_y), (b.left if right else b.right, b_y), "down"'
-new = 'return (a_x, a.bottom if below else a.top), (a_x, b_y), (b.right if right else b.left, b_y), "down"'
-
-[[mutant]]
-name = "a line that leaves sideways turns at the wrong corner when the crossing is looked for"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = '(b_x, a_y), (b_x, b.top if below else b.bottom), "across"'
-new = '(a_x, b_y), (b_x, b.top if below else b.bottom), "across"'
-
-[[mutant]]
-name = "the direction between two corner cells is read backwards"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "    right, below = a.right <= b.left, a.bottom <= b.top"
-new = "    right, below = b.right <= a.left, b.bottom <= a.top"
-
-[[mutant]]
-name = "a bent line carries words"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "        if bend and words:"
-new = "        if False and words:"
-
-[[mutant]]
-name = "only the first leg of a bent line is looked at for a cell it runs across"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "for leg_start, leg_end in ((start, end),) if corner is None else ((start, corner), (corner, end)):"
-new = "for leg_start, leg_end in ((start, end),) if corner is None else ((start, corner),):"
-
-[[mutant]]
-name = "a cell with an id in the way of a bent line is named as one with none"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = """    if named:
-        return f"the cell {named[0]!r}""""
-new = """    if False:
-        return f"the cell {named[0]!r}""""
-
-[[mutant]]
-name = "a page draws a line that bends no way it knows"
-file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        if bend and bend not in BENDS:"
-new = "        if False:"
-
-[[mutant]]
-name = "a bent line is the preset with three runs"
-file = "src/pptx_agent_maker/write/pptx.py"
-old = '.set("prst", "bentConnector2")'
-new = '.set("prst", "bentConnector3")'
-
-[[mutant]]
-name = "a line that leaves downwards is drawn from its start"
-file = "src/pptx_agent_maker/write/pptx.py"
-old = '    backwards = element.bend == "down"'
-new = "    backwards = False"
-
-[[mutant]]
-name = "a line that leaves downwards has its head at its end"
-file = "src/pptx_agent_maker/write/pptx.py"
-old = '"a:headEnd" if backwards else "a:tailEnd"'
-new = '"a:tailEnd"'
-
-[[mutant]]
-name = "a bent line that goes left is not turned about"
-file = "src/pptx_agent_maker/write/pptx.py"
-old = """    if leftwards:
-        frame.set("rot", "10800000")"""
-new = """    if False:
-        frame.set("rot", "10800000")"""
-
-[[mutant]]
-name = "a bent line that goes up is not flipped"
-file = "src/pptx_agent_maker/write/pptx.py"
-old = "    if (end[1] < begin[1]) != leftwards:"
-new = "    if end[1] < begin[1]:"

@@ -542,13 +542,15 @@
 <p:cxnSp>
 <p:nvCxnSpPr>
 <p:cNvPr id="18" name="Connector 17"/>
-<p:cNvCxnSpPr/>
+<p:cNvCxnSpPr>
+<a:stCxn id="8" idx="3"/>
+</p:cNvCxnSpPr>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
 <a:off x="4064000" y="2424450"/>
-<a:ext cx="2032000" cy="653810"/>
+<a:ext cx="1426667" cy="653810"/>
 </a:xfrm>
 <a:prstGeom prst="bentConnector2">
 <a:avLst/>
@@ -564,13 +566,15 @@
 <p:cxnSp>
 <p:nvCxnSpPr>
 <p:cNvPr id="19" name="Connector 18"/>
-<p:cNvCxnSpPr/>
+<p:cNvCxnSpPr>
+<a:stCxn id="11" idx="1"/>
+</p:cNvCxnSpPr>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
-<a:xfrm flipV="1">
-<a:off x="7912000" y="2862260"/>
-<a:ext cx="2032000" cy="793510"/>
+<a:xfrm rot="10800000" flipV="1">
+<a:off x="6701333" y="2424450"/>
+<a:ext cx="1426667" cy="653810"/>
 </a:xfrm>
 <a:prstGeom prst="bentConnector2">
 <a:avLst/>
@@ -579,7 +583,7 @@
 <a:solidFill>
 <a:srgbClr val="1F5FA9"/>
 </a:solidFill>
-<a:tailEnd type="triangle" w="med" len="med"/>
+<a:headEnd type="triangle" w="med" len="med"/>
 </a:ln>
 </p:spPr>
 </p:cxnSp>

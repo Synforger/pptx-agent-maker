@@ -35,10 +35,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Sequence
 
 from ..geometry import Rect, cm
 from ..tokens import DEFAULT, MONO_FACE, PAPER, Band, Theme, divides
-from .elements import BENDS, Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Lead, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
+from .elements import Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Lead, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
 from .look import LIGHT, Look, Style, TONES
 
 
@@ -930,18 +931,28 @@ class Page:
         self.elements.append(Fill("stripe", rect, self.theme.palette.wash))
 
     def line(self, start: tuple[int, int], end: tuple[int, int], *, arrow: bool = False,
-             tone: str | None = None, bend: str = "") -> None:
+             tone: str | None = None, corners: Sequence[tuple[int, int]] = (),
+             hops: Sequence[tuple[int, int]] = (), hop: int = 0, begins_on: tuple[Rect, int] | None = None,
+             ends_on: tuple[Rect, int] | None = None) -> None:
         """A thin line in the colour of quiet ink (= what joins things, not a thing itself).
 
-        `tone` を書けば、その色の役の線 (= `tone_ink`)。矢じりも線と同じ色。`bend` を書けば、直角に 1 回曲がる線
-        (= `BENDS`。空は真っすぐ)。
+        `tone` を書けば、その色の役の線 (= `tone_ink`)。矢じりも線と同じ色。`corners` は始まりと終わりの間の曲がり角
+        (= 頁の上の点。順に、横と縦を交互に進む直角の折れ線)。`hops` は、別の線と交わってこの線が半径 `hop` の
+        半円で跳び越す所 (= この線の上の点)。`begins_on` と `ends_on` は、線の両端が付く箱とその辺 (= 辺の真ん中から
+        出入りする曲がる線が、箱を動かすと付いて来るように)。
         """
-        if bend and bend not in BENDS:
-            raise ValueError(f"a line bends {' or '.join(repr(name) for name in BENDS)}, not {bend!r}")
-        left, right = sorted((start[0], end[0]))
-        top, bottom = sorted((start[1], end[1]))
+        points = [start, *corners, end]
+        if corners or hops:
+            for first, second in zip(points, points[1:]):
+                if first[0] != second[0] and first[1] != second[1]:
+                    raise ValueError(f"a bent line runs along an axis between its corners: {first} to {second} does not")
+        left, right = min(x for x, _ in points), max(x for x, _ in points)
+        top, bottom = min(y for _, y in points), max(y for _, y in points)
         self.elements.append(Line("line", Rect(left, top, right - left, bottom - top), start, end,
-                                  self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow, bend=bend))
+                                  self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow,
+                                  corners=tuple((x - start[0], y - start[1]) for x, y in corners),
+                                  hops=tuple((x - start[0], y - start[1]) for x, y in hops), hop=hop if hops else 0,
+                                  begins_on=begins_on, ends_on=ends_on))
 
     def words(self, rect: Rect, text: str, size: float, *, bold: bool = False, align: str = "center") -> None:
         """Words that name a part of a diagram (= a circle's name, what two circles share, a mark on a picture)."""

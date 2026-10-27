@@ -81,7 +81,7 @@ class Fill(Element):
 
 @dataclass(frozen=True)
 class Line(Element):
-    """A line from one point to another, straight or bent once at a right angle. `rect` is the box round the two points.
+    """A line from one point to another: straight, or bent at right angles. `rect` is the box round everything it draws.
 
     ⚠ **矢印は線の端の形で描く。**プリセットの矢印の図形 1 つで PowerPoint が修復を言い出した実例が
     在る (= 流れ図の向きを字で置く理由)。直線の端に付ける矢じりは線の書式で、図形の種類を増やさない。
@@ -92,13 +92,27 @@ class Line(Element):
     colour: str
     #: 終わりの端に矢じりを付ける
     arrow: bool = False
-    #: 空なら真っすぐ。`across` は始まりから横へ進み、終わりの x で曲がって縦に終わりへ着く直角の線、`down` は
-    #: 始まりから縦へ進み、終わりの y で曲がって横に着く線 (= 曲がるのは 1 回。`BENDS`)
-    bend: str = ""
+    #: 始まりと終わりの間の曲がり角 (= 順に。各点は**始まりからの (右, 下) の距離**で持つ ― 頁の本体を下げる時に
+    #: 始まりと一緒に動く)。空なら真っすぐ。始まりから終わりまで、横と縦を交互に進む
+    corners: tuple[tuple[int, int], ...] = ()
+    #: 別の線と交わって、この線が跳び越す所 (= 始まりからの (右, 下) の距離。線の上の点)。空なら跳ばない
+    hops: tuple[tuple[int, int], ...] = ()
+    #: 跳び越しの半円の半径
+    hop: int = 0
+    #: 始まりと終わりが付く箱とその辺 (= 箱の矩形と、辺の番号 0 右・1 下・2 左・3 上)。辺の真ん中から出入りする
+    #: 曲がる線だけが書く。人が箱を動かすと、線がその辺の接続点に付いて来る
+    begins_on: tuple[Rect, int] | None = None
+    ends_on: tuple[Rect, int] | None = None
 
+    def points(self) -> list[tuple[int, int]]:
+        """The line's points from the start to the end, corners included, on the slide."""
+        x, y = self.start
+        return [self.start, *((x + dx, y + dy) for dx, dy in self.corners), self.end]
 
-#: 線の曲がり方 (= `Line.bend`)。空は真っすぐ
-BENDS = ("across", "down")
+    def hop_points(self) -> list[tuple[int, int]]:
+        """Where the line hops, on the slide."""
+        x, y = self.start
+        return [(x + dx, y + dy) for dx, dy in self.hops]
 
 
 @dataclass(frozen=True)
