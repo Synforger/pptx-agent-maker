@@ -282,8 +282,9 @@ class BentLinks(unittest.TestCase):
             Links().build(self.WALL, [{"from": "b", "to": "a"}])
         self.assertIn("link 1: the line from 'b' to 'a' finds no way through", str(other_way.exception))
 
-    def test_a_straight_line_between_cells_that_face_each_other_stops_on_a_cell_between_them(self):
-        with self.assertRaisesRegex(PageTypeError, "link 1: another cell stands between 'a' and 'y'"):
+    def test_cells_that_face_each_other_with_no_way_round_a_cell_between_them_stop_and_name_it(self):
+        """A cell between two cells that face each other is gone round like any other; where no way is left, the page stops."""
+        with self.assertRaisesRegex(PageTypeError, "link 1: the line from 'a' to 'y' finds no way through.*the cell 'wall'"):
             Links().build(self.WALL, [{"from": "a", "to": "y"}])
 
     def test_a_line_goes_round_a_cell_in_its_way_where_the_gaps_leave_a_way(self):
@@ -489,9 +490,11 @@ class Links(unittest.TestCase):
         with self.assertRaises(PageTypeError) as unknown:
             self.build(row, [{"from": "a", "to": "z"}])
         self.assertIn("'z'", str(unknown.exception))
-        with self.assertRaises(PageTypeError) as between:
-            self.build(row, [{"from": "a", "to": "b"}])
-        self.assertIn("stands between", str(between.exception))
+        # 間のマスは、向き合わない 2 つと同じく回って通る (= 止めない)
+        page = self.build(row, [{"from": "a", "to": "b"}])
+        (line,) = kinds(page, "line")
+        self.assertTrue(line.corners)
+        self.assertFalse(crosses(line.points(), box_of(page, "M").rect), "the line runs across the cell between")
         with self.assertRaises(PageTypeError) as twice:
             self.build([{"cells": [{"id": "a", "text": "x"}, {"id": "a", "text": "y"}]}], [{"from": "a", "to": "a"}])
         self.assertIn("two cells have the id", str(twice.exception))

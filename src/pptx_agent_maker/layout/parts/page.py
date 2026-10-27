@@ -933,7 +933,7 @@ class Page:
     def line(self, start: tuple[int, int], end: tuple[int, int], *, arrow: bool = False,
              tone: str | None = None, corners: Sequence[tuple[int, int]] = (),
              hops: Sequence[tuple[int, int]] = (), hop: int = 0, begins_on: tuple[Rect, int] | None = None,
-             ends_on: tuple[Rect, int] | None = None) -> None:
+             ends_on: tuple[Rect, int] | None = None, dashed: bool = False) -> None:
         """A thin line in the colour of quiet ink (= what joins things, not a thing itself).
 
         `tone` を書けば、その色の役の線 (= `tone_ink`)。矢じりも線と同じ色。`corners` は始まりと終わりの間の曲がり角
@@ -952,7 +952,7 @@ class Page:
                                   self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow,
                                   corners=tuple((x - start[0], y - start[1]) for x, y in corners),
                                   hops=tuple((x - start[0], y - start[1]) for x, y in hops), hop=hop if hops else 0,
-                                  begins_on=begins_on, ends_on=ends_on))
+                                  begins_on=begins_on, ends_on=ends_on, dashed=dashed))
 
     def words(self, rect: Rect, text: str, size: float, *, bold: bool = False, align: str = "center") -> None:
         """Words that name a part of a diagram (= a circle's name, what two circles share, a mark on a picture)."""

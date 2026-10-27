@@ -23,7 +23,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ...geometry import EMU_PER_CM, Rect, pt
 from ...parts.page import Card, Page, PageFullError
@@ -47,7 +47,7 @@ MARK_COLUMN = 1 / 3
 #: 木の箱の子を持つ側のキー
 TREE_KEYS = ("heading", "body", "tone", "icon", "tentative", "strong", "children")
 #: マスどうしの線 1 本が読むキー
-LINK_KEYS = ("from", "to", "text", "tone")
+LINK_KEYS = ("from", "to", "text", "tone", "tentative")
 
 
 # -- 輪 ----------------------------------------------------------------------
@@ -364,6 +364,8 @@ class _Link:
     words: str | None
     #: "across" 横に向き合う / "down" 縦に向き合う / "" 向き合わない (= 曲がる線)
     facing: str
+    #: 点線 (= 構想の段の流れ。カードの `tentative` と同じ書き方)
+    dashed: bool = False
 
     def sides(self) -> tuple[int, int]:
         """The sides of the two rects a straight line leaves by and goes into (= indexes of `SIDES`)."""
@@ -397,6 +399,9 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     room = Room(page.body, s.gap_x // 2, s.gap_y // 2, s.gap_s // 2)
     in_the_way = [[other for other in every if other not in (link.first, link.second) and other not in blank
                    and not other.contains(link.first) and not other.contains(link.second)] for link in items]
+    # 向き合っていても、真っすぐの線の上に別の箱が在れば、向き合わない 2 つと同じく折れ線で回る
+    items = [replace(link, facing="") if link.facing and _blocked(link, _straight(link, sum(link.overlap()) // 2), others)
+             else link for link, others in zip(items, in_the_way)]
     ports = _plan_ports(items, in_the_way, room, cells)
     drawn: list[tuple[Point, ...]] = []
     reach = max(rect.right for rect in every)
@@ -408,7 +413,7 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
             route = _route(link, others, drawn, room, ports[number], cells, strict=True)
             points, joined = route.points, (_joined(link.first, route.start), _joined(link.second, route.end))
         page.line(points[0], points[-1], arrow=True, tone=link.tone, corners=points[1:-1], hops=hops(points, drawn, room.hop),
-                  hop=room.hop, begins_on=joined[0], ends_on=joined[1])
+                  hop=room.hop, begins_on=joined[0], ends_on=joined[1], dashed=link.dashed)
         drawn.append(points)
         if link.words:
             _words_by(page, link.words.strip(), points[0], points[-1], link.facing == "across", (link.first, link.second),
@@ -425,6 +430,9 @@ def _read_link(spec: Spec, item, number: int, cells: dict[str, Rect], what: str)
         known = ", ".join(sorted(cells)) or "none — give the cells an `id`"
         raise PageTypeError(f"{where}: no cell has the id {missing[0]!r} (= the ids on this page: {known})")
     tone = read_tone(spec, item, where, "box") if "tone" in item else None
+    dashed = item.get("tentative", False)
+    if not isinstance(dashed, bool):
+        raise PageTypeError(f"{where}: `tentative` is true or false (= a dotted line), not {dashed!r}")
     words = item.get("text")
     if "text" in item and (not isinstance(words, str) or not words.strip()):
         raise PageTypeError(f"{where}: `text` is the words set beside the arrow, not {words!r} — "
@@ -444,7 +452,7 @@ def _read_link(spec: Spec, item, number: int, cells: dict[str, Rect], what: str)
             raise PageTypeError(f"{where}: {ends[0]!r} and {ends[1]!r} do not face each other, so the line bends — "
                                 "a bent line carries no words; drop `text`, or put the two cells side by side or "
                                 "one above the other")
-    return _Link(where, (ends[0], ends[1]), a, b, tone, words, facing)
+    return _Link(where, (ends[0], ends[1]), a, b, tone, words, facing, dashed)
 
 
 def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, cells: dict[str, Rect]) -> dict:
@@ -525,14 +533,19 @@ def _straight(link: _Link, along: int) -> tuple[Point, Point]:
     return _port_at(link.first, side_a, along).point, _port_at(link.second, side_b, along).point
 
 
+def _blocked(link: _Link, ends: tuple[Point, Point], others: list[Rect]) -> bool:
+    """Whether a cell stands on the straight line between two cells that face each other."""
+    (x1, y1), (x2, y2) = ends
+    between = Rect(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
+    return any(other.left < between.right and between.left < other.right
+               and other.top < between.bottom and between.top < other.bottom for other in others)
+
+
 def _clear_between(link: _Link, start: Point, end: Point, others: list[Rect], cells: dict[str, Rect]) -> None:
     """Stop the page when a cell stands on the straight line between two cells that face each other."""
-    between = Rect(min(start[0], end[0]), min(start[1], end[1]), abs(end[0] - start[0]), abs(end[1] - start[1]))
-    for other in others:
-        if (other.left < between.right and between.left < other.right
-                and other.top < between.bottom and between.top < other.bottom):
-            raise PageTypeError(f"{link.where}: another cell stands between {link.ends[0]!r} and {link.ends[1]!r} — "
-                                "a link joins cells with nothing between them")
+    if _blocked(link, (start, end), others):
+        raise PageTypeError(f"{link.where}: another cell stands between {link.ends[0]!r} and {link.ends[1]!r} — "
+                            "a link joins cells with nothing between them")
 
 
 def _called_all(rects: tuple[Rect, ...], cells: dict[str, Rect]) -> str:

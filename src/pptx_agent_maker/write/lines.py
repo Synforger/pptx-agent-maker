@@ -14,6 +14,7 @@ from __future__ import annotations
 import math
 
 from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_LINE_DASH_STYLE
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE, MSO_SHAPE_TYPE
 from pptx.oxml import parse_xml
 from pptx.oxml.ns import nsdecls, qn
@@ -62,6 +63,8 @@ def write_line(slide, element: Line, theme: Theme):
         shape._element.remove(style)
     shape.line.color.rgb = RGBColor.from_string(element.colour)
     shape.line.width = Emu(theme.spacing.hairline * 3 // 2)
+    if element.dashed:
+        shape.line.dash_style = MSO_LINE_DASH_STYLE.DASH
     if element.arrow:
         line = shape.line._get_or_add_ln()
         line.append(line.makeelement(qn("a:headEnd" if reversed_path else "a:tailEnd"),

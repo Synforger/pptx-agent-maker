@@ -296,3 +296,21 @@ class ALineIsAttachedToTheBoxesItJoinsOnlyWhereItMeetsTheMiddleOfAnEdge(unittest
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ADottedLineIsWrittenDotted(unittest.TestCase):
+    """構想の段の流れ (= 線の `tentative`) は、真っすぐな線も曲がる線も跳び越す線も、線の書式の破線で書く。"""
+
+    def test_every_kind_of_line_written_dashed_carries_the_dash_before_its_head(self) -> None:
+        cm = 360000
+        for corners, hops in (((), ()), (((5 * cm, 3 * cm),), ()), ((), ((4 * cm, 3 * cm),))):
+            with self.subTest(corners=corners, hops=hops):
+                page = Page("A page", DEFAULT)
+                page.drew_a_diagram()
+                page.line((3 * cm, 3 * cm), (5 * cm, 6 * cm) if corners else (8 * cm, 3 * cm), arrow=True,
+                          corners=corners, hops=hops, hop=cm // 10 if hops else 0, dashed=True)
+                xml = slide_of(page)
+                self.assertRegex(xml, r'<a:prstDash val="dash"/>.*<a:tailEnd', "the dash comes before the head")
+
+    def test_a_line_not_written_dashed_carries_no_dash(self) -> None:
+        self.assertNotIn("prstDash", slide_of(line_page([(360000, 360000), (3 * 360000, 360000)])))
