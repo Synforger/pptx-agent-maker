@@ -155,3 +155,9 @@ name = "legend = false is not read"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
 old = "if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):"
 new = "if legend_cells(spec) or not names or (len(names) == 1 and shown is None):"
+
+[[mutant]]
+name = "a project may name a ground after the white a panel stands on"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        if name == PAPER:\n            raise ThemeError("
+new = "        if False:\n            raise ThemeError("

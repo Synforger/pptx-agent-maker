@@ -11,7 +11,7 @@ type = "compose"
 title = "Two bands on a grid, with the boxes that stand over both of them"
 condition = "Each department has a band under its row; what both of them meet stands across the two rows"
 conclusion = "An arrow bends once where the two boxes it joins do not face each other"
-grid = { columns = [1.7, 3, 3, 3, 3], rows = [1, 1] }
+grid = { columns = [2.2, 3, 3, 3, 3], rows = [1, 1] }
 links = [
   { from = "device", to = "build", tone = "accent" },
   { from = "build", to = "use" },

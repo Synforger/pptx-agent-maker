@@ -12,9 +12,9 @@ from numbers import Real
 from pathlib import Path
 from typing import Callable
 
-from ...tokens import DEFAULT, Band, Palette, Theme
+from ...tokens import DEFAULT, PAPER, Band, Palette, Theme
 from ...parts.elements import Mark, Shade
-from ...parts.look import PAPER, Style, TONES
+from ...parts.look import Style, TONES
 from ...parts.page import CARD_ALIGNS, Card, Panel
 from .registry import PageTypeError
 

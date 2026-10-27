@@ -22,12 +22,15 @@ from pptx_agent_maker import DEFAULT, checks  # noqa: E402
 from pptx_agent_maker.layout.geometry import Rect  # noqa: E402
 from pptx_agent_maker.layout.parts.page import Page, PageFullError  # noqa: E402
 from pptx_agent_maker.layout.tokens import theme_from  # noqa: E402
+from pptx_agent_maker.layout.types.bodies.compose import GRID_INSET  # noqa: E402
 from pptx_agent_maker.layout.types.core.frame import legend_cells  # noqa: E402
 from pptx_agent_maker.layout.types.core.read import Spec  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, aspect, new_deck, save  # noqa: E402
 
 S, T = DEFAULT.spacing, DEFAULT.type
+#: how far in from the squares it covers what stands in a cell is kept (= half of `gap_m`, on each of the four sides)
+INSET = round(S.gap_m * GRID_INSET)
 GROUNDS = {"Deep": "8B1E3F", "Pale": "EAF0F8"}
 FILLED = theme_from({"grounds": GROUNDS})
 
@@ -66,35 +69,74 @@ def tuple_of(rect):
     return rect.left, rect.top, rect.width, rect.height
 
 
+def kept(page, first, last, columns=(1, 1, 1), rows=(1, 1)):
+    """What `area` is, taken in by the room a cell keeps on each side."""
+    return tuple_of(Rect(*area(page, first, last, columns, rows)).inset(INSET))
+
+
 class TheGridSharesOutTheBody(unittest.TestCase):
-    def test_a_cell_stands_on_its_square_and_a_box_uses_all_of_it(self) -> None:
+    def test_a_cell_stands_on_its_square_and_a_box_uses_all_of_it_but_the_room_kept_round_it(self) -> None:
         page = grid_page([card("One", at=[1, 1]), card("Two", at=[2, 3])])
-        self.assertEqual(area(page, (0, 0), (0, 0)), tuple_of(box_of(page, "One").rect))
-        self.assertEqual(area(page, (1, 2), (1, 2)), tuple_of(box_of(page, "Two").rect))
+        self.assertEqual(kept(page, (0, 0), (0, 0)), tuple_of(box_of(page, "One").rect))
+        self.assertEqual(kept(page, (1, 2), (1, 2)), tuple_of(box_of(page, "Two").rect))
+
+    def test_the_room_kept_is_the_same_on_all_four_sides_and_half_of_the_gap_between_boxes(self) -> None:
+        page = grid_page([card("One", at=[1, 1])])
+        whole = Rect(*area(page, (0, 0), (0, 0)))
+        box = box_of(page, "One").rect
+        self.assertEqual({INSET}, {box.left - whole.left, box.top - whole.top, whole.right - box.right,
+                                   whole.bottom - box.bottom})
+        self.assertEqual(round(S.gap_m / 2), INSET)
+
+    def test_boxes_side_by_side_are_two_rooms_and_a_gap_apart_so_an_arrow_between_them_has_a_length_to_read(self) -> None:
+        page = grid_page([card("One", at=[1, 1], id="a"), card("Two", at=[1, 2], id="b")],
+                         links=[{"from": "a", "to": "b"}])
+        one, two = box_of(page, "One").rect, box_of(page, "Two").rect
+        self.assertEqual(S.gap_x + 2 * INSET, two.left - one.right)
+        (arrow,) = kinds(page, "line")
+        self.assertEqual(S.gap_x + 2 * INSET, abs(arrow.end[0] - arrow.start[0]))
+
+    def test_a_text_a_table_and_a_legend_keep_the_same_room(self) -> None:
+        cells = [{"text": "Words", "at": [1, 1]}, {"table": [["k", "v"], ["a", "1"]], "at": [1, 2]},
+                 {"legend": True, "at": [1, 3]}, card("Deep", tone="Deep", at=[2, 1]), card("Pale", tone="Pale", at=[2, 2])]
+        page = grid_page(cells)
+        across, down = squares(page)
+        words = next(e for e in page.build() if getattr(e, "text", None) == "Words")
+        self.assertEqual((across[0].left + INSET, down[0].top + INSET), (words.rect.left, words.rect.top))
+        table = kinds(page, "table")[0]
+        self.assertEqual((across[1].left + INSET, down[0].top + INSET), (table.rect.left, table.rect.top))
+        self.assertEqual(across[2].left + INSET, self.legend_left(page))
+
+    def legend_left(self, page):
+        return kinds(page, "swatch")[0].rect.left
+
+    def test_squares_too_small_to_keep_the_room_stop_the_page(self) -> None:
+        with self.assertRaisesRegex(PageFullError, r"cell 1: the squares it covers are too small to keep \d+ EMU"):
+            grid_page([card("A", at=[1, 1])], rows=(0.001, 1))
 
     def test_the_columns_and_the_rows_share_the_body_by_their_weights_with_the_gaps_between(self) -> None:
         page = grid_page([card("Wide", at=[1, 1]), card("Narrow", at=[1, 2]), card("Low", at=[2, 1])],
                          columns=(3, 1), rows=(1, 2))
         wide, narrow, low = (box_of(page, n).rect for n in ("Wide", "Narrow", "Low"))
-        self.assertEqual(wide.right + S.gap_x, narrow.left)
-        self.assertLessEqual(abs(wide.width - 3 * narrow.width), 3)
-        self.assertEqual(wide.bottom + S.gap_y, low.top)
-        self.assertLessEqual(abs(low.height - 2 * wide.height), 3)
-        self.assertEqual(page.body.bottom, low.bottom)
-        self.assertEqual(page.body.right, narrow.right)
+        self.assertEqual(wide.right + S.gap_x + 2 * INSET, narrow.left)
+        self.assertLessEqual(abs((wide.width + 2 * INSET) - 3 * (narrow.width + 2 * INSET)), 3)
+        self.assertEqual(wide.bottom + S.gap_y + 2 * INSET, low.top)
+        self.assertLessEqual(abs((low.height + 2 * INSET) - 2 * (wide.height + 2 * INSET)), 3)
+        self.assertEqual(page.body.bottom, low.bottom + INSET)
+        self.assertEqual(page.body.right, narrow.right + INSET)
 
     def test_a_cell_that_spans_covers_the_squares_and_the_gaps_between_them(self) -> None:
         page = grid_page([card("Tall", at=[1, 2], span=[2, 1]), card("Wide", at=[1, 1], span=[1, 1])])
-        self.assertEqual(area(page, (0, 1), (1, 1)), tuple_of(box_of(page, "Tall").rect))
+        self.assertEqual(kept(page, (0, 1), (1, 1)), tuple_of(box_of(page, "Tall").rect))
         wide = grid_page([card("Across", at=[2, 1], span=[1, 3])])
-        self.assertEqual(area(wide, (1, 0), (1, 2)), tuple_of(box_of(wide, "Across").rect))
+        self.assertEqual(kept(wide, (1, 0), (1, 2)), tuple_of(box_of(wide, "Across").rect))
 
     def test_the_gap_across_and_the_gap_down_are_the_two_gaps_of_a_use_that_sets_them_apart(self) -> None:
         theme = theme_from({"uses": {"gapped": {"like": "read", "spacing": {"gap_x": 2.0, "gap_y": 0.5}}}}).using("gapped")
         page = grid_page([card("A", at=[1, 1]), card("B", at=[1, 2]), card("C", at=[2, 1])], theme=theme)
         a, b, c = (box_of(page, name).rect for name in "ABC")
-        self.assertEqual(theme.spacing.gap_x, b.left - a.right)
-        self.assertEqual(theme.spacing.gap_y, c.top - a.bottom)
+        self.assertEqual(theme.spacing.gap_x + 2 * INSET, b.left - a.right)
+        self.assertEqual(theme.spacing.gap_y + 2 * INSET, c.top - a.bottom)
         self.assertNotEqual(theme.spacing.gap_x, theme.spacing.gap_y)
 
     def test_a_span_left_out_is_one_square(self) -> None:
@@ -107,9 +149,9 @@ class TheGridSharesOutTheBody(unittest.TestCase):
                           {"panel": {"rows": [{"cells": [{"text": "In"}]}]}, "at": [2, 1], "span": [1, 2]}])
         square = squares(page)[1][0]
         words = next(e for e in page.build() if getattr(e, "text", None) == "Users")
-        self.assertEqual(square.top, words.rect.top)
+        self.assertEqual(square.top + INSET, words.rect.top)
         self.assertLess(words.rect.height, square.height)
-        self.assertEqual(area(page, (1, 0), (1, 1)), tuple_of(kinds(page, "panel")[0].rect))
+        self.assertEqual(kept(page, (1, 0), (1, 1)), tuple_of(kinds(page, "panel")[0].rect))
 
     def test_a_cell_that_is_a_nested_set_of_rows_stands_on_its_squares_like_any_other_part(self) -> None:
         page = grid_page([{"rows": [{"cells": [card("Nested")]}], "at": [2, 2]}])
@@ -375,7 +417,7 @@ class TheLegendInACell(unittest.TestCase):
     def test_a_legend_taller_than_its_squares_stops_the_page(self) -> None:
         cells = [card("One", tone="Deep", at=[2, 1]), card("Two", tone="Pale", at=[2, 2]), {"legend": True, "at": [1, 3]}]
         with self.assertRaisesRegex(PageFullError, "cell 3: this legend needs \\d+ EMU of height and its row has \\d+"):
-            grid_page(cells, rows=(0.02, 1))
+            grid_page(cells, rows=(0.12, 1))
 
     def test_a_chart_that_writes_legend_does_not_count_as_a_cell_with_legend(self) -> None:
         rows = [{"cells": [{"chart": {"kind": "strip", "legend": True}}, {"legend": True}]}]

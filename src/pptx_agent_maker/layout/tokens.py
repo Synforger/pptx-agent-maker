@@ -312,6 +312,9 @@ SPACED = ("margin_x", "margin_top", "margin_bottom", "gap_s", "gap_m", "gap_l", 
 #: 道具が持つ色の役 (= 頁の `tone` にいつでも書ける名前)。案件はこのほかに、意味の名前を付けた
 #: 地を `[theme.grounds]` で宣言できる
 ROLES = ("box", "band", "tint", "accent", "good", "bad")
+#: 入れ物 (`panel`) だけが選べる白い地の名前 (= 紙の色そのもの)。色の役ではないが、案件が同じ名前の地を宣言すると
+#: 隠されるので、`[theme.grounds]` にも書けない
+PAPER = "paper"
 
 
 def _luminance(colour: str) -> float:
@@ -1261,7 +1264,7 @@ def _grounds(declared) -> tuple[tuple[str, str], ...]:
     """The grounds a project names for what they mean (= `[theme.grounds]`), in the order written.
 
     ⚠ **道具の色の役と同じ名前は拒む。**`box` を宣言で上書きできると、色の役を変える口が
-    `[theme.palette]` と 2 つに割れる。
+    `[theme.palette]` と 2 つに割れる。入れ物の白い地の名前 (= `paper`) も同じ。
     """
     if not declared:
         return ()
@@ -1277,6 +1280,10 @@ def _grounds(declared) -> tuple[tuple[str, str], ...]:
             raise ThemeError(
                 f"theme.grounds.{name} is one of the palette's own roles ({', '.join(ROLES)}) — "
                 "change its colour in [theme.palette], or give this ground a name of its own")
+        if name == PAPER:
+            raise ThemeError(
+                f"theme.grounds.{name} is the name of the white a panel may stand on (= tone = \"{PAPER}\") — "
+                "give this ground a name of its own")
         if not _HEX.match(str(value)):
             raise ThemeError(
                 f'theme.grounds.{name} is {value!r} — a colour is six hex digits with no "#", as in "EAF0F8"')

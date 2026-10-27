@@ -37,9 +37,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..geometry import Rect, cm
-from ..tokens import DEFAULT, MONO_FACE, Band, Theme, divides
+from ..tokens import DEFAULT, MONO_FACE, PAPER, Band, Theme, divides
 from .elements import BENDS, Bar, Chart, Diamond, Element, Ellipse, Figure, Fill, Lead, Line, Mark, Shade, Table, Text, TEXT_INSET_Y, bullet_indent
-from .look import LIGHT, PAPER, Look, Style, TONES
+from .look import LIGHT, Look, Style, TONES
 
 
 @dataclass(frozen=True)

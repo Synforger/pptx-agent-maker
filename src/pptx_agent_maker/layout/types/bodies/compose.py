@@ -42,9 +42,11 @@
   分け合い、列の間は `gap_x`、行の間は `gap_y`)
 * マスは `[[cells]]`。`at = [行, 列]` (= 1 から) と `span = [行の数, 列の数]` (= 書かなければ `[1, 1]`) が格子の
   どこを覆うか。中に置ける物は段のマスと同じ。マスどうしが重なれば、どのマスとどのマスかを言って止める。
-  **箱 (= カードと入れ物) は覆う範囲を使い切り、文章・表・要点は自分の高さのまま上に寄る** (= 行をまたぐ箱は、
-  またぐどの行の箱とも向き合うので、矢印が引ける)
-* 背景は `[[backdrops]]` (= `at`・`span`・`tone`)。覆う範囲いっぱいの地を、マスより下の層に敷く。背景どうしは重ねられない
+  マスの中身 (= 箱・文字・表・凡例のどれも) は、覆う範囲の四方から同じ幅 (= `gap_m` の半分) だけ内側に置く。
+  **箱 (= カードと入れ物) はそこを使い切り、文章・表・要点は自分の高さのまま上に寄る** (= 行をまたぐ箱は、
+  またぐどの行の箱とも向き合うので、矢印が引ける。隣り合う箱の間は、その幅の 2 つ分と列や行の間)
+* 背景は `[[backdrops]]` (= `at`・`span`・`tone`)。覆う範囲いっぱいの地 (= 内側に寄せない) を、マスより下の層に敷く。
+  背景どうしは重ねられない
 * `rows` と `grid` は同じ頁に書けない。`cells` と `backdrops` は `grid` と対で書く
 
 マスの `legend = true` は、その頁で使った地の名前の凡例 (= 頁の下の凡例と同じ中身) を、そのマスの中に縦に
@@ -89,6 +91,9 @@ CELL_KEYS = frozenset({"rows", "caption", "role", "marks", "guides", "guide_tone
 GRID_KEYS = ("columns", "rows")
 #: 格子のマスが書けるキー (= 段のマスと同じ物に、格子のどこを覆うか)
 GRID_CELL_KEYS = frozenset({"at", "span", *CELL_KEYS})
+#: 格子のマスの中身を、覆う範囲の四方から内側へ寄せる幅 (= 使い方の `gap_m` に対する比。隣り合う箱の間は、この幅の
+#: 2 つ分と列や行の間になる。背景は覆う範囲いっぱいのまま)
+GRID_INSET = 1 / 2
 #: 背景が読むキー (= 覆う範囲と、地の色の役)
 BACKDROP_KEYS = ("at", "span", "tone")
 #: 背景が地の色を言わない時の役 (= 薄い地。箱が載る背景なので、意味を持たない地)
@@ -182,11 +187,13 @@ def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> 
 def _grid(page: Page, spec: Spec, area: Rect, seen: list) -> None:
     """Cells on a grid of columns and rows, backdrops under them.
 
-    列と行は本体を比で分け合い (= 間は `gap_x` と `gap_y`)、マスと背景は覆う範囲いっぱいの枠に置く。背景は箱より
-    先に置く (= 下の層)。
+    列と行は本体を比で分け合い (= 間は `gap_x` と `gap_y`)、背景は覆う範囲いっぱいに置く。マスの中身 (= 箱・文字・表・
+    凡例のどれも) は、覆う範囲の四方から同じ幅 (= `gap_m` の `GRID_INSET`) だけ内側に置く。背景は箱より先に置く
+    (= 下の層)。
     """
     where = "compose"
     s = page.theme.spacing
+    inset = round(s.gap_m * GRID_INSET)
     widths, heights = _read_grid(spec.get("grid"), where)
     try:
         across = area.columns(widths, gap=s.gap_x)
@@ -215,7 +222,12 @@ def _grid(page: Page, spec: Spec, area: Rect, seen: list) -> None:
         only_keys(cell, set(GRID_CELL_KEYS), what)
         first, last = _span_of(cell, len(heights), len(widths), what)
         _cover(covered, first, last, what)
-        rect = _frame(across, down, first, last)
+        try:
+            rect = _frame(across, down, first, last).inset(inset)
+        except ValueError as reason:
+            raise PageFullError(f"{what}: the squares it covers are too small to keep {inset} EMU round what stands "
+                                "in them — fewer rows or columns, or a larger share for them; nothing will "
+                                "shrink") from reason
         natural = _natural(page, spec, cell, rect.width, what)
         at = len(seen)
         seen.append((str(cell["id"]) if "id" in cell else None, rect, _blank(cell)))

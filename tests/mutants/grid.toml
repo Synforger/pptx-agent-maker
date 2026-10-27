@@ -5,6 +5,36 @@ tests = ["tests/layout/test_grid.py", "tests/layout/test_corpus.py"]
 
 # -- how the grid is laid out --
 
+[[mutant]]
+name = "what stands in a cell touches the edge of the squares it covers"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "            rect = _frame(across, down, first, last).inset(inset)"
+new = "            rect = _frame(across, down, first, last)"
+
+[[mutant]]
+name = "the room kept round a cell is the small gap, not half the gap between boxes"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "    inset = round(s.gap_m * GRID_INSET)"
+new = "    inset = round(s.gap_s * GRID_INSET)"
+
+[[mutant]]
+name = "the room kept is taken off the left and the right only"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "            rect = _frame(across, down, first, last).inset(inset)"
+new = "            rect = _frame(across, down, first, last).inset(x=inset)"
+
+[[mutant]]
+name = "squares too small to keep the room are drawn anyway"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "        except ValueError as reason:\n            raise PageFullError(f\"{what}: the squares it covers are too small"
+new = "        except TypeError as reason:\n            raise PageFullError(f\"{what}: the squares it covers are too small"
+
+[[mutant]]
+name = "a backdrop keeps the room a cell keeps"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "        rects.append((_frame(across, down, first, last), read_tone(spec, backdrop, what, BACKDROP_TONE)))"
+new = "        rects.append((_frame(across, down, first, last).inset(inset), read_tone(spec, backdrop, what, BACKDROP_TONE)))"
+
 # -- what may be written --
 
 [[mutant]]
