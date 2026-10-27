@@ -1,0 +1,249 @@
+# A compose page on a grid: columns and rows that share the body, cells and backdrops at a row and a column, what may
+# be written, and the legend a cell may hold.
+
+tests = ["tests/layout/test_grid.py", "tests/layout/test_corpus.py"]
+
+# -- how the grid is laid out --
+
+# -- what may be written --
+
+[[mutant]]
+name = "the columns of a grid are set apart by the gap down"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "across = area.columns(widths, gap=s.gap_x)"
+new = "across = area.columns(widths, gap=s.gap_y)"
+
+[[mutant]]
+name = "the rows of a grid are set apart by the gap across"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "down = area.rows(heights, gap=s.gap_y)"
+new = "down = area.rows(heights, gap=s.gap_x)"
+
+[[mutant]]
+name = "the columns and the rows of a grid are read the wrong way round"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '    widths, heights = _read_grid(spec.get("grid"), where)'
+new = '    heights, widths = _read_grid(spec.get("grid"), where)'
+
+[[mutant]]
+name = "a cell that spans covers only its first square"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "return Rect(left, top, across[last[1]].right - left, down[last[0]].bottom - top)"
+new = "return Rect(left, top, across[first[1]].width, down[first[0]].height)"
+
+[[mutant]]
+name = "the first row and column of a grid are 0, not 1"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "return (at[0] - 1, at[1] - 1), last"
+new = "return (at[0], at[1]), last"
+
+[[mutant]]
+name = "a cell that says no span covers two rows"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'span = _pair(item, "span", (1, 1), what,'
+new = 'span = _pair(item, "span", (2, 1), what,'
+
+[[mutant]]
+name = "a span covers one square too few"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "last = (at[0] + span[0] - 2, at[1] + span[1] - 2)"
+new = "last = (at[0] + span[0] - 3, at[1] + span[1] - 3)"
+
+[[mutant]]
+name = "a box on a grid keeps the height of its words and goes up"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = """drawn = _place(page, spec, cell, rect, natural, True, what, seen)
+        if drawn is not None:
+            seen[at] = (seen[at][0], drawn, seen[at][2])
+
+
+def _read_grid"""
+new = """drawn = _place(page, spec, cell, rect, natural, False, what, seen)
+        if drawn is not None:
+            seen[at] = (seen[at][0], drawn, seen[at][2])
+
+
+def _read_grid"""
+
+[[mutant]]
+name = "the backdrops are laid over the boxes"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = """        if drawn is not None:
+            seen[at] = (seen[at][0], drawn, seen[at][2])
+
+
+def _read_grid"""
+new = """        if drawn is not None:
+            seen[at] = (seen[at][0], drawn, seen[at][2])
+    for rect, tone in rects:
+        page.backdrop(rect, tone)
+
+
+def _read_grid"""
+
+[[mutant]]
+name = "a backdrop that says no tone is a deeper ground"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'BACKDROP_TONE = "band"'
+new = 'BACKDROP_TONE = "tint"'
+
+[[mutant]]
+name = "a backdrop does not read its tone"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "read_tone(spec, backdrop, what, BACKDROP_TONE)))"
+new = "BACKDROP_TONE))"
+
+[[mutant]]
+name = "two backdrops may cover the same square"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = """        _cover(covered, first, last, what)
+        rects.append("""
+new = "        rects.append("
+
+[[mutant]]
+name = "a backdrop is drawn with no edge"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = 'self.elements.append(Fill("backdrop", rect, fill, outline=edge))'
+new = 'self.elements.append(Fill("backdrop", rect, fill, outline=""))'
+
+[[mutant]]
+name = "a page may write rows and a grid together"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "    if rows and grid:"
+new = "    if False:"
+
+[[mutant]]
+name = "cells may be written with no grid"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "        if key in spec.data and not grid:"
+new = "        if False:"
+
+[[mutant]]
+name = "a grid may have no cells written"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '    if grid and "cells" not in spec.data:'
+new = "    if False:"
+
+[[mutant]]
+name = "a grid with no cells in it is drawn"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = """    if not cells:
+        raise PageTypeError("""
+new = """    if False:
+        raise PageTypeError("""
+
+[[mutant]]
+name = "a grid takes any key"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "only_keys(grid, set(GRID_KEYS), what)"
+new = 'only_keys(grid, set(GRID_KEYS) | {"gap"}, what)'
+
+[[mutant]]
+name = "the share of a column or a row is not read"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'shares.append([read_weight({"weight": share}, f"{what}, {key}") for share in written])'
+new = "shares.append([float(share) for share in written])"
+
+[[mutant]]
+name = "a cell may reach out of the grid"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "        if last[number] >= bound:"
+new = "        if False:"
+
+[[mutant]]
+name = "cells may cover the same square"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "            if (row, column) in covered:"
+new = "            if False:"
+
+[[mutant]]
+name = "a cell with legend is not a part"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '"ring", "tree", "overlap", "legend")'
+new = '"ring", "tree", "overlap")'
+
+[[mutant]]
+name = "a cell says legend and the page has two"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "    if legend_cells(spec) > 1:"
+new = "    if legend_cells(spec) > 2:"
+
+[[mutant]]
+name = "legend = false in a cell is a legend"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '    if "legend" in cell and cell["legend"] is not True:'
+new = "    if False:"
+
+[[mutant]]
+name = "a legend lists nothing and is drawn"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = """    if not names:
+        raise PageTypeError(f"{what}: `legend = true` lists"""
+new = """    if False:
+        raise PageTypeError(f"{what}: `legend = true` lists"""
+
+[[mutant]]
+name = "a legend wider than its cell is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "        if page.legend_width(names) > width:"
+new = "        if False:"
+
+[[mutant]]
+name = "a legend in a cell is measured on one line"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "return page.legend_height(width, names, down=True)"
+new = "return page.legend_height(width, names, down=False)"
+
+[[mutant]]
+name = "a legend in a cell is set on one line"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "page.legend(fitted, _legend(page, spec, what), down=True)"
+new = "page.legend(fitted, _legend(page, spec, what), down=False)"
+
+[[mutant]]
+name = "a legend taller than its row is let through"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '"voices", "tree", "legend"):'
+new = '"voices", "tree"):'
+
+[[mutant]]
+name = "the legend of a page stays under it when a cell holds one"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):"
+new = "    if shown is False or not names or (len(names) == 1 and shown is None):"
+
+[[mutant]]
+name = "the cells of a grid are not searched for the legend"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = '    return (_legend_cells([{"cells": spec.get("cells")}]) + _legend_cells(spec.get("rows")))'
+new = '    return _legend_cells(spec.get("rows"))'
+
+[[mutant]]
+name = "the rows of a panel are not searched for the legend"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = '                panel.get("rows") if isinstance(panel, dict) else None)'
+new = "                None)"
+
+[[mutant]]
+name = "a legend set down puts the entries side by side"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = """            if down:
+                yield name, x, y, wide"""
+new = """            if False:
+                yield name, x, y, wide"""
+
+[[mutant]]
+name = "a legend set down puts the entries on the same line"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = """                yield name, x, y, wide
+                y += line
+                continue"""
+new = """                yield name, x, y, wide
+                y += 0
+                continue"""
+
+[[mutant]]
+name = "the width of a legend is its narrowest entry"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in names)"
+new = "return min(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in names)"

@@ -1,0 +1,48 @@
+# A grid in a deck of outlined boxes: the boxes (a card, a panel on the paper) fill the squares they cover, a backdrop is
+# laid under them, the legend of the grounds stands in a cell, and an arrow that does not face its end bends once.
+
+specimen = "specimen.pptx"
+out = "grid.pptx"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Boxes on a grid over a backdrop, one of them on the paper"
+condition = "A box fills the squares it covers; a panel may stand on the paper, with the edge of a pale one"
+grid = { columns = [1, 1, 1], rows = [1, 1] }
+links = [
+  { from = "first", to = "second", tone = "accent" },
+  { from = "second", to = "third" },
+]
+
+[[pages.backdrops]]
+at = [1, 1]
+span = [2, 2]
+tone = "Inside"
+
+[[pages.cells]]
+at = [1, 1]
+span = [2, 1]
+id = "first"
+card = { heading = "First", body = "A card on the backdrop", tone = "Inside" }
+
+[[pages.cells]]
+at = [2, 2]
+id = "second"
+[pages.cells.panel]
+tone = "paper"
+heading = "Second"
+rule = true
+rows = [
+  { cells = [ { text = "A panel on the paper, in the outlined look." } ] },
+]
+
+[[pages.cells]]
+at = [1, 2]
+legend = true
+
+[[pages.cells]]
+at = [1, 3]
+span = [2, 1]
+id = "third"
+card = { heading = "Third", body = "Beside the backdrop", tone = "Late" }

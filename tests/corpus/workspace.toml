@@ -35,6 +35,15 @@ like = "read"
 [theme.uses.airy.spacing]
 gap_m = 2.5
 
+# A use whose gap across is wider than its gap down (= an arrow between boxes that do not face each other leaves
+# downwards when the gap down is the narrower).
+[theme.uses.crosswise]
+like = "read"
+
+[theme.uses.crosswise.spacing]
+gap_x = 3.0
+gap_y = 0.5
+
 # A use that sets its own floor and spacing (= like the toolkit's sheet, tighter still).
 [theme.uses.proposal]
 like = "sheet"

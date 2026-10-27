@@ -11,9 +11,10 @@
   共通の言葉を置く
 * **絵の上の印 (`marks`)** ― 写真や図の 1 点を指して名前を付ける (= 製品の各部、画面の各所)。点の位置だけは
   絵に対する割合で書く (= 頁の座標ではないので、絵の外へは出ない)。名前は絵の左右の列に並び、点まで線が引かれる
-* **マスどうしの線 (`links`)** ― `compose` の頁で、`id` を付けたマスからマスへ矢印を引く (= 隣り合うマスだけ)。
+* **マスどうしの線 (`links`)** ― `compose` の頁で、`id` を付けたマスからマスへ矢印を引く。向き合うマス (= 縦か
+  横の範囲が重なる) は真っすぐ、向き合わないマスは直角に 1 回曲がる線 (= 帯の違う箱どうしなど) で結ぶ。
   入れ物 (`panel`) の中のマスと外のマスも結べ、入れ物そのものも端になる (= 入れ物とその中身は結べない)。
-  色の役 (`tone`) と、矢印のそばに置く言葉 (`text`) も書ける
+  色の役 (`tone`) と、真っすぐな矢印のそばに置く言葉 (`text`) も書ける
 
 ⚠ **収まらなければ縮めずに止まる** (= どの並べ方も、箱か字を小さくして押し込むことはしない)。
 """
@@ -22,7 +23,7 @@ from __future__ import annotations
 
 import math
 
-from ...geometry import Rect, pt
+from ...geometry import EMU_PER_CM, Rect, pt
 from ...parts.page import Card, Page, PageFullError
 from ..core.read import Spec, read_card, read_tone, only_keys
 from ..core.registry import PageTypeError
@@ -349,9 +350,10 @@ def marked_figure(page: Page, rect: Rect, source, aspect: float, marks: list[tup
 
 def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[Rect], blank: list[Rect],
           what: str) -> None:
-    """An arrow from each cell named in `from` to the one in `to`, across the gap where the two face each other.
+    """An arrow from each cell named in `from` to the one in `to`: across the gap where the two face each other, bent once where they do not.
 
-    `every` は頁の全部のマス (= `id` の無いマスも)。2 つのあいだに別のマスが在れば、線はそれを横切るので止める。
+    `every` は頁の全部のマス (= `id` の無いマスも)。線が別のマスを横切るなら止める (= 曲がる線は、どの線がどの
+    マスを横切るかを言う。自動で逆向きの折れ方には替えない)。
     ただし `blank` (= 中身の無いマス。`text = ""`) は空きなので数えない (= 離れた 2 つのマスを、間の空きを
     またいで結べる)。`tone` は矢印の色の役 (= 書かなければ灰)、`text` は矢印のそばの言葉 (= `_words_by`)。
     """
@@ -375,6 +377,7 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
             holder, held = (ends[0], ends[1]) if a.contains(b) else (ends[1], ends[0])
             raise PageTypeError(f"{where}: {holder!r} holds {held!r} — a link joins two cells side by side or one "
                                 "above the other, not a cell and what stands inside it")
+        bend, corner = "", None
         if a.top < b.bottom and b.top < a.bottom:                       # 横に向き合う
             y = (max(a.top, b.top) + min(a.bottom, b.bottom)) // 2
             start, end = ((a.right, y), (b.left, y)) if a.right <= b.left else ((a.left, y), (b.right, y))
@@ -383,22 +386,57 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
             x = (max(a.left, b.left) + min(a.right, b.right)) // 2
             start, end = ((x, a.bottom), (x, b.top)) if a.bottom <= b.top else ((x, a.top), (x, b.bottom))
             across = False
-        else:
-            raise PageTypeError(f"{where}: {ends[0]!r} and {ends[1]!r} do not face each other across a row or a "
-                                "column — a link joins cells side by side or one above the other")
-        between = Rect(min(start[0], end[0]), min(start[1], end[1]),
-                       abs(end[0] - start[0]), abs(end[1] - start[1]))
+        else:                                                           # 向き合わない: 直角に 1 回曲がる
+            start, corner, end, bend = _bent(a, b)
+            across = bend == "across"
+        if bend and words:
+            raise PageTypeError(f"{where}: {ends[0]!r} and {ends[1]!r} do not face each other, so the line bends — "
+                                "a bent line carries no words; drop `text`, or put the two cells side by side or "
+                                "one above the other")
         others = [other for other in every if other not in (a, b) and other not in blank
                   and not other.contains(a) and not other.contains(b)]
-        for other in others:
-            if (other.left < between.right and between.left < other.right
-                    and other.top < between.bottom and between.top < other.bottom):
-                raise PageTypeError(f"{where}: another cell stands between {ends[0]!r} and {ends[1]!r} — "
-                                    "a link joins cells with nothing between them")
-        page.line(start, end, arrow=True, tone=tone)
+        for leg_start, leg_end in ((start, end),) if corner is None else ((start, corner), (corner, end)):
+            between = Rect(min(leg_start[0], leg_end[0]), min(leg_start[1], leg_end[1]),
+                           abs(leg_end[0] - leg_start[0]), abs(leg_end[1] - leg_start[1]))
+            for other in others:
+                if (other.left < between.right and between.left < other.right
+                        and other.top < between.bottom and between.top < other.bottom):
+                    if corner is None:
+                        raise PageTypeError(f"{where}: another cell stands between {ends[0]!r} and {ends[1]!r} — "
+                                            "a link joins cells with nothing between them")
+                    raise PageTypeError(
+                        f"{where}: the line from {ends[0]!r} to {ends[1]!r} bends once "
+                        f"(= out of {ends[0]!r} {'sideways' if across else 'vertically'}, then "
+                        f"{'vertically' if across else 'sideways'} into {ends[1]!r}) and runs across "
+                        f"{_called(other, cells)} — move the cells so nothing stands on its path")
+        page.line(start, end, arrow=True, tone=tone, bend=bend)
         if words:
             reach = max(rect.right for rect in every)
             _words_by(page, words.strip(), start, end, across, (a, b), others, reach, where)
+
+
+def _bent(a: Rect, b: Rect) -> tuple[tuple[int, int], tuple[int, int], tuple[int, int], str]:
+    """The start, the corner and the end of a line between two cells that stand corner to corner, and how it bends.
+
+    出る側と入る側は、a から b へ近い方の辺 (= 横の隙間が縦の隙間より狭ければ、a の左右の辺から横へ出て、
+    b の上下の辺へ縦に入る。そうでなければ a の上下の辺から縦に出て、b の左右の辺へ横に入る。等しければ横から)。
+    線は辺の真ん中から出入りする。
+    """
+    right, below = a.right <= b.left, a.bottom <= b.top
+    gap_x = b.left - a.right if right else a.left - b.right
+    gap_y = b.top - a.bottom if below else a.top - b.bottom
+    (a_x, a_y), (b_x, b_y) = _middle(a), _middle(b)
+    if gap_x <= gap_y:
+        return (a.right if right else a.left, a_y), (b_x, a_y), (b_x, b.top if below else b.bottom), "across"
+    return (a_x, a.bottom if below else a.top), (a_x, b_y), (b.left if right else b.right, b_y), "down"
+
+
+def _called(rect: Rect, cells: dict[str, Rect]) -> str:
+    """How a message names a cell: by its id when it has one, else by where it stands on the slide."""
+    named = [name for name, found in cells.items() if found == rect]
+    if named:
+        return f"the cell {named[0]!r}"
+    return f"a cell with no id ({rect.left / EMU_PER_CM:.1f} cm from the left, {rect.top / EMU_PER_CM:.1f} cm from the top)"
 
 
 def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, int], across: bool,

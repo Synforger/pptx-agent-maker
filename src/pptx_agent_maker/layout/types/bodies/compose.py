@@ -36,6 +36,20 @@
   見出しどうしが同じ高さに並ぶ)
 * 残りを分け合う段の中で高さが足りずに止まった時は、外の段が取っている高さも言う (= 動かせるのはそちら)
 
+格子 (= `grid`) の頁は、本体を段でなく**格子**で組む (= 部門をまたぐ流れ図のように、段のマスでは書けない並び):
+
+* `grid = { columns = [1, 3, 3], rows = [1, 1] }` が列と行の幅と高さの比 (= `weight` と同じ読み方。本体を比で
+  分け合い、列の間は `gap_x`、行の間は `gap_y`)
+* マスは `[[cells]]`。`at = [行, 列]` (= 1 から) と `span = [行の数, 列の数]` (= 書かなければ `[1, 1]`) が格子の
+  どこを覆うか。中に置ける物は段のマスと同じ。マスどうしが重なれば、どのマスとどのマスかを言って止める。
+  **箱 (= カードと入れ物) は覆う範囲を使い切り、文章・表・要点は自分の高さのまま上に寄る** (= 行をまたぐ箱は、
+  またぐどの行の箱とも向き合うので、矢印が引ける)
+* 背景は `[[backdrops]]` (= `at`・`span`・`tone`)。覆う範囲いっぱいの地を、マスより下の層に敷く。背景どうしは重ねられない
+* `rows` と `grid` は同じ頁に書けない。`cells` と `backdrops` は `grid` と対で書く
+
+マスの `legend = true` は、その頁で使った地の名前の凡例 (= 頁の下の凡例と同じ中身) を、そのマスの中に縦に
+並べる。1 つの頁に 1 つまで。そのマスを持つ頁は、頁の下の凡例を出さない。
+
 ⚠ **この型は図を要らない頁として扱う。**カードだけで組む頁 (= 目標と柱) を拒むと、また指定を
 曲げて組むことになる。
 """
@@ -47,6 +61,7 @@ from numbers import Real
 from ...geometry import Rect, cm
 from ...parts.look import Style
 from ...parts.page import CARD_ALIGNS, Card, Page, PageFullError, Panel, Voice
+from ..core.frame import legend_cells, legend_names
 from ..core.registry import TYPES, PageTypeError, register
 from ..core.read import Spec, read_card, read_panel, read_table, read_tone, read_weight, only_keys
 from ..core.stack import card_height, spread
@@ -54,7 +69,7 @@ from . import arrange
 from .chart import place_chart
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
-PARTS = ("card", "panel", "figure", "table", "text", "points", "chart", "voices", "ring", "tree", "overlap")
+PARTS = ("card", "panel", "figure", "table", "text", "points", "chart", "voices", "ring", "tree", "overlap", "legend")
 #: 文章の役 (= `role`)。書かなければ本文の色と大きさ。`display` = 頁の主役の数字を特大で、`label` = 列や行の
 #: 見出しを太字で、`note` = 添える小さい字を灰で、`mono` = コード・コマンド・数式の行を等幅で、折らずに薄い地の枠に
 ROLES = ("display", "label", "note", "mono")
@@ -67,13 +82,30 @@ VOICE_KEYS = ("text", "who", "tone")
 #: マスに丸ごと入れられる型 (= その型の書き方のまま)。`cards` はマスごとの `card` で、
 #: 入れ子は `rows` で書くので、この 2 つは入れない
 BODIES = ("figures", "figure_grid", "flow", "roadmap", "timeline", "board", "agenda")
+#: マスが書けるキー (= 部品のほかに、絵・文章・入れ子の段の見え方)。段のマスは `weight` を書き足せる
+CELL_KEYS = frozenset({"rows", "caption", "role", "marks", "guides", "guide_tone", "valign", "inset", "id",
+                       *TEXT_LOOKS, *PARTS, *BODIES})
+#: 格子の頁の `grid` が読むキー (= 列と行の幅と高さの比)
+GRID_KEYS = ("columns", "rows")
+#: 格子のマスが書けるキー (= 段のマスと同じ物に、格子のどこを覆うか)
+GRID_CELL_KEYS = frozenset({"at", "span", *CELL_KEYS})
+#: 背景が読むキー (= 覆う範囲と、地の色の役)
+BACKDROP_KEYS = ("at", "span", "tone")
+#: 背景が地の色を言わない時の役 (= 薄い地。箱が載る背景なので、意味を持たない地)
+BACKDROP_TONE = "band"
 
 
-@register("compose", needs=["rows"], takes=["links"], figure=False)
+@register("compose", needs=[], takes=["rows", "grid", "cells", "backdrops", "links"], figure=False)
 def _compose(page: Page, spec: Spec, area: Rect) -> None:
-    """Rows top to bottom, cells left to right, one part in each cell (or more rows); then the links."""
+    """Rows top to bottom (or cells on a grid), cells left to right, one part in each cell (or more rows); then the links."""
+    gridded = _way(spec)
+    if legend_cells(spec) > 1:
+        raise PageTypeError("compose: two cells hold the legend — `legend = true` is on one cell of a page")
     seen: list[tuple[str | None, Rect, bool]] = []
-    _stack(page, spec, spec.get("rows"), area, "compose", seen)
+    if gridded:
+        _grid(page, spec, area, seen)
+    else:
+        _stack(page, spec, spec.get("rows"), area, "compose", seen)
     named: dict[str, Rect] = {}
     for name, rect, _blank in seen:
         if name is None:
@@ -84,6 +116,24 @@ def _compose(page: Page, spec: Spec, area: Rect) -> None:
     if spec.get("links") is not None:
         arrange.links(page, spec, spec.get("links"), named, [rect for _name, rect, _blank in seen],
                       [rect for _name, rect, blank in seen if blank], "compose")
+
+
+def _way(spec: Spec) -> bool:
+    """Whether the body is laid out on a grid (= otherwise in rows); a page writes one way, whole."""
+    rows, grid = "rows" in spec.data, "grid" in spec.data
+    if rows and grid:
+        raise PageTypeError("compose: `rows` and `grid` are two ways to lay out the body — a page writes one: "
+                            "rows of cells, or cells on a grid")
+    for key in ("cells", "backdrops"):
+        if key in spec.data and not grid:
+            raise PageTypeError(f"compose: `{key}` are placed on a grid — write `grid = {{ columns = [1, 1], "
+                                "rows = [1, 1] }`, or write the body as rows")
+    if grid and "cells" not in spec.data:
+        raise PageTypeError("compose: `grid` is filled by `cells` — write [[cells]], each with its `at` (= [row, column])")
+    if not rows and not grid:
+        raise PageTypeError("compose: missing rows — this type is not that page without it "
+                            "(= or a `grid` with its `cells`)")
+    return grid
 
 
 def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> None:
@@ -129,6 +179,116 @@ def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> 
         top += tall + gap
 
 
+def _grid(page: Page, spec: Spec, area: Rect, seen: list) -> None:
+    """Cells on a grid of columns and rows, backdrops under them.
+
+    列と行は本体を比で分け合い (= 間は `gap_x` と `gap_y`)、マスと背景は覆う範囲いっぱいの枠に置く。背景は箱より
+    先に置く (= 下の層)。
+    """
+    where = "compose"
+    s = page.theme.spacing
+    widths, heights = _read_grid(spec.get("grid"), where)
+    try:
+        across = area.columns(widths, gap=s.gap_x)
+        down = area.rows(heights, gap=s.gap_y)
+    except ValueError as reason:
+        raise PageFullError(f"{where}: the grid is {len(widths)} columns by {len(heights)} rows, and the gaps between "
+                            f"them are wider than the {area.width} x {area.height} EMU of the body — fewer columns "
+                            "or rows; nothing will shrink") from reason
+    backdrops = _listed(spec.get("backdrops"), "backdrops", where)
+    cells = _listed(spec.get("cells"), "cells", where)
+    if not cells:
+        raise PageTypeError(f"{where}: `cells` is empty — write at least one [[cells]]")
+    covered: dict[tuple[int, int], str] = {}
+    rects = []
+    for number, backdrop in enumerate(backdrops, start=1):
+        what = f"{where}: backdrop {number}"
+        only_keys(backdrop, set(BACKDROP_KEYS), what)
+        first, last = _span_of(backdrop, len(heights), len(widths), what)
+        _cover(covered, first, last, what)
+        rects.append((_frame(across, down, first, last), read_tone(spec, backdrop, what, BACKDROP_TONE)))
+    for rect, tone in rects:
+        page.backdrop(rect, tone)
+    covered = {}
+    for number, cell in enumerate(cells, start=1):
+        what = f"{where}: cell {number}"
+        only_keys(cell, set(GRID_CELL_KEYS), what)
+        first, last = _span_of(cell, len(heights), len(widths), what)
+        _cover(covered, first, last, what)
+        rect = _frame(across, down, first, last)
+        natural = _natural(page, spec, cell, rect.width, what)
+        at = len(seen)
+        seen.append((str(cell["id"]) if "id" in cell else None, rect, _blank(cell)))
+        drawn = _place(page, spec, cell, rect, natural, True, what, seen)
+        if drawn is not None:
+            seen[at] = (seen[at][0], drawn, seen[at][2])
+
+
+def _read_grid(grid, where: str) -> tuple[list[float], list[float]]:
+    """The shares the columns and the rows of a grid take: `{ columns = [1, 3], rows = [1, 1] }`."""
+    what = f"{where}: grid"
+    only_keys(grid, set(GRID_KEYS), what)
+    shares = []
+    for key in GRID_KEYS:
+        written = grid.get(key)
+        if not isinstance(written, list) or not written:
+            raise PageTypeError(f"{what}: `{key}` is a list of shares, one for each of the {key} of the grid, "
+                                f"as in {key} = [1, 1]")
+        shares.append([read_weight({"weight": share}, f"{what}, {key}") for share in written])
+    return shares[0], shares[1]
+
+
+def _listed(written, key: str, where: str) -> list:
+    """A list of tables a page writes (= `cells`, `backdrops`); nothing when it does not write it."""
+    if written is None:
+        return []
+    if not isinstance(written, list):
+        raise PageTypeError(f"{where}: `{key}` is a list of tables, written [[{key}]]")
+    return written
+
+
+def _span_of(item: dict, rows: int, columns: int, what: str) -> tuple[tuple[int, int], tuple[int, int]]:
+    """The first and the last (row, column) a cell or a backdrop covers, from 0: `at = [row, column]`, `span = [rows, columns]`."""
+    at = _pair(item, "at", None, what, "the row and the column of its top left corner, from 1, as in at = [1, 2]")
+    span = _pair(item, "span", (1, 1), what, "how many rows and how many columns it covers, as in span = [2, 1] "
+                 "(= 1 and 1 when left out)")
+    last = (at[0] + span[0] - 2, at[1] + span[1] - 2)
+    for number, (name, bound) in enumerate((("row", rows), ("column", columns))):
+        if last[number] >= bound:
+            raise PageTypeError(f"{what}: covers {name} {last[number] + 1}, and the grid has {bound} {name}s — "
+                                f"`at` and `span` stay inside it")
+    return (at[0] - 1, at[1] - 1), last
+
+
+def _pair(item: dict, key: str, unsaid: tuple[int, int] | None, what: str, means: str) -> tuple[int, int]:
+    """Two whole numbers from 1 (= `at`, `span`); `unsaid` when it is left out (= required when that is None)."""
+    if key not in item:
+        if unsaid is None:
+            raise PageTypeError(f"{what} has no `{key}` — it is {means}")
+        return unsaid
+    written = item[key]
+    if (not isinstance(written, list) or len(written) != 2
+            or any(isinstance(number, bool) or not isinstance(number, int) or number < 1 for number in written)):
+        raise PageTypeError(f"{what}: `{key}` is {means}, not {written!r}")
+    return written[0], written[1]
+
+
+def _cover(covered: dict, first: tuple[int, int], last: tuple[int, int], what: str) -> None:
+    """Mark the squares of the grid a cell or a backdrop covers; refuse one that a cell of its kind covers already."""
+    for row in range(first[0], last[0] + 1):
+        for column in range(first[1], last[1] + 1):
+            if (row, column) in covered:
+                raise PageTypeError(f"{what} and {covered[(row, column)]} both cover row {row + 1}, column {column + 1} "
+                                    "— a square of a grid is covered by one cell, and by one backdrop")
+            covered[(row, column)] = what.removeprefix("compose: ")
+
+
+def _frame(across: list[Rect], down: list[Rect], first: tuple[int, int], last: tuple[int, int]) -> Rect:
+    """The rect from the top left of the first square to the bottom right of the last (= the gaps between them included)."""
+    left, top = across[first[1]].left, down[first[0]].top
+    return Rect(left, top, across[last[1]].right - left, down[last[0]].bottom - top)
+
+
 def _blank(cell: dict) -> bool:
     """Whether a cell holds nothing (= `text = ""`): space a link may cross, and words may stand over.
 
@@ -160,8 +320,7 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
         if not isinstance(cells, list) or not cells:
             raise PageTypeError(f"{what} has no cells — write [[…cells]] under it, one per part")
         for index, cell in enumerate(cells, start=1):
-            only_keys(cell, {"weight", "rows", "caption", "role", "marks", "guides", "guide_tone", "valign", "inset", "id",
-                             *TEXT_LOOKS, *PARTS, *BODIES}, f"{what}, cell {index}")
+            only_keys(cell, {"weight", *CELL_KEYS}, f"{what}, cell {index}")
         weights = [read_weight(cell, f"{what}, cell {index}") for index, cell in enumerate(cells, start=1)]
         columns = Rect(0, 0, width, 1).columns(weights, gap=gap)
         measured = [(cell, column, _natural(page, spec, cell, column.width, f"{what}, cell {index}"))
@@ -182,6 +341,9 @@ def _part(cell: dict, what: str) -> str:
     if len(named) > 1:
         raise PageTypeError(
             f"{what} holds {', '.join(named)} — one part per cell; put the others in cells beside it")
+    if "legend" in cell and cell["legend"] is not True:
+        raise PageTypeError(f"{what}: `legend` is true (= the cell holds the legend of the grounds this page uses), "
+                            f"not {cell['legend']!r}")
     if "caption" in cell and named[0] != "figure":
         raise PageTypeError(f"{what}: `caption` belongs to a figure, and this cell holds {named[0]}")
     if "marks" in cell and named[0] != "figure":
@@ -258,6 +420,12 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
     if part == "table":
         rows = _table(spec, cell, what)
         return theme.table_height(rows, theme.column_widths(rows, width))
+    if part == "legend":
+        names = _legend(page, spec, what)
+        if page.legend_width(names) > width:
+            raise PageFullError(f"{what}: the legend needs {page.legend_width(names)} EMU of width and the cell has "
+                                f"{width} — a wider cell, or shorter names; nothing will shrink")
+        return page.legend_height(width, names, down=True)
     if part == "text" and cell.get("role") == "mono":
         try:
             return page.code_height(width, str(cell["text"]))
@@ -300,7 +468,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
     カードの字が箱からはみ出し、文章の枠は字より短かった。入れ子の段と表は、自分で同じことを言う。
     """
     part = _part(cell, what)
-    if natural is not None and natural > rect.height and part in ("card", "panel", "text", "points", "voices", "tree"):
+    if natural is not None and natural > rect.height and part in ("card", "panel", "text", "points", "voices", "tree", "legend"):
         raise PageFullError(
             f"{what}: this {part} needs {natural} EMU of height and its row has {rect.height} — "
             "give the row a larger `weight`, or take something off the page; nothing will shrink")
@@ -320,6 +488,8 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
         elif part == "text":
             tone = read_tone(spec, cell, what, "box") if "tone" in cell else None
             page.text(fitted, str(cell["text"]), role=cell.get("role"), tone=tone, align=cell.get("align", "left"))
+        elif part == "legend":
+            page.legend(fitted, _legend(page, spec, what), down=True)
         elif part == "points":
             page.points(fitted, _points(cell, what))
         elif part == "voices":
@@ -462,6 +632,15 @@ def _voices(spec: Spec, cell: dict, what: str) -> list[Voice]:
         found.append(Voice(text, str(item.get("who", "")).strip(),
                            Style(read_tone(spec, item, where, "box") if "tone" in item else "box")))
     return found
+
+
+def _legend(page: Page, spec: Spec, what: str) -> list[str]:
+    """The names a legend cell lists: the grounds the project named that this page uses (= what the legend under a page lists)."""
+    names = legend_names(page, spec)
+    if not names:
+        raise PageTypeError(f"{what}: `legend = true` lists the grounds this page uses that the project named in "
+                            "[theme.grounds], and this page uses none — drop the cell")
+    return names
 
 
 def _points(cell: dict, what: str) -> list[str]:

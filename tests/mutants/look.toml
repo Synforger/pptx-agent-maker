@@ -9,7 +9,7 @@ tests = ["tests/layout/test_look.py", "tests/layout/test_timeline.py", "tests/la
 [[mutant]]
 name = "a tone that was written is dropped for the part's default"
 file = "src/pptx_agent_maker/layout/types/core/read.py"
-old = 'read_tone(spec, item, what, unsaid) if "tone" in item else unsaid'
+old = 'read_tone(spec, item, what, unsaid, also=also) if "tone" in item else unsaid'
 new = "unsaid"
 
 [[mutant]]
@@ -141,17 +141,17 @@ new = "piece.style_on(packed[number + reach - 1].tone), size=size)"
 [[mutant]]
 name = "a legend of one name is shown though nobody asked"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
-old = "if shown is False or not names or (len(names) == 1 and shown is None):"
-new = "if shown is False or not names:"
+old = "if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):"
+new = "if legend_cells(spec) or shown is False or not names:"
 
 [[mutant]]
 name = "a legend of one name is left out even when asked for"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
-old = "if shown is False or not names or (len(names) == 1 and shown is None):"
-new = "if shown is False or not names or len(names) == 1:"
+old = "if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):"
+new = "if legend_cells(spec) or shown is False or not names or len(names) == 1:"
 
 [[mutant]]
 name = "legend = false is not read"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
-old = "if shown is False or not names or (len(names) == 1 and shown is None):"
-new = "if not names or (len(names) == 1 and shown is None):"
+old = "if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):"
+new = "if legend_cells(spec) or not names or (len(names) == 1 and shown is None):"

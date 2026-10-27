@@ -116,14 +116,14 @@ new = 'tone = None'
 [[mutant]]
 name = "an arrow is grey whatever its tone"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "page.line(start, end, arrow=True, tone=tone)"
-new = "page.line(start, end, arrow=True)"
+old = "page.line(start, end, arrow=True, tone=tone, bend=bend)"
+new = "page.line(start, end, arrow=True, bend=bend)"
 
 [[mutant]]
 name = "a line takes no colour of its own"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow))"
-new = "self.theme.palette.muted, arrow=arrow))"
+old = "self.tone_ink(tone) if tone else self.theme.palette.muted, arrow=arrow, bend=bend))"
+new = "self.theme.palette.muted, arrow=arrow, bend=bend))"
 
 # -- the words beside an arrow --
 

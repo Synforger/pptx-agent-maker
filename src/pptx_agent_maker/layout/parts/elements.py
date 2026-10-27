@@ -81,7 +81,7 @@ class Fill(Element):
 
 @dataclass(frozen=True)
 class Line(Element):
-    """A straight line from one point to another. `rect` is the box round the two points.
+    """A line from one point to another, straight or bent once at a right angle. `rect` is the box round the two points.
 
     ⚠ **矢印は線の端の形で描く。**プリセットの矢印の図形 1 つで PowerPoint が修復を言い出した実例が
     在る (= 流れ図の向きを字で置く理由)。直線の端に付ける矢じりは線の書式で、図形の種類を増やさない。
@@ -92,6 +92,13 @@ class Line(Element):
     colour: str
     #: 終わりの端に矢じりを付ける
     arrow: bool = False
+    #: 空なら真っすぐ。`across` は始まりから横へ進み、終わりの x で曲がって縦に終わりへ着く直角の線、`down` は
+    #: 始まりから縦へ進み、終わりの y で曲がって横に着く線 (= 曲がるのは 1 回。`BENDS`)
+    bend: str = ""
+
+
+#: 線の曲がり方 (= `Line.bend`)。空は真っすぐ
+BENDS = ("across", "down")
 
 
 @dataclass(frozen=True)

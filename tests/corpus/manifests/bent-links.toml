@@ -1,0 +1,65 @@
+# An arrow between two boxes that do not face each other bends once at a right angle. It leaves the cell by the edge
+# nearer the other and goes into the other from above or below, or from the side. A panel may stand on the paper.
+
+specimen = "specimen.pptx"
+out = "bent-links.pptx"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A cycle of three, joined by arrows that bend once"
+condition = "The gap across is as wide as the gap down, so each arrow leaves sideways and goes into the next from above or below"
+conclusion = "A panel on the paper is the white of the page with the edge of a pale panel"
+links = [
+  { from = "plan", to = "do", tone = "accent" },
+  { from = "do", to = "review", tone = "accent" },
+]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "plan"
+card = { heading = "Plan", body = "Say what to do" }
+[[pages.rows.cells]]
+text = ""
+[[pages.rows.cells]]
+id = "review"
+card = { heading = "Review", body = "Look at what was done" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = ""
+[[pages.rows.cells]]
+id = "do"
+[pages.rows.cells.panel]
+tone = "paper"
+heading = "Do"
+rule = true
+rows = [
+  { cells = [ { text = "The words stand straight on the paper, in the ink of the body." } ] },
+]
+[[pages.rows.cells]]
+text = ""
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "The gap down is narrower than the gap across"
+condition = "The arrow leaves downwards and goes into the other box from the side"
+use = "crosswise"
+links = [
+  { from = "first", to = "second" },
+]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+id = "first"
+card = { heading = "First", body = "Leaves by its lower edge" }
+[[pages.rows.cells]]
+text = ""
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = ""
+[[pages.rows.cells]]
+id = "second"
+card = { heading = "Second", body = "Is entered by its left edge" }

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import tempfile
 import unittest
@@ -14,11 +15,14 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
+sys.path.insert(0, str(REPO / "tests"))
+
+from support.pages import box_of  # noqa: E402
 
 from pptx_agent_maker import checks  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
-from pptx_agent_maker.layout.tokens import DEFAULT  # noqa: E402
-from pptx_agent_maker.layout.parts.page import PageFullError  # noqa: E402
+from pptx_agent_maker.layout.tokens import DEFAULT, theme_from  # noqa: E402
+from pptx_agent_maker.layout.parts.page import Page, PageFullError  # noqa: E402
 from pptx_agent_maker.layout.types.bodies import arrange  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, aspect, new_deck, save  # noqa: E402
@@ -198,6 +202,198 @@ class Written(unittest.TestCase):
         self.assertIn('<a:alpha val="65000"/>', overlap)
 
 
+class BentLinks(unittest.TestCase):
+    """Cells that do not face each other (= corner to corner) are joined by a line that bends once at a right angle."""
+
+    def corner(self, from_, to, *, across_gap, down_gap):
+        """A 2 x 2 page of A B / C D whose gaps are as asked; the two cells the link does not use hold no words."""
+        spacing = {"gap_x": across_gap, "gap_y": down_gap}
+        theme = theme_from({"uses": {"gapped": {"like": "read", "spacing": spacing}}}).using("gapped")
+        cell = lambda name: {"id": name.lower(), "card": {"heading": name}} if name in (from_, to) else {"text": ""}
+        rows = [{"cells": [cell("A"), cell("B")]}, {"cells": [cell("C"), cell("D")]}]
+        page = types.build({"type": "compose", "title": "A page", "rows": rows,
+                            "links": [{"from": from_.lower(), "to": to.lower()}]}, lambda name: DATA / name, aspect, theme)
+        (line,) = kinds(page, "line")
+        return page, line, box_of(page, from_).rect, box_of(page, to).rect
+
+    def test_when_the_gap_across_is_the_narrower_the_line_leaves_sideways_and_goes_into_the_other_from_above_or_below(self):
+        _page, line, a, d = self.corner("A", "D", across_gap=0.5, down_gap=3)
+        self.assertEqual("across", line.bend)
+        self.assertEqual((a.right, a.top + a.height // 2), line.start)
+        self.assertEqual((d.left + d.width // 2, d.top), line.end)
+        self.assertTrue(line.arrow)
+
+    def test_when_the_gap_down_is_the_narrower_the_line_leaves_downwards_and_goes_into_the_other_from_the_side(self):
+        _page, line, a, d = self.corner("A", "D", across_gap=3, down_gap=0.5)
+        self.assertEqual("down", line.bend)
+        self.assertEqual((a.left + a.width // 2, a.bottom), line.start)
+        self.assertEqual((d.left, d.top + d.height // 2), line.end)
+
+    def test_gaps_that_are_equal_leave_sideways(self):
+        _page, line, _a, _d = self.corner("A", "D", across_gap=1, down_gap=1)
+        self.assertEqual("across", line.bend)
+
+    def test_every_one_of_the_four_corners_is_read_from_the_cell_the_line_leaves(self):
+        gaps = {"across_gap": 0.5, "down_gap": 3}
+        _p, line, d, a = self.corner("D", "A", **gaps)              # up and to the left
+        self.assertEqual(((d.left, d.top + d.height // 2), (a.left + a.width // 2, a.bottom)), (line.start, line.end))
+        _p, line, b, c = self.corner("B", "C", **gaps)              # down and to the left
+        self.assertEqual(((b.left, b.top + b.height // 2), (c.left + c.width // 2, c.top)), (line.start, line.end))
+        _p, line, c, b = self.corner("C", "B", **gaps)              # up and to the right
+        self.assertEqual(((c.right, c.top + c.height // 2), (b.left + b.width // 2, b.bottom)), (line.start, line.end))
+        gaps = {"across_gap": 3, "down_gap": 0.5}
+        _p, line, d, a = self.corner("D", "A", **gaps)
+        self.assertEqual(((d.left + d.width // 2, d.top), (a.right, a.top + a.height // 2)), (line.start, line.end))
+        _p, line, c, b = self.corner("C", "B", **gaps)
+        self.assertEqual(((c.left + c.width // 2, c.top), (b.left, b.top + b.height // 2)), (line.start, line.end))
+        self.assertEqual("down", line.bend)
+
+    def test_cells_that_face_each_other_are_still_joined_by_a_straight_line(self):
+        page = Links().build([{"cells": [{"id": "a", "card": {"heading": "A"}}, {"id": "b", "card": {"heading": "B"}}]},
+                              {"cells": [{"id": "c", "card": {"heading": "C"}}]}],
+                             [{"from": "a", "to": "b"}, {"from": "a", "to": "c"}])
+        self.assertEqual(["", ""], [line.bend for line in kinds(page, "line")])
+
+    def test_a_cell_the_line_runs_across_stops_the_page_and_the_error_says_which_line_and_which_cell(self):
+        rows = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"id": "m", "card": {"heading": "M"}}]},
+                {"cells": [{"id": "c", "card": {"heading": "C"}}, {"id": "b", "card": {"heading": "B"}}]}]
+        with self.assertRaises(PageTypeError) as raised:
+            Links().build(rows, [{"from": "a", "to": "b"}])
+        message = str(raised.exception)
+        self.assertIn("link 1: the line from 'a' to 'b' bends once", message)
+        self.assertIn("runs across the cell 'm'", message)
+        self.assertIn("out of 'a' sideways, then vertically into 'b'", message)
+        with self.assertRaises(PageTypeError) as other_way:
+            Links().build(rows, [{"from": "b", "to": "a"}])
+        self.assertIn("runs across the cell 'c'", str(other_way.exception))
+
+    def test_a_cell_on_the_second_leg_of_a_line_that_leaves_downwards_stops_the_page_too(self):
+        spacing = {"gap_x": 3, "gap_y": 0.5}
+        theme = theme_from({"uses": {"gapped": {"like": "read", "spacing": spacing}}}).using("gapped")
+        rows = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"text": ""}, {"text": ""}]},
+                {"cells": [{"text": ""}, {"id": "x", "card": {"heading": "X"}}, {"id": "b", "card": {"heading": "B"}}]}]
+        with self.assertRaisesRegex(PageTypeError, r"out of 'a' vertically, then sideways into 'b'\) and runs across "
+                                                   r"the cell 'x'"):
+            types.build({"type": "compose", "title": "A page", "rows": rows, "links": [{"from": "a", "to": "b"}]},
+                        lambda name: DATA / name, aspect, theme)
+
+    def test_a_page_asked_for_a_line_that_bends_neither_across_nor_down_is_refused(self):
+        page = Page("A page", DEFAULT)
+        with self.assertRaisesRegex(ValueError, "a line bends 'across' or 'down', not 'sideways'"):
+            page.line((0, 0), (10, 10), bend="sideways")
+
+    def test_a_cell_with_no_id_in_the_way_is_named_by_where_it_stands(self):
+        rows = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"card": {"heading": "M"}}]},
+                {"cells": [{"card": {"heading": "C"}}, {"id": "b", "card": {"heading": "B"}}]}]
+        with self.assertRaisesRegex(PageTypeError, r"runs across a cell with no id \(\d+\.\d cm from the left, \d+\.\d cm from the top\)"):
+            Links().build(rows, [{"from": "a", "to": "b"}])
+
+    def test_a_bent_line_carries_no_words(self):
+        rows = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"text": ""}]},
+                {"cells": [{"text": ""}, {"id": "b", "card": {"heading": "B"}}]}]
+        with self.assertRaisesRegex(PageTypeError, "a bent line carries no words"):
+            Links().build(rows, [{"from": "a", "to": "b", "text": "then"}])
+
+    def test_the_colour_of_a_bent_line_is_the_colour_of_its_tone(self):
+        rows = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"text": ""}]},
+                {"cells": [{"text": ""}, {"id": "b", "card": {"heading": "B"}}]}]
+        (line,) = kinds(Links().build(rows, [{"from": "a", "to": "b", "tone": "bad"}]), "line")
+        self.assertEqual(DEFAULT.palette.bad, line.colour)
+        self.assertEqual("across", line.bend)
+
+
+class TheBentLineInTheFile(unittest.TestCase):
+    """A bent line is one connector that bends once (= `bentConnector2`); the file draws it where the link says, the head where it points."""
+
+    SLIDE = "ppt/slides/slide1.xml"
+
+    def connectors(self, rows, links, theme=DEFAULT):
+        page = types.build({"type": "compose", "title": "A page", "rows": rows, "links": links},
+                           lambda name: DATA / name, aspect, theme)
+        deck = new_deck(theme)
+        add_page(deck, page.build(), theme)
+        with tempfile.TemporaryDirectory() as tmp:
+            saved = save(deck, Path(tmp) / "bent.pptx")
+            self.assertEqual([], checks.run_all(saved))
+            with zipfile.ZipFile(saved) as archive:
+                xml = archive.read(self.SLIDE).decode()
+        return page, re.findall(r"<p:cxnSp>.*?</p:cxnSp>", xml, re.S)
+
+    @staticmethod
+    def drawn(connector):
+        """(where it begins, where it turns, where it ends, which end has the head, the frame) as the file says it is drawn.
+
+        プリセットの道は枠の左上から右へ進み、右の辺で下へ曲がる。枠の中で反転し (= 左右、上下)、真ん中を軸に回る。
+        """
+        x, y = (int(v) for v in re.search(r'<a:off x="(-?\d+)" y="(-?\d+)"', connector).groups())
+        w, h = (int(v) for v in re.search(r'<a:ext cx="(\d+)" cy="(\d+)"', connector).groups())
+        turned = re.search(r'<a:xfrm[^>]*\brot="(\d+)"', connector)
+        degrees = int(turned.group(1)) // 60000 if turned else 0
+        points = [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2)]
+        if 'flipH="1"' in connector:
+            points = [(-px, py) for px, py in points]
+        if 'flipV="1"' in connector:
+            points = [(px, -py) for px, py in points]
+        cos, sin = {0: (1, 0), 90: (0, 1), 180: (-1, 0), 270: (0, -1)}[degrees]
+        centre = (x + w / 2, y + h / 2)
+        begin, corner, end = ((round(centre[0] + px * cos - py * sin), round(centre[1] + px * sin + py * cos))
+                              for px, py in points)
+        head = "end" if "<a:tailEnd" in connector else "begin" if "<a:headEnd" in connector else ""
+        return begin, corner, end, head, (x, y, w, h)
+
+    def corner(self, from_, to, across_gap, down_gap):
+        spacing = {"gap_x": across_gap, "gap_y": down_gap}
+        theme = theme_from({"uses": {"gapped": {"like": "read", "spacing": spacing}}}).using("gapped")
+        cell = lambda n: {"id": n.lower(), "card": {"heading": n}} if n in (from_, to) else {"text": ""}
+        return self.connectors([{"cells": [cell("A"), cell("B")]}, {"cells": [cell("C"), cell("D")]}],
+                               [{"from": from_.lower(), "to": to.lower()}], theme)
+
+    def test_a_line_that_leaves_sideways_is_drawn_from_its_start_to_its_end_with_the_head_at_its_end(self):
+        page, (connector,) = self.corner("A", "D", 0.5, 3)
+        (line,) = kinds(page, "line")
+        self.assertIn('prst="bentConnector2"', connector)
+        begin, corner, end, head, _frame = self.drawn(connector)
+        self.assertEqual((line.start, (line.end[0], line.start[1]), line.end, "end"), (begin, corner, end, head))
+
+    def test_a_line_that_leaves_downwards_is_drawn_from_its_end_to_its_start_with_the_head_at_its_beginning(self):
+        page, (connector,) = self.corner("A", "D", 3, 0.5)
+        (line,) = kinds(page, "line")
+        begin, corner, end, head, _frame = self.drawn(connector)
+        # the preset turns at the x of its far end, so it is drawn backwards: its turn is under the start and level with the end
+        self.assertEqual((line.end, (line.start[0], line.end[1]), line.start, "begin"), (begin, corner, end, head))
+
+    def test_the_four_corners_in_both_bends_are_each_one_connector_that_turns_where_the_line_turns(self):
+        for from_, to in (("A", "D"), ("D", "A"), ("B", "C"), ("C", "B")):
+            for gaps in ((0.5, 3), (3, 0.5)):
+                with self.subTest(from_=from_, to=to, gaps=gaps):
+                    page, (connector,) = self.corner(from_, to, *gaps)
+                    (line,) = kinds(page, "line")
+                    begin, corner, end, head, _frame = self.drawn(connector)
+                    turn = (line.end[0], line.start[1]) if line.bend == "across" else (line.start[0], line.end[1])
+                    self.assertEqual(turn, corner)
+                    self.assertEqual({line.start, line.end}, {begin, end})
+                    self.assertEqual(line.end, end if head == "end" else begin)
+
+    def test_a_bent_line_stays_inside_the_box_round_its_two_ends_so_it_cannot_leave_the_page(self):
+        for from_, to in (("A", "D"), ("D", "A"), ("B", "C"), ("C", "B")):
+            for gaps in ((0.5, 3), (3, 0.5)):
+                with self.subTest(from_=from_, to=to, gaps=gaps):
+                    page, (connector,) = self.corner(from_, to, *gaps)
+                    (line,) = kinds(page, "line")
+                    self.assertEqual((line.rect.left, line.rect.top, line.rect.width, line.rect.height),
+                                     self.drawn(connector)[4])
+                    self.assertNotIn("rot=\"5400000\"", connector)
+                    self.assertNotIn("rot=\"16200000\"", connector)
+
+    def test_a_straight_line_stays_a_straight_connector(self):
+        _page, (connector,) = self.connectors([{"cells": [{"id": "a", "card": {"heading": "A"}},
+                                                          {"id": "b", "card": {"heading": "B"}}]}],
+                                              [{"from": "a", "to": "b"}])
+        self.assertIn('prst="line"', connector)
+        self.assertIn("<a:tailEnd", connector)
+        self.assertNotIn("<a:headEnd", connector)
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -289,7 +485,7 @@ class Links(unittest.TestCase):
         (line,) = kinds(page, "line")
         self.assertTrue(line.arrow)
 
-    def test_an_unknown_id_a_cell_between_or_cells_that_do_not_face_are_refused(self):
+    def test_an_unknown_id_or_a_cell_between_are_refused(self):
         row = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"card": {"heading": "M"}},
                           {"id": "b", "card": {"heading": "B"}}]}]
         with self.assertRaises(PageTypeError) as unknown:
@@ -298,11 +494,6 @@ class Links(unittest.TestCase):
         with self.assertRaises(PageTypeError) as between:
             self.build(row, [{"from": "a", "to": "b"}])
         self.assertIn("stands between", str(between.exception))
-        corner = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"card": {"heading": "M"}}]},
-                  {"cells": [{"text": "x", "weight": 3}, {"id": "b", "card": {"heading": "B"}}]}]
-        with self.assertRaises(PageTypeError) as apart:
-            self.build(corner, [{"from": "a", "to": "b"}])
-        self.assertIn("do not face", str(apart.exception))
         with self.assertRaises(PageTypeError) as twice:
             self.build([{"cells": [{"id": "a", "text": "x"}, {"id": "a", "text": "y"}]}], [{"from": "a", "to": "a"}])
         self.assertIn("two cells have the id", str(twice.exception))
