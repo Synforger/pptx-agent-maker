@@ -65,6 +65,8 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
     「restart the preview」と出ていれば、常駐が起動した時の古い道具のまま走っていて、この案件の
     `workspace.toml` を読めない。常駐を起動し直す。常駐の無い機械では `task preview` で開いて見せる。
     人と頁の話をする時は、人が見ているその画面の頁の番号で言う
+    (= `build` と `check` の報告は、表紙の無番号などで位置と刷られる番号が違う資料に限り
+    `page 3 (printed 2)` と並べる。人には `printed` の方で言う)
 12. **会議の前に PDF に書き出す** ― PowerPoint で書き出し、資料の隣に置く (= 映す機械で開けない時の控え。
     LibreOffice は書体が無いと別の書体に置き換え、折り返しが PowerPoint と変わるので、渡す PDF には使わない)
 13. **人が PowerPoint で直したら取り込む** ― `task review -- w1.pptx --apply`。**取り込みはエージェントの
