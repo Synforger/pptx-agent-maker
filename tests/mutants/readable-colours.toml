@@ -88,8 +88,8 @@ new = "p.words_on(p.accent, size),"
 [[mutant]]
 name = "a bar takes the colour of words of no size"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        look = self.look(style, size)\n"
-new = "        look = self.look(style)\n"
+old = "else self.look(style, size)\n"
+new = "else self.look(style)\n"
 
 [[mutant]]
 name = "an arrowhead is counted as normal weight"

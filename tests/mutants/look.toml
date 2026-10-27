@@ -121,8 +121,8 @@ new = "return Style(lane,"
 [[mutant]]
 name = "a bar across lanes loses its looks"
 file = "src/pptx_agent_maker/layout/types/bodies/timeline.py"
-old = "                                                     style=written.style)))"
-new = "                                                     )))"
+old = "                                                     style=written.style, ident=written.ident)))"
+new = "                                                     ident=written.ident)))"
 
 [[mutant]]
 name = "a bar's icon takes no room from its name"

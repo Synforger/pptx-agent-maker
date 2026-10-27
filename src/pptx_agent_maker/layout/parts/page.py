@@ -862,7 +862,9 @@ class Page:
         """Something that takes a stretch of time, with its name on it.
 
         `style.tone` は地の色の役 (= `TONES`。箱と同じ語彙)。薄い地の棒は、地を濃くした色の枠を持つ ―
-        列の薄い地の上に置かれるので、枠が無いと端が背景に溶ける。
+        列の薄い地の上に置かれるので、枠が無いと端が背景に溶ける。資料の `bar_look = "outlined"` では、
+        色を運ぶ役の棒は地ではなく枠で色を言い、地・枠・字の色はカードの `outlined` と同じ決まり
+        (= `outlined_look`) を読む。
         `style.tentative` は**点線の枠** (= 在れば / 内容未定)。地は紙の色なので、決まった棒の
         隣に置いても同じ重さに見えない ― 塗らずに透かすと、後ろを通る日付の線が名前を貫く。
 
@@ -870,7 +872,7 @@ class Page:
         文字が置き去りにならない。アイコンは名前の前に、字の高さで置く。
         """
         size = self.theme.type.body if size is None else size
-        look = self.look(style, size)
+        look = self.outlined_look(style, size)[0] if self.theme.bar_look == "outlined" else self.look(style, size)
         # アイコンの幅は置く前に決まる (= 字の高さ)。先に測って、棒は 1 度で書く
         self.elements.append(Bar("bar", rect, text, size, look.ink, fill=look.fill, outline=look.outline,
                                  dashed=look.dashed, heavy=look.heavy, lead=self._lead(style.icon, size)))
