@@ -333,13 +333,13 @@ class BakedFromTheAssetsOfAProject(unittest.TestCase):
     def test_a_file_that_is_not_among_the_assets_says_so_and_which_page(self) -> None:
         with self.assertRaises(ManifestError) as raised:
             self.bake('{ data = "missing.csv" }')
-        self.assertIn("page 1:", str(raised.exception))
+        self.assertIn("page 1 of the manifest:", str(raised.exception))
         self.assertIn("asset not found: missing.csv", str(raised.exception))
 
     def test_a_refusal_of_the_reader_says_which_page(self) -> None:
         with self.assertRaises(ManifestError) as raised:
             self.bake('{ data = "results.csv", columns = ["速さ"] }')
-        self.assertIn("page 1:", str(raised.exception))
+        self.assertIn("page 1 of the manifest:", str(raised.exception))
         self.assertIn("'速さ' is not a heading of results.csv", str(raised.exception))
 
 

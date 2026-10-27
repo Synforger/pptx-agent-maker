@@ -20,7 +20,8 @@ from .finding import Finding, Findings
 from .declared import ALL as DECLARED
 from .rules import ALL as CHECKS
 
-__all__ = ["Finding", "Findings", "CHECKS", "DECLARED", "run_all", "run_declared", "run_built", "report"]
+__all__ = ["Finding", "Findings", "CHECKS", "DECLARED",
+           "run_all", "run_declared", "run_built", "report"]
 
 
 def run_all(deck: Path | str, config: dict | None = None) -> list[Finding]:
@@ -56,14 +57,19 @@ def run_built(deck: Path | str, manifest, theme, config: dict | None = None) -> 
     return Findings(built + run_declared(manifest, theme, config), found.allowed)
 
 
-def report(findings: list[Finding], declared: bool = False) -> str:
+def report(findings: list[Finding], declared: bool = False, first_number: int = 1) -> str:
     """The findings, then a line per check so a clean deck still says what was looked at.
 
     `declared` は、manifest を見る検査も回したか (= `build` は回す。焼いた deck だけを渡された
     `check` は回せない)。回していない検査を「ok」と言わない。案件が通した物 (= `Findings.allowed`) は、
     その検査の行の下に `pass` で 1 行ずつ出す (= 数えないが、黙って通さない)。
+
+    `first_number` は資料の最初の頁に刷られる番号 (= 1 でなければ、頁の位置に刷られる番号を並べる)。
     """
-    lines = [finding.render() for finding in sorted(findings, key=lambda f: f.page)]
+    lines = [finding.render(first_number) for finding in sorted(findings, key=lambda f: f.page)]
+    if first_number != 1 and any(finding.page >= 1 for finding in findings):
+        lines.append(f"  (this deck's first page prints {first_number}: \"page N\" counts from the first page of "
+                     "the file, \"printed M\" is the number PowerPoint and the preview show)")
     lines.append("")
     names = list(dict.fromkeys(check.NAME for check in (*CHECKS, *(DECLARED if declared else ()))))
     for name in names:

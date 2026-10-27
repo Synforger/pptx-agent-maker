@@ -28,7 +28,8 @@ from pathlib import Path
 
 from lxml import etree
 
-from ..._common.slide import read
+from ..._common.page_label import page_label
+from ..._common.slide import first_slide_number, read
 from ..._common.archive import Archive
 from ...deck.pages.swap import NS, pictures
 from ...project.files.manifest import Manifest, ManifestError
@@ -88,6 +89,8 @@ def apply(workspace, deck_name: str) -> Applied:
     shelf = shelved.relative_to(workspace.root).as_posix()
 
     ours, theirs = _pages(reference), _pages(shelved)
+    #: 人は刷られた番号で頁を言う。元の版の頁と手直し版の頁は、それぞれの開始の番号で呼ぶ
+    reference_first, edited_first = first_slide_number(reference), first_slide_number(shelved)
     if len(ours) != len(manifest.entries):
         raise ApplyError(
             f"{reference.name} has {len(ours)} pages but {manifest_path.name} has "
@@ -101,20 +104,21 @@ def apply(workspace, deck_name: str) -> Applied:
         pairs = list(zip(range(i1, i2), range(j1, j2)))
         for i, j in pairs:
             new_pages.append(_take(i, j, ours[i], theirs[j], raw_pages[i], manifest,
-                                   workspace, shelf, written_assets, result))
+                                   workspace, shelf, written_assets, result,
+                                   reference_first=reference_first, edited_first=edited_first))
         for i in range(i1 + len(pairs), i2):
-            result.notes.append(f"page {i + 1}: removed in PowerPoint — dropped from the manifest")
+            result.notes.append(f"{page_label(i + 1, reference_first)}: removed in PowerPoint — dropped from the manifest")
         for j in range(j1 + len(pairs), j2):
             new_pages.append({"kind": "import", "deck": shelf, "page": j + 1,
                               "why": "PowerPoint で足された頁"})
-            result.notes.append(f"page {j + 1} (edited): added in PowerPoint — imported as it is")
+            result.notes.append(f"{page_label(j + 1, edited_first)} (edited): added in PowerPoint — imported as it is")
 
     text = manifest_path.read_text(encoding="utf-8")
     rewritten = _rewrite(text, new_pages)
     staged = workspace.root / f".{manifest_path.stem}.applying.toml"
     try:
         staged.write_text(rewritten, encoding="utf-8")
-        _verify(workspace, staged, shelved, assets=manifest.assets)
+        _verify(workspace, staged, shelved, assets=manifest.assets, first_number=edited_first)
         os.replace(staged, manifest_path)
     except Exception:
         for path in written_assets:
@@ -129,10 +133,10 @@ def apply(workspace, deck_name: str) -> Applied:
 
 
 def _take(i, j, old: _Page, new: _Page, raw: dict, manifest: Manifest, workspace,
-          shelf: str, written: list[Path], result: Applied):
+          shelf: str, written: list[Path], result: Applied, *, reference_first: int, edited_first: int):
     """One page: unchanged, a text or picture change written into its entry, or the edited page."""
     entry = manifest.entries[i]
-    page = f"page {i + 1}"
+    page = page_label(i + 1, reference_first)
     if old.texts == new.texts and old.shape == new.shape and old.pictures == new.pictures:
         return i
     same_shape = old.shape == new.shape and len(old.pictures) == len(new.pictures)
@@ -158,7 +162,7 @@ def _take(i, j, old: _Page, new: _Page, raw: dict, manifest: Manifest, workspace
 
     result.notes.append(
         f"{page}: changed in a way the manifest cannot say (position, size, format, or text in a "
-        f"new place) — now imported as it was edited, from {shelf} page {j + 1}")
+        f"new place) — now imported as it was edited, from {shelf} {page_label(j + 1, edited_first)}")
     return {"kind": "import", "deck": shelf, "page": j + 1, "why": "PowerPoint で整えた頁"}
 
 
@@ -268,7 +272,7 @@ def _rewrite(text: str, pages: list[dict | int]) -> str:
     return head + "".join(body)
 
 
-def _verify(workspace, staged: Path, edited: Path, *, assets: str) -> None:
+def _verify(workspace, staged: Path, edited: Path, *, assets: str, first_number: int = 1) -> None:
     """Build the staged manifest and compare it with the edited deck, page by page.
 
     ⚠ 仮の manifest は名前が違うので、素材の folder は元の manifest のものを渡す
@@ -286,10 +290,11 @@ def _verify(workspace, staged: Path, edited: Path, *, assets: str) -> None:
             raise ApplyError(f"taken in, the deck would have {len(mine)} pages and the edited "
                              f"one has {len(theirs)}; nothing was written")
         for number, (a, b) in enumerate(zip(mine, theirs), start=1):
+            where = page_label(number, first_number)
             if a.texts != b.texts:
                 missing = [t for t in b.texts if t not in a.texts][:3]
-                raise ApplyError(f"page {number} would not read as it was edited (missing: {missing}); "
+                raise ApplyError(f"{where} would not read as it was edited (missing: {missing}); "
                                  "nothing was written")
             if a.pictures != b.pictures:
-                raise ApplyError(f"page {number} would not show the pictures it was edited to; "
+                raise ApplyError(f"{where} would not show the pictures it was edited to; "
                                  "nothing was written")

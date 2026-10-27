@@ -11,6 +11,7 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 
+from .._common.page_label import manifest_page_label
 from ..layout import types
 from ..layout.parts.page import PageFullError
 from ..layout.tokens import Theme, ThemeError, allowed_pairs, theme_from
@@ -114,7 +115,7 @@ def _place(deck: Deck, workspace: Workspace, entry: Entry, declared: dict[int, i
     if entry.kind == "import":
         source = (workspace.root / entry.deck).resolve()
         if not source.is_file():
-            raise ManifestError(f"page {index}: deck to import from not found: {source}")
+            raise ManifestError(f"{manifest_page_label(index)}: deck to import from not found: {source}")
         return deck.bring(source, entry.page)
     return deck.bring(declared["path"], declared[index], relayout=layout)
 
@@ -129,7 +130,7 @@ def _swap(page: Slide, workspace: Workspace, manifest: Manifest, entry: Entry,
         if "tables" in entry.data:
             page.swap_tables(entry.data["tables"])
     except (ValueError, WorkspaceError) as reason:
-        raise ManifestError(f"page {index}: {reason}") from reason
+        raise ManifestError(f"{manifest_page_label(index)}: {reason}") from reason
 
 
 def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
@@ -164,4 +165,4 @@ def declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index:
     try:
         return types.build(entry.data, asset, aspect, theme)
     except (ValueError, KeyError, WorkspaceError, PageFullError) as reason:
-        raise ManifestError(f"page {index}: {reason}") from reason
+        raise ManifestError(f"{manifest_page_label(index)}: {reason}") from reason

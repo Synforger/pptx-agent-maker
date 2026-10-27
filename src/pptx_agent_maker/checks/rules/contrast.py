@@ -30,7 +30,8 @@ from pathlib import Path
 from ...layout.tokens import ALLOWED, allowed_pairs
 from .._internal.colour import Palette, contrast, reading_floor, solid
 from ..finding import Finding, Findings
-from ..._common.slide import RUN, TEXT, BuiltSlide, Shape, read
+from ..._common.page_label import page_number
+from ..._common.slide import RUN, TEXT, BuiltSlide, Shape, first_slide_number, read
 
 NAME = "contrast"
 
@@ -122,6 +123,7 @@ def run(deck: Path, config: dict | None = None) -> list[Finding]:
     if (config or {}).get(NAME, True) is False:
         return Findings()
     palette = _palette(Path(deck))
+    first_number = first_slide_number(deck)
     findings: list[Finding] = []
     #: 通した組ごとに、通した所 (= 頁と図形・セル) と明暗差
     passed: dict[tuple[str, str], tuple[set, float]] = {}
@@ -161,10 +163,11 @@ def run(deck: Path, config: dict | None = None) -> list[Finding]:
                     break  # 1 つの図形は 1 度だけ言う
     return Findings(findings, [
         (NAME, f"#{colour} on #{ground} (contrast {ratio:.1f}): {len(places)} "
-               f"{'place' if len(places) == 1 else 'places'} on {_pages(places)} — let through by [checks] {ALLOWED}")
+               f"{'place' if len(places) == 1 else 'places'} on {_pages(places, first_number)} "
+               f"— let through by [checks] {ALLOWED}")
         for (colour, ground), (places, ratio) in sorted(passed.items())])
 
 
-def _pages(places: set) -> str:
+def _pages(places: set, first_number: int) -> str:
     pages = sorted({page for page, _ in places})
-    return ("page " if len(pages) == 1 else "pages ") + ", ".join(str(page) for page in pages)
+    return ("page " if len(pages) == 1 else "pages ") + ", ".join(page_number(page, first_number) for page in pages)

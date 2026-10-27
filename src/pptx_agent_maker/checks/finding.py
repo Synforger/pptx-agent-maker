@@ -4,18 +4,23 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .._common.page_label import page_label
+
 
 @dataclass(frozen=True)
 class Finding:
-    """One problem on one page of a built deck."""
+    """One problem on one page of a built deck.
+
+    `page` is the page's place in the file (= 1 for the first; 0 is the whole deck), not the number printed on it.
+    """
 
     check: str
     page: int
     what: str
     why: str
 
-    def render(self) -> str:
-        return f"page {self.page}: {self.what}  <- {self.why}"
+    def render(self, first_number: int = 1) -> str:
+        return f"{page_label(self.page, first_number)}: {self.what}  <- {self.why}"
 
 
 class Findings(list):

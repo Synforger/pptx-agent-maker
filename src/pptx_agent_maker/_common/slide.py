@@ -33,6 +33,8 @@ TITLE_PLACEHOLDER = re.compile(r'<p:ph\b[^>]*\btype="(?:title|ctrTitle)"')
 ROW = re.compile(r"<a:tr[ >](.*?)</a:tr>", re.S)
 PARAGRAPH = re.compile(r"<a:p[ >](.*?)</a:p>", re.S)
 LINE_BREAK = re.compile(r"<a:br\b(?:[^>]*/>|[^>]*>.*?</a:br>)", re.S)
+#: 資料が「スライド開始番号」を自分で書いている時の、最初の頁に刷られる番号
+FIRST_NUMBER = re.compile(r'<p:presentation\b[^>]*\bfirstSlideNum="(-?\d+)"')
 CHART_OF_SLIDE = re.compile(r'Target="[^"]*/charts/(chart\d+\.xml)"')
 #: グラフの部品が持つ文字の写し (= 項目名・系列名)。数の写し (`numCache`) は読まない
 STRING_CACHE = re.compile(r"<c:str(?:Cache|Lit)>(.*?)</c:str(?:Cache|Lit)>", re.S)
@@ -245,3 +247,14 @@ def slide_size(deck: Path) -> tuple[int, int]:
     if not match:
         raise ValueError("the deck does not declare a slide size")
     return int(match.group(1)), int(match.group(2))
+
+
+def first_slide_number(deck: Path) -> int:
+    """The number PowerPoint prints on the deck's first page (= `firstSlideNum`, 1 when the deck does not say).
+
+    刷られる番号は `開始 + 頁の位置 - 1` で、隠した頁も数に入れる。開始が 0 の資料は、番号の無い表紙の次が 1 になる。
+    """
+    with zipfile.ZipFile(Path(deck)) as archive:
+        presentation = archive.read("ppt/presentation.xml").decode("utf-8")
+    said = FIRST_NUMBER.search(presentation)
+    return int(said.group(1)) if said else 1

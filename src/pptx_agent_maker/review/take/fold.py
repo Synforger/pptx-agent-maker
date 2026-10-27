@@ -11,6 +11,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
+from ..._common.page_label import page_label
 from ..diff.compare import Change, changes
 from ..ledger import touched_by_hand
 
@@ -34,21 +35,21 @@ def fold(built: Path, edited: Path) -> list[Change]:
     return changes(Path(built), Path(edited))
 
 
-def as_manifest_entries(found: list[Change]) -> str:
+def as_manifest_entries(found: list[Change], first_number: int = 1) -> str:
     """The changes as replacement pairs, to paste into the manifest.
 
     ⚠ 出すのは**置換できるものだけ** (= 文言の差し替え)。頁の追加や削除、動かした位置も含めて
-    取り込むのは `review --apply`。
+    取り込むのは `review --apply`。`first_number` は手直し版の最初の頁に刷られる番号で、頁の注に並べる。
     """
     lines = ["# paste into the page's `replace` list:"]
     replaceable = [c for c in found if c.kind == "changed"]
     if not replaceable:
         lines.append("#   (nothing that is a plain text swap)")
     for change in replaceable:
-        lines.append(f'  ["{change.before}", "{change.after}"],   # page {change.page}')
+        lines.append(f'  ["{change.before}", "{change.after}"],   # {page_label(change.page, first_number)}')
     other = [c for c in found if c.kind != "changed"]
     if other:
         lines.append("")
         lines.append("# not a text swap — `review --apply` takes these in as the edited page:")
-        lines.extend(f"#   {c.render()}" for c in other)
+        lines.extend(f"#   {c.render(first_number)}" for c in other)
     return "\n".join(lines)
