@@ -48,6 +48,8 @@
 * 背景は `[[backdrops]]` (= `at`・`span`・`tone`)。覆う範囲いっぱいの地 (= 内側に寄せない) を、マスより下の層に敷く。
   背景どうしは重ねられない
 * `rows` と `grid` は同じ頁に書けない。`cells` と `backdrops` は `grid` と対で書く
+* マスの中身が入らずに止まる時は、止まる文の終わりに**入る `columns` の比を 1 組**添える (= `columns = [1.2, 1, 0.8] fits`)。
+  書いた比に近く、頁の写しで組み直して入ることを確かめた物だけを言う。見つからない時は、そう言う (= 行・字・中身の側を直す)
 
 マスの `legend = true` は、その頁で使った地の名前の凡例 (= 頁の下の凡例と同じ中身) を、そのマスの中に縦に
 並べる。1 つの頁に 1 つまで。そのマスを持つ頁は、頁の下の凡例を出さない。
@@ -62,6 +64,7 @@
 
 from __future__ import annotations
 
+import copy
 from numbers import Real
 
 from ...geometry import Rect, cm
@@ -98,6 +101,21 @@ GRID_CELL_KEYS = frozenset({"at", "span", *CELL_KEYS})
 #: 格子のマスの中身を、覆う範囲の四方から内側へ寄せる幅 (= 使い方の `gap_m` に対する比。隣り合う箱の間は、この幅の
 #: 2 つ分と列や行の間になる。背景は覆う範囲いっぱいのまま)
 GRID_INSET = 1 / 2
+#: 入らずに止まった格子の、入る列の比を探す時に、1 つのマスが入る最小の幅を挟み込む回数 (= 本体の幅の 1 / 2 ** 8 まで
+#: 狭める。比は小数 1 桁で言うので、これより細かくは要らない)
+GRID_SEARCH_STEPS = 8
+#: 探す時に、マス 1 つを頁の写しに置いてみる回数の上限 (= マス 1 つにつき `GRID_SEARCH_STEPS` と、今の幅・本体の幅での
+#: 2 回。これを超える数のマスを持つ頁では探さず、止まる文をそのまま出す)
+GRID_PROBE_LIMIT = 800
+#: 見つけた比で頁を組み直して確かめる時に、マスごとの最小の幅へ足す余裕 (= 本体の幅に対する比)。比を小数 1 桁に丸めると
+#: ぎりぎりのマスが入らなくなるので、入らなければ次の余裕で組み直す。この並びの長さが組み直しの回数の上限
+GRID_SEARCH_MARGINS = (0.0, 0.005, 0.01, 0.02)
+#: 今の幅で入るマスを、探す時にどこまで狭めてよいか (= 書いた幅に対する比)。入るというだけで狭めると、隣のマスに
+#: 幅を渡して 0.2 のような列になる。これより狭くしないと入らない頁は「入る比が無い」と言う
+GRID_KEEP_SHARE = 0.5
+#: 幅が狭まって入らなくなるのは、字を折る・並べる部品だけ (= 絵・グラフ・入れ子の型などは渡された矩形を使う。
+#: 探す時はその幅を縮めずに、今の幅を要る幅とする)
+GRID_NARROWING_PARTS = ("card", "panel", "text", "points", "voices", "tree", "legend", "rows")
 #: 背景が読むキー (= 覆う範囲と、地の色の役)
 BACKDROP_KEYS = ("at", "span", "tone")
 #: 背景が地の色を言わない時の役 (= 薄い地。箱が載る背景なので、意味を持たない地)
@@ -194,6 +212,8 @@ def _grid(page: Page, spec: Spec, area: Rect, seen: list) -> None:
     列と行は本体を比で分け合い (= 間は `gap_x` と `gap_y`)、背景は覆う範囲いっぱいに置く。マスの中身 (= 箱・文字・表・
     凡例のどれも) は、覆う範囲の四方から同じ幅 (= `gap_m` の `GRID_INSET`) だけ内側に置く。背景は箱より先に置く
     (= 下の層)。
+
+    マスの中身が入らずに止まる時は、止まる文の終わりに、入る `columns` の比を 1 組添える (= `_columns_that_fit`)。
     """
     where = "compose"
     s = page.theme.spacing
@@ -210,12 +230,23 @@ def _grid(page: Page, spec: Spec, area: Rect, seen: list) -> None:
     cells = _listed(spec.get("cells"), "cells", where)
     if not cells:
         raise PageTypeError(f"{where}: `cells` is empty — write at least one [[cells]]")
+    try:
+        _lay(page, spec, (across, down), backdrops, cells, inset, seen)
+    except PageFullError as reason:
+        raise PageFullError(f"{reason}{_columns_that_fit(page, spec, area, widths, down, backdrops, cells, inset)}") from reason
+
+
+def _lay(page: Page, spec: Spec, squares: tuple[list[Rect], list[Rect]], backdrops: list, cells: list, inset: int,
+         seen: list) -> None:
+    """The backdrops, then the cells, on the squares of a grid (= the columns and the rows, as rects)."""
+    where = "compose"
+    across, down = squares
     covered: dict[tuple[int, int], str] = {}
     rects = []
     for number, backdrop in enumerate(backdrops, start=1):
         what = f"{where}: backdrop {number}"
         only_keys(backdrop, set(BACKDROP_KEYS), what)
-        first, last = _span_of(backdrop, len(heights), len(widths), what)
+        first, last = _span_of(backdrop, len(down), len(across), what)
         _cover(covered, first, last, what)
         rects.append((_frame(across, down, first, last), read_tone(spec, backdrop, what, BACKDROP_TONE)))
     for rect, tone in rects:
@@ -224,7 +255,7 @@ def _grid(page: Page, spec: Spec, area: Rect, seen: list) -> None:
     for number, cell in enumerate(cells, start=1):
         what = f"{where}: cell {number}"
         only_keys(cell, set(GRID_CELL_KEYS), what)
-        first, last = _span_of(cell, len(heights), len(widths), what)
+        first, last = _span_of(cell, len(down), len(across), what)
         _cover(covered, first, last, what)
         try:
             rect = _frame(across, down, first, last).inset(inset)
@@ -240,6 +271,140 @@ def _grid(page: Page, spec: Spec, area: Rect, seen: list) -> None:
         drawn = _place(page, spec, cell, rect, natural, True, what, seen, by_panel=True)
         if drawn is not None:
             seen[at] = (seen[at][0], drawn, seen[at][2])
+
+
+def _columns_that_fit(page: Page, spec: Spec, area: Rect, written: list[float], down: list[Rect], backdrops: list,
+                      cells: list, inset: int) -> str:
+    """The end of the words a grid stops with: the columns that make it fit, or that no columns do (= '' for neither).
+
+    入らないマスが 1 つでもあれば、どのマスもそれぞれ入る最小の幅を測り、書いた比に近いまま全部の幅を満たす列の比を
+    作る。作った比は頁の写しで組み直して入ることを確かめてから言う (= 確かめていない比は出さない)。行の比は変えない。
+    マスの数が `GRID_PROBE_LIMIT` で測れない頁と、マスそのものの書き間違いがある頁では、何も足さない。
+    """
+    if len(cells) * (GRID_SEARCH_STEPS + 2) > GRID_PROBE_LIMIT:
+        return ""
+    try:
+        shares = _fitting_shares(page, spec, area, written, down, backdrops, cells, inset)
+    except PageTypeError:
+        return ""
+    if shares is None:
+        return (" — no ratio of the columns makes everything fit (= with no cell less than half as wide as written); "
+                "the rows, the words, or what stands in the cells have to change")
+    return f" — columns = [{', '.join(f'{share:g}' for share in shares)}] fits"
+
+
+def _fitting_shares(page: Page, spec: Spec, area: Rect, written: list[float], down: list[Rect], backdrops: list,
+                    cells: list, inset: int) -> list[float] | None:
+    """Shares of the columns, to one decimal and in the sum of the written ones, that the grid is built with; None when none is found."""
+    gap = page.theme.spacing.gap_x
+    across = area.columns(written, gap=gap)
+    total = sum(column.width for column in across)
+    base = [column.width for column in across]
+    needs = []
+    for number, cell in enumerate(cells, start=1):
+        what = f"compose: cell {number}"
+        first, last = _span_of(cell, len(down), len(across), what)
+        try:
+            height = _frame(across, down, first, last).inset(inset).height
+        except ValueError:
+            return None                           # 行が低すぎて余白が取れない: 列の比では直らない
+        gaps = gap * (last[1] - first[1])
+        spanned = sum(base[first[1]:last[1] + 1]) + gaps
+        least = _least_width(page, spec, cell, spanned - 2 * inset, height, area.width - 2 * inset, what)
+        if least is None:
+            return None
+        needs.append((first[1], last[1], least + 2 * inset - gaps))
+    for margin in GRID_SEARCH_MARGINS:
+        widths = _widths_near(base, [(first, last, need + round(margin * total)) for first, last, need in needs])
+        if widths is None:
+            return None
+        shares = [max(round(width / total * sum(written), 1), 0.1) for width in widths]
+        try:
+            squares = (area.columns(shares, gap=gap), down)
+            _lay(_scratch(page), spec, squares, backdrops, cells, inset, [])
+        except PageFullError:
+            continue
+        return shares
+    return None
+
+
+def _least_width(page: Page, spec: Spec, cell: dict, width: int, height: int, wide: int, what: str) -> int | None:
+    """The narrowest a cell can be and still fit, kept to a row `height` tall; None when even the whole body `wide` is too narrow.
+
+    幅が狭くなって入らなくなるのは字を折る部品だけなので、それ以外は今の幅 `width` を、縮めずに要る幅とする。
+    入る幅と入らない幅で挟み込む (= 幅が広いほど入りやすいとして)。今の幅で入るマスは `GRID_KEEP_SHARE` までしか狭めない。
+    """
+    if _part(cell, what) not in GRID_NARROWING_PARTS:
+        return width
+
+    def fits(at: int) -> bool:
+        return _fits(page, spec, cell, Rect(0, 0, at, height), what)
+
+    if fits(width):
+        low, high = round(width * GRID_KEEP_SHARE), width
+        if fits(low):
+            return low
+    elif fits(wide):
+        low, high = width, wide
+    else:
+        return None
+    for _ in range(GRID_SEARCH_STEPS):
+        middle = (low + high) // 2
+        low, high = (low, middle) if fits(middle) else (middle, high)
+    return high
+
+
+def _fits(page: Page, spec: Spec, cell: dict, rect: Rect, what: str) -> bool:
+    """Whether a cell's part is placed in that rect without stopping (= tried on a scratch copy of the page)."""
+    trial = _scratch(page)
+    try:
+        _place(trial, spec, cell, rect, _natural(trial, spec, cell, rect.width, what), True, what, [], by_panel=True)
+    except PageFullError:
+        return False
+    return True
+
+
+def _scratch(page: Page) -> Page:
+    """A copy of the page to try a layout on (= what is placed on it never reaches the page)."""
+    copied = copy.copy(page)
+    copied.elements = []
+    return copied
+
+
+def _widths_near(written: list[int], needs: list[tuple[int, int, int]]) -> list[float] | None:
+    """Widths of the columns that hold every need and are the nearest to the written ones; None when the body is too narrow.
+
+    `needs` = (first column, last column, the width that span has to add up to). 足りない列は要る幅まで上げ、その
+    ぶんは余裕のある列から、余裕に比例して取る (= 余裕の無い列は動かない)。複数の列をまたぐマスは、足りない
+    ぶんをまたぐ列に今の幅の比で足す。一度満たした要りようは下げた幅で崩れない (= 下限として残る)ので、
+    マスの数を超えて回らない。
+    """
+    floors = [0.0] * len(written)
+    for _ in range(len(needs) + 1):
+        widths = _shifted(written, floors)
+        if widths is None:
+            return None
+        short = [(first, last, need - sum(widths[first:last + 1])) for first, last, need in needs
+                 if sum(widths[first:last + 1]) < need]
+        if not short:
+            return widths
+        for first, last, lack in short:
+            held = sum(widths[first:last + 1])
+            for column in range(first, last + 1):
+                floors[column] = max(floors[column], widths[column] + lack * widths[column] / held)
+    return None
+
+
+def _shifted(written: list[int], floors: list[float]) -> list[float] | None:
+    """The written widths with every column below its floor raised to it, the same width taken off the columns above theirs; None when they cannot."""
+    raised = sum(max(floor - width, 0) for width, floor in zip(written, floors))
+    slack = [max(width - floor, 0) for width, floor in zip(written, floors)]
+    if raised > sum(slack) + 1e-6:
+        return None
+    if not raised:
+        return [float(width) for width in written]
+    return [floor if width < floor else width - raised * spare / sum(slack)
+            for width, floor, spare in zip(written, floors, slack)]
 
 
 def _read_grid(grid, where: str) -> tuple[list[float], list[float]]:

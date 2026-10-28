@@ -8,10 +8,12 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
@@ -22,7 +24,8 @@ from pptx_agent_maker import DEFAULT, checks  # noqa: E402
 from pptx_agent_maker.layout.geometry import Rect  # noqa: E402
 from pptx_agent_maker.layout.parts.page import Page, PageFullError  # noqa: E402
 from pptx_agent_maker.layout.tokens import theme_from  # noqa: E402
-from pptx_agent_maker.layout.types.bodies.compose import GRID_INSET  # noqa: E402
+from pptx_agent_maker.layout.types.bodies import compose as compose_module  # noqa: E402
+from pptx_agent_maker.layout.types.bodies.compose import GRID_INSET, GRID_KEEP_SHARE  # noqa: E402
 from pptx_agent_maker.layout.types.core.frame import legend_cells  # noqa: E402
 from pptx_agent_maker.layout.types.core.read import Spec  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
@@ -531,6 +534,142 @@ class TheLegendInACell(unittest.TestCase):
         panel = {"panel": {"tone": "Deep", "rows": [{"cells": [{"legend": True}]}]}}
         with self.assertRaisesRegex(PageTypeError, "stands straight on the ground of this panel"):
             compose(legend_rows(panel))
+
+
+class AGridThatStopsSaysWhichColumnsFit(unittest.TestCase):
+    """⚠ 8 列前後の格子で「入らない」と止まる時、入る列の比を手で探して build を何十回も回していた。止まる文が、
+    入る比を 1 組言う (= 組み直して入ると確かめた比だけ)。"""
+
+    def stopped(self, cells, columns, rows=(1, 1)) -> str:
+        with self.assertRaises(PageFullError) as stopped:
+            grid_page(cells, columns=columns, rows=rows)
+        return str(stopped.exception)
+
+    def shares(self, words: str) -> list[float]:
+        said = re.search(r"columns = \[([^\]]*)\] fits$", words)
+        self.assertIsNotNone(said, words)
+        return [float(share) for share in said.group(1).split(", ")]
+
+    def six(self, lengths, **cell):
+        """A row of cards, the Nth with a body of that many words."""
+        return [card(f"Head {number}", "word " * length, at=[1, number], **cell) for number, length in enumerate(lengths, start=1)]
+
+    def test_the_words_it_stops_with_end_with_columns_that_fit_and_building_the_page_with_them_stands(self) -> None:
+        cells = self.six([3, 3, 3, 44, 3, 3])
+        shares = self.shares(self.stopped(cells, (1,) * 6))
+        self.assertEqual(6, len(shares))
+        grid_page(cells, columns=shares)
+
+    def test_the_columns_are_in_one_decimal_and_sum_to_what_was_written(self) -> None:
+        words = self.stopped(self.six([3, 3, 3, 44, 3, 3]), (1,) * 6)
+        listed = re.search(r"columns = \[([^\]]*)\] fits", words).group(1).split(", ")
+        for share in listed:
+            self.assertRegex(share, r"^\d+(\.\d)?$")
+        self.assertAlmostEqual(6, sum(float(share) for share in listed), delta=0.3)
+
+    def test_the_column_that_was_too_narrow_gets_wider_and_the_ones_that_held_their_words_stay_near_what_was_written(self) -> None:
+        shares = self.shares(self.stopped(self.six([3, 3, 3, 44, 3, 3]), (1,) * 6))
+        self.assertGreater(shares[3], 1.2)
+        for narrow in (0, 1, 2, 4, 5):
+            self.assertLessEqual(shares[narrow], 1)
+            self.assertGreaterEqual(shares[narrow], GRID_KEEP_SHARE)
+
+    def test_a_search_starts_from_the_written_ratio_so_a_column_written_wide_stays_wider_than_one_written_narrow(self) -> None:
+        shares = self.shares(self.stopped(self.six([3, 3, 3, 44, 3, 3]), (2, 1, 1, 1, 1, 1)))
+        self.assertGreater(shares[0], shares[1])
+
+    def test_a_cell_over_two_columns_widens_both_of_them(self) -> None:
+        cells = [card("Over two", "word " * 80, at=[1, 1], span=[1, 2]), card("Three", "w", at=[1, 3]),
+                 card("Four", "w", at=[1, 4])]
+        shares = self.shares(self.stopped(cells, (1,) * 4))
+        self.assertGreater(shares[0], 1)
+        self.assertGreater(shares[1], 1)
+
+    def test_a_cell_that_fits_is_not_narrowed_below_half_of_what_was_written(self) -> None:
+        cells = [{"at": [1, 1], "card": {"heading": "A long tag name here that cannot go on a single line of its box at all really", "tag": True}},
+                 card("Next", "b", at=[1, 2]), card("Last", "b", at=[1, 3])]
+        words = self.stopped(cells, (1, 1, 1), rows=(1,))
+        self.assertIn("no ratio of the columns makes everything fit", words)
+
+    def test_a_cell_that_takes_the_width_it_is_given_keeps_its_column(self) -> None:
+        cells = [{"at": [1, 1], "figure": "dot.png"}, card("Head", "word " * 50, at=[1, 2]), card("Three", "w", at=[1, 3]),
+                 card("Four", "w", at=[1, 4])]
+        shares = self.shares(self.stopped(cells, (1,) * 4))
+        self.assertEqual(1, shares[0])
+        self.assertGreater(shares[1], 1)
+
+    def test_a_line_of_code_that_is_wider_than_its_cell_is_met_with_a_wider_column(self) -> None:
+        cells = [{"at": [1, 1], "role": "mono", "text": "result = a_function_with_a_long_name(first, second)"},
+                 card("Next", "b", at=[1, 2]), card("Last", "b", at=[1, 3])]
+        words = self.stopped(cells, (1, 1, 1))
+        self.assertGreater(self.shares(words)[0], 1)
+
+    def test_a_cell_inside_a_panel_that_does_not_fit_the_columns_asks_for_a_wider_one(self) -> None:
+        inside = [{"cells": [{"card": {"heading": "Inner", "body": "word " * 40}}, {"card": {"heading": "Two", "body": "w"}}]}]
+        cells = [{"at": [1, 1], "panel": {"heading": "Group", "rows": inside}}, card("Next", "b", at=[1, 2]),
+                 card("Last", "b", at=[1, 3])]
+        shares = self.shares(self.stopped(cells, (1, 1, 1), rows=(1,)))
+        self.assertGreater(shares[0], 1)
+
+    def test_when_no_columns_hold_everything_the_page_says_so_and_names_what_to_change(self) -> None:
+        words = self.stopped(self.six([3, 3, 3, 3, 3, 3, 3, 400]), (1,) * 8)
+        self.assertRegex(words, r"no ratio of the columns makes everything fit.*the rows, the words, or what stands in the cells")
+        self.assertNotIn("columns = [", words)
+
+    def test_a_row_too_short_for_its_words_is_not_met_with_columns(self) -> None:
+        words = self.stopped([card("A", "word " * 4, at=[1, 1]), card("B", "w", at=[2, 1])], (1,), rows=(0.12, 1))
+        self.assertIn("no ratio of the columns makes everything fit", words)
+
+    def test_a_cell_written_wrong_elsewhere_leaves_the_stop_as_it_was(self) -> None:
+        cells = [*self.six([3, 3, 3, 44])[:4], {"at": [1, 5], "bogus": 1}]
+        words = self.stopped(cells, (1,) * 6)
+        self.assertNotIn("columns = [", words)
+        self.assertNotIn("no ratio", words)
+
+    def test_columns_that_rounding_to_one_decimal_would_break_are_given_room_until_the_page_stands_with_them(self) -> None:
+        cells = [card(f"Head {number}", "word " * (46 if number == 2 else 3), at=[1, number]) for number in range(1, 5)]
+        grid_page(cells, columns=self.shares(self.stopped(cells, (1,) * 4)))
+
+    def test_a_column_that_is_given_up_to_the_others_is_never_written_as_nothing(self) -> None:
+        cells = [{"at": [1, 1], "text": ""}, card("Head", "word " * 80, at=[1, 2]), card("Last", "w", at=[1, 3])]
+        shares = self.shares(self.stopped(cells, (0.05, 1, 1)))
+        self.assertEqual(0.1, shares[0])
+        grid_page(cells, columns=shares)
+
+    def test_the_stop_keeps_its_own_words_before_the_columns(self) -> None:
+        words = self.stopped(self.six([3, 3, 3, 44, 3, 3]), (1,) * 6)
+        self.assertRegex(words, r"^compose: cell 4: this card needs \d+ EMU of height and its row has \d+ — give the row a larger "
+                                r"`weight`, or take something off the page; nothing will shrink — columns = ")
+
+    def test_a_page_that_fits_as_written_is_built_with_the_written_ratio(self) -> None:
+        page = grid_page(self.six([3, 3, 3, 3, 3, 3]), columns=(1, 2, 1, 1, 1, 1))
+        across = squares(page, (1, 2, 1, 1, 1, 1), (1,))[0]
+        self.assertEqual(across[1].width, 2 * across[0].width)
+
+    def test_a_grid_of_more_cells_than_the_search_may_try_stops_with_its_own_words_only(self) -> None:
+        cells = [card("Tall", "word " * 400, at=[1, 1]), card("Next", "w", at=[1, 2])]
+        self.assertIn("no ratio", self.stopped(cells, (1, 1)))
+        with mock.patch.object(compose_module, "GRID_PROBE_LIMIT", 2 * (compose_module.GRID_SEARCH_STEPS + 2) - 1):
+            words = self.stopped(cells, (1, 1))
+        self.assertNotIn("columns = [", words)
+        self.assertNotIn("no ratio", words)
+
+    def test_a_span_that_gets_columns_gets_no_more_than_a_tenth_too_many_on_each(self) -> None:
+        cells = [card("Over four", "word " * 120, at=[1, 1], span=[1, 4]), card("Five", "w", at=[1, 5]),
+                 card("Six", "w", at=[1, 6])]
+        shares = self.shares(self.stopped(cells, (1,) * 6))
+        tighter = [share - 0.1 for share in shares[:4]] + [share + 0.2 for share in shares[4:]]
+        self.assertIn("nothing will shrink", self.stopped(cells, tighter))
+
+    def test_columns_cannot_be_found_for_needs_that_add_up_to_more_than_the_body(self) -> None:
+        self.assertIsNone(compose_module._widths_near([100, 100], [(0, 0, 150), (1, 1, 150)]))
+
+    def test_a_column_below_what_it_needs_is_raised_and_the_ones_with_room_pay_for_it_by_their_room(self) -> None:
+        self.assertEqual([150.0, 50.0], compose_module._widths_near([100, 100], [(0, 0, 150)]))
+        widths = compose_module._widths_near([100, 100, 100], [(0, 0, 150), (1, 1, 90)])
+        self.assertEqual(150, widths[0])
+        self.assertGreaterEqual(widths[1], 90)
+        self.assertAlmostEqual(300, sum(widths))
 
 
 if __name__ == "__main__":
