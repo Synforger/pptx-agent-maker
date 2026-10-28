@@ -2,6 +2,10 @@
 
 `pptx-agent-maker compare` asks this before it prints, so a person who sees pages differ when nothing changed is
 told why. Reads the decks and starts `fc-match`; the judging is `font_match.py`.
+
+A run that points at the theme's face (`+mn-lt` and the like) is resolved with `deck._internal.look.look_of`, the
+reader the toolkit already keeps for a deck's look. It is borrowed from the inside of `deck` rather than made public
+there, so that the public surface of `deck` stays the building of decks.
 """
 
 from __future__ import annotations
