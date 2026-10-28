@@ -35,6 +35,9 @@ from ..core.stack import card_height
 from .link_routes import (MAX_BENDS, SIDES, Attach, NoRoute, Point, Port, Room, Route, RouteSearch, hops, middle_ports,
                           positions)
 
+#: 跳び越しの半円の半径の下限 (= 矢印の線の太さの倍率)。既定の使い方では半径 (= `gap_s` の半分) が線の太さの
+#: 約 2.8 倍で、交わりと読める。`gap_s` を詰めた使い方でも、その少し下までは小さくしない
+HOP_LINES = 2.5
 #: 輪に置ける箱の数 (= 2 つは往復で、輪ではない。9 つからは箱が読める大きさで回らない)
 RING = (3, 8)
 #: 木の段の数の上限 (= 根を含む。5 段からは 1 頁の高さで箱が読める大きさに並ばない)
@@ -401,7 +404,7 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     items = [_read_link(spec, item, number, cells, what) for number, item in enumerate(written, start=1)]
     detour = _read_detour(spec.get("detour"), what)
     s = page.theme.spacing
-    room = Room(page.body, s.gap_x // 2, s.gap_y // 2, s.gap_s // 2)
+    room = Room(page.body, s.gap_x // 2, s.gap_y // 2, _hop(s))
     in_the_way = [[other for other in every if other not in (link.first, link.second) and other not in blank
                    and not other.contains(link.first) and not other.contains(link.second)] for link in items]
     # 向き合っていても、真っすぐの線の上に別の箱が在れば、向き合わない 2 つと同じく折れ線で回る
@@ -540,6 +543,11 @@ def _route(link: _Link, others: list[Rect], drawn: list[tuple[Point, ...]], room
             f"{SIDES[route.end.side]} edge) and runs across {_called_all(route.blocked, cells)} — move the cells so "
             "nothing stands on its path")
     return route
+
+
+def _hop(s) -> int:
+    """The radius of the half circle a line hops another with: half `gap_s`, no smaller than `HOP_LINES` arrow lines, and no wider than the room a line keeps from a box (= the half circle stays off the boxes)."""
+    return min(max(s.gap_s // 2, round(HOP_LINES * s.arrow_line)), s.gap_x // 2, s.gap_y // 2)
 
 
 def _read_detour(value, what: str) -> float | None:

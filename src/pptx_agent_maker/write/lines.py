@@ -62,7 +62,7 @@ def write_line(slide, element: Line, theme: Theme):
     if style is not None:                      # テーマの線の書式を引かない (= `_plain` と同じ理由)
         shape._element.remove(style)
     shape.line.color.rgb = RGBColor.from_string(element.colour)
-    shape.line.width = Emu(theme.spacing.hairline * 3 // 2)
+    shape.line.width = Emu(theme.spacing.arrow_line)
     if element.dashed:
         shape.line.dash_style = MSO_LINE_DASH_STYLE.DASH
     if element.arrow:

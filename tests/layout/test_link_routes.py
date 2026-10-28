@@ -333,6 +333,29 @@ class ALineInAndALineOutByOneEdge(unittest.TestCase):
         self.assertTrue(not into.hops and not out_of.hops)
 
 
+class TheSizeOfAHop(unittest.TestCase):
+    """The cross of two straight lines in uses with a tight `gap_s`: the half circle stays a few line widths wide, and within the room a line keeps from a box."""
+
+    def hop_in(self, **spacing):
+        theme = theme_from({"uses": {"tight": {"like": "read", "spacing": spacing}}}).using("tight")
+        cells = [card("L", (2, 1), id="l"), card("R", (2, 3), id="r"), card("T", (1, 2), id="t"), card("B", (3, 2), id="b")]
+        page = build({"type": "compose", "title": "A page", "grid": {"columns": [1, 1, 1], "rows": [1, 1, 1]}, "cells": cells,
+                      "links": [{"from": "l", "to": "r"}, {"from": "t", "to": "b"}]}, theme)
+        return lines_of(page)[1].hop, theme.spacing
+
+    def test_the_hop_is_half_gap_s_in_the_default_use(self):
+        self.assertEqual(S.gap_s // 2, self.hop_in()[0])
+
+    def test_a_tight_gap_s_does_not_shrink_the_hop_below_a_few_line_widths(self):
+        hop, spacing = self.hop_in(gap_s=0.06)
+        self.assertEqual(round(2.5 * spacing.arrow_line), hop)
+        self.assertGreater(hop, spacing.gap_s // 2)
+
+    def test_the_hop_stays_within_the_room_a_line_keeps_from_a_box(self):
+        hop, spacing = self.hop_in(gap_s=0.06, gap_x=0.2, gap_y=0.2)
+        self.assertEqual(spacing.gap_x // 2, hop)
+
+
 class AWayRoundThatIsTooLong(unittest.TestCase):
     """A line down column 3, then X (top right) to C (in the middle): crossing nothing means going round above the page's top row, about 1.4 times as long as hopping the line once. `detour` caps how much longer the way round may be."""
 

@@ -145,6 +145,19 @@ new = "            kin = []"
 # -- which way they run --
 
 [[mutant]]
+name = "a hop is half gap_s however thin that is"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return min(max(s.gap_s // 2, round(HOP_LINES * s.arrow_line)), s.gap_x // 2, s.gap_y // 2)"
+new = "    return min(s.gap_s // 2, s.gap_x // 2, s.gap_y // 2)"
+
+[[mutant]]
+name = "a hop may reach past the room a line keeps from a box"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return min(max(s.gap_s // 2, round(HOP_LINES * s.arrow_line)), s.gap_x // 2, s.gap_y // 2)"
+new = "    return max(s.gap_s // 2, round(HOP_LINES * s.arrow_line))"
+
+
+[[mutant]]
 name = "detour is read and never used"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
 old = "        if detour is not None and not route.blocked:"
