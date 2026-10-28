@@ -45,8 +45,8 @@ new = "    if False:\n        a, b = link.ends"
 [[mutant]]
 name = "a line keeps no room from the cells it passes"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "    room = Room(page.body, s.gap_x // 2, s.gap_y // 2, s.gap_s // 2)"
-new = "    room = Room(page.body, 0, 0, s.gap_s // 2)"
+old = "    room = Room(page.body, s.gap_x // 2, s.gap_y // 2, _hop(s))"
+new = "    room = Room(page.body, 0, 0, _hop(s))"
 
 [[mutant]]
 name = "a cell with an id in the way of a bent line is named as one with none"
