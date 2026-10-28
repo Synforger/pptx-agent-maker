@@ -25,3 +25,21 @@ name = "a legend is set in as many columns as there are entries however narrow t
 file = "src/pptx_agent_maker/layout/parts/page.py"
 old = "            if sum(max(wides[column::columns]) for column in range(columns)) + gap * (columns - 1) <= room:"
 new = "            if True:"
+
+[[mutant]]
+name = "a legend never takes the grid of equal columns, however many lines a long name costs"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        if spans is not None and spans[-1][1] + 1 < -(-len(wides) // columns):"
+new = "        if False and spans is not None and spans[-1][1] + 1 < -(-len(wides) // columns):"
+
+[[mutant]]
+name = "a long name takes one column of the grid however wide it is"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            spans = [-(-(wide + gap) // (unit + gap)) for wide in wides]"
+new = "            spans = [1 for wide in wides]"
+
+[[mutant]]
+name = "of the grids the one with the most lines is taken"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if best is None or placed[-1][1] < best[-1][1]:"
+new = "            if best is None or placed[-1][1] > best[-1][1]:"
