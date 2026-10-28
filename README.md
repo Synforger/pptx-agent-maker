@@ -168,6 +168,7 @@ src/pptx_agent_maker/
 ├── deck/      copying a specimen page, importing one from an earlier deck
 ├── checks/    reading a built deck back, one check per file
 ├── review/    keeping a person's edit, and taking it back into the manifest
+├── compare/   which pages differ between two versions of a deck, by the pixels
 ├── project/   pointing at a deck project that lives outside this repo
 └── _common/   what more than two of the above stand on (a pptx's parts as files, a built slide read back)
 templates/     the skeleton a deck project is created from (it ships with a specimen)
@@ -186,6 +187,7 @@ python3 -m pptx_agent_maker preview <folder>         # every project under it, c
 python3 -m pptx_agent_maker preview                  # what ~/.config/pptx-agent-maker/preview.toml offers
 #   …/?only=<label> shows that one project with no chooser, whatever other pages pick
 python3 -m pptx_agent_maker review <project-dir> w1 --apply  # take a PowerPoint edit back in
+python3 -m pptx_agent_maker compare before.pptx after.pptx   # which pages differ, by the pixels (= ends with 1 when one does)
 ```
 
 A `workspace.toml` that points inside this repository is refused, and a missing asset stops the

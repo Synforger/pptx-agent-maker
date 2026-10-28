@@ -349,6 +349,10 @@ def main(argv: list[str] | None = None) -> int:
     reviewed.add_argument("--against", default=None,
                           help="the machine-built deck to compare with (default: the last shelved copy)")
 
+    compared = sub.add_parser("compare", help="compare two versions of a deck page by page, by the pixels that differ")
+    compared.add_argument("before", help="the deck as it was")
+    compared.add_argument("after", help="the deck as it is now")
+
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
@@ -375,6 +379,23 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 return _preview_places(_places_of_this_machine, args.port, args.no_open)
             return _preview_places(lambda: (places, None), args.port, args.no_open)
+
+        if args.command == "compare":
+            _use_checkout_preview()  # 頁を絵に描く部品は、プレビューの物と同じ
+            from pptx_live_preview.render import RenderError
+
+            from ._common.slide import first_slide_number
+            from .compare import changed_count, compare_decks, render_report
+
+            after = Path(args.after).expanduser()
+            try:
+                differences = compare_decks(Path(args.before).expanduser(), after)
+            except (RenderError, FileNotFoundError) as error:
+                # 終わりの code 1 は「違う頁がある」の印なので、比べられなかった回は 2 で分ける
+                print(f"error: {error}", file=sys.stderr)
+                return 2
+            print(render_report(differences, first_slide_number(after)))
+            return 1 if changed_count(differences) else 0
 
         workspace = Workspace.load(args.path)
         if args.command == "show" and args.page:
