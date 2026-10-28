@@ -114,6 +114,11 @@ def card_text(theme: Theme, card: Card, room: int) -> tuple[int, int]:
     return head, theme.wrapped_height(card.body, width, t.body) if card.body else 0
 
 
+def _entries(names: list[str], dotted: str) -> list[str]:
+    """What a legend lists, in order: the names of the grounds, then the words of the dotted line (= if it has any)."""
+    return [*names, dotted] if dotted else names
+
+
 class PageFullError(RuntimeError):
     """Raised when a page is asked for more room than it has left."""
 
@@ -380,16 +385,16 @@ class Page:
                 return columns
         return 1
 
-    def legend_height(self, width: int, names: list[str], *, down: bool = False) -> int:
-        """How tall a legend of these names runs at this width."""
+    def legend_height(self, width: int, names: list[str], *, dotted: str = "", down: bool = False) -> int:
+        """How tall a legend of these names (and the words of its dotted line, if any) runs at this width."""
         line = self.theme.line_height(self.theme.type.body)
-        tops = [top for _n, _x, top, _w in self._legend_layout(Rect(0, 0, width, line), names, down=down)]
+        tops = [top for _n, _x, top, _w in self._legend_layout(Rect(0, 0, width, line), _entries(names, dotted), down=down)]
         return max(tops) + line
 
-    def legend_width(self, names: list[str]) -> int:
+    def legend_width(self, names: list[str], *, dotted: str = "") -> int:
         """How wide the longest entry of a legend runs (= what a legend set one name to a line needs)."""
         s = self.theme.spacing
-        return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in names)
+        return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in _entries(names, dotted))
 
     def look(self, style: Style, points: float | None = None, bold: bool = False) -> Look:
         """How a box, a bar or an arrowhead is painted, from the looks every one of them takes.
@@ -462,16 +467,23 @@ class Page:
         square = Rect(left, rect.top + (rect.height - side) // 2, side, side)
         self.elements.append(Figure("icon", square.fit(aspect), Path(source), aspect))
 
-    def legend(self, rect: Rect, names: list[str], *, down: bool = False) -> None:
-        """What each named ground means: a swatch and its name, left to right (= `down`: top to bottom), in the order declared."""
+    def legend(self, rect: Rect, names: list[str], *, dotted: str = "", down: bool = False) -> None:
+        """What each named ground means: a swatch and its name, left to right (= `down`: top to bottom), in the order declared.
+
+        `dotted` は点線の意味の言葉。書けば、凡例の終わりに点線の見本とその言葉を 1 項足す (= 見本の線は、矢印の
+        点線と同じ色と太さ)。
+        """
         t, s, p = self.theme.type, self.theme.spacing, self.theme.palette
         line = self.theme.line_height(t.body)
-        for name, x, y, wide in self._legend_layout(rect, names, down=down):
-            fill, _words, edge = self.ground(name)
-            self.elements.append(Fill("swatch", Rect(x, y + (line - s.swatch) // 2, s.swatch, s.swatch),
-                                      fill, outline=edge))
+        for number, (label, x, y, wide) in enumerate(self._legend_layout(rect, _entries(names, dotted), down=down)):
+            if number < len(names):
+                fill, _words, edge = self.ground(label)
+                self.elements.append(Fill("swatch", Rect(x, y + (line - s.swatch) // 2, s.swatch, s.swatch),
+                                          fill, outline=edge))
+            else:
+                self.line((x, y + line // 2), (x + s.swatch, y + line // 2), dashed=True)
             self.elements.append(Text("label", Rect(x + s.swatch + s.gap_s, y, wide - s.swatch - s.gap_s, line),
-                                      name, t.body, p.ink))
+                                      label, t.body, p.ink))
 
     def boxes(self, rect: Rect, cards: list[Card], *, gap: int | None = None, top: bool = False) -> None:
         """Cards side by side inside an area you already divided off.

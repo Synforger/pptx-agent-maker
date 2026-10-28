@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import fields, is_dataclass, replace
+from dataclasses import dataclass, fields, is_dataclass, replace
 
 from ...geometry import Rect
 from ...parts.elements import Line
@@ -32,6 +32,40 @@ def legend_names(page: Page, spec: Spec) -> list[str]:
     return [name for name in page.theme.ground_names() if name in used]
 
 
+@dataclass(frozen=True)
+class Legend:
+    """What a legend lists: the grounds a project named that the page uses, and what a dotted line means (= "" for no entry)."""
+
+    names: list[str]
+    dotted: str = ""
+
+
+def legend_of(page: Page, spec: Spec) -> Legend:
+    """The legend a page lists, with the words of its dotted line when it writes `dotted_legend`.
+
+    `dotted_legend` は点線 (= `tentative = true` の矢印かカード) の意味の言葉。点線が無い頁に書いたら止める
+    (= 意味を言う相手が無い)。凡例が出るかは、置く側 (= `reserve_legend` と凡例のマス) が見る。
+    """
+    words = spec.get("dotted_legend")
+    if words is None:
+        return Legend(legend_names(page, spec))
+    if not isinstance(words, str) or not words.strip():
+        raise PageTypeError(f"`dotted_legend` is the words that say what a dotted line means, not {words!r}")
+    if not _has_tentative(spec.data):
+        raise PageTypeError("`dotted_legend` says what a dotted line means, and this page has none — "
+                            "write `tentative = true` on an arrow or a card, or drop the key")
+    return Legend(legend_names(page, spec), words.strip())
+
+
+def _has_tentative(data) -> bool:
+    """Whether anything on the page is written `tentative = true`, however deep it sits."""
+    if isinstance(data, dict):
+        return data.get("tentative") is True or any(_has_tentative(value) for value in data.values())
+    if isinstance(data, list):
+        return any(_has_tentative(value) for value in data)
+    return False
+
+
 def legend_cells(spec: Spec) -> int:
     """How many cells of the page hold the legend (= `legend = true` on a cell of its rows, its grid or a panel in them)."""
     return (_legend_cells([{"cells": spec.get("cells")}]) + _legend_cells(spec.get("rows")))
@@ -55,7 +89,7 @@ def _legend_cells(lines) -> int:
     return found
 
 
-def reserve_legend(page: Page, spec: Spec, area: Rect) -> tuple[Rect, list[str] | None]:
+def reserve_legend(page: Page, spec: Spec, area: Rect) -> tuple[Rect, Legend | None]:
     """Keep a line under the body for the legend, when the page uses a ground a project named.
 
     ⚠ **色に意味を持たせたら凡例を置く** (= 作法)。書く人に任せると、色だけが意味を運ぶ頁が残る。
@@ -65,19 +99,27 @@ def reserve_legend(page: Page, spec: Spec, area: Rect) -> tuple[Rect, list[str] 
     ⚠ **名前が 1 つだけの凡例は、書かなければ出さない** (= 何も見分けていない)。名前の付いた地のカードだけを
     並べた頁に、その名前 1 つの凡例が出て、案件が頁ごとに `legend = false` を書いて消していた。1 つでも出したい
     頁は `legend = true` と書く。
+
+    ⚠ **凡例が出ない頁の `dotted_legend` は止める** (= 言葉を書いても、どこにも出ない)。
     """
     shown = spec.get("legend")
     if shown is not None and not isinstance(shown, bool):
         raise PageTypeError(f"`legend` is true or false, not {shown!r}")
-    names = legend_names(page, spec)
+    legend = legend_of(page, spec)
+    names = legend.names
     # 凡例をマスに置いた頁は、頁の下には出さない (= 同じ凡例を 2 度並べない)
-    if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):
+    in_a_cell = legend_cells(spec) > 0
+    left_out = shown is False or not names or (len(names) == 1 and shown is None)
+    if legend.dotted and left_out and not in_a_cell:
+        raise PageTypeError("`dotted_legend` goes into the legend, and this page shows none — it lists the grounds "
+                            "a project named in [theme.grounds] (= two or more, or one with `legend = true`)")
+    if in_a_cell or left_out:
         return area, None
-    tall = page.legend_height(area.width, names) + page.theme.spacing.gap_s
+    tall = page.legend_height(area.width, names, dotted=legend.dotted) + page.theme.spacing.gap_s
     if tall >= area.height:
         raise PageFullError(f"the legend alone needs {tall} EMU and the body has {area.height}")
     body, _rest = area.split_top(area.height - tall)
-    return body, names
+    return body, legend
 
 
 def used_bottom(page: Page, area: Rect) -> int:
@@ -121,13 +163,13 @@ def centre_body(page: Page, area: Rect, first: int) -> None:
         page.elements[first:] = [_lowered(element, by) for element in placed]
 
 
-def place_legend(page: Page, names: list[str] | None, area: Rect) -> None:
+def place_legend(page: Page, legend: Legend | None, area: Rect) -> None:
     """Put the legend just under what the body actually used (= the cards above it included)."""
-    if not names:
+    if legend is None:
         return
     used = used_bottom(page, area)
-    height = page.legend_height(area.width, names)
-    page.legend(Rect(area.left, used + page.theme.spacing.gap_s, area.width, height), names)
+    height = page.legend_height(area.width, legend.names, dotted=legend.dotted)
+    page.legend(Rect(area.left, used + page.theme.spacing.gap_s, area.width, height), legend.names, dotted=legend.dotted)
 
 
 def place_cards(page: Page, spec: Spec, area: Rect, *, fill: bool = False) -> Rect:

@@ -141,20 +141,20 @@ new = "piece.style_on(packed[number + reach - 1].tone), size=size)"
 [[mutant]]
 name = "a legend of one name is shown though nobody asked"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
-old = "if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):"
-new = "if legend_cells(spec) or shown is False or not names:"
+old = "    left_out = shown is False or not names or (len(names) == 1 and shown is None)"
+new = "    left_out = shown is False or not names"
 
 [[mutant]]
 name = "a legend of one name is left out even when asked for"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
-old = "if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):"
-new = "if legend_cells(spec) or shown is False or not names or len(names) == 1:"
+old = "    left_out = shown is False or not names or (len(names) == 1 and shown is None)"
+new = "    left_out = shown is False or not names or len(names) == 1"
 
 [[mutant]]
 name = "legend = false is not read"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
-old = "if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):"
-new = "if legend_cells(spec) or not names or (len(names) == 1 and shown is None):"
+old = "    left_out = shown is False or not names or (len(names) == 1 and shown is None)"
+new = "    left_out = not names or (len(names) == 1 and shown is None)"
 
 [[mutant]]
 name = "a project may name a ground after the white a panel stands on"

@@ -1,0 +1,81 @@
+# `dotted_legend`: the sample of a dotted line and its words, last in the legend, under the page or in a legend cell.
+
+tests = ["tests/layout/test_grid.py"]
+
+[[mutant]]
+name = "the words of a dotted line are left out of the legend under the page"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    page.legend(Rect(area.left, used + page.theme.spacing.gap_s, area.width, height), legend.names, dotted=legend.dotted)"
+new = "    page.legend(Rect(area.left, used + page.theme.spacing.gap_s, area.width, height), legend.names)"
+
+[[mutant]]
+name = "the room for the dotted line is not kept under the page"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    tall = page.legend_height(area.width, names, dotted=legend.dotted) + page.theme.spacing.gap_s"
+new = "    tall = page.legend_height(area.width, names) + page.theme.spacing.gap_s"
+
+[[mutant]]
+name = "the words of a dotted line are left out of a legend cell"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "            page.legend(fitted, legend.names, dotted=legend.dotted, down=True)"
+new = "            page.legend(fitted, legend.names, down=True)"
+
+[[mutant]]
+name = "the sample of a dotted line is drawn solid"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2), dashed=True)"
+new = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2))"
+
+[[mutant]]
+name = "the sample of a dotted line stands off the middle of its line"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2), dashed=True)"
+new = "                self.line((x, y), (x + s.swatch, y), dashed=True)"
+
+[[mutant]]
+name = "the sample of a dotted line is drawn in a colour of its own"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2), dashed=True)"
+new = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2), tone=\"accent\", dashed=True)"
+
+[[mutant]]
+name = "a legend does not count the dotted entry in its width"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in _entries(names, dotted))"
+new = "        return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in names)"
+
+[[mutant]]
+name = "dotted words are let through on a page with no dotted line"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if not _has_tentative(spec.data):"
+new = "    if False:"
+
+[[mutant]]
+name = "a tentative written false counts as a dotted line"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "        return data.get(\"tentative\") is True or any("
+new = "        return \"tentative\" in data or any("
+
+[[mutant]]
+name = "dotted words are let through on a page with no legend"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if legend.dotted and left_out and not in_a_cell:"
+new = "    if False:"
+
+[[mutant]]
+name = "dotted words are refused on a page whose legend stands in a cell"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if legend.dotted and left_out and not in_a_cell:"
+new = "    if legend.dotted and left_out:"
+
+[[mutant]]
+name = "dotted words take anything"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if not isinstance(words, str) or not words.strip():"
+new = "    if False:"
+
+[[mutant]]
+name = "every page type reads the dotted words"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'takes=["rows", "grid", "cells", "backdrops", "links", "dotted_legend"], figure=False)'
+new = 'takes=["rows", "grid", "cells", "backdrops", "links", "dotted_legend"], figure=False)\n@register("cards", needs=[], takes=["dotted_legend"])'

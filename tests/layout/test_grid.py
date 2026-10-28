@@ -324,6 +324,104 @@ class LinksOnAGrid(unittest.TestCase):
                              for (x1, y1), (x2, y2) in zip(line.points(), line.points()[1:])))
 
 
+class TheDottedLineInTheLegend(unittest.TestCase):
+    """`dotted_legend` says what a dotted line means: a sample of it and the words, last in the legend."""
+
+    WORDS = "Flow to come"
+    CELLS = [card("Upper", tone="Deep", at=[1, 1], id="up"), card("Lower", tone="Pale", at=[1, 2], id="down")]
+    DOTTED = [{"from": "up", "to": "down", "tentative": True}]
+
+    def page(self, cells=None, **extra):
+        return grid_page(self.CELLS if cells is None else cells, columns=(1, 1), rows=(1,), **extra)
+
+    def test_a_dotted_line_with_words_ends_the_legend_with_its_sample_and_the_words(self) -> None:
+        page = self.page(links=self.DOTTED, dotted_legend=self.WORDS, legend=True)
+        labels = sorted(kinds(page, "label"), key=lambda e: e.rect.left)
+        self.assertEqual(["Deep", "Pale", self.WORDS], [label.text for label in labels])
+        arrow, sample = kinds(page, "line")
+        swatch = kinds(page, "swatch")[0]
+        self.assertTrue(sample.dashed)
+        self.assertEqual(arrow.colour, sample.colour)
+        self.assertEqual(sample.start[1], sample.end[1])
+        self.assertEqual(swatch.rect.top + swatch.rect.height // 2, sample.start[1])
+        self.assertEqual(S.swatch, sample.end[0] - sample.start[0])
+        self.assertEqual(sample.start[0] + S.swatch + S.gap_s, labels[2].rect.left)
+
+    def test_the_sample_takes_the_colour_of_the_arrow_it_stands_for(self) -> None:
+        tinted = [{"from": "up", "to": "down", "tentative": True, "tone": "Deep"}]
+        arrow = kinds(self.page(links=tinted, dotted_legend=self.WORDS, legend=True), "line")[0]
+        plain = kinds(self.page(links=self.DOTTED, dotted_legend=self.WORDS, legend=True), "line")[0]
+        self.assertEqual(FILLED.palette.muted, plain.colour)
+        self.assertNotEqual(arrow.colour, plain.colour)
+
+    def test_a_page_that_does_not_write_it_lists_the_names_alone_as_before(self) -> None:
+        page = self.page(links=self.DOTTED, legend=True)
+        self.assertEqual(["Deep", "Pale"], sorted(label.text for label in kinds(page, "label")))
+        self.assertEqual(1, len(kinds(page, "line")))
+
+    def test_a_legend_cell_lists_the_sample_under_the_names(self) -> None:
+        cells = [*self.CELLS, {"legend": True, "at": [2, 1], "id": "key"}]
+        page = grid_page(cells, columns=(1, 1), rows=(1, 1), links=self.DOTTED, dotted_legend=self.WORDS)
+        labels = kinds(page, "label")
+        self.assertEqual(["Deep", "Pale", self.WORDS], [label.text for label in labels])
+        sample, _arrow = kinds(page, "line")          # a legend cell is set with the cells, the arrows after them
+        self.assertEqual(kinds(page, "swatch")[0].rect.left, sample.start[0])
+        self.assertEqual(labels[1].rect.top + DEFAULT.line_height(T.body), labels[2].rect.top)
+        self.assertEqual(labels[2].rect.top + DEFAULT.line_height(T.body) // 2, sample.start[1])
+
+    def test_a_legend_cell_stands_for_the_legend_even_when_the_page_would_show_none_under_it(self) -> None:
+        one_name = [card("Upper", tone="Deep", at=[1, 1], id="up"), card("Lower", at=[1, 2], id="down"),
+                    {"legend": True, "at": [2, 1]}]
+        page = grid_page(one_name, columns=(1, 1), rows=(1, 1), links=self.DOTTED, dotted_legend=self.WORDS)
+        self.assertEqual(["Deep", self.WORDS], [label.text for label in kinds(page, "label")])
+
+    def test_a_legend_cell_narrower_than_the_words_of_the_dotted_line_stops_the_page(self) -> None:
+        cells = [{"legend": True, "at": [1, 1]}, card("Upper", tone="Deep", at=[1, 2], id="up"),
+                 card("Lower", tone="Pale", at=[2, 2], id="down")]
+        words = " ".join(["words"] * 12)
+        with self.assertRaisesRegex(PageFullError, "the legend needs"):
+            grid_page(cells, columns=(1, 2), rows=(1, 1), links=self.DOTTED, dotted_legend=words)
+        grid_page(cells, columns=(1, 2), rows=(1, 1), links=self.DOTTED, dotted_legend="Short")
+
+    def test_the_legend_under_the_page_keeps_room_for_the_sample(self) -> None:
+        page = self.page(links=self.DOTTED, dotted_legend=" ".join(["a long line of words"] * 8), legend=True)
+        labels = kinds(page, "label")
+        self.assertGreater(len({label.rect.top for label in labels}), 1)
+        self.assertLess(max(label.rect.bottom for label in labels), page.theme.frame().bottom + 1)
+        self.assertLessEqual(box_of(page, "Upper").rect.bottom, min(label.rect.top for label in labels))
+
+    def test_a_dotted_card_is_as_good_as_a_dotted_arrow(self) -> None:
+        cells = [card("Upper", tone="Deep", at=[1, 1]), {**card("Lower", tone="Pale", at=[1, 2]), "card": {
+            "heading": "Lower", "tone": "Pale", "tentative": True}}]
+        page = self.page(cells, dotted_legend=self.WORDS)
+        self.assertEqual(self.WORDS, kinds(page, "label")[-1].text)
+
+    def test_the_words_with_no_dotted_line_on_the_page_stop_it(self) -> None:
+        with self.assertRaisesRegex(PageTypeError, "this page has none"):
+            self.page(links=[{"from": "up", "to": "down"}], dotted_legend=self.WORDS)
+        with self.assertRaisesRegex(PageTypeError, "this page has none"):
+            self.page(links=[{"from": "up", "to": "down", "tentative": False}], dotted_legend=self.WORDS)
+
+    def test_the_words_with_no_legend_on_the_page_stop_it(self) -> None:
+        with self.assertRaisesRegex(PageTypeError, "this page shows none"):
+            self.page(links=self.DOTTED, dotted_legend=self.WORDS, legend=False)
+        one_name = [card("Upper", tone="Deep", at=[1, 1], id="up"), card("Lower", at=[1, 2], id="down")]
+        with self.assertRaisesRegex(PageTypeError, "this page shows none"):
+            self.page(one_name, links=self.DOTTED, dotted_legend=self.WORDS)
+        self.assertEqual(self.WORDS, kinds(self.page(one_name, links=self.DOTTED, dotted_legend=self.WORDS, legend=True),
+                                          "label")[-1].text)
+
+    def test_the_words_are_a_line_of_words(self) -> None:
+        for words in ("", "  ", 3, True):
+            with self.subTest(words=words), self.assertRaisesRegex(PageTypeError, "`dotted_legend` is the words"):
+                self.page(links=self.DOTTED, dotted_legend=words, legend=True)
+
+    def test_only_a_compose_page_reads_it(self) -> None:
+        with self.assertRaisesRegex(PageTypeError, "dotted_legend"):
+            build({"type": "cards", "title": "A page", "cards": [{"heading": "A", "tentative": True}],
+                   "dotted_legend": self.WORDS})
+
+
 class TheDeckOfAGridIsPassedByTheChecks(unittest.TestCase):
     def test_a_page_with_backdrops_names_boxes_over_two_rows_and_bent_arrows_is_read_clean(self) -> None:
         cells = [{"text": "Users", "role": "label", "at": [1, 1]}, {"text": "Developers", "role": "label", "at": [2, 1]},
