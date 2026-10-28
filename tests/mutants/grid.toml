@@ -257,20 +257,14 @@ new = "                None)"
 [[mutant]]
 name = "a legend set down puts the entries side by side"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = """            if down:
-                yield name, x, y, wide"""
-new = """            if False:
-                yield name, x, y, wide"""
+old = "        columns = 1 if down else self._legend_columns(wides, rect.width)"
+new = "        columns = self._legend_columns(wides, rect.width)"
 
 [[mutant]]
 name = "a legend set down puts the entries on the same line"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = """                yield name, x, y, wide
-                y += line
-                continue"""
-new = """                yield name, x, y, wide
-                y += 0
-                continue"""
+old = "rect.top + line * (number // columns), wide"
+new = "rect.top, wide"
 
 [[mutant]]
 name = "the width of a legend is its narrowest entry"

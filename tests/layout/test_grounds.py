@@ -209,6 +209,31 @@ class TheLegend(unittest.TestCase):
         width = built.theme.frame().right
         self.assertTrue(all(e.rect.right <= width for e in built.build() if e.kind == "label"))
 
+    def test_the_swatches_of_a_legend_that_wraps_stand_in_the_same_columns_and_the_same_lines(self):
+        """名前の長さがばらばらでも、同じ列の色見本は同じ左、同じ段は同じ上 (= 1 段目と 2 段目が 0.75 mm ずれて検査が赤になっていた)。"""
+        names = {"Short" * (1 + n % 4) + f" {n}": "EAF0F8" for n in range(14)}
+        theme = theme_from({"grounds": names})
+        built = build({"type": "cards", "cards": [{"heading": f"C{n}", "tone": name} for n, name in enumerate(names)]}, theme)
+        swatches = [e for e in built.build() if e.kind == "swatch"]
+        lines = sorted({e.rect.top for e in swatches})
+        rows = [sorted(e.rect.left for e in swatches if e.rect.top == top) for top in lines]
+        self.assertGreater(len(rows), 1)
+        self.assertGreater(len(rows[0]), 1)
+        self.assertEqual(len(names), sum(len(row) for row in rows))
+        for row in rows:
+            self.assertEqual(rows[0][:len(row)], row)
+        labels = sorted((e for e in built.build() if e.kind == "label"), key=lambda e: (e.rect.top, e.rect.left))
+        for before, after in zip(labels, labels[1:]):
+            if before.rect.top == after.rect.top:
+                self.assertLessEqual(before.rect.right, after.rect.left - THEME.spacing.swatch)
+
+    def test_a_legend_that_fits_one_line_is_set_close_as_before(self):
+        built = cards("Inside", "At risk")
+        swatches = sorted((e for e in built.build() if e.kind == "swatch"), key=lambda e: e.rect.left)
+        spacing = THEME.spacing
+        width = spacing.swatch + spacing.gap_s + THEME.width("Inside", THEME.type.body)
+        self.assertEqual(swatches[0].rect.left + width + spacing.gap_m, swatches[1].rect.left)
+
     def test_a_single_name_brings_no_legend_unless_asked(self):
         """名前が 1 つだけの凡例は何も見分けない (= 名前の付いた地のカードだけの頁に、その名前 1 つの凡例が出ていた)。"""
         self.assertEqual([], legend(cards("Shared", "Shared")))

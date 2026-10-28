@@ -356,23 +356,29 @@ class Page:
         return fill, words, p.edge(fill) if words == p.ink else ""
 
     def _legend_layout(self, rect: Rect, names: list[str], *, down: bool = False):
-        """Where each entry of a legend goes: (left, top, width) per name, wrapping to a new line.
+        """Where each entry of a legend goes: (name, left, top, width) per name, in rows of as many columns as fit.
 
-        `down` は 1 行に 1 つ (= 上から下へ並べる)。
+        列は段をまたいで揃う (= 同じ列の色見本は同じ左、同じ段は同じ上)。列の幅はその列でいちばん広い項で、
+        入る列の数のうち一番多い物を取る (= 1 段に収まる凡例は、詰めて並べた今までのまま)。
+        ⚠ 項ごとに詰めて折り返していた間は、名前の長さの偶然で 1 段目と 2 段目の色見本が 0.75 mm ずれて並んだ。
+        `down` は 1 列 (= 上から下へ並べる)。
         """
         s = self.theme.spacing
         line = self.theme.line_height(self.theme.type.body)
-        x, y = rect.left, rect.top
-        for name in names:
-            wide = s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body)
-            if down:
-                yield name, x, y, wide
-                y += line
-                continue
-            if x > rect.left and x + wide > rect.right:
-                x, y = rect.left, y + line
-            yield name, x, y, wide
-            x += wide + s.gap_m
+        wides = [s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in names]
+        columns = 1 if down else self._legend_columns(wides, rect.width)
+        widths = [max(wides[column::columns]) for column in range(columns)]
+        lefts = [rect.left + sum(widths[:column]) + s.gap_m * column for column in range(columns)]
+        for number, (name, wide) in enumerate(zip(names, wides)):
+            yield name, lefts[number % columns], rect.top + line * (number // columns), wide
+
+    def _legend_columns(self, wides: list[int], room: int) -> int:
+        """How many columns a legend of entries this wide runs in at this width: the most that fit, at least one."""
+        gap = self.theme.spacing.gap_m
+        for columns in range(len(wides), 1, -1):
+            if sum(max(wides[column::columns]) for column in range(columns)) + gap * (columns - 1) <= room:
+                return columns
+        return 1
 
     def legend_height(self, width: int, names: list[str], *, down: bool = False) -> int:
         """How tall a legend of these names runs at this width."""
