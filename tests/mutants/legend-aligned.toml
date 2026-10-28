@@ -1,0 +1,27 @@
+# A legend that wraps keeps its swatches in the same columns and the same lines, and one line of it is set close.
+
+tests = ["tests/layout/test_grounds.py", "tests/layout/test_grid.py"]
+
+[[mutant]]
+name = "each line of a legend is packed on its own, so its swatches miss the line above"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "yield name, lefts[number % columns], rect.top + line * (number // columns), wide"
+new = "yield name, rect.left + sum(wides[number - number % columns:number]) + s.gap_m * (number % columns), rect.top + line * (number // columns), wide"
+
+[[mutant]]
+name = "a legend is always one column"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        for columns in range(len(wides), 1, -1):"
+new = "        for columns in range(1, 1, -1):"
+
+[[mutant]]
+name = "a column is as wide as its narrowest entry, so a longer one runs into the next"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        widths = [max(wides[column::columns]) for column in range(columns)]"
+new = "        widths = [min(wides[column::columns]) for column in range(columns)]"
+
+[[mutant]]
+name = "a legend is set in as many columns as there are entries however narrow the room"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "            if sum(max(wides[column::columns]) for column in range(columns)) + gap * (columns - 1) <= room:"
+new = "            if True:"

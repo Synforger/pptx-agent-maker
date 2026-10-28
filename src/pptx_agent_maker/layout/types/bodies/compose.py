@@ -52,6 +52,10 @@
 マスの `legend = true` は、その頁で使った地の名前の凡例 (= 頁の下の凡例と同じ中身) を、そのマスの中に縦に
 並べる。1 つの頁に 1 つまで。そのマスを持つ頁は、頁の下の凡例を出さない。
 
+頁の `dotted_legend = "構想の流れ"` は、点線 (= `tentative = true` の矢印かカード) の意味。書けば、凡例の
+終わりに点線の見本とその言葉を 1 項足す (= 見本の線は、矢印の点線と同じ色と太さ。頁の下でもマスの中でも同じ)。
+点線の無い頁と、凡例の出ない頁に書いたら止める。書かなければ今までのまま。
+
 ⚠ **この型は図を要らない頁として扱う。**カードだけで組む頁 (= 目標と柱) を拒むと、また指定を
 曲げて組むことになる。
 """
@@ -63,7 +67,7 @@ from numbers import Real
 from ...geometry import Rect, cm
 from ...parts.look import Style
 from ...parts.page import CARD_ALIGNS, Card, Page, PageFullError, Panel, Voice
-from ..core.frame import legend_cells, legend_names
+from ..core.frame import Legend, legend_cells, legend_of
 from ..core.registry import TYPES, PageTypeError, register
 from ..core.read import Spec, read_card, read_panel, read_table, read_tone, read_weight, only_keys
 from ..core.stack import card_height, spread
@@ -100,7 +104,7 @@ BACKDROP_KEYS = ("at", "span", "tone")
 BACKDROP_TONE = "band"
 
 
-@register("compose", needs=[], takes=["rows", "grid", "cells", "backdrops", "links"], figure=False)
+@register("compose", needs=[], takes=["rows", "grid", "cells", "backdrops", "links", "dotted_legend"], figure=False)
 def _compose(page: Page, spec: Spec, area: Rect) -> None:
     """Rows top to bottom (or cells on a grid), cells left to right, one part in each cell (or more rows); then the links."""
     gridded = _way(spec)
@@ -435,11 +439,11 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
         rows = _table(spec, cell, what)
         return theme.table_height(rows, theme.column_widths(rows, width))
     if part == "legend":
-        names = _legend(page, spec, what)
-        if page.legend_width(names) > width:
-            raise PageFullError(f"{what}: the legend needs {page.legend_width(names)} EMU of width and the cell has "
-                                f"{width} — a wider cell, or shorter names; nothing will shrink")
-        return page.legend_height(width, names, down=True)
+        legend = _legend(page, spec, what)
+        if page.legend_width(legend.names, dotted=legend.dotted) > width:
+            raise PageFullError(f"{what}: the legend needs {page.legend_width(legend.names, dotted=legend.dotted)} EMU of "
+                                f"width and the cell has {width} — a wider cell, or shorter names; nothing will shrink")
+        return page.legend_height(width, legend.names, dotted=legend.dotted, down=True)
     if part == "text" and cell.get("role") == "mono":
         try:
             return page.code_height(width, str(cell["text"]))
@@ -503,7 +507,8 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             tone = read_tone(spec, cell, what, "box") if "tone" in cell else None
             page.text(fitted, str(cell["text"]), role=cell.get("role"), tone=tone, align=cell.get("align", "left"))
         elif part == "legend":
-            page.legend(fitted, _legend(page, spec, what), down=True)
+            legend = _legend(page, spec, what)
+            page.legend(fitted, legend.names, dotted=legend.dotted, down=True)
         elif part == "points":
             page.points(fitted, _points(cell, what))
         elif part == "voices":
@@ -648,13 +653,13 @@ def _voices(spec: Spec, cell: dict, what: str) -> list[Voice]:
     return found
 
 
-def _legend(page: Page, spec: Spec, what: str) -> list[str]:
-    """The names a legend cell lists: the grounds the project named that this page uses (= what the legend under a page lists)."""
-    names = legend_names(page, spec)
-    if not names:
+def _legend(page: Page, spec: Spec, what: str) -> Legend:
+    """What a legend cell lists: the grounds the project named that this page uses (= what the legend under a page lists), and the words of the dotted line."""
+    legend = legend_of(page, spec)
+    if not legend.names:
         raise PageTypeError(f"{what}: `legend = true` lists the grounds this page uses that the project named in "
                             "[theme.grounds], and this page uses none — drop the cell")
-    return names
+    return legend
 
 
 def _points(cell: dict, what: str) -> list[str]:

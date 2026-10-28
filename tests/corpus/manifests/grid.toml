@@ -1,6 +1,7 @@
 # A page on a grid: cells at a row and a column, a cell that spans two rows, backdrops laid under them for the bands of
 # a flow across departments, and the legend of the grounds in an empty cell. An arrow between two boxes that face each
-# other is straight, and one between two that do not bends once.
+# other is straight, and one between two that do not bends once. A second page has a dotted arrow and a dotted box, and
+# the legend ends with the sample of the dotted line and its words.
 
 specimen = "specimen.pptx"
 out = "grid.pptx"
@@ -63,3 +64,32 @@ at = [1, 5]
 span = [2, 1]
 id = "hub"
 card = { heading = "Where they meet", body = "Over both rows, on a ground of its own", tone = "Late" }
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A flow in two stages, the second one only a plan"
+condition = "A dotted arrow and a dotted box are the stage that is not decided yet"
+conclusion = "The legend ends with a sample of the dotted line and what it means"
+grid = { columns = [1, 1, 1], rows = [1] }
+legend = true
+dotted_legend = "Planned flow"
+links = [
+  { from = "now", to = "next" },
+  { from = "next", to = "later", tentative = true },
+]
+
+[[pages.cells]]
+at = [1, 1]
+id = "now"
+card = { heading = "Now", body = "What runs today", tone = "Inside" }
+
+[[pages.cells]]
+at = [1, 2]
+id = "next"
+card = { heading = "Next", body = "What is built this quarter", tone = "Outside" }
+
+[[pages.cells]]
+at = [1, 3]
+id = "later"
+card = { heading = "Later", body = "Not decided yet", tone = "Late", tentative = true }

@@ -207,7 +207,7 @@ new = "    if False:"
 [[mutant]]
 name = "a legend lists nothing and is drawn"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = """    if not names:
+old = """    if not legend.names:
         raise PageTypeError(f"{what}: `legend = true` lists"""
 new = """    if False:
         raise PageTypeError(f"{what}: `legend = true` lists"""
@@ -215,20 +215,20 @@ new = """    if False:
 [[mutant]]
 name = "a legend wider than its cell is let through"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "        if page.legend_width(names) > width:"
+old = "        if page.legend_width(legend.names, dotted=legend.dotted) > width:"
 new = "        if False:"
 
 [[mutant]]
 name = "a legend in a cell is measured on one line"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "return page.legend_height(width, names, down=True)"
-new = "return page.legend_height(width, names, down=False)"
+old = "return page.legend_height(width, legend.names, dotted=legend.dotted, down=True)"
+new = "return page.legend_height(width, legend.names, dotted=legend.dotted, down=False)"
 
 [[mutant]]
 name = "a legend in a cell is set on one line"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "page.legend(fitted, _legend(page, spec, what), down=True)"
-new = "page.legend(fitted, _legend(page, spec, what), down=False)"
+old = "page.legend(fitted, legend.names, dotted=legend.dotted, down=True)"
+new = "page.legend(fitted, legend.names, dotted=legend.dotted, down=False)"
 
 [[mutant]]
 name = "a legend taller than its row is let through"
@@ -239,8 +239,8 @@ new = '"voices", "tree"):'
 [[mutant]]
 name = "the legend of a page stays under it when a cell holds one"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
-old = "    if legend_cells(spec) or shown is False or not names or (len(names) == 1 and shown is None):"
-new = "    if shown is False or not names or (len(names) == 1 and shown is None):"
+old = "    if in_a_cell or left_out:"
+new = "    if left_out:"
 
 [[mutant]]
 name = "the cells of a grid are not searched for the legend"
@@ -257,26 +257,20 @@ new = "                None)"
 [[mutant]]
 name = "a legend set down puts the entries side by side"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = """            if down:
-                yield name, x, y, wide"""
-new = """            if False:
-                yield name, x, y, wide"""
+old = "        columns = 1 if down else self._legend_columns(wides, rect.width)"
+new = "        columns = self._legend_columns(wides, rect.width)"
 
 [[mutant]]
 name = "a legend set down puts the entries on the same line"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = """                yield name, x, y, wide
-                y += line
-                continue"""
-new = """                yield name, x, y, wide
-                y += 0
-                continue"""
+old = "rect.top + line * (number // columns), wide"
+new = "rect.top, wide"
 
 [[mutant]]
 name = "the width of a legend is its narrowest entry"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in names)"
-new = "return min(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in names)"
+old = "return max(key + s.gap_s + self.theme.width(name, self.theme.type.body) for name, key in _entries(names, dotted, s.swatch))"
+new = "return min(key + s.gap_s + self.theme.width(name, self.theme.type.body) for name, key in _entries(names, dotted, s.swatch))"
 
 [[mutant]]
 name = "a card on a grid centres its words, so headings starting on one row stand at different heights"
