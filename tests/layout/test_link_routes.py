@@ -21,6 +21,7 @@ from support.pages import box_of, build  # noqa: E402
 from pptx_agent_maker import DEFAULT  # noqa: E402
 from pptx_agent_maker.layout.geometry import Rect  # noqa: E402
 from pptx_agent_maker.layout.tokens import theme_from  # noqa: E402
+from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.layout.types.bodies.link_routes import (  # noqa: E402
     Attach, Room, RouteSearch, hops, middle_ports, positions)
 from pptx_agent_maker.layout.types.bodies.link_routes.crossings import APART, CROSS, TOUCH, meet  # noqa: E402
@@ -330,6 +331,42 @@ class ALineInAndALineOutByOneEdge(unittest.TestCase):
         self.assertEqual(into.end[1], out_of.start[1], "both use the top edge of Do")
         self.assertLess(into.end[0], out_of.start[0])
         self.assertTrue(not into.hops and not out_of.hops)
+
+
+class AWayRoundThatIsTooLong(unittest.TestCase):
+    """A line down column 3, then X (top right) to C (in the middle): crossing nothing means going round above the page's top row, about 1.4 times as long as hopping the line once. `detour` caps how much longer the way round may be."""
+
+    def page(self, detour=None):
+        cells = [card("T", (1, 3), id="t"), card("B", (3, 3), id="b"), card("X", (1, 4), id="x"), card("C", (2, 2), id="c")]
+        spec = {"type": "compose", "title": "A page", "grid": {"columns": [1, 1, 1, 1], "rows": [1, 1, 1]}, "cells": cells,
+                "links": [{"from": "t", "to": "b"}, {"from": "x", "to": "c"}]}
+        if detour is not None:
+            spec["detour"] = detour
+        return build(spec)
+
+    @staticmethod
+    def length(line):
+        return sum(abs(x2 - x1) + abs(y2 - y1) for (x1, y1), (x2, y2) in runs(line.points()))
+
+    def test_without_detour_the_line_goes_round_and_crosses_nothing(self):
+        _down, round_about = lines_of(self.page())
+        self.assertEqual((), round_about.hops)
+
+    def test_a_way_round_longer_than_detour_times_the_hopping_way_gives_way_to_it(self):
+        _down, hopping = lines_of(self.page(1.2))
+        _down, round_about = lines_of(self.page())
+        self.assertEqual(1, len(hopping.hops))
+        self.assertLess(self.length(hopping) * 1.2, self.length(round_about))
+
+    def test_a_way_round_within_detour_times_the_hopping_way_is_kept(self):
+        _down, line = lines_of(self.page(1.5))
+        self.assertEqual((), line.hops)
+
+    def test_detour_is_a_number_of_one_or_more(self):
+        for wrong in (0.5, "2", True):
+            with self.assertRaises(PageTypeError, msg=wrong) as caught:
+                self.page(wrong)
+            self.assertIn("`detour`", str(caught.exception))
 
 
 class LinesThatCrossAndOnesThatOnlyMeet(unittest.TestCase):

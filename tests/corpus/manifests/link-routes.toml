@@ -104,3 +104,36 @@ card = { heading = "Top", body = "Goes down" }
 at = [3, 2]
 id = "bottom"
 card = { heading = "Bottom", body = "Is reached" }
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A way round that is too long hops instead"
+condition = "Going round the line down the middle is longer than detour times the way that hops it once"
+conclusion = "detour = 1.2: the arrow hops the line rather than going round above the top row"
+detour = 1.2
+grid = { columns = [1, 1, 1, 1], rows = [1, 1, 1] }
+links = [
+  { from = "top", to = "bottom" },
+  { from = "corner", to = "middle" },
+]
+
+[[pages.cells]]
+at = [1, 3]
+id = "top"
+card = { heading = "Top", body = "Goes down" }
+
+[[pages.cells]]
+at = [3, 3]
+id = "bottom"
+card = { heading = "Bottom", body = "Is reached" }
+
+[[pages.cells]]
+at = [1, 4]
+id = "corner"
+card = { heading = "Corner", body = "Starts here" }
+
+[[pages.cells]]
+at = [2, 2]
+id = "middle"
+card = { heading = "Middle", body = "Is reached by a hop" }
