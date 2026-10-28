@@ -24,6 +24,7 @@ from pptx_agent_maker.layout import tokens  # noqa: E402
 from pptx_agent_maker.layout import types  # noqa: E402
 from pptx_agent_maker.layout.parts.look import LIGHT, TONES  # noqa: E402
 from pptx_agent_maker.layout.parts.elements import Fill, Text  # noqa: E402
+from pptx_agent_maker.layout.parts.page import Card, PageFullError, card_text  # noqa: E402
 from pptx_agent_maker.layout.tokens import DEFAULT, Theme, Type  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
@@ -335,6 +336,61 @@ class TheWidthOfACharacter(unittest.TestCase):
         """検査は半角を 0.5 文字ぶんと見る。平均でそれより狭く数えると、収まると言った物が検査で重なる。"""
         text = string.ascii_lowercase
         self.assertGreater(sum(tokens.advance(c) for c in text) / len(text), 0.5)
+
+    #: 日本語の書体が 1 em で組む記号 (= 全角の符号位置に無い)。❖ は 1 字だけの範囲、☃ は範囲の最後の字
+    SYMBOLS = "■●→※—…①─★♪✓❖☃"
+
+    def test_a_symbol_a_japanese_face_sets_a_square_wide_is_counted_a_square(self):
+        """■ や → は全角の符号位置に無く、表に無い半角の 0.7 で数えられた。札の頭に ■ を付けた札が「入る」と数えられて折れた。"""
+        for character in self.SYMBOLS:
+            for bold in (False, True):
+                with self.subTest(character, bold=bold):
+                    self.assertEqual(1.0, tokens.advance(character, bold))
+
+    def test_a_symbol_is_a_square_in_a_narrow_typeface_too(self):
+        for character in self.SYMBOLS:
+            with self.subTest(character):
+                self.assertEqual(1.0, tokens.advance(character, family="Arial"))
+
+    def test_a_monospaced_face_keeps_the_symbols_it_draws_itself(self):
+        """Consolas の罫線は 1 em ではない。1 em で数えると、罫線で描いた木の図が実際の倍の幅に数えられる。"""
+        for character in "─│■":
+            with self.subTest(character):
+                self.assertLess(tokens.advance(character, family="Consolas"), 1.0)
+
+    def test_a_narrow_mark_stays_narrow(self):
+        """引用符・点・ダッシュは日本語の書体でも細い (= 1 em で数えると、英語の文が広く数えられる)。"""
+        for character in "‘’“”•–·":
+            with self.subTest(character):
+                self.assertLess(tokens.advance(character), 1.0)
+
+    def test_the_square_runs_are_in_order_and_stay_under_the_full_width_range(self):
+        ends = [last for _first, last in tokens._SQUARE]
+        self.assertEqual(sorted(ends), ends)
+        for first, last in tokens._SQUARE:
+            self.assertLessEqual(first, last)
+            self.assertGreaterEqual(first, 0xA0)
+            self.assertLess(last, 0x2E80)
+
+
+class ATagThatCarriesASymbol(unittest.TestCase):
+    """A tag is one line, and is refused when it would fold: a symbol in front of it is a square of that line."""
+
+    ROOM = 3.5 * tokens.pt(DEFAULT.type.tag)     # 3 全角の字は入り、記号を足した 4 字は入らない幅
+
+    def test_three_full_width_characters_fit_the_room(self):
+        self.assertEqual((DEFAULT.line_height(DEFAULT.type.tag), 0),
+                         card_text(DEFAULT, Card("集める", tag=True), round(self.ROOM)))
+
+    def test_a_symbol_in_front_of_them_does_not_fit_and_the_tag_is_refused(self):
+        for symbol in "■●→※":
+            with self.subTest(symbol):
+                with self.assertRaises(PageFullError):
+                    card_text(DEFAULT, Card(f"{symbol}集める", tag=True), round(self.ROOM))
+
+    def test_the_symbol_takes_a_square_of_the_line(self):
+        self.assertEqual(DEFAULT.width("集める", DEFAULT.type.tag, bold=True) + tokens.pt(DEFAULT.type.tag),
+                         DEFAULT.width("■集める", DEFAULT.type.tag, bold=True))
 
 
 class OnceBaked(unittest.TestCase):
