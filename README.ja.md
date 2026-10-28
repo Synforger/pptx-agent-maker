@@ -124,6 +124,7 @@ src/pptx_agent_maker/
 ├── deck/      テンプレートの複製と、過去デッキからの頁の輸入
 ├── checks/    焼いたものを読み直す検査 (= 1 検査 1 file)
 ├── review/    人の直しを守り、manifest に取り込む
+├── compare/   2 つの版の資料を頁ごとに、違う画素で比べる
 ├── project/   repo の外の案件を指す
 └── _common/   上の 3 つ以上が使う物 (= pptx の部品を file として触る所と、焼いた頁を読み直す所)
 templates/     案件を作るときのプロジェクトテンプレート (= 見た目の見本を 1 枚持つ)
@@ -142,6 +143,7 @@ python3 -m pptx_agent_maker preview <親のフォルダ>      # その下の案�
 python3 -m pptx_agent_maker preview                    # ~/.config/pptx-agent-maker/preview.toml の一覧から選ぶ
 #   …/?only=<表示名> で開くとその案件だけになり、欄が出ない (= 発表用。ほかの画面の選択に動かない)
 python3 -m pptx_agent_maker review <案件のフォルダ> w1 --apply  # PowerPoint の直しを取り込む
+python3 -m pptx_agent_maker compare 前.pptx 後.pptx            # 頁ごとに違う画素を数える (= 違う頁が在れば終了コード 1)
 ```
 
 ⚠ **repo の中を指す `workspace.toml` は拒む**。素材が無ければ、path を返さずそこで止まる。

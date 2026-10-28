@@ -47,6 +47,12 @@ tasks:
     cmds:
       - '{{.MAKER}} review . {{.CLI_ARGS}}'
 
+  compare:
+    desc: Say which pages differ between two versions of a deck, by the pixels (= task compare -- w1-before.pptx w1.pptx)
+    deps: [_tool]
+    cmds:
+      - '{{.MAKER}} compare {{.CLI_ARGS}}'
+
   preview:
     desc: Watch this project's built decks in a browser
     deps: [_tool]

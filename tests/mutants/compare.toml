@@ -1,0 +1,149 @@
+# `compare` tells a person which pages of a deck changed, by the pixels that differ. A count that drops a change,
+# a missing page written as zero, or an exit code that ignores a change makes it say "unchanged" for a page that
+# changed; a deck whose typeface this machine lacks reads as changed too, unless the command says why.
+# (= run it with `task mutate -- tests/mutants/compare.toml`)
+
+tests = [
+    "tests/compare/test_pictures.py",
+    "tests/compare/test_report.py",
+    "tests/compare/test_decks.py",
+    "tests/compare/test_fonts.py",
+]
+
+[[mutant]]
+name = "a one-step difference in one colour component is lost by counting in grey"
+file = "src/pptx_agent_maker/compare/pictures.py"
+old = "any_component = ImageChops.lighter(ImageChops.lighter(red, green), blue)"
+new = "any_component = difference.convert(\"L\")"
+
+[[mutant]]
+name = "the pixels that do not differ are counted instead of those that do"
+file = "src/pptx_agent_maker/compare/pictures.py"
+old = "return width * height - any_component.histogram()[0]"
+new = "return any_component.histogram()[0]"
+
+[[mutant]]
+name = "a page the after deck lacks takes the before page's size, as if it were there"
+file = "src/pptx_agent_maker/compare/pictures.py"
+old = "size_after = None if picture_after is None else picture_after.size"
+new = "size_after = size_before if picture_after is None else picture_after.size"
+
+[[mutant]]
+name = "pages of another size are laid over each other"
+file = "src/pptx_agent_maker/compare/pictures.py"
+old = "if size_before is not None and size_before == size_after:"
+new = "if size_before is not None:"
+
+[[mutant]]
+name = "a page one deck lacks or draws at another size does not count as changed"
+file = "src/pptx_agent_maker/compare/page_difference.py"
+old = "return not self.is_comparable or self.differing_pixels > 0"
+new = "return self.differing_pixels > 0"
+
+[[mutant]]
+name = "a page that was not compared gives a share of zero"
+file = "src/pptx_agent_maker/compare/page_difference.py"
+old = "return None if count is None else self.differing_pixels / count"
+new = "return 0.0 if count is None else self.differing_pixels / count"
+
+[[mutant]]
+name = "pages of two sizes count as the same size"
+file = "src/pptx_agent_maker/compare/page_difference.py"
+old = "return self.before_size is not None and self.before_size == self.after_size"
+new = "return self.before_size is not None"
+
+[[mutant]]
+name = "a page the after deck lacks is written as a count of zero"
+file = "src/pptx_agent_maker/compare/report.py"
+old = "return f\"{label}: not in the after deck\""
+new = "return f\"{label}: 0 px differ (0.0000%)\""
+
+[[mutant]]
+name = "the closing line counts only pages with differing pixels"
+file = "src/pptx_agent_maker/compare/report.py"
+old = "return sum(1 for difference in differences if difference.is_changed)"
+new = "return sum(1 for difference in differences if difference.differing_pixels)"
+
+[[mutant]]
+name = "a page is named by its place only, without the number printed on it"
+file = "src/pptx_agent_maker/compare/report.py"
+old = "label = page_label(difference.number, first_number)"
+new = "label = page_label(difference.number)"
+
+[[mutant]]
+name = "pages are drawn as JPEG, whose blocks spread one changed pixel over its neighbours"
+file = "src/pptx_agent_maker/compare/bake.py"
+old = "[pdftoppm_bin(), \"-png\","
+new = "[pdftoppm_bin(), \"-jpeg\","
+
+[[mutant]]
+name = "both decks are drawn into one folder, so the second overwrites the first"
+file = "src/pptx_agent_maker/compare/decks.py"
+old = "pages_after = bake_pages(after, work / \"after\")"
+new = "pages_after = bake_pages(after, work / \"before\")"
+
+[[mutant]]
+name = "the command ends with 0 although a page changed"
+file = "src/pptx_agent_maker/__main__.py"
+old = "return 1 if changed_count(differences) else 0"
+new = "return 0"
+
+[[mutant]]
+name = "a deck that could not be compared ends with 1, the code of a page that changed"
+file = "src/pptx_agent_maker/__main__.py"
+old = "                return 2\n"
+new = "                return 1\n"
+
+[[mutant]]
+name = "a typeface the words take from the theme stays a reference instead of becoming the theme's typeface"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = "        named -= references\n"
+new = "        pass\n"
+
+[[mutant]]
+name = "the east asian typeface of the words is not read"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = "(?:latin|ea)"
+new = "(?:latin)"
+
+[[mutant]]
+name = "the typefaces of the layouts, the master and the theme are read as the pages' own"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = "r\"ppt/slides/slide\\d+\\.xml\""
+new = "r\"ppt/.*\\.xml\""
+
+[[mutant]]
+name = "a typeface that is there is told as missing, and one that is missing as there"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = 'not is_installed(face, done.stdout.split(","))'
+new = 'is_installed(face, done.stdout.split(","))'
+
+[[mutant]]
+name = "a machine without fc-match is taken to miss no typeface"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = "    if fc_match is None:\n        return None\n"
+new = "    if fc_match is None:\n        return []\n"
+
+[[mutant]]
+name = "the spelling of a family decides, so a space tells Yu Gothic from YuGothic"
+file = "src/pptx_agent_maker/compare/font_match.py"
+old = "return _key(requested) in {_key(family) for family in matched_families}"
+new = "return requested in set(matched_families)"
+
+[[mutant]]
+name = "no missing typeface gives an empty line instead of nothing"
+file = "src/pptx_agent_maker/compare/report.py"
+old = "    if not missing:\n        return None\n"
+new = '    if not missing:\n        return ""\n'
+
+[[mutant]]
+name = "the note is printed among the report lines"
+file = "src/pptx_agent_maker/__main__.py"
+old = "print(note, file=sys.stderr)"
+new = "print(note)"
+
+[[mutant]]
+name = "only the before deck's typefaces are looked at"
+file = "src/pptx_agent_maker/__main__.py"
+old = "fonts_named(before) | fonts_named(after)"
+new = "fonts_named(before)"
