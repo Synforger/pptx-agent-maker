@@ -35,6 +35,9 @@ from ..core.stack import card_height
 from .link_routes import (MAX_BENDS, SIDES, Attach, NoRoute, Point, Port, Room, Route, RouteSearch, hops, middle_ports,
                           positions)
 
+#: 跳び越しの半円の半径の下限 (= 矢印の線の太さの倍率)。既定の使い方では半径 (= `gap_s` の半分) が線の太さの
+#: 約 2.8 倍で、交わりと読める。`gap_s` を詰めた使い方でも、その少し下までは小さくしない
+HOP_LINES = 2.5
 #: 輪に置ける箱の数 (= 2 つは往復で、輪ではない。9 つからは箱が読める大きさで回らない)
 RING = (3, 8)
 #: 木の段の数の上限 (= 根を含む。5 段からは 1 頁の高さで箱が読める大きさに並ばない)
@@ -388,6 +391,8 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
           what: str) -> None:
     """An arrow from each cell named in `from` to the one in `to`: straight where the two face each other, round the cells in between where they do not.
 
+    `detour` は頁のキーで、交わらない道を選んでよい長さの上限 (= 跳び越す道のうち一番短い道の何倍まで)。書かなければ
+    上限は無く、交わらない道がいつも先 (= `link_routes.route_search` の順)。
     `every` は頁の全部のマス (= `id` の無いマスも)。線が別のマスを横切るなら止める (= 通れる道が無ければ、一番
     近い道がどのマスを横切るかを言う)。曲がる線は、マスどうしの間の空いた通り道を、曲がる回数の一番少ない道で
     通る (= `link_routes`)。
@@ -397,14 +402,15 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     if not isinstance(written, list) or not written:
         raise PageTypeError(f"{what}: `links` is a list of {{ from = \"id\", to = \"id\" }}")
     items = [_read_link(spec, item, number, cells, what) for number, item in enumerate(written, start=1)]
+    detour = _read_detour(spec.get("detour"), what)
     s = page.theme.spacing
-    room = Room(page.body, s.gap_x // 2, s.gap_y // 2, s.gap_s // 2)
+    room = Room(page.body, s.gap_x // 2, s.gap_y // 2, _hop(s))
     in_the_way = [[other for other in every if other not in (link.first, link.second) and other not in blank
                    and not other.contains(link.first) and not other.contains(link.second)] for link in items]
     # 向き合っていても、真っすぐの線の上に別の箱が在れば、向き合わない 2 つと同じく折れ線で回る
     items = [replace(link, facing="") if link.facing and _blocked(link, _straight(link, sum(link.overlap()) // 2), others)
              else link for link, others in zip(items, in_the_way)]
-    ports = _plan_ports(items, in_the_way, room, cells)
+    ports = _plan_ports(items, in_the_way, room, cells, detour)
     drawn: list[tuple[Point, ...]] = []
     reach = max(rect.right for rect in every)
     for number, (link, others) in enumerate(zip(items, in_the_way)):
@@ -414,7 +420,7 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
         else:
             start, end = ports[number][0].point, ports[number][1].point
             kin = [line for line in drawn if line[0] == start or line[-1] == end]
-            route = _route(link, others, drawn, room, ports[number], cells, strict=True, kin=kin)
+            route = _route(link, others, drawn, room, ports[number], cells, strict=True, kin=kin, detour=detour)
             points, joined = route.points, (_joined(link.first, route.start), _joined(link.second, route.end))
         page.line(points[0], points[-1], arrow=True, tone=link.tone, corners=points[1:-1], hops=hops(points, drawn, room.hop),
                   hop=room.hop, begins_on=joined[0], ends_on=joined[1], dashed=link.dashed)
@@ -459,7 +465,8 @@ def _read_link(spec: Spec, item, number: int, cells: dict[str, Rect], what: str)
     return _Link(where, (ends[0], ends[1]), a, b, tone, words, facing, dashed)
 
 
-def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, cells: dict[str, Rect]) -> dict:
+def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, cells: dict[str, Rect],
+                detour: float | None) -> dict:
     """Where each line leaves and enters: the coordinate along the edge for a straight line, a port pair for a bent one.
 
     道を一度、辺の真ん中から出入りするものとして決め (= どの辺を使うかを知るため)、線ごとの出入りの位置を決める
@@ -477,7 +484,7 @@ def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, ce
             side_a, side_b = link.sides()
             attaches += [Attach(number, False, link.first, side_a), Attach(number, True, link.second, side_b)]
             continue
-        route = _route(link, others, drawn, room, None, cells, strict=False)
+        route = _route(link, others, drawn, room, None, cells, strict=False, detour=detour)
         chosen[number] = route
         drawn.append(route.points)
         attaches += [_attach(number, False, link.first, route.start.side, route.points),
@@ -512,11 +519,19 @@ def _port_at(box: Rect, side: int, along: int) -> Port:
 
 
 def _route(link: _Link, others: list[Rect], drawn: list[tuple[Point, ...]], room: Room, ports, cells: dict[str, Rect],
-           *, strict: bool, kin: Sequence[tuple[Point, ...]] = ()) -> Route:
-    """The cheapest path for a line that bends; it stops the page, saying what it runs across, when every way is shut."""
+           *, strict: bool, kin: Sequence[tuple[Point, ...]] = (), detour: float | None = None) -> Route:
+    """The cheapest path for a line that bends; it stops the page, saying what it runs across, when every way is shut.
+
+    `detour` が在れば、交わらない道が、跳び越す道のうち一番短い道の `detour` 倍より長い時に、その跳び越す道を選ぶ。
+    """
     starts, ends = (middle_ports(link.first), middle_ports(link.second)) if ports is None else ([ports[0]], [ports[1]])
     try:
         route = RouteSearch(link.first, link.second, others, drawn, room, starts, ends, strict=strict, kin=kin).cheapest()
+        if detour is not None and not route.blocked:
+            short = RouteSearch(link.first, link.second, others, drawn, room, starts, ends, strict=strict, kin=kin,
+                                crossing_first=False).cheapest()
+            if not short.blocked and short.touching <= route.touching and route.length > detour * short.length:
+                route = short
     except NoRoute as reason:
         raise PageTypeError(f"{link.where}: the line from {link.ends[0]!r} to {link.ends[1]!r} has no room to leave "
                             f"{link.ends[0]!r} and reach {link.ends[1]!r} — {reason}") from reason
@@ -528,6 +543,21 @@ def _route(link: _Link, others: list[Rect], drawn: list[tuple[Point, ...]], room
             f"{SIDES[route.end.side]} edge) and runs across {_called_all(route.blocked, cells)} — move the cells so "
             "nothing stands on its path")
     return route
+
+
+def _hop(s) -> int:
+    """The radius of the half circle a line hops another with: half `gap_s`, no smaller than `HOP_LINES` arrow lines, and no wider than the room a line keeps from a box (= the half circle stays off the boxes)."""
+    return min(max(s.gap_s // 2, round(HOP_LINES * s.arrow_line)), s.gap_x // 2, s.gap_y // 2)
+
+
+def _read_detour(value, what: str) -> float | None:
+    """The page's `detour`, checked: a number of 1 or more, or nothing."""
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 1:
+        raise PageTypeError(f"{what}: `detour` is how many times as long as the shortest way that hops a line a way "
+                            f"round may be — a number of 1 or more, not {value!r}")
+    return float(value)
 
 
 def _straight(link: _Link, along: int) -> tuple[Point, Point]:

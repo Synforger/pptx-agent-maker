@@ -420,7 +420,7 @@ class TheDottedLineInTheLegend(unittest.TestCase):
                 self.page(links=self.DOTTED, dotted_legend=words, legend=True)
 
     def test_only_a_compose_page_reads_it(self) -> None:
-        with self.assertRaisesRegex(PageTypeError, "dotted_legend"):
+        with self.assertRaisesRegex(PageTypeError, "cards: does not take dotted_legend"):
             build({"type": "cards", "title": "A page", "cards": [{"heading": "A", "tentative": True}],
                    "dotted_legend": self.WORDS})
 

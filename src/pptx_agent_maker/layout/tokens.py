@@ -586,6 +586,11 @@ class Spacing:
     #: 強調した箱と棒の枠 (= クリティカルパス、目を集めたい 1 つ)。細い線の倍より太く
     strong_line: int = pt(2.25)
 
+    @property
+    def arrow_line(self) -> int:
+        """The width of an arrow between cells: half again as thick as a rule, so it reads as what joins them."""
+        return self.hairline * 3 // 2
+
 
 @dataclass(frozen=True)
 class Under:

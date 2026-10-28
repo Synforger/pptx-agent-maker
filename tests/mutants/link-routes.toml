@@ -45,8 +45,8 @@ new = "    if False:\n        a, b = link.ends"
 [[mutant]]
 name = "a line keeps no room from the cells it passes"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "    room = Room(page.body, s.gap_x // 2, s.gap_y // 2, s.gap_s // 2)"
-new = "    room = Room(page.body, 0, 0, s.gap_s // 2)"
+old = "    room = Room(page.body, s.gap_x // 2, s.gap_y // 2, _hop(s))"
+new = "    room = Room(page.body, 0, 0, _hop(s))"
 
 [[mutant]]
 name = "a cell with an id in the way of a bent line is named as one with none"
@@ -143,6 +143,56 @@ old = "            kin = [line for line in drawn if line[0] == start or line[-1]
 new = "            kin = []"
 
 # -- which way they run --
+
+[[mutant]]
+name = "a hop is half gap_s however thin that is"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return min(max(s.gap_s // 2, round(HOP_LINES * s.arrow_line)), s.gap_x // 2, s.gap_y // 2)"
+new = "    return min(s.gap_s // 2, s.gap_x // 2, s.gap_y // 2)"
+
+[[mutant]]
+name = "a hop may reach past the room a line keeps from a box"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return min(max(s.gap_s // 2, round(HOP_LINES * s.arrow_line)), s.gap_x // 2, s.gap_y // 2)"
+new = "    return max(s.gap_s // 2, round(HOP_LINES * s.arrow_line))"
+
+
+[[mutant]]
+name = "detour is read and never used"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "        if detour is not None and not route.blocked:"
+new = "        if False:"
+
+[[mutant]]
+name = "the way that hops is looked for with the crossings first, so it is the way round again"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "                                crossing_first=False).cheapest()"
+new = "                                crossing_first=True).cheapest()"
+
+[[mutant]]
+name = "a way round twice as long as detour allows is still kept"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "route.length > detour * short.length:"
+new = "route.length > 2 * detour * short.length:"
+
+[[mutant]]
+name = "the sides of the lines are chosen without detour"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    ports = _plan_ports(items, in_the_way, room, cells, detour)"
+new = "    ports = _plan_ports(items, in_the_way, room, cells, None)"
+
+[[mutant]]
+name = "a detour under one is taken"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "not isinstance(value, (int, float)) or value < 1:"
+new = "not isinstance(value, (int, float)) or value < 0:"
+
+[[mutant]]
+name = "with the crossings last the costs are still compared crossings first"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "        return blocked, touching, bends, length, crossing, gap"
+new = "        return blocked, touching, crossing, bends, length, gap"
+
 
 [[mutant]]
 name = "a line passes a box with no room at all"

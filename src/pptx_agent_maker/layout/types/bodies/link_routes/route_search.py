@@ -12,6 +12,9 @@
 4. 曲がる回数 (= 4 回まで)
 5. 長さ
 6. 出る辺の向きの、2 つの箱の間の隙間の狭さ (= ここまで同じなら、隙間の狭い向きの辺から出る。それでも同じなら、横へ出る道が先)
+
+`crossing_first` が False なら、3 の交わる数を 5 の長さの後に比べる (= 跳び越してでも短い道。`arrange` が、交わらない
+道が長すぎる時の比べに使う)。
 """
 
 from __future__ import annotations
@@ -72,6 +75,10 @@ class Route:
     def bends(self) -> int:
         return len(self.points) - 2
 
+    @property
+    def length(self) -> int:
+        return sum(abs(x2 - x1) + abs(y2 - y1) for (x1, y1), (x2, y2) in segments(self.points))
+
 
 def middle_ports(rect: Rect) -> list[Port]:
     """The middle of each edge of a box, as ports."""
@@ -93,8 +100,9 @@ class RouteSearch:
 
     def __init__(self, first: Rect, second: Rect, others: Sequence[Rect], drawn: Sequence[tuple[Point, ...]],
                  room: Room, starts: Sequence[Port], ends: Sequence[Port], *, strict: bool,
-                 kin: Sequence[tuple[Point, ...]] = ()):
+                 kin: Sequence[tuple[Point, ...]] = (), crossing_first: bool = True):
         self.room, self.starts, self.ends, self.strict = room, list(starts), list(ends), strict
+        self.crossing_first = crossing_first
         self.kin = {run for line in kin for run in segments(line)}
         self.boxes = [first, second, *others]
         self.inflated = [(r.left - room.margin_x, r.top - room.margin_y, r.right + room.margin_x, r.bottom + room.margin_y)
@@ -117,9 +125,9 @@ class RouteSearch:
             start_cost = (0, 0, 0, 0, 0, self._gap_along(port.side) * len(SIDES) + port.side)
             best[state] = start_cost
             came[state] = (None, ())
-            heapq.heappush(queue, (start_cost, next(count), state))
+            heapq.heappush(queue, (self._rank(start_cost), next(count), state, start_cost))
         while queue:
-            cost, _, state = heapq.heappop(queue)
+            _, _, state, cost = heapq.heappop(queue)
             if best.get(state) != cost:
                 continue
             reached = self._end_port(state)
@@ -127,11 +135,18 @@ class RouteSearch:
                 return self._route(state, came, reached, cost)
             for step_cost, following, crossed in self._moves(state):
                 total = tuple(a + b for a, b in zip(cost, step_cost))
-                if following not in best or total < best[following]:
+                if following not in best or self._rank(total) < self._rank(best[following]):
                     best[following] = total
                     came[following] = (state, crossed)
-                    heapq.heappush(queue, (total, next(count), following))
+                    heapq.heappush(queue, (self._rank(total), next(count), following, total))
         raise NoRoute("no path between the two ports")
+
+    def _rank(self, cost: tuple) -> tuple:
+        """The order costs are compared in: as they are, or with the crossings after the length."""
+        if self.crossing_first:
+            return cost
+        blocked, touching, crossing, bends, length, gap = cost
+        return blocked, touching, bends, length, crossing, gap
 
     def _gap_along(self, side: int) -> int:
         """The gap between the two boxes along the axis a line leaving by `side` sets out on (= 0 when they overlap along it)."""

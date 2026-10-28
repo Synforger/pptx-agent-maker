@@ -77,8 +77,8 @@ new = "    if False:"
 [[mutant]]
 name = "every page type reads the dotted words"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = 'takes=["rows", "grid", "cells", "backdrops", "links", "dotted_legend"], figure=False)'
-new = 'takes=["rows", "grid", "cells", "backdrops", "links", "dotted_legend"], figure=False)\n@register("cards", needs=[], takes=["dotted_legend"])'
+old = "takes=[\"rows\", \"grid\", \"cells\", \"backdrops\", \"links\", \"dotted_legend\", \"detour\"],\n          figure=False)"
+new = "takes=[\"rows\", \"grid\", \"cells\", \"backdrops\", \"links\", \"dotted_legend\", \"detour\"],\n          figure=False)\n@register(\"cards\", needs=[], takes=[\"dotted_legend\"])"
 
 [[mutant]]
 name = "the sample of the dotted line is one swatch long, too short to read as dotted"
