@@ -87,13 +87,13 @@ old = """drawn = _place(page, spec, cell, rect, natural, True, what, seen, by_pa
             seen[at] = (seen[at][0], drawn, seen[at][2])
 
 
-def _read_grid"""
+def _columns_that_fit"""
 new = """drawn = _place(page, spec, cell, rect, natural, False, what, seen, by_panel=True)
         if drawn is not None:
             seen[at] = (seen[at][0], drawn, seen[at][2])
 
 
-def _read_grid"""
+def _columns_that_fit"""
 
 [[mutant]]
 name = "the backdrops are laid over the boxes"
@@ -102,14 +102,14 @@ old = """        if drawn is not None:
             seen[at] = (seen[at][0], drawn, seen[at][2])
 
 
-def _read_grid"""
+def _columns_that_fit"""
 new = """        if drawn is not None:
             seen[at] = (seen[at][0], drawn, seen[at][2])
     for rect, tone in rects:
         page.backdrop(rect, tone)
 
 
-def _read_grid"""
+def _columns_that_fit"""
 
 [[mutant]]
 name = "a backdrop that says no tone is a deeper ground"
@@ -277,3 +277,127 @@ name = "a card on a grid centres its words, so headings starting on one row stan
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
 old = "drawn = _place(page, spec, cell, rect, natural, True, what, seen, by_panel=True)"
 new = "drawn = _place(page, spec, cell, rect, natural, True, what, seen)"
+
+# -- the columns a grid that stops says would fit --
+
+[[mutant]]
+name = "the words a grid stops with leave out the columns that fit"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        raise PageFullError(f"{reason}{_columns_that_fit(page, spec, area, widths, down, backdrops, cells, inset)}") from reason'''
+new = '''        raise PageFullError(f"{reason}") from reason'''
+
+[[mutant]]
+name = "a grid with more cells than the search may try is searched anyway"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''    if len(cells) * (GRID_SEARCH_STEPS + 2) > GRID_PROBE_LIMIT:'''
+new = '''    if False:'''
+
+[[mutant]]
+name = "a cell written wrong makes the search stop the page with its own error"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''    except PageTypeError:
+        return ""
+'''
+new = '''    except KeyError:
+        return ""
+'''
+
+[[mutant]]
+name = "when no columns hold everything the stop says nothing of it"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''    if shares is None:
+        return ('''
+new = '''    if shares is None:
+        return "" and ('''
+
+[[mutant]]
+name = "the columns are not rounded to one decimal"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        shares = [max(round(width / total * sum(written), 1), 0.1) for width in widths]'''
+new = '''        shares = [max(width / total * sum(written), 0.1) for width in widths]'''
+
+[[mutant]]
+name = "a column given up to the others can be written as nothing"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        shares = [max(round(width / total * sum(written), 1), 0.1) for width in widths]'''
+new = '''        shares = [round(width / total * sum(written), 1) for width in widths]'''
+
+[[mutant]]
+name = "columns are given out without building the page with them first"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        except PageFullError:
+            continue
+        return shares'''
+new = '''        except PageFullError:
+            pass
+        return shares'''
+
+[[mutant]]
+name = "the columns found are the ones the first measure gives, with no room added for rounding"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''    for margin in GRID_SEARCH_MARGINS:'''
+new = '''    for margin in GRID_SEARCH_MARGINS[:1]:'''
+
+[[mutant]]
+name = "the search starts from equal columns, not the ratio written"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        widths = _widths_near(base, ['''
+new = '''        widths = _widths_near([total // len(base)] * len(base), ['''
+
+[[mutant]]
+name = "a cell over several columns asks only its first column to be wider"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        needs.append((first[1], last[1], least + 2 * inset - gaps))'''
+new = '''        needs.append((first[1], first[1], least + 2 * inset - gaps))'''
+
+[[mutant]]
+name = "the room kept round a cell is forgotten in the width it needs"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        needs.append((first[1], last[1], least + 2 * inset - gaps))'''
+new = '''        needs.append((first[1], last[1], least - gaps))'''
+
+[[mutant]]
+name = "a cell over several columns forgets the gaps inside what it covers"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        needs.append((first[1], last[1], least + 2 * inset - gaps))'''
+new = '''        needs.append((first[1], last[1], least + 2 * inset))'''
+
+[[mutant]]
+name = "a cell that fits is narrowed as far as it still fits"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        low, high = round(width * GRID_KEEP_SHARE), width'''
+new = '''        low, high = 0, width'''
+
+[[mutant]]
+name = "a cell that takes the width it is given is narrowed too"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''    if _part(cell, what) not in GRID_NARROWING_PARTS:'''
+new = '''    if False:'''
+
+[[mutant]]
+name = "the narrowest width is searched with the wrong side kept"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        low, high = (low, middle) if fits(middle) else (middle, high)'''
+new = '''        low, high = (middle, high) if fits(middle) else (low, middle)'''
+
+[[mutant]]
+name = "a row too short for the room round a cell is met with a crash"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''        except ValueError:
+            return None                           # 行が低すぎて'''
+new = '''        except TypeError:
+            return None                           # 行が低すぎて'''
+
+[[mutant]]
+name = "the columns that are short are not raised to what they need"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''                floors[column] = max(floors[column], widths[column] + lack * widths[column] / held)'''
+new = '''                floors[column] = floors[column]'''
+
+[[mutant]]
+name = "a column raised to what it needs is paid for by columns that have nothing to spare"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''    if raised > sum(slack) + 1e-6:
+        return None'''
+new = '''    if False:
+        return None'''
