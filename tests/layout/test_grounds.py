@@ -227,6 +227,20 @@ class TheLegend(unittest.TestCase):
             if before.rect.top == after.rect.top:
                 self.assertLessEqual(before.rect.right, after.rect.left - THEME.spacing.swatch)
 
+    def test_one_long_name_spans_columns_rather_than_stretching_its_column(self):
+        """Nine short names and one about four fifths of the body wide: two lines, as packing them takes, with every swatch on the columns of the first line (= a column as wide as the long name left room for two columns, and five lines)."""
+        names = {f"Short {n}": "EAF0F8" for n in range(9)} | {" ".join(["spanning"] * 12): "EAF0F8"}
+        theme = theme_from({"grounds": names})
+        built = build({"type": "cards", "title": "A page", "cards": [{"heading": f"C{n}", "tone": name} for n, name in enumerate(names)]},
+                      theme)
+        swatches = [e for e in built.build() if e.kind == "swatch"]
+        lines = sorted({e.rect.top for e in swatches})
+        rows = [sorted(e.rect.left for e in swatches if e.rect.top == top) for top in lines]
+        self.assertEqual(len(names), sum(len(row) for row in rows))
+        self.assertEqual(2, len(rows))
+        for row in rows:
+            self.assertLessEqual(set(row), set(rows[0]))
+
     def test_a_legend_that_fits_one_line_is_set_close_as_before(self):
         built = cards("Inside", "At risk")
         swatches = sorted((e for e in built.build() if e.kind == "swatch"), key=lambda e: e.rect.left)

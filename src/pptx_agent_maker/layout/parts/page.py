@@ -367,19 +367,49 @@ class Page:
     def _legend_layout(self, rect: Rect, entries: list[tuple[str, int]], *, down: bool = False):
         """Where each entry of a legend goes: (name, left, top, width) per entry, in rows of as many columns as fit.
 
-        項は (言葉, 見本の幅)。列は段をまたいで揃う (= 同じ列の見本は同じ左、同じ段は同じ上。名前の長さが違っても
-        段どうしの見本がずれない)。列の幅はその列でいちばん広い項で、入る列の数のうち一番多い物を取る (= 1 段に
-        収まる凡例は、詰めて並べた今までのまま)。`down` は 1 列 (= 上から下へ並べる)。
+        項は (言葉, 見本の幅)。見本は段をまたいで揃う (= 同じ列の見本は同じ左、同じ段は同じ上。名前の長さが違っても
+        段どうしの見本がずれない)。並べ方は 2 つで、段の少ない方を取る (= 同じなら 1 つ目):
+        1. 列ごとに幅を持つ列。列の幅はその列でいちばん広い項で、入る列の数のうち一番多い物 (= 1 段に収まる凡例は、
+           詰めて並べた今までのまま)
+        2. 等しい幅の列の格子 (`_legend_spans`)。長い項は要る数だけ列をまたぐ (= 名前の長い項が 1 つあると、1 では
+           その項の列が広がって列の数が減り、段が増える)
+        `down` は 1 列 (= 上から下へ並べる)。
         """
         s = self.theme.spacing
         line = self.theme.line_height(self.theme.type.body)
         names = [name for name, _key in entries]
         wides = [key + s.gap_s + self.theme.width(name, self.theme.type.body) for name, key in entries]
         columns = 1 if down else self._legend_columns(wides, rect.width)
+        spans = None if down else self._legend_spans(wides, rect.width)
+        if spans is not None and spans[-1][1] + 1 < -(-len(wides) // columns):
+            for name, (left, row, wide) in zip(names, spans):
+                yield name, rect.left + left, rect.top + line * row, wide
+            return
         widths = [max(wides[column::columns]) for column in range(columns)]
         lefts = [rect.left + sum(widths[:column]) + s.gap_m * column for column in range(columns)]
         for number, (name, wide) in enumerate(zip(names, wides)):
             yield name, lefts[number % columns], rect.top + line * (number // columns), wide
+
+    def _legend_spans(self, wides: list[int], room: int) -> list[tuple[int, int, int]] | None:
+        """A legend on a grid of equal columns, each entry across as many as it needs: (left, line, width) per entry, with the fewest lines (= the most columns among those). None when no grid holds the widest entry."""
+        gap = self.theme.spacing.gap_m
+        best: list[tuple[int, int, int]] | None = None
+        for columns in range(len(wides), 0, -1):
+            unit = (room - gap * (columns - 1)) // columns
+            if unit <= 0:
+                continue
+            spans = [-(-(wide + gap) // (unit + gap)) for wide in wides]
+            if max(spans) > columns:
+                continue
+            placed, row, at = [], 0, 0
+            for span in spans:
+                if at + span > columns:
+                    row, at = row + 1, 0
+                placed.append((at * (unit + gap), row, span * unit + (span - 1) * gap))
+                at += span
+            if best is None or placed[-1][1] < best[-1][1]:
+                best = placed
+        return best
 
     def _legend_columns(self, wides: list[int], room: int) -> int:
         """How many columns a legend of entries this wide runs in at this width: the most that fit, at least one."""
