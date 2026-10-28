@@ -763,7 +763,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="3241128" y="5703510"/>
-<a:ext cx="144000" cy="0"/>
+<a:ext cx="288000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">
 <a:avLst/>
@@ -784,7 +784,7 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="3493128" y="5593020"/>
+<a:off x="3637128" y="5593020"/>
 <a:ext cx="990600" cy="220980"/>
 </a:xfrm>
 <a:prstGeom prst="rect">

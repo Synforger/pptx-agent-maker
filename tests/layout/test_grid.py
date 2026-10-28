@@ -344,8 +344,8 @@ class TheDottedLineInTheLegend(unittest.TestCase):
         self.assertEqual(arrow.colour, sample.colour)
         self.assertEqual(sample.start[1], sample.end[1])
         self.assertEqual(swatch.rect.top + swatch.rect.height // 2, sample.start[1])
-        self.assertEqual(S.swatch, sample.end[0] - sample.start[0])
-        self.assertEqual(sample.start[0] + S.swatch + S.gap_s, labels[2].rect.left)
+        self.assertEqual(2 * S.swatch, sample.end[0] - sample.start[0], "two swatches long, so it reads as dotted")
+        self.assertEqual(sample.start[0] + 2 * S.swatch + S.gap_s, labels[2].rect.left)
 
     def test_the_sample_takes_the_colour_of_the_arrow_it_stands_for(self) -> None:
         tinted = [{"from": "up", "to": "down", "tentative": True, "tone": "Deep"}]

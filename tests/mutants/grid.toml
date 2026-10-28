@@ -269,8 +269,8 @@ new = "rect.top, wide"
 [[mutant]]
 name = "the width of a legend is its narrowest entry"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in _entries(names, dotted))"
-new = "return min(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in _entries(names, dotted))"
+old = "return max(key + s.gap_s + self.theme.width(name, self.theme.type.body) for name, key in _entries(names, dotted, s.swatch))"
+new = "return min(key + s.gap_s + self.theme.width(name, self.theme.type.body) for name, key in _entries(names, dotted, s.swatch))"
 
 [[mutant]]
 name = "a card on a grid centres its words, so headings starting on one row stand at different heights"

@@ -23,25 +23,25 @@ new = "            page.legend(fitted, legend.names, down=True)"
 [[mutant]]
 name = "the sample of a dotted line is drawn solid"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2), dashed=True)"
-new = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2))"
+old = "                self.line((x, y + line // 2), (x + key, y + line // 2), dashed=True)"
+new = "                self.line((x, y + line // 2), (x + key, y + line // 2))"
 
 [[mutant]]
 name = "the sample of a dotted line stands off the middle of its line"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2), dashed=True)"
-new = "                self.line((x, y), (x + s.swatch, y), dashed=True)"
+old = "                self.line((x, y + line // 2), (x + key, y + line // 2), dashed=True)"
+new = "                self.line((x, y), (x + key, y), dashed=True)"
 
 [[mutant]]
 name = "the sample of a dotted line is drawn in a colour of its own"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2), dashed=True)"
-new = "                self.line((x, y + line // 2), (x + s.swatch, y + line // 2), tone=\"accent\", dashed=True)"
+old = "                self.line((x, y + line // 2), (x + key, y + line // 2), dashed=True)"
+new = "                self.line((x, y + line // 2), (x + key, y + line // 2), tone=\"accent\", dashed=True)"
 
 [[mutant]]
 name = "a legend does not count the dotted entry in its width"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "        return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in _entries(names, dotted))"
+old = "        return max(key + s.gap_s + self.theme.width(name, self.theme.type.body) for name, key in _entries(names, dotted, s.swatch))"
 new = "        return max(s.swatch + s.gap_s + self.theme.width(name, self.theme.type.body) for name in names)"
 
 [[mutant]]
@@ -79,3 +79,9 @@ name = "every page type reads the dotted words"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
 old = 'takes=["rows", "grid", "cells", "backdrops", "links", "dotted_legend"], figure=False)'
 new = 'takes=["rows", "grid", "cells", "backdrops", "links", "dotted_legend"], figure=False)\n@register("cards", needs=[], takes=["dotted_legend"])'
+
+[[mutant]]
+name = "the sample of the dotted line is one swatch long, too short to read as dotted"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "DOTTED_KEY = 2"
+new = "DOTTED_KEY = 1"
