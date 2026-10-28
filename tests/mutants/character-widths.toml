@@ -33,3 +33,53 @@ old = """    if ord(character) > 0x2E7F:
         return 1.0"""
 new = """    if ord(character) > 0x2E7F:
         return 0.5"""
+
+[[mutant]]
+name = "a symbol a Japanese face sets a square wide is counted with the accented letters"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = 'if ord(character) in _SQUARE_CODES and group != "mono":'
+new = "if False:"
+
+[[mutant]]
+name = "a monospaced face is counted with the symbols of a Japanese face"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = 'if ord(character) in _SQUARE_CODES and group != "mono":'
+new = "if ord(character) in _SQUARE_CODES:"
+
+[[mutant]]
+name = "a symbol is counted as nine tenths of a square"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = """    if ord(character) in _SQUARE_CODES and group != "mono":
+        return 1.0"""
+new = """    if ord(character) in _SQUARE_CODES and group != "mono":
+        return 0.9"""
+
+[[mutant]]
+name = "the last character of each run of symbols is left out"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "for code in range(first, last + 1))"
+new = "for code in range(first, last))"
+
+[[mutant]]
+name = "the black square is dropped from the symbols"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "(0x25A0, 0x25A2)"
+new = "(0x25A1, 0x25A2)"
+
+[[mutant]]
+name = "the arrows are dropped from the symbols"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "(0x2190, 0x2194)"
+new = "(0x2190, 0x2191)"
+
+[[mutant]]
+name = "the symbols a punctuation run holds are dropped"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "(0x2014, 0x2016)"
+new = "(0x2015, 0x2016)"
+
+[[mutant]]
+name = "the runs of symbols are no longer under the full-width range"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "(0x29FA, 0x29FB),\n    (0x2C72, 0x2C73),"
+new = "(0x29FA, 0x29FB),\n    (0x2C72, 0x2E90),"
