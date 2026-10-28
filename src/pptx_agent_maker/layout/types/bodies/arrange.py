@@ -13,7 +13,8 @@
   絵に対する割合で書く (= 頁の座標ではないので、絵の外へは出ない)。名前は絵の左右の列に並び、点まで線が引かれる
 * **マスどうしの線 (`links`)** ― `compose` の頁で、`id` を付けたマスからマスへ矢印を引く。向き合うマス (= 縦か
   横の範囲が重なる) は真っすぐ、向き合わないマス (= 帯の違う箱どうしなど) は、箱をよけた直角の折れ線で結ぶ
-  (= 曲がる回数が一番少ない道。同じ辺から出る線は位置を分け、交わる所は後の線が跳び越す。`link_routes`)。
+  (= 曲がる回数が一番少ない道。真っすぐの線は相手の真ん中に立ち、同じ辺から出る曲がる線は 1 点から分かれ、交わる所は
+  後の線が跳び越す。`link_routes`)。
   入れ物 (`panel`) の中のマスと外のマスも結べ、入れ物そのものも端になる (= 入れ物とその中身は結べない)。
   色の役 (`tone`) と、真っすぐな矢印のそばに置く言葉 (`text`) も書ける
 
@@ -24,6 +25,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, replace
+from typing import Sequence
 
 from ...geometry import EMU_PER_CM, Rect, pt
 from ...parts.page import Card, Page, PageFullError
@@ -31,7 +33,7 @@ from ..core.read import Spec, read_card, read_tone, only_keys
 from ..core.registry import PageTypeError
 from ..core.stack import card_height
 from .link_routes import (MAX_BENDS, SIDES, Attach, NoRoute, Point, Port, Room, Route, RouteSearch, hops, middle_ports,
-                          spread)
+                          positions)
 
 #: 輪に置ける箱の数 (= 2 つは往復で、輪ではない。9 つからは箱が読める大きさで回らない)
 RING = (3, 8)
@@ -410,7 +412,9 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
             points, joined = _straight(link, ports[number]), (None, None)
             _clear_between(link, points[0], points[1], others, cells)
         else:
-            route = _route(link, others, drawn, room, ports[number], cells, strict=True)
+            start, end = ports[number][0].point, ports[number][1].point
+            kin = [line for line in drawn if line[0] == start or line[-1] == end]
+            route = _route(link, others, drawn, room, ports[number], cells, strict=True, kin=kin)
             points, joined = route.points, (_joined(link.first, route.start), _joined(link.second, route.end))
         page.line(points[0], points[-1], arrow=True, tone=link.tone, corners=points[1:-1], hops=hops(points, drawn, room.hop),
                   hop=room.hop, begins_on=joined[0], ends_on=joined[1], dashed=link.dashed)
@@ -458,8 +462,8 @@ def _read_link(spec: Spec, item, number: int, cells: dict[str, Rect], what: str)
 def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, cells: dict[str, Rect]) -> dict:
     """Where each line leaves and enters: the coordinate along the edge for a straight line, a port pair for a bent one.
 
-    道を一度、辺の真ん中から出入りするものとして決め (= どの辺を使うかと、最初に曲がる向きを知るため)、同じ辺を使う線の
-    出入りの位置を等しい間隔に配る。
+    道を一度、辺の真ん中から出入りするものとして決め (= どの辺を使うかを知るため)、線ごとの出入りの位置を決める
+    (= `link_routes.positions`)。
     """
     drawn: list[tuple[Point, ...]] = []
     attaches: list[Attach] = []
@@ -471,14 +475,14 @@ def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, ce
             straights[number] = (low, high)
             drawn.append(_straight(link, (low + high) // 2))
             side_a, side_b = link.sides()
-            attaches += [Attach(number, False, link.first, side_a, 0, 0), Attach(number, True, link.second, side_b, 0, 0)]
+            attaches += [Attach(number, False, link.first, side_a), Attach(number, True, link.second, side_b)]
             continue
         route = _route(link, others, drawn, room, None, cells, strict=False)
         chosen[number] = route
         drawn.append(route.points)
         attaches += [_attach(number, False, link.first, route.start.side, route.points),
                      _attach(number, True, link.second, route.end.side, route.points[::-1])]
-    coordinates = spread(attaches, straights)
+    coordinates = positions(attaches, straights, 2 * room.hop)
     ports: dict = {}
     for number, link in enumerate(items):
         if link.facing:
@@ -491,11 +495,10 @@ def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, ce
 
 
 def _attach(link: int, last: bool, box: Rect, side: int, points: tuple[Point, ...]) -> Attach:
-    """How a line stands at one end: the side it uses, the way it first turns, and how far out it first turns."""
-    (x0, y0), (x1, y1), (x2, y2) = points[0], points[1], points[2] if len(points) > 2 else points[1]
-    reach = abs(x1 - x0) + abs(y1 - y0)
-    along = (y2 - y1) if side % 2 == 0 else (x2 - x1)
-    return Attach(link, last, box, side, (along > 0) - (along < 0), reach)
+    """How a bent line stands at one end: the side it uses, and the way it first turns along that side."""
+    (x0, y0), (x1, y1) = points[1], points[2] if len(points) > 2 else points[1]
+    along = (y1 - y0) if side % 2 == 0 else (x1 - x0)
+    return Attach(link, last, box, side, (along > 0) - (along < 0))
 
 
 def _joined(box: Rect, port: Port) -> tuple[Rect, int] | None:
@@ -509,11 +512,11 @@ def _port_at(box: Rect, side: int, along: int) -> Port:
 
 
 def _route(link: _Link, others: list[Rect], drawn: list[tuple[Point, ...]], room: Room, ports, cells: dict[str, Rect],
-           *, strict: bool) -> Route:
+           *, strict: bool, kin: Sequence[tuple[Point, ...]] = ()) -> Route:
     """The cheapest path for a line that bends; it stops the page, saying what it runs across, when every way is shut."""
     starts, ends = (middle_ports(link.first), middle_ports(link.second)) if ports is None else ([ports[0]], [ports[1]])
     try:
-        route = RouteSearch(link.first, link.second, others, drawn, room, starts, ends, strict=strict).cheapest()
+        route = RouteSearch(link.first, link.second, others, drawn, room, starts, ends, strict=strict, kin=kin).cheapest()
     except NoRoute as reason:
         raise PageTypeError(f"{link.where}: the line from {link.ends[0]!r} to {link.ends[1]!r} has no room to leave "
                             f"{link.ends[0]!r} and reach {link.ends[1]!r} — {reason}") from reason

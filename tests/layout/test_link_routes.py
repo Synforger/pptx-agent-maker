@@ -2,13 +2,14 @@
 
 見張るのは 5 つ ― 箱をよけて空いた通り道を通ること (= 頼み主の見本: 右上から左下へ、1 回曲がる道が両方塞がる配置)、
 曲がる回数が最少で同じなら短い道を選ぶこと、交わらずに引ける道があれば曲がる回数より先にそれを選ぶこと、
-同じ辺から出入りする線の位置が等しい間隔で、線どうしが同じ区間を通らないこと、どうしても交わる所だけを後の線が
-跳び越すこと。
+真っすぐの線が相手の箱の真ん中に立ち、同じ辺を同じ向きで使う曲がる線が 1 点から分かれること、どうしても交わる
+所だけを後の線が跳び越すこと。
 """
 
 from __future__ import annotations
 
 import sys
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -21,7 +22,7 @@ from pptx_agent_maker import DEFAULT  # noqa: E402
 from pptx_agent_maker.layout.geometry import Rect  # noqa: E402
 from pptx_agent_maker.layout.tokens import theme_from  # noqa: E402
 from pptx_agent_maker.layout.types.bodies.link_routes import (  # noqa: E402
-    Attach, Room, RouteSearch, hops, middle_ports, spread)
+    Attach, Room, RouteSearch, hops, middle_ports, positions)
 from pptx_agent_maker.layout.types.bodies.link_routes.crossings import APART, CROSS, TOUCH, meet  # noqa: E402
 
 S = DEFAULT.spacing
@@ -52,10 +53,10 @@ def passes_through(points, rect, margin=0):
                for (x1, y1), (x2, y2) in runs(points))
 
 
-def search(first, second, others=(), drawn=(), body=Rect(0, 0, 3000, 2000), margin=50, hop=20, strict=True):
+def search(first, second, others=(), drawn=(), body=Rect(0, 0, 3000, 2000), margin=50, hop=20, strict=True, kin=()):
     room = Room(body, margin, margin, hop)
     return RouteSearch(first, second, list(others), list(drawn), room, middle_ports(first), middle_ports(second),
-                       strict=strict).cheapest()
+                       strict=strict, kin=list(kin)).cheapest()
 
 
 class TheLineFromTheTopRightToTheBottomLeft(unittest.TestCase):
@@ -172,6 +173,13 @@ class TheRouteSearch(unittest.TestCase):
         self.assertEqual(0, second.touching)
         self.assertNotEqual(first.points, second.points)
 
+    def test_a_line_that_shares_its_point_with_a_line_drawn_runs_along_it_where_the_way_is_cheapest(self):
+        """The line drawn leaves by the same point: running along it is the branch, so the way is not pushed off it."""
+        first = search(self.A, self.B)
+        second = search(self.A, self.B, drawn=[first.points], kin=[first.points])
+        self.assertEqual(0, second.touching)
+        self.assertEqual(first.points, second.points)
+
 
 class TheMarginOfThePage(unittest.TestCase):
     def test_a_row_across_the_whole_page_is_gone_round_by_the_margin_of_the_body(self):
@@ -214,82 +222,114 @@ class TheMeetingOfTwoRuns(unittest.TestCase):
         self.assertEqual([(150, 100), (50, 100)], hops(((200, 100), (0, 100)), drawn, 10))
 
 
-class WhereTheLinesLeaveByOneEdge(unittest.TestCase):
+class WhereTheLinesStandOnAnEdge(unittest.TestCase):
     BOX = Rect(0, 0, 1000, 800)
+    CLEAR = 40
 
-    def attaches(self, *turns):
-        return [Attach(number, False, self.BOX, 0, turn, reach) for number, (turn, reach) in enumerate(turns)]
-
-    def test_lines_by_one_edge_stand_in_equal_steps_along_it(self):
-        placed = spread(self.attaches((-1, 100), (-1, 200), (1, 100)), {})
-        self.assertEqual([200, 400, 600], sorted(placed.values()))
-
-    def test_a_single_line_leaves_by_the_middle(self):
-        self.assertEqual({(0, False): 400}, spread(self.attaches((-1, 100)), {}))
-
-    def test_lines_that_turn_up_stand_above_the_straight_one_and_those_that_turn_down_below_it(self):
-        placed = spread(self.attaches((1, 100), (0, 0), (-1, 100)), {})
-        self.assertLess(placed[(2, False)], placed[(1, False)])
-        self.assertLess(placed[(1, False)], placed[(0, False)])
-
-    def test_of_the_lines_that_turn_up_the_one_that_turns_nearer_stands_higher_and_of_those_that_turn_down_it_stands_lower(self):
-        placed = spread(self.attaches((-1, 300), (-1, 100), (1, 300), (1, 100)), {})
-        self.assertLess(placed[(1, False)], placed[(0, False)])
-        self.assertLess(placed[(2, False)], placed[(3, False)])
-
-    def test_each_edge_is_shared_out_on_its_own(self):
-        other = Rect(2000, 0, 1000, 400)
-        attaches = [Attach(0, False, self.BOX, 0, -1, 100), Attach(1, False, other, 0, -1, 100),
-                    Attach(2, False, other, 0, 1, 100)]
-        placed = spread(attaches, {})
-        self.assertEqual(400, placed[(0, False)])
-        self.assertEqual([133, 267], sorted((placed[(1, False)], placed[(2, False)])))
-
-    def test_the_two_ends_of_a_straight_line_stand_level_where_the_boxes_face_each_other(self):
+    def test_a_straight_line_stands_at_the_middle_of_where_the_two_boxes_face(self):
         here, there = Rect(0, 0, 1000, 800), Rect(2000, 200, 1000, 800)
-        attaches = [Attach(0, False, here, 0, 0, 0), Attach(0, True, there, 2, 0, 0)]
-        placed = spread(attaches, {0: (200, 800)})
-        self.assertEqual(placed[(0, False)], placed[(0, True)])
-        self.assertEqual(500, placed[(0, False)], "alone on both edges: the middle of where they face")
+        placed = positions([Attach(0, False, here, 0), Attach(0, True, there, 2)], {0: (200, 800)}, self.CLEAR)
+        self.assertEqual({(0, False): 500, (0, True): 500}, placed)
 
-    def test_a_straight_line_stands_where_the_busier_edge_puts_it_kept_within_where_the_boxes_face(self):
-        here, there = Rect(0, 0, 1000, 800), Rect(2000, 600, 1000, 800)
-        attaches = [Attach(0, False, here, 0, 0, 0), Attach(0, True, there, 2, 0, 0),
-                    Attach(1, False, here, 0, -1, 100), Attach(2, False, here, 0, -1, 200)]
-        placed = spread(attaches, {0: (700, 800)})
-        self.assertEqual(placed[(0, False)], placed[(0, True)])
-        self.assertEqual(700, placed[(0, False)], "the busier edge puts it at 600, which is below where the boxes face")
+    def test_straight_lines_into_one_wide_edge_each_stand_at_the_middle_of_their_own_box(self):
+        wide = Rect(0, 1000, 4000, 500)
+        above = [Rect(1000 * n + 100, 0, 800, 500) for n in range(4)]
+        attaches = [end for n, box in enumerate(above) for end in (Attach(n, False, box, 1), Attach(n, True, wide, 3))]
+        placed = positions(attaches, {n: (box.left, box.right) for n, box in enumerate(above)}, self.CLEAR)
+        self.assertEqual([500, 1500, 2500, 3500], [placed[(n, True)] for n in range(4)])
+
+    def test_two_straight_lines_between_the_same_two_boxes_share_out_where_they_face(self):
+        here, there = Rect(0, 0, 1000, 800), Rect(2000, 200, 1000, 800)
+        attaches = [Attach(0, False, here, 0), Attach(0, True, there, 2), Attach(1, False, there, 2), Attach(1, True, here, 0)]
+        placed = positions(attaches, {0: (200, 800), 1: (200, 800)}, self.CLEAR)
+        self.assertEqual((400, 600), (placed[(0, False)], placed[(1, False)]))
+
+    def test_bent_lines_that_leave_by_one_edge_leave_together_by_its_middle(self):
+        placed = positions([Attach(n, False, self.BOX, 0) for n in range(3)], {}, self.CLEAR)
+        self.assertEqual({400}, set(placed.values()))
+
+    def test_a_bent_line_branches_off_the_straight_line_that_leaves_by_the_same_edge(self):
+        there = Rect(2000, 600, 1000, 800)
+        attaches = [Attach(0, False, self.BOX, 0), Attach(0, True, there, 2), Attach(1, False, self.BOX, 0)]
+        placed = positions(attaches, {0: (600, 800)}, self.CLEAR)
+        self.assertEqual(700, placed[(1, False)])
+
+    def test_a_bent_line_that_comes_in_by_an_edge_others_leave_by_stands_clear_of_them(self):
+        placed = positions([Attach(0, False, self.BOX, 0), Attach(1, True, self.BOX, 0)], {}, self.CLEAR)
+        self.assertEqual(400, placed[(0, False)])
+        self.assertGreaterEqual(abs(placed[(1, True)] - 400), self.CLEAR)
+
+    def test_a_line_moved_off_the_middle_goes_to_the_side_it_turns_to(self):
+        """The line coming in turns to the small side once out of the edge, the one leaving to the large side: moving the one coming in to the large side would cross them."""
+        for turn in (-1, 1):
+            placed = positions([Attach(0, False, self.BOX, 0, -turn), Attach(1, True, self.BOX, 0, turn)], {}, self.CLEAR)
+            self.assertEqual(400, placed[(0, False)])
+            self.assertGreater((placed[(1, True)] - 400) * turn, 0, turn)
+
+    def test_a_bent_line_that_comes_in_where_a_straight_line_leaves_stands_clear_of_it(self):
+        there = Rect(2000, 0, 1000, 800)
+        attaches = [Attach(0, False, self.BOX, 0), Attach(0, True, there, 2), Attach(1, True, self.BOX, 0)]
+        placed = positions(attaches, {0: (0, 800)}, self.CLEAR)
+        self.assertEqual(400, placed[(0, False)])
+        self.assertGreaterEqual(abs(placed[(1, True)] - 400), self.CLEAR)
+
+    def test_each_edge_is_placed_on_its_own(self):
+        other = Rect(2000, 0, 1000, 400)
+        attaches = [Attach(0, False, self.BOX, 0), Attach(1, False, other, 0), Attach(2, False, other, 0)]
+        placed = positions(attaches, {}, self.CLEAR)
+        self.assertEqual((400, 200, 200), (placed[(0, False)], placed[(1, False)], placed[(2, False)]))
+
+
+class LinesIntoOneWideBox(unittest.TestCase):
+    """Four boxes over one that spans their columns: each line goes straight down from the middle of its own box."""
+
+    def test_each_line_stands_at_the_middle_of_the_narrower_box(self):
+        cells = [card(f"U{n}", (1, n), id=f"u{n}") for n in range(1, 5)] + [card("SDK", (2, 1), (1, 4), id="sdk")]
+        page = grid_page(cells, (1, 1, 1, 1), (1, 1), [{"from": f"u{n}", "to": "sdk"} for n in range(1, 5)])
+        middles = [box_of(page, f"U{n}").rect.left + box_of(page, f"U{n}").rect.width // 2 for n in range(1, 5)]
+        self.assertEqual(middles, [line.start[0] for line in lines_of(page)])
+        self.assertEqual(middles, [line.end[0] for line in lines_of(page)])
 
 
 class ThreeLinesLeavingOneBox(unittest.TestCase):
-    """A box with a line straight across and two that go up: they leave at three points, share no run, and cross nothing."""
+    """A box with a line straight across and two that go up: the two branch off the straight one, and nothing hops."""
 
     def page(self):
         cells = [card("X", (3, 1), id="x"), card("S", (3, 4), id="s"), card("U1", (1, 2), id="u1"), card("U2", (1, 3), id="u2")]
         return grid_page(cells, (1, 1, 1, 1), (1, 1, 1), [{"from": "x", "to": "s"}, {"from": "x", "to": "u1"}, {"from": "x", "to": "u2"}])
 
-    def test_the_three_leave_by_the_same_edge_at_equal_steps(self):
+    def test_the_three_leave_by_the_middle_of_the_same_edge(self):
         page = self.page()
         x = box_of(page, "X").rect
-        starts = sorted(line.start for line in lines_of(page))
-        self.assertEqual({x.right}, {start[0] for start in starts})
-        ys = [start[1] for start in starts]
-        self.assertEqual([x.top + round(x.height * n / 4) for n in (1, 2, 3)], ys)
+        self.assertEqual({(x.right, x.top + x.height // 2)}, {line.start for line in lines_of(page)})
 
-    def test_the_line_across_leaves_lowest_and_the_nearer_of_the_two_that_turn_up_leaves_highest(self):
-        lines = lines_of(self.page())
-        across, near, far = lines
-        self.assertLess(near.start[1], far.start[1])
-        self.assertLess(far.start[1], across.start[1])
+    def test_the_two_that_go_up_run_along_the_straight_one_and_turn_off_it(self):
+        across, near, far = lines_of(self.page())
+        for line in (near, far):
+            self.assertEqual(across.start[1], line.points()[1][1])
+            self.assertLess(line.points()[1][0], across.end[0])
 
-    def test_no_two_of_them_run_along_the_same_stretch_or_cross(self):
-        lines = lines_of(self.page())
-        for number, one in enumerate(lines):
-            for other in lines[number + 1:]:
-                for run in runs(one.points()):
-                    for there in runs(other.points()):
-                        self.assertEqual(APART, meet(run, there, 1), (run, there))
-        self.assertTrue(all(not line.hops for line in lines))
+    def test_none_of_them_hops(self):
+        self.assertTrue(all(not line.hops for line in lines_of(self.page())))
+
+    def test_two_bent_lines_without_a_straight_one_leave_together_by_one_point(self):
+        cells = [card("X", (3, 1), id="x"), card("U1", (1, 2), id="u1"), card("U2", (1, 3), id="u2")]
+        page = grid_page(cells, (1, 1, 1), (1, 1, 1), [{"from": "x", "to": "u1"}, {"from": "x", "to": "u2"}])
+        first, second = lines_of(page)
+        self.assertEqual(first.start, second.start)
+        self.assertTrue(not first.hops and not second.hops)
+
+
+class ALineInAndALineOutByOneEdge(unittest.TestCase):
+    """The cycle of three of the corpus: the line from Plan comes into the top of Do and the line to Review leaves by it. The one coming in stands aside on Plan's side, so the two do not cross."""
+
+    def test_the_two_stand_apart_and_neither_hops(self):
+        written = tomllib.loads((REPO / "tests" / "corpus" / "manifests" / "bent-links.toml").read_text())["pages"][0]
+        page = build({key: value for key, value in written.items() if key != "kind"})
+        into, out_of = lines_of(page)
+        self.assertEqual(into.end[1], out_of.start[1], "both use the top edge of Do")
+        self.assertLess(into.end[0], out_of.start[0])
+        self.assertTrue(not into.hops and not out_of.hops)
 
 
 class LinesThatCrossAndOnesThatOnlyMeet(unittest.TestCase):

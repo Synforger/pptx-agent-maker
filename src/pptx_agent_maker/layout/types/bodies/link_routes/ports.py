@@ -1,10 +1,17 @@
-"""Where along the edge of a box each line leaves or enters: equal steps, in the order that keeps the lines from crossing.
+"""Where along the edge of a box each line leaves or enters: the middle of what a straight line faces, one shared point for the bent lines that use an edge the same way.
 
-誰が呼ぶか: `arrange.links` (= 道を一度決めた後、同じ辺を使う線の出入りの位置を配る)。座標だけを見る判定。
+誰が呼ぶか: `arrange.links` (= 道を一度決めた後、線ごとの出入りの位置を決める)。座標だけを見る判定。
 
-1 つの箱の同じ辺を n 本が使う時、辺を n + 1 等分した点を順に配る。順は、辺から出て最初に曲がる向きで決まる:
-辺に沿って小さい方へ曲がる線が先 (= 近くで曲がる線ほど先)、真っすぐ出る線、大きい方へ曲がる線 (= 近くで曲がる線
-ほど後)。こう並べると、同じ辺から出る線どうしは交わらない。
+真っすぐの線は、2 つの箱が向き合う範囲の真ん中から出て入る (= 片方がもう片方を覆う時は、狭い方の箱の真ん中)。
+同じ辺に何本あっても、それぞれ相手の真ん中に立つので重ならない。同じ 2 つの箱を結ぶ真っすぐの線が 2 本以上
+(= 行きと帰り) の時だけ、向き合う範囲を等しく割った点に分ける。
+
+曲がる線は、1 つの箱の同じ辺を同じ向き (= 出る / 入る) で使う線どうしが 1 点を分け合い、そこから分かれる
+(= 入る線はそこへ集まる)。分かれ目は交わりではないので、跳び越しの半円が付かずに読める。分け合う点は、同じ向きの
+真っすぐの線がその辺に在ればその線の位置 (= 辺の真ん中に一番近い物。真っすぐの線から枝分かれする)、無ければ
+辺の真ん中。そこが逆の向きの線の端から `clear` 未満なら、辺を等しく割った点へずらす (= 出る矢印と入る矢印が 1 点に
+重なると、どちら向きか読めない)。ずらす先は、線が辺から出て最初に曲がる向きの側を先に見る (= 左へ曲がる線は左へ
+ずらす。逆へずらすと、真ん中に立つ線と交わる)。その中で、ずらす前の点に近い物。
 """
 
 from __future__ import annotations
@@ -19,15 +26,13 @@ class Attach:
     """One end of one line on one side of a box."""
 
     link: int
-    #: 線の終わりの端なら True、始まりの端なら False
+    #: 線の終わりの端 (= 箱へ入る) なら True、始まりの端 (= 箱から出る) なら False
     last: bool
     box: Rect
     #: 辺 (= `route_search.SIDES` の番号)
     side: int
-    #: 辺から出て最初に曲がる向き。辺に沿って小さい方 -1、大きい方 +1、曲がらずに真っすぐ 0
-    turn: int
-    #: 最初の曲がり角までの、辺からの距離
-    reach: int
+    #: 辺から出て最初に曲がる向き。辺に沿って小さい方 -1、大きい方 +1、曲がらない (= 真っすぐの線) 0
+    turn: int = 0
 
 
 def edge_span(box: Rect, side: int) -> tuple[int, int]:
@@ -35,33 +40,41 @@ def edge_span(box: Rect, side: int) -> tuple[int, int]:
     return (box.left, box.right) if side % 2 else (box.top, box.bottom)
 
 
-def spread(attaches: list[Attach], straights: dict[int, tuple[int, int]]) -> dict[tuple[int, bool], int]:
+def positions(attaches: list[Attach], straights: dict[int, tuple[int, int]], clear: int) -> dict[tuple[int, bool], int]:
     """The coordinate along its edge of each end of each line.
 
     `straights` は真っすぐな線の番号 → その 2 つの箱が向き合う範囲 (= 低い端と高い端)。真っすぐな線の 2 つの端は
-    同じ座標でなければならないので、線の多い方の辺の点を使い (= 同じなら始まりの側)、向き合う範囲に収める。
-    どちらの辺にもその線しか無い時は、範囲の真ん中 (= 1 本だけの線が辺の真ん中から出る、今までの形)。
+    同じ座標に立つ。`clear` は、向きの違う端どうしを離す幅。
     """
+    placed: dict[tuple[int, bool], int] = {}
+    ends: dict[int, list[Attach]] = {}
+    for each in attaches:
+        ends.setdefault(each.link, []).append(each)
+    pairs: dict[tuple[frozenset, tuple[int, int]], list[int]] = {}
+    for link, span in straights.items():
+        pairs.setdefault((frozenset((each.box, each.side) for each in ends[link]), span), []).append(link)
+    for (_, (low, high)), shared in pairs.items():
+        for rank, link in enumerate(sorted(shared)):
+            placed[(link, False)] = placed[(link, True)] = low + (high - low) * (rank + 1) // (len(shared) + 1)
     groups: dict[tuple[Rect, int], list[Attach]] = {}
     for each in attaches:
         groups.setdefault((each.box, each.side), []).append(each)
-    placed: dict[tuple[int, bool], int] = {}
-    crowd: dict[tuple[int, bool], int] = {}
     for (box, side), group in groups.items():
         start, end = edge_span(box, side)
-        for rank, each in enumerate(sorted(group, key=_order)):
-            placed[(each.link, each.last)] = start + round((end - start) * (rank + 1) / (len(group) + 1))
-            crowd[(each.link, each.last)] = len(group)
-    for link, (low, high) in straights.items():
-        first, second = (link, False), (link, True)
-        if crowd[first] == crowd[second] == 1:
-            at = (low + high) // 2
-        else:
-            at = min(max(placed[first if crowd[first] >= crowd[second] else second], low), high)
-        placed[first] = placed[second] = at
+        middle = (start + end) // 2
+        taken = {last: {placed[(each.link, last)] for each in group if each.last == last and each.link in straights}
+                 for last in (False, True)}
+        steps = [start + (end - start) * n // (len(group) + 1) for n in range(1, len(group) + 1)]
+        for last in (False, True):
+            bent = [each for each in group if each.last == last and each.link not in straights]
+            if not bent:
+                continue
+            preferred = min(taken[last], key=lambda at: abs(at - middle), default=middle)
+            turn = sum(each.turn for each in bent)
+            aside = sorted(steps, key=lambda at: ((at - preferred) * turn < 0, abs(at - preferred)))
+            at = next((candidate for candidate in (preferred, *aside)
+                       if all(abs(candidate - other) >= clear for other in taken[not last])), preferred)
+            taken[last].add(at)
+            for each in bent:
+                placed[(each.link, each.last)] = at
     return placed
-
-
-def _order(each: Attach) -> tuple[int, int, int, bool]:
-    """Along the edge, from the small end: lines turning to the small side (nearest turn first), straight ones, then lines turning to the large side (farthest turn first)."""
-    return each.turn, (each.reach if each.turn < 0 else -each.reach if each.turn > 0 else 0), each.link, each.last

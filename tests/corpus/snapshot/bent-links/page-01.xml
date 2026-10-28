@@ -550,7 +550,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="4064000" y="2424450"/>
-<a:ext cx="1426667" cy="653810"/>
+<a:ext cx="1426666" cy="653810"/>
 </a:xfrm>
 <a:prstGeom prst="bentConnector2">
 <a:avLst/>
@@ -568,13 +568,14 @@
 <p:cNvPr id="19" name="Connector 18"/>
 <p:cNvCxnSpPr>
 <a:stCxn id="11" idx="1"/>
+<a:endCxn id="14" idx="0"/>
 </p:cNvCxnSpPr>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm rot="10800000" flipV="1">
-<a:off x="6701333" y="2424450"/>
-<a:ext cx="1426667" cy="653810"/>
+<a:off x="6096000" y="2424450"/>
+<a:ext cx="2032000" cy="653810"/>
 </a:xfrm>
 <a:prstGeom prst="bentConnector2">
 <a:avLst/>

@@ -7,7 +7,7 @@
 小さい道:
 
 1. 横切る箱の数 (= 0 でなければ、塞がれていて、どの箱を横切るかを言って止める)
-2. 引いてある線と重なる区間・触れる所の数
+2. 引いてある線と重なる区間・触れる所の数 (= 同じ出入りの点を分け合う線 `kin` は数えない。そこから分かれる枝だから)
 3. 引いてある線と交わる数
 4. 曲がる回数 (= 4 回まで)
 5. 長さ
@@ -87,12 +87,15 @@ class RouteSearch:
     """The cheapest path from one of the `starts` to one of the `ends`, found over the coordinates the gaps and the ports give.
 
     `drawn` は引いてある線 (= 折れ線の点の並び)。`strict` が False なら、重なる・触れるを数えない (= 出入りの
-    位置がまだ配られていない探索では、同じ辺の中ほどから出る線どうしが必ず重なって見える)。
+    位置がまだ配られていない探索では、同じ辺の中ほどから出る線どうしが必ず重なって見える)。`kin` は `drawn` のうち、
+    この線と同じ点から出る線・同じ点へ入る線で、重なっても数えない (= 枝分かれと合流)。交わりは数える。
     """
 
     def __init__(self, first: Rect, second: Rect, others: Sequence[Rect], drawn: Sequence[tuple[Point, ...]],
-                 room: Room, starts: Sequence[Port], ends: Sequence[Port], *, strict: bool):
+                 room: Room, starts: Sequence[Port], ends: Sequence[Port], *, strict: bool,
+                 kin: Sequence[tuple[Point, ...]] = ()):
         self.room, self.starts, self.ends, self.strict = room, list(starts), list(ends), strict
+        self.kin = {run for line in kin for run in segments(line)}
         self.boxes = [first, second, *others]
         self.inflated = [(r.left - room.margin_x, r.top - room.margin_y, r.right + room.margin_x, r.bottom + room.margin_y)
                          for r in self.boxes]
@@ -199,7 +202,7 @@ class RouteSearch:
                     continue
                 if met == CROSS:
                     crossing += 1
-                elif self.strict:
+                elif self.strict and other not in self.kin:
                     touching += 1
             length = abs(run[1][0] - run[0][0]) + abs(run[1][1] - run[0][1])
             self.edges[key] = (blocked, touching, crossing, length)

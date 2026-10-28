@@ -591,8 +591,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="3603833" y="2353725"/>
-<a:ext cx="7228839" cy="2029725"/>
+<a:off x="3603832" y="2353725"/>
+<a:ext cx="7228840" cy="2029725"/>
 </a:xfrm>
 <a:custGeom>
 <a:avLst/>
@@ -601,12 +601,12 @@
 <a:cxnLst/>
 <a:rect l="0" t="0" r="r" b="b"/>
 <a:pathLst>
-<a:path w="7228839" h="2029725" fill="none">
+<a:path w="7228840" h="2029725" fill="none">
 <a:moveTo>
-<a:pt x="7228839" y="0"/>
+<a:pt x="7228840" y="0"/>
 </a:moveTo>
 <a:lnTo>
-<a:pt x="7228839" y="216000"/>
+<a:pt x="7228840" y="216000"/>
 </a:lnTo>
 <a:lnTo>
 <a:pt x="0" y="216000"/>
