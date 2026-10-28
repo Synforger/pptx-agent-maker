@@ -1,11 +1,13 @@
 # `compare` tells a person which pages of a deck changed, by the pixels that differ. A count that drops a change,
 # a missing page written as zero, or an exit code that ignores a change makes it say "unchanged" for a page that
-# changed. (= run it with `task mutate -- tests/mutants/compare.toml`)
+# changed; a deck whose typeface this machine lacks reads as changed too, unless the command says why.
+# (= run it with `task mutate -- tests/mutants/compare.toml`)
 
 tests = [
     "tests/compare/test_pictures.py",
     "tests/compare/test_report.py",
     "tests/compare/test_decks.py",
+    "tests/compare/test_fonts.py",
 ]
 
 [[mutant]]
@@ -91,3 +93,57 @@ name = "a deck that could not be compared ends with 1, the code of a page that c
 file = "src/pptx_agent_maker/__main__.py"
 old = "                return 2\n"
 new = "                return 1\n"
+
+[[mutant]]
+name = "a typeface the words take from the theme stays a reference instead of becoming the theme's typeface"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = "        named -= references\n"
+new = "        pass\n"
+
+[[mutant]]
+name = "the east asian typeface of the words is not read"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = "(?:latin|ea)"
+new = "(?:latin)"
+
+[[mutant]]
+name = "the typefaces of the layouts, the master and the theme are read as the pages' own"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = "r\"ppt/slides/slide\\d+\\.xml\""
+new = "r\"ppt/.*\\.xml\""
+
+[[mutant]]
+name = "a typeface that is there is told as missing, and one that is missing as there"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = 'not is_installed(face, done.stdout.split(","))'
+new = 'is_installed(face, done.stdout.split(","))'
+
+[[mutant]]
+name = "a machine without fc-match is taken to miss no typeface"
+file = "src/pptx_agent_maker/compare/fonts.py"
+old = "    if fc_match is None:\n        return None\n"
+new = "    if fc_match is None:\n        return []\n"
+
+[[mutant]]
+name = "the spelling of a family decides, so a space tells Yu Gothic from YuGothic"
+file = "src/pptx_agent_maker/compare/font_match.py"
+old = "return _key(requested) in {_key(family) for family in matched_families}"
+new = "return requested in set(matched_families)"
+
+[[mutant]]
+name = "no missing typeface gives an empty line instead of nothing"
+file = "src/pptx_agent_maker/compare/report.py"
+old = "    if not missing:\n        return None\n"
+new = '    if not missing:\n        return ""\n'
+
+[[mutant]]
+name = "the note is printed among the report lines"
+file = "src/pptx_agent_maker/__main__.py"
+old = "print(note, file=sys.stderr)"
+new = "print(note)"
+
+[[mutant]]
+name = "only the before deck's typefaces are looked at"
+file = "src/pptx_agent_maker/__main__.py"
+old = "fonts_named(before) | fonts_named(after)"
+new = "fonts_named(before)"

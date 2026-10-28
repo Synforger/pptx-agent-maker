@@ -385,15 +385,19 @@ def main(argv: list[str] | None = None) -> int:
             from pptx_live_preview.render import RenderError
 
             from ._common.slide import first_slide_number
-            from .compare import changed_count, compare_decks, render_report
+            from .compare import changed_count, compare_decks, fonts_named, missing_fonts, render_font_note, render_report
 
-            after = Path(args.after).expanduser()
+            before, after = Path(args.before).expanduser(), Path(args.after).expanduser()
             try:
-                differences = compare_decks(Path(args.before).expanduser(), after)
+                differences = compare_decks(before, after)
             except (RenderError, FileNotFoundError) as error:
                 # 終わりの code 1 は「違う頁がある」の印なので、比べられなかった回は 2 で分ける
                 print(f"error: {error}", file=sys.stderr)
                 return 2
+            # 資料の書体がこの機械に無いと、同じ資料でも字のある頁の画素が揺れる。数は変えず、知らせるだけ
+            note = render_font_note(missing_fonts(fonts_named(before) | fonts_named(after)))
+            if note:
+                print(note, file=sys.stderr)
             print(render_report(differences, first_slide_number(after)))
             return 1 if changed_count(differences) else 0
 
