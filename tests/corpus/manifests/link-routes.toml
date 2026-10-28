@@ -44,8 +44,8 @@ card = { heading = "Library", body = "Stands beside it" }
 kind = "declare"
 type = "compose"
 title = "Three arrows leave one box by the same edge"
-condition = "They leave at a quarter, a half and three quarters of the edge: the nearer turn stands higher, the straight one lowest"
-conclusion = "No two arrows run along the same stretch, and none crosses another"
+condition = "They leave together by the middle of the edge: the two that bend run along the straight one and turn off it"
+conclusion = "One point branches into three arrows, and none crosses another"
 grid = { columns = [1, 1, 1, 1], rows = [1, 1, 1] }
 links = [
   { from = "source", to = "far" },

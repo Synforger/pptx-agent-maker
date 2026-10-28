@@ -133,7 +133,7 @@
 </a:solidFill>
 <a:latin typeface="Meiryo"/>
 </a:rPr>
-<a:t>They leave at a quarter, a half and three quarters of the edge: the nearer turn stands higher, the straight one lowest</a:t>
+<a:t>They leave together by the middle of the edge: the two that bend run along the straight one and turn off it</a:t>
 </a:r>
 </a:p>
 </p:txBody>
@@ -198,7 +198,7 @@
 </a:solidFill>
 <a:latin typeface="Meiryo"/>
 </a:rPr>
-<a:t>No two arrows run along the same stretch, and none crosses another</a:t>
+<a:t>One point branches into three arrows, and none crosses another</a:t>
 </a:r>
 </a:p>
 </p:txBody>
@@ -619,7 +619,7 @@
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="2994000" y="5576054"/>
+<a:off x="2994000" y="5338107"/>
 <a:ext cx="6204000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -637,6 +637,7 @@
 <p:nvCxnSpPr>
 <p:cNvPr id="21" name="Connector 20"/>
 <p:cNvCxnSpPr>
+<a:stCxn id="8" idx="3"/>
 <a:endCxn id="14" idx="2"/>
 </p:cNvCxnSpPr>
 <p:nvPr/>
@@ -644,7 +645,7 @@
 <p:spPr>
 <a:xfrm flipV="1">
 <a:off x="2994000" y="3046427"/>
-<a:ext cx="1659000" cy="2053733"/>
+<a:ext cx="1659000" cy="2291680"/>
 </a:xfrm>
 <a:prstGeom prst="bentConnector2">
 <a:avLst/>

@@ -270,16 +270,17 @@ class ALineIsAttachedToTheBoxesItJoinsOnlyWhereItMeetsTheMiddleOfAnEdge(unittest
                          self.attached(connector))
 
     def test_a_line_that_leaves_by_a_place_other_than_the_middle_is_not_attached_there(self):
-        cells = [self.cell("X", (3, 1), id="x"), self.cell("S", (3, 4), id="s"), self.cell("U1", (1, 2), id="u1"),
+        """X spans two rows and S faces only its lower one: the straight line stands below the middle of X's right edge, and the line to U2 branches off it there."""
+        cells = [self.cell("X", (2, 1), span=[2, 1], id="x"), self.cell("S", (3, 4), id="s"), self.cell("U1", (1, 2), id="u1"),
                  self.cell("U2", (1, 3), id="u2")]
         page = self.page([{"from": "x", "to": "s"}, {"from": "x", "to": "u1"}, {"from": "x", "to": "u2"}], cells,
                          columns=(1, 1, 1, 1), rows=(1, 1, 1))
-        lines = [e for e in page.build() if e.kind == "line"]
-        by_start = {line.start[1]: line for line in lines}
+        _across, to_u1, to_u2 = [e for e in page.build() if e.kind == "line"]
         x = box_of(page, "X").rect
-        for y, line in by_start.items():
-            self.assertEqual(y == x.top + x.height // 2, line.begins_on is not None, "only the one that leaves by the middle is attached")
-        self.assertTrue(all(line.ends_on is not None for line in lines if line.corners), "each that bends goes into the middle of its box's lower edge")
+        self.assertNotEqual(x.top + x.height // 2, to_u2.start[1], "the branch leaves where the straight line does")
+        self.assertIsNone(to_u2.begins_on)
+        self.assertEqual(x.left + x.width // 2, to_u1.start[0], "the line to U1 leaves by the middle of the top edge")
+        self.assertIsNotNone(to_u1.begins_on)
 
     def test_a_straight_line_is_not_attached(self):
         page = self.page([{"from": "a", "to": "b"}], [self.cell("A", (1, 1), id="a"), self.cell("B", (1, 3), id="b")])

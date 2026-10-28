@@ -71,52 +71,76 @@ new = "    return (box, port.side)"
 [[mutant]]
 name = "every line leaves and enters by the middle of its edge"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "    coordinates = spread(attaches, straights)"
+old = "    coordinates = positions(attaches, straights, 2 * room.hop)"
 new = "    coordinates = {(each.link, each.last): sum(edge_span(each.box, each.side)) // 2 for each in attaches}"
 
 # -- where along the edge they leave --
 
 [[mutant]]
-name = "the lines of an edge are not at equal steps"
+name = "a straight line stands at the low end of where the boxes face"
 file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
-old = "(end - start) * (rank + 1) / (len(group) + 1))"
-new = "(end - start) * (rank + 1) / (len(group) + 2))"
-
-[[mutant]]
-name = "the lines that turn down stand above the lines that turn up"
-file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
-old = "    return each.turn, (each.reach"
-new = "    return -each.turn, (each.reach"
-
-[[mutant]]
-name = "of the lines that turn the same way the farther turn stands first"
-file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
-old = "(each.reach if each.turn < 0 else -each.reach if each.turn > 0 else 0)"
-new = "(-each.reach if each.turn < 0 else each.reach if each.turn > 0 else 0)"
+old = "= low + (high - low) * (rank + 1) // (len(shared) + 1)"
+new = "= low"
 
 [[mutant]]
 name = "the two ends of a straight line are not level"
 file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
-old = "        placed[first] = placed[second] = at"
-new = "        placed[first] = at"
+old = "            placed[(link, False)] = placed[(link, True)] = low"
+new = "            placed[(link, False)] = low; placed[(link, True)] = low + 1 +"
 
 [[mutant]]
-name = "a straight line alone on both edges leaves at the low end of where the boxes face"
+name = "two straight lines between the same two boxes stand on one point"
 file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
-old = "            at = (low + high) // 2"
-new = "            at = low"
+old = "pairs.setdefault((frozenset((each.box, each.side) for each in ends[link]), span), [])"
+new = "pairs.setdefault((frozenset([link]), span), [])"
 
 [[mutant]]
-name = "a straight line may stand beyond where the boxes face each other"
+name = "a bent line does not branch off the straight line that leaves the same way"
 file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
-old = "            at = min(max(placed[first if crowd[first] >= crowd[second] else second], low), high)"
-new = "            at = placed[first if crowd[first] >= crowd[second] else second]"
+old = "            preferred = min(taken[last], key=lambda at: abs(at - middle), default=middle)"
+new = "            preferred = middle"
 
 [[mutant]]
-name = "a straight line follows the emptier edge"
+name = "a line that comes in may stand on the point a line leaves by"
 file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
-old = "first if crowd[first] >= crowd[second] else second"
-new = "first if crowd[first] <= crowd[second] else second"
+old = "                       if all(abs(candidate - other) >= clear for other in taken[not last])), preferred)"
+new = "                       if True), preferred)"
+
+[[mutant]]
+name = "the lines that come in and the lines that leave by one edge are one group"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "            bent = [each for each in group if each.last == last and each.link not in straights]"
+new = "            bent = [each for each in group if each.link not in straights]"
+
+[[mutant]]
+name = "a line moved off the middle goes to the side away from its turn"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "key=lambda at: ((at - preferred) * turn < 0, abs(at - preferred))"
+new = "key=lambda at: ((at - preferred) * turn > 0, abs(at - preferred))"
+
+[[mutant]]
+name = "the way a bent line first turns is read the wrong way round"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return Attach(link, last, box, side, (along > 0) - (along < 0))"
+new = "    return Attach(link, last, box, side, (along < 0) - (along > 0))"
+
+[[mutant]]
+name = "bent lines by one edge stand at its end, not its middle"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/ports.py"
+old = "        middle = (start + end) // 2"
+new = "        middle = start"
+
+[[mutant]]
+name = "a line runs off the lines it shares a point with, as if they were in its way"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = "                elif self.strict and other not in self.kin:"
+new = "                elif self.strict:"
+
+[[mutant]]
+name = "no line drawn is taken as sharing a point with the line being found"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "            kin = [line for line in drawn if line[0] == start or line[-1] == end]"
+new = "            kin = []"
 
 # -- which way they run --
 
@@ -159,7 +183,7 @@ new = "            through = 0"
 [[mutant]]
 name = "running along a line already drawn costs nothing"
 file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
-old = "                elif self.strict:\n                    touching += 1"
+old = "                elif self.strict and other not in self.kin:\n                    touching += 1"
 new = "                elif False:\n                    touching += 1"
 
 [[mutant]]
