@@ -1,7 +1,8 @@
 """compose: the gap across a row and the gap between rows, cells of no words, rules over a picture, one `weight`.
 
-見張るのは 4 つ ― 段のマスとマスの間 (`gap_x`) と段と段の間 (`gap_y`) が別に取れ、書かなければ `gap_m` に従うこと、
+見張るのは 5 つ ― 段のマスとマスの間 (`gap_x`) と段と段の間 (`gap_y`) が別に取れ、書かなければ `gap_m` に従うこと、
 空の文章のマスが高さを取らず何も描かないこと、図のマスが `guides` で絵の高さの割合の所に絵の幅いっぱいの線を引くこと、
+マスより低い絵・文章・表・要点が `valign` の位置に立つこと、
 `weight` の検査が段・マス・道のりの段で 1 つの関数と 1 つの文面になること。
 """
 
@@ -17,7 +18,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tests"))
-from support.pages import box_of, build  # noqa: E402
+from support.pages import box_of, build, named  # noqa: E402
 
 from pptx_agent_maker import DEFAULT, cm  # noqa: E402
 from pptx_agent_maker.layout.geometry import Rect  # noqa: E402
@@ -318,12 +319,60 @@ class AFigureStandsWhereItsCellPutsIt(Refusing):
             with self.subTest(value=value):
                 self.refused([row({"figure": WIDE, "valign": value})], "`valign` is 'top' or 'middle' or 'bottom'")
 
-    def test_only_a_figure_has_a_place_in_its_cell(self) -> None:
-        self.refused([row({**card("A"), "valign": "middle"})], "`valign` belongs to a figure")
+    def test_a_card_has_no_place_in_its_cell(self) -> None:
+        self.refused([row({**card("A"), "valign": "middle"})], "and a card takes the height of its cell")
 
     def test_a_figure_with_marks_stands_where_its_names_put_it(self) -> None:
         self.refused([row({"figure": WIDE, "valign": "middle", "marks": [{"at": [0.5, 0.5], "text": "here"}]})],
                      "`valign` is for a figure without them")
+
+class WordsStandWhereTheirCellPutsThem(Refusing):
+    """A part that keeps its own height stands at the top of a taller cell unless `valign` says the middle or the bottom."""
+
+    LABEL = {"text": "A row", "role": "label"}
+
+    @staticmethod
+    def beside(**more):
+        """A label beside a card of two lines (= the row is as tall as the card), and where both stand."""
+        built = compose([row({**WordsStandWhereTheirCellPutsThem.LABEL, **more}, card("A", "one\ntwo"))])
+        return named(built, "A row").rect, box_of(built, "A").rect
+
+    def test_unsaid_the_words_stand_at_the_top_as_they_always_did(self) -> None:
+        label, box = self.beside()
+        self.assertEqual(box.top, label.top)
+        self.assertLess(label.height, box.height, "the label is as tall as the card, or this proves nothing")
+        self.assertEqual(label, self.beside(valign="top")[0])
+
+    def test_in_the_middle_the_words_line_up_with_the_card_beside_them(self) -> None:
+        label, box = self.beside(valign="middle")
+        self.assertAlmostEqual(box.top + box.height / 2, label.top + label.height / 2, delta=1)
+        bottom, box = self.beside(valign="bottom")
+        self.assertAlmostEqual(box.bottom, bottom.bottom, delta=1)
+        self.assertEqual((label.left, label.width, label.height), (bottom.left, bottom.width, bottom.height))
+
+    def test_on_a_grid_as_well(self) -> None:
+        built = build({"type": "compose", "title": "A page", "grid": {"columns": [1, 2], "rows": [1]},
+                       "cells": [{"at": [1, 1], **self.LABEL, "valign": "middle"},
+                                 {"at": [1, 2], **card("A", "one\ntwo")}]})
+        label, box = named(built, "A row").rect, box_of(built, "A").rect
+        self.assertLess(label.height, box.height)
+        self.assertAlmostEqual(box.top + box.height / 2, label.top + label.height / 2, delta=1)
+
+    def test_a_table_points_and_code_move_the_same_way(self) -> None:
+        for part, kind in (({"table": [["head"], ["cell"]]}, "table"), ({"points": ["a point"]}, "points"),
+                           ({"text": "a line", "role": "mono"}, "code_box")):
+            with self.subTest(part=kind):
+                stood = [next(e.rect for e in compose([row({**part, **more}, card("A", "one\ntwo\nthree\nfour"))]).build()
+                              if e.kind == kind)
+                         for more in ({}, {"valign": "middle"}, {"valign": "bottom"})]
+                self.assertLess(stood[0].top, stood[1].top)
+                self.assertLess(stood[1].top, stood[2].top)
+                self.assertEqual(1, len({(rect.left, rect.width, rect.height) for rect in stood}))
+
+    def test_a_box_takes_the_height_of_its_cell_and_has_nowhere_to_move(self) -> None:
+        for part in (card("A"), {"panel": {"heading": "P", "rows": [row(card("A"))]}}):
+            with self.subTest(part=next(iter(part))):
+                self.refused([row({**part, "valign": "middle"})], "`valign` places a part that keeps its own height")
 
 
 class AFigureKeepsRoomBesideIt(Refusing):

@@ -1,5 +1,6 @@
 # The space between the cells of a row and between the rows, set apart; a cell of no words that takes no height;
-# a picture ruled at the heights it is read at, and set in the middle or at the bottom of its cell.
+# a picture ruled at the heights it is read at, and set in the middle or at the bottom of its cell; names of rows set in
+# the middle of their row, level with the cards beside them.
 
 specimen = "specimen.pptx"
 out = "compose-gaps.pptx"
@@ -53,3 +54,59 @@ caption = "Rules over a picture with a name under it"
 weight = 1
 figure = "circle.png"
 valign = "top"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Names of rows level with the cards beside them"
+condition = "A name of a row and a dash stand in the middle of their row, at the height of the words in the cards"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 3
+text = ""
+[[pages.rows.cells]]
+weight = 7
+text = "Before"
+role = "label"
+[[pages.rows.cells]]
+weight = 7
+text = "After"
+role = "label"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 3
+text = "Speed"
+role = "label"
+valign = "middle"
+[[pages.rows.cells]]
+weight = 7
+card = { body = "Two lines of words\nin a card" }
+[[pages.rows.cells]]
+weight = 7
+text = "―"
+valign = "middle"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 3
+text = "Cost"
+role = "label"
+valign = "middle"
+[[pages.rows.cells]]
+weight = 7
+card = { body = "One line" }
+[[pages.rows.cells]]
+weight = 7
+card = { body = "One line, and one more\nthat makes it two" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 3
+text = "A note at the foot of its row"
+role = "note"
+valign = "bottom"
+[[pages.rows.cells]]
+weight = 14
+card = { body = "Three lines\nof words\nin a card" }
