@@ -46,6 +46,25 @@ def meet(run: Segment, other: Segment, clear: int) -> str:
     return CROSS if bx1 - ax1 >= clear and ax2 - bx1 >= clear else TOUCH
 
 
+def shared_length(run: Segment, others: list[Segment]) -> int:
+    """How much of `run` lies on the runs `others` along the same line (= counted once where they overlap each other)."""
+    (ax1, ay1), (ax2, ay2) = run
+    across = ay1 == ay2
+    level, low, high = (ay1, min(ax1, ax2), max(ax1, ax2)) if across else (ax1, min(ay1, ay2), max(ay1, ay2))
+    spans = []
+    for (bx1, by1), (bx2, by2) in others:
+        if across and by1 == by2 == level:
+            spans.append((max(min(bx1, bx2), low), min(max(bx1, bx2), high)))
+        elif not across and bx1 == bx2 == level:
+            spans.append((max(min(by1, by2), low), min(max(by1, by2), high)))
+    covered, reach = 0, low
+    for start, end in sorted(span for span in spans if span[0] < span[1]):
+        if end > reach:
+            covered += end - max(start, reach)
+            reach = end
+    return covered
+
+
 def crossing_point(run: Segment, other: Segment) -> Point:
     """Where two runs that cross each other cross (= the x of the vertical one, the y of the horizontal one)."""
     horizontal, vertical = (run, other) if run[0][1] == run[1][1] else (other, run)

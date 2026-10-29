@@ -139,8 +139,44 @@ new = "                elif self.strict:"
 [[mutant]]
 name = "no line drawn is taken as sharing a point with the line being found"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "            kin = [line for line in drawn if line[0] == start or line[-1] == end]"
+old = "            kin = [line for line, ends in zip(drawn, drawn_ends) if _may_share(ends, link.ends, written)]"
 new = "            kin = []"
+
+[[mutant]]
+name = "a line shares runs with no line drawn, not even the ones that leave by its point"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return {(ends[0], link_ends[1]), (link_ends[0], ends[1])} <= written"
+new = "    return False"
+
+[[mutant]]
+name = "a line shares runs with any line drawn"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return {(ends[0], link_ends[1]), (link_ends[0], ends[1])} <= written"
+new = "    return True"
+
+[[mutant]]
+name = "one of the two links a shared run reads as is enough to share it"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return {(ends[0], link_ends[1]), (link_ends[0], ends[1])} <= written"
+new = "    return {(ends[0], link_ends[1])} <= written"
+
+[[mutant]]
+name = "a stretch run on a line it may share counts in the length"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/route_search.py"
+old = " - shared_length(run, list(self.kin))"
+new = ""
+
+[[mutant]]
+name = "a stretch two lines both cover counts twice"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/crossings.py"
+old = "            covered += end - max(start, reach)"
+new = "            covered += end - start"
+
+[[mutant]]
+name = "a run along a line at another level counts as lying on it"
+file = "src/pptx_agent_maker/layout/types/bodies/link_routes/crossings.py"
+old = "        if across and by1 == by2 == level:"
+new = "        if across and by1 == by2:"
 
 # -- which way they run --
 
