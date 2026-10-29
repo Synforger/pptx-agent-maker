@@ -22,7 +22,9 @@
   **残りの高さを等しく受ける** (= 字の分の高さに足す。字の多い段は字の少ない段より高いまま)。絵や型の段と
   `weight` を書いた段が残りを取るなら、カードの段は字の分のまま。カードは、置かれたマスの高さを使い切る。
   文章・表・要点は、自分の高さのまま上に寄る
-* 図のマスの絵がマスより低い時は、`valign` (= `"top"` `"middle"` `"bottom"`。書かなければ上端) で縦の位置を決める
+* 自分の高さを持つ部品 (= 文章・表・要点・声・木・凡例と、図のマスの絵) がマスより低い時は、`valign`
+  (= `"top"` `"middle"` `"bottom"`。書かなければ上端) で縦の位置を決める。表のような頁で、行の名前の文字を
+  同じ段のカードの字と同じ高さに並べる時に使う。カードと入れ物はマスの高さを使い切るので書けない
 * 図のマスの `inset` (= cm) は、絵の左右に取る内側の余白 (= 書かなければ 0 で、絵はマスの横幅いっぱい)。
   隣のマスとの間は変えずに、絵だけを細くする
 * 同じ段のマスとマスの間は使い方の `gap_x`、段と段の間は `gap_y` (= 書かなければどちらも `gap_m`)。
@@ -84,8 +86,11 @@ PARTS = ("card", "panel", "figure", "table", "text", "points", "chart", "voices"
 ROLES = ("display", "label", "note", "mono")
 #: 文章が読むキーのうち、字の見え方 (= 色の役と寄せ。`mono` は枠の中に等幅で置くので読まない)
 TEXT_LOOKS = ("tone", "align")
-#: 絵がマスより低い時に、マスの中で縦に置く位置 (= `valign`。書かなければ上端)
+#: 部品がマスより低い時に、マスの中で縦に置く位置 (= `valign`。書かなければ上端)
 VALIGNS = ("top", "middle", "bottom")
+#: 自分の高さのままマスに置かれ、`valign` で縦の位置を選べる部品 (= カードと入れ物はマスの高さを使い切り、
+#: 入れ子の段・グラフ・型は渡された高さを使うので、動く先が無い)
+VALIGN_PARTS = ("text", "table", "points", "voices", "tree", "legend", "figure")
 #: 声 1 つが読むキー
 VOICE_KEYS = ("text", "who", "tone")
 #: マスに丸ごと入れられる型 (= その型の書き方のまま)。`cards` はマスごとの `card` で、
@@ -532,10 +537,13 @@ def _part(cell: dict, what: str) -> str:
         raise PageTypeError(f"{what}: `caption` belongs to a figure, and this cell holds {named[0]}")
     if "marks" in cell and named[0] != "figure":
         raise PageTypeError(f"{what}: `marks` belong to a figure, and this cell holds {named[0]}")
-    for key in ("guides", "guide_tone", "valign", "inset"):
+    for key in ("guides", "guide_tone", "inset"):
         if key in cell and named[0] != "figure":
             raise PageTypeError(f"{what}: `{key}` belongs to a figure, and this cell holds {named[0]}")
     if "valign" in cell:
+        if named[0] not in VALIGN_PARTS:
+            raise PageTypeError(f"{what}: `valign` places a part that keeps its own height ({', '.join(VALIGN_PARTS)}) "
+                                f"in its cell, and a {named[0]} takes the height of its cell — there is nowhere to move it")
         if cell["valign"] not in VALIGNS:
             raise PageTypeError(
                 f"{what}: `valign` is {' or '.join(repr(name) for name in VALIGNS)}, not {cell['valign']!r}")
@@ -656,7 +664,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
         raise PageFullError(
             f"{what}: this {part} needs {natural} EMU of height and its row has {rect.height} — "
             "give the row a larger `weight`, or take something off the page; nothing will shrink")
-    fitted = rect if natural is None else Rect(rect.left, rect.top, rect.width, min(natural, rect.height))
+    fitted = rect if natural is None else _stood(rect, min(natural, rect.height), cell.get("valign", "top"))
     try:
         if part == "card":
             page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)],
@@ -707,9 +715,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             wanted = round(frame.width / aspect) + (
                 s.gap_s + page.theme.caption_height(caption, frame.width) if caption else 0)
             block = min(wanted, frame.height)
-            spare = frame.height - block                # 絵がマスより低い時の余り (= 絵が縦に詰められた時は 0)
-            top = frame.top + {"top": 0, "middle": spare // 2, "bottom": spare}[cell.get("valign", "top")]
-            placed = page.figure(Rect(frame.left, top, frame.width, block), source, aspect, caption=caption)
+            placed = page.figure(_stood(frame, block, cell.get("valign", "top")), source, aspect, caption=caption)
             shares, tone = _guides(spec, cell, what)
             for share in shares:
                 y = placed.top + round(share * placed.height)
@@ -724,6 +730,12 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
         raise type(reason)(f"{what}: {reason}") from reason
     except ValueError as reason:
         raise PageTypeError(f"{what}: {reason}") from reason
+
+
+def _stood(rect: Rect, height: int, valign: str) -> Rect:
+    """Where in its cell `rect` a part `height` tall stands: at the top, in the middle or at the bottom (= `valign`)."""
+    spare = rect.height - height                  # 部品がマスより低い時の余り (= マスの高さを使い切る時は 0)
+    return Rect(rect.left, rect.top + {"top": 0, "middle": spare // 2, "bottom": spare}[valign], rect.width, height)
 
 
 def _panel(page: Page, spec: Spec, cell: dict, rect: Rect, what: str, seen: list) -> Rect:

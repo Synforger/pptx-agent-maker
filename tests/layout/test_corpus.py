@@ -308,6 +308,10 @@ class TheCorpusUsesEverything(unittest.TestCase):
         from pptx_agent_maker.layout.types.bodies.compose import VALIGNS
         self.assertEqual(set(VALIGNS), {cell["valign"] for cell in CELLS if "figure" in cell and "valign" in cell})
 
+    def test_words_stand_in_the_middle_and_at_the_bottom_of_their_cell(self) -> None:
+        stood = {cell["valign"] for cell in CELLS if "text" in cell and "valign" in cell}
+        self.assertEqual({"middle", "bottom"}, stood, "no words stand anywhere but at the top of their cell")
+
     def test_a_row_of_cells_with_no_words(self) -> None:
         rows = [row for page in DECLARED if page["type"] == "compose" for row in page.get("rows", [])]
         self.assertTrue(any(all("text" in cell and not cell["text"].strip() for cell in row["cells"]) for row in rows),

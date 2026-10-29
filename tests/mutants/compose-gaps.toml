@@ -1,6 +1,7 @@
 # A compose page sets the gap across a row and the gap down apart (`gap_x`, `gap_y`; unsaid, both follow `gap_m`), a
 # cell of no words takes no height and draws nothing, a picture is ruled at shares of its height (`guides`,
-# `guide_tone`), and the share of a row, a cell or a stage is read in one place.
+# `guide_tone`), a picture or words lower than their cell stand where `valign` puts them, and the share of a row,
+# a cell or a stage is read in one place.
 
 tests = ["tests/layout/test_compose_gaps.py", "tests/layout/test_compose.py", "tests/layout/test_roadmap.py", "tests/layout/test_uses.py"]
 
@@ -233,10 +234,10 @@ old = "self._remaining.height - height - self.theme.spacing.band_gap)"
 new = "self._remaining.height - height - self.theme.spacing.gap_m)"
 
 [[mutant]]
-name = "a picture lower than its cell stands at the top whatever it asks"
+name = "a part lower than its cell stands at the top whatever it asks"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "top = frame.top + {\"top\": 0, \"middle\": spare // 2, \"bottom\": spare}[cell.get(\"valign\", \"top\")]"
-new = "top = frame.top"
+old = "rect.top + {\"top\": 0, \"middle\": spare // 2, \"bottom\": spare}[valign]"
+new = "rect.top"
 
 [[mutant]]
 name = "a picture asked to stand in the middle stands at the bottom"
@@ -253,8 +254,38 @@ new = "\"middle\": spare // 2, \"bottom\": spare // 2}"
 [[mutant]]
 name = "a picture asked for no place stands in the middle"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "[cell.get(\"valign\", \"top\")]"
-new = "[cell.get(\"valign\", \"middle\")]"
+old = "_stood(frame, block, cell.get(\"valign\", \"top\"))"
+new = "_stood(frame, block, cell.get(\"valign\", \"middle\"))"
+
+[[mutant]]
+name = "words asked for no place stand in the middle"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "min(natural, rect.height), cell.get(\"valign\", \"top\"))"
+new = "min(natural, rect.height), cell.get(\"valign\", \"middle\"))"
+
+[[mutant]]
+name = "words stand at the top whatever they ask"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "min(natural, rect.height), cell.get(\"valign\", \"top\"))"
+new = "min(natural, rect.height), \"top\")"
+
+[[mutant]]
+name = "a card may ask for a place it cannot move to"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "if named[0] not in VALIGN_PARTS:"
+new = "if False:"
+
+[[mutant]]
+name = "words may not ask for a place"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "VALIGN_PARTS = (\"text\", "
+new = "VALIGN_PARTS = ("
+
+[[mutant]]
+name = "a table and points may not ask for a place"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "\"table\", \"points\", \"voices\""
+new = "\"voices\""
 
 [[mutant]]
 name = "a place that is none of the three is let through"
@@ -277,8 +308,8 @@ new = "\"valign\", \"id\","
 [[mutant]]
 name = "inset may stand on a cell that holds no figure"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "for key in (\"guides\", \"guide_tone\", \"valign\", \"inset\"):"
-new = "for key in (\"guides\", \"guide_tone\", \"valign\"):"
+old = "for key in (\"guides\", \"guide_tone\", \"inset\"):"
+new = "for key in (\"guides\", \"guide_tone\"):"
 
 [[mutant]]
 name = "an inset below 0 is taken"
