@@ -1,9 +1,9 @@
 """The way an arrow runs between two cells that do not face each other: round the cells, through the gaps between them.
 
-見張るのは 5 つ ― 箱をよけて空いた通り道を通ること (= 頼み主の見本: 右上から左下へ、1 回曲がる道が両方塞がる配置)、
+見張るのは 6 つ ― 箱をよけて空いた通り道を通ること (= 頼み主の見本: 右上から左下へ、1 回曲がる道が両方塞がる配置)、
 曲がる回数が最少で同じなら短い道を選ぶこと、交わらずに引ける道があれば曲がる回数より先にそれを選ぶこと、
 真っすぐの線が相手の箱の真ん中に立ち、同じ辺を同じ向きで使う曲がる線が 1 点から分かれること、どうしても交わる
-所だけを後の線が跳び越すこと。
+所だけを後の線が跳び越すこと、重ねて読める結びが全部書かれている 2 本が同じ隙間を 1 本に重ねて走ること。
 """
 
 from __future__ import annotations
@@ -23,8 +23,9 @@ from pptx_agent_maker.layout.geometry import Rect  # noqa: E402
 from pptx_agent_maker.layout.tokens import theme_from  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 from pptx_agent_maker.layout.types.bodies.link_routes import (  # noqa: E402
-    Attach, Room, RouteSearch, hops, middle_ports, positions)
-from pptx_agent_maker.layout.types.bodies.link_routes.crossings import APART, CROSS, TOUCH, meet  # noqa: E402
+    SIDES, Attach, Room, RouteSearch, hops, middle_ports, positions)
+from pptx_agent_maker.layout.types.bodies.link_routes.crossings import (  # noqa: E402
+    APART, CROSS, TOUCH, meet, shared_length)
 
 S = DEFAULT.spacing
 FILLED = theme_from({"grounds": {"Deep": "8B1E3F"}})
@@ -174,6 +175,16 @@ class TheRouteSearch(unittest.TestCase):
         self.assertEqual(0, second.touching)
         self.assertNotEqual(first.points, second.points)
 
+    def test_a_way_that_runs_on_a_line_it_may_share_is_shorter_by_that_stretch(self):
+        """Two ways as long as each other: the one that runs on a line it may share draws less, so it is taken."""
+        first, second = Rect(0, 1400, 200, 200), Rect(800, 0, 200, 200)
+        alone = search(first, second)
+        self.assertEqual(SIDES.index("right"), alone.start.side, "unshared, it leaves by the narrower gap")
+        trunk = ((100, 1400), (100, 800))
+        shared = search(first, second, drawn=[trunk], kin=[trunk])
+        self.assertEqual(trunk[0], shared.points[0])
+        self.assertEqual(alone.length, shared.length)
+
     def test_a_line_that_shares_its_point_with_a_line_drawn_runs_along_it_where_the_way_is_cheapest(self):
         """The line drawn leaves by the same point: running along it is the branch, so the way is not pushed off it."""
         first = search(self.A, self.B)
@@ -201,6 +212,12 @@ class TheMeetingOfTwoRuns(unittest.TestCase):
         self.assertEqual(TOUCH, meet(horizontal, ((100, 100), (100, 200)), 10), "an end on the other run")
         self.assertEqual(TOUCH, meet(horizontal, ((100, 100), (300, 100)), 10), "a stretch in common")
         self.assertEqual(APART, meet(horizontal, ((0, 120), (200, 120)), 10), "side by side")
+
+    def test_the_length_of_a_run_that_lies_on_others_counts_each_stretch_once(self):
+        across = ((0, 0), (10, 0))
+        self.assertEqual(6, shared_length(across, [((2, 0), (5, 0)), ((8, 0), (4, 0)), ((0, 1), (10, 1)), ((20, 0), (30, 0))]))
+        self.assertEqual(10, shared_length(((5, 10), (5, 0)), [((5, -5), (5, 20))]))
+        self.assertEqual(0, shared_length(across, [((5, -5), (5, 5)), ((10, 0), (12, 0))]))
 
     def test_a_crossing_too_near_an_end_of_the_run_is_a_touch(self):
         horizontal = ((0, 100), (200, 100))
@@ -319,6 +336,38 @@ class ThreeLinesLeavingOneBox(unittest.TestCase):
         first, second = lines_of(page)
         self.assertEqual(first.start, second.start)
         self.assertTrue(not first.hops and not second.hops)
+
+
+class FourLinksBetweenTwoRows(unittest.TestCase):
+    """Two boxes below two, each joined to each above: the two lines that bend share one run across the gap (= an H), not two runs side by side."""
+
+    BOTH = ("ac", "ad", "bc", "bd")
+
+    def page(self, pairs=BOTH, note=True):
+        cells = [card("C", (1, 1), id="c"), card("D", (1, 3), id="d"), card("A", (3, 1), id="a"), card("B", (3, 3), id="b")]
+        if note:
+            cells.append({"text": "a note", "role": "note", "at": [2, 6]})   # its edges give the gap more heights to run at
+        return grid_page(cells, (1,) * 6, (1, 0.4, 1), [{"from": pair[0], "to": pair[1]} for pair in pairs])
+
+    @staticmethod
+    def across(page):
+        """The runs across of the lines that bend, as (y, the x at one end, the x at the other)."""
+        return [(y1, *sorted((x1, x2))) for line in lines_of(page) if len(line.points()) > 2
+                for (x1, y1), (x2, y2) in runs(line.points()) if y1 == y2]
+
+    def test_the_two_that_bend_run_across_the_gap_on_one_run(self):
+        for note in (True, False):
+            with self.subTest(note=note):
+                page = self.page(note=note)
+                first, second = self.across(page)
+                self.assertEqual(first, second)
+                self.assertTrue(all(not line.hops for line in lines_of(page)))
+
+    def test_lines_whose_shared_run_would_read_as_a_link_not_written_keep_apart(self):
+        for pairs in (("ad", "bc"), ("ad", "bc", "ac")):
+            with self.subTest(pairs=pairs):
+                first, second = self.across(self.page(pairs))
+                self.assertNotEqual(first[0], second[0])
 
 
 class ALineInAndALineOutByOneEdge(unittest.TestCase):

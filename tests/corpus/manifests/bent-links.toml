@@ -1,5 +1,6 @@
 # An arrow between two boxes that do not face each other bends once at a right angle. It leaves the cell by the edge
 # nearer the other and goes into the other from above or below, or from the side. A panel may stand on the paper.
+# Two boxes below two, each joined to each above, share one run across the gap.
 
 specimen = "specimen.pptx"
 out = "bent-links.pptx"
@@ -63,3 +64,41 @@ text = ""
 [[pages.rows.cells]]
 id = "second"
 card = { heading = "Second", body = "Is entered by its left edge" }
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "Two boxes below two, each joined to each above"
+condition = "The two arrows that bend share one run across the gap, so the four read as an H and not as a ladder"
+grid = { columns = [1, 1, 1, 1, 1, 1], rows = [1, 0.4, 1] }
+links = [
+  { from = "a", to = "c" },
+  { from = "a", to = "d" },
+  { from = "b", to = "c" },
+  { from = "b", to = "d" },
+]
+
+[[pages.cells]]
+at = [1, 1]
+id = "c"
+card = { heading = "C", body = "Above on the left" }
+
+[[pages.cells]]
+at = [1, 3]
+id = "d"
+card = { heading = "D", body = "Above on the right" }
+
+[[pages.cells]]
+at = [2, 6]
+text = "A note"
+role = "note"
+
+[[pages.cells]]
+at = [3, 1]
+id = "a"
+card = { heading = "A", body = "Below on the left" }
+
+[[pages.cells]]
+at = [3, 3]
+id = "b"
+card = { heading = "B", body = "Below on the right" }

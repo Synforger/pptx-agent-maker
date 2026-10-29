@@ -14,7 +14,8 @@
 * **マスどうしの線 (`links`)** ― `compose` の頁で、`id` を付けたマスからマスへ矢印を引く。向き合うマス (= 縦か
   横の範囲が重なる) は真っすぐ、向き合わないマス (= 帯の違う箱どうしなど) は、箱をよけた直角の折れ線で結ぶ
   (= 曲がる回数が一番少ない道。真っすぐの線は相手の真ん中に立ち、同じ辺から出る曲がる線は 1 点から分かれ、交わる所は
-  後の線が跳び越す。`link_routes`)。
+  後の線が跳び越す。`link_routes`)。互いの出る箱から互いの入る箱への矢印も書かれている 2 本は、同じ隙間を離して
+  並べずに 1 本に重ねて走る (= 重ねて読める結びが、全部書かれている)。
   入れ物 (`panel`) の中のマスと外のマスも結べ、入れ物そのものも端になる (= 入れ物とその中身は結べない)。
   色の役 (`tone`) と、真っすぐな矢印のそばに置く言葉 (`text`) も書ける
 
@@ -412,22 +413,34 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
              else link for link, others in zip(items, in_the_way)]
     ports = _plan_ports(items, in_the_way, room, cells, detour)
     drawn: list[tuple[Point, ...]] = []
+    drawn_ends: list[tuple[str, str]] = []
+    written = {link.ends for link in items}
     reach = max(rect.right for rect in every)
     for number, (link, others) in enumerate(zip(items, in_the_way)):
         if link.facing:
             points, joined = _straight(link, ports[number]), (None, None)
             _clear_between(link, points[0], points[1], others, cells)
         else:
-            start, end = ports[number][0].point, ports[number][1].point
-            kin = [line for line in drawn if line[0] == start or line[-1] == end]
+            kin = [line for line, ends in zip(drawn, drawn_ends) if _may_share(ends, link.ends, written)]
             route = _route(link, others, drawn, room, ports[number], cells, strict=True, kin=kin, detour=detour)
             points, joined = route.points, (_joined(link.first, route.start), _joined(link.second, route.end))
         page.line(points[0], points[-1], arrow=True, tone=link.tone, corners=points[1:-1], hops=hops(points, drawn, room.hop),
                   hop=room.hop, begins_on=joined[0], ends_on=joined[1], dashed=link.dashed)
         drawn.append(points)
+        drawn_ends.append(link.ends)
         if link.words:
             _words_by(page, link.words.strip(), points[0], points[-1], link.facing == "across", (link.first, link.second),
                       others, reach, link.where)
+
+
+def _may_share(ends: tuple[str, str], link_ends: tuple[str, str], written: set[tuple[str, str]]) -> bool:
+    """Whether a line drawn between the cells `ends` may share runs with the line being found between `link_ends`.
+
+    重ねた区間は、片方の出る箱からもう片方の入る箱への結びとも読める。分け合ってよいのは、そう読める結び (= 互いの
+    出る箱から互いの入る箱への矢印) がどちらも書かれている時。出る箱か入る箱が同じ 2 本は、読める結びが自分たち
+    そのものなので、いつも当たる (= 1 点から分かれる枝と、1 点へ集まる合流)。
+    """
+    return {(ends[0], link_ends[1]), (link_ends[0], ends[1])} <= written
 
 
 def _read_link(spec: Spec, item, number: int, cells: dict[str, Rect], what: str) -> _Link:
