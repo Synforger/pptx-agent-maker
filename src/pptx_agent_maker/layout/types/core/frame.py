@@ -220,9 +220,11 @@ def _below(page: Page, spec: Spec, width: int) -> list[tuple[str, int, int]]:
     """
     theme, s = page.theme, page.theme.spacing
     found: list[tuple[str, int]] = []
+    if spec.get("table") is None and "table_columns" in spec.data:
+        raise PageTypeError("table_columns: the page writes no `table` to share the columns of")
     if spec.get("table") is not None:
         rows = spec.rows()
-        found.append(("table", theme.table_height(rows, theme.column_widths(rows, width))))
+        found.append(("table", theme.table_height(rows, theme.column_widths(rows, width, spec.table_columns(rows)))))
     if spec.get("points"):
         found.append(("points", theme.text_height("\n".join(_point_lines(spec)), width)))
     if spec.text("note"):
@@ -263,7 +265,8 @@ def place_trailing(page: Page, spec: Spec, area: Rect | None) -> None:
     for what, gap, tall in _below(page, spec, area.width):
         rect = Rect(area.left, top + gap, area.width, tall)
         if what == "table":
-            page.table(rect, spec.rows())
+            rows = spec.rows()
+            page.table(rect, rows, shares=spec.table_columns(rows))
         elif what == "points":
             page.points(rect, _point_lines(spec))
         else:

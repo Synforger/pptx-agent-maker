@@ -20,7 +20,9 @@ FRAME_KEYS = frozenset({"type", "kind", "title", "kicker", "condition", "conclus
 #: 本体に添えられるもの (= **どの型でも**読まれる。共通の処理が拾う)
 #: ⚠ **カードの列数は `card_columns`。**絵の格子の `columns` と同じ名前だった間は、
 #: 格子を 3 列にするとカードまで 3 枚ずつに割れ、格子以外の型ではカードの列数を書けなかった。
-EXTRA_KEYS = frozenset({"cards", "card_columns", "table", "note", "points"})
+#: ⚠ **表の列の幅の比は `table_columns`。**CSV の表 `table = { data, columns }` の `columns` は残す列の名前で、
+#: 行で書いた表には書く場所が無いので、表の隣のキーにした。
+EXTRA_KEYS = frozenset({"cards", "card_columns", "table", "table_columns", "note", "points"})
 
 
 TYPES: dict[str, tuple[Filler, frozenset, bool]] = {}

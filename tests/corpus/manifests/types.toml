@@ -544,3 +544,25 @@ voices = [
   { text = "\"The display was easy to follow\nand the sound was good\"", who = "Work A" },
   { text = "\"Thank you\"", who = "Work B" },
 ]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A table cut in two keeps its columns in line"
+why = "a table written as two tables (= one in a cell, one under the body) that share one ratio of columns, so the second does not size its columns by its own words"
+table = [
+  ["Season", "Score", "Note"],
+  ["Autumn", "9", "short"],
+  ["Winter", "12", "slow, and the note of this row is long enough to wrap"],
+]
+table_columns = [1, 1, 4]
+footer = "Source: made up for this example"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+table = [
+  ["Season", "Score", "Note"],
+  ["Spring", "48", "-"],
+  ["Summer", "71", "the longest note of the upper table"],
+]
+table_columns = [1, 1, 4]

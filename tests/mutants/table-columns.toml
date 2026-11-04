@@ -1,0 +1,70 @@
+# A table's columns can be given a ratio (= `table_columns`): the table is laid out and counted at the widths
+# the ratio gives, in a cell and under a body alike, and a ratio that does not fit the table stops.
+
+tests = ["tests/layout/test_table_columns.py", "tests/layout/test_table_widths.py"]
+
+[[mutant]]
+name = "the ratio is left to the words of the columns"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "            return self.shared_widths(shares, total)"
+new = "            pass"
+
+[[mutant]]
+name = "the last column does not take what rounding leaves"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        return widths + [total - sum(widths)]"
+new = "        return widths + [round(total * shares[-1] / whole)]"
+
+[[mutant]]
+name = "a table under a body is placed at the widths of its words, not the ratio"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "            page.table(rect, rows, shares=spec.table_columns(rows))"
+new = "            page.table(rect, rows)"
+
+[[mutant]]
+name = "a table under a body is counted at the widths of its words, not the ratio"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "theme.column_widths(rows, width, spec.table_columns(rows))"
+new = "theme.column_widths(rows, width)"
+
+[[mutant]]
+name = "a table in a cell is placed at the widths of its words, not the ratio"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "            page.table(fitted, rows, shares=_table_columns(cell, rows, what))"
+new = "            page.table(fitted, rows)"
+
+[[mutant]]
+name = "a table in a cell is counted at the widths of its words, not the ratio"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "theme.column_widths(rows, width, _table_columns(cell, rows, what))"
+new = "theme.column_widths(rows, width)"
+
+[[mutant]]
+name = "the table is laid out at the ratio but fitted at the widths of its words"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "        widths = self.theme.column_widths(rows, rect.width, shares)"
+new = "        widths = self.theme.column_widths(rows, rect.width)"
+
+[[mutant]]
+name = "a ratio with the wrong number of shares is shared all the same"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if len(written) != columns:"
+new = "    if False:"
+
+[[mutant]]
+name = "a share of 0 or less is taken"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = '    return tuple(read_weight({"weight": share}, f"{where}, column {number}")'
+new = '    return tuple(float(share)'
+
+[[mutant]]
+name = "a ratio with no table to share is dropped without a word"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = '    if spec.get("table") is None and "table_columns" in spec.data:'
+new = "    if False:"
+
+[[mutant]]
+name = "a cell that holds no table takes the ratio"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '    if "table_columns" in cell and named[0] != "table":'
+new = "    if False:"
