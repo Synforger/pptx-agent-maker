@@ -78,7 +78,7 @@ class TheColumnsAreSharedByTheRatioWritten(unittest.TestCase):
         self.assertEqual(a.widths, b.widths)
 
     def test_the_height_is_counted_at_the_widths_the_ratio_gives(self) -> None:
-        """A narrow share folds the long note, and the table says so in its height (= and in the room it takes)."""
+        """The table takes the room its rows need at the ratio's widths, not at the widths of its words."""
         narrow = [4, 1, 1]
         rows = read_table(LOWER, "table", asset)
         widths = DEFAULT.shared_widths(narrow, tables(build({"type": "board", "title": "t", "table": LOWER}))[0].rect.width)
@@ -87,7 +87,7 @@ class TheColumnsAreSharedByTheRatioWritten(unittest.TestCase):
         self.assertEqual(list(table.widths), widths)
 
     def test_the_height_of_a_table_in_a_cell_is_counted_at_the_widths_the_ratio_gives(self) -> None:
-        """The row is as tall as the table at the ratio's widths: equal shares fold the long note that its own words keep whole (= in a cell half the body wide)."""
+        """The row is as tall as the table at the ratio's widths (= equal shares fold a note its own words keep whole)."""
         rows = read_table(UPPER, "table", asset)
         cell = {"table": UPPER}
 
