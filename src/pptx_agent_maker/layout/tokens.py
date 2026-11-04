@@ -232,9 +232,10 @@ class Type:
     tight: float = 1.0
     #: 余白と間隔のうち、1 つずつ決めた物 (= 名前と EMU。倍率より勝つ)。書けるのは案件の名前付きの使い方だけ
     spaced: tuple[tuple[str, int], ...] = ()
-    #: 案件が書いた `band` と `display` と `tag` と `kicker` (= 書かなければ None で、下の 4 つが他の役から出す)
+    #: 案件が書いた `band` と `display` と `statement` と `tag` と `kicker` (= 書かなければ None で、下の 5 つが他の役から出す)
     band_set: float | None = None
     display_set: float | None = None
+    statement_set: float | None = None
     tag_set: float | None = None
     kicker_set: float | None = None
     #: この使い方が選んだ本体の箱の高さ (= `BOX_HEIGHTS`)。書かなければ None で、資料の `[theme] box_height`
@@ -265,6 +266,15 @@ class Type:
         比も保つ。
         """
         return self.title * 2 if self.display_set is None else self.display_set
+
+    @property
+    def statement(self) -> float:
+        """頁の主役の 1 文 (= 目指す姿のような、大きく置く文。`compose` の文章の `role = "statement"`)。**書かなければ題の 1.5 倍。**
+
+        `display` が数字の役で題の 2 倍なのに並べる、文の役。題から出すので、案件が題の大きさを変えれば付いて行き、
+        使い方 (= `present` / `sheet`) の比も保つ。
+        """
+        return self.title * STATEMENT_SCALE if self.statement_set is None else self.statement_set
 
     @property
     def tag(self) -> float:
@@ -342,8 +352,11 @@ TABLE_LOOKS = ("accent", "plain")
 #: 案件が 1 つずつ上書きできる大きさの役 (= `[theme.type]`)。向きの字と下限は使い方が決める
 SIZED = ("title", "heading", "stage", "body", "caption")
 #: そのほか、案件が書ける役 (= `[theme.type]`)。書かなければ他の役から出る (= `Type.band` と `Type.tag` は
-#: 見出し、`Type.display` は題の 2 倍、`Type.kicker` は出所の字か題の字)。書いた値は `Type` の `<名前>_set` に入る
-DERIVED = ("band", "display", "tag", "kicker")
+#: 見出し、`Type.display` は題の 2 倍、`Type.statement` は題の 1.5 倍、`Type.kicker` は出所の字か題の字)。書いた値は
+#: `Type` の `<名前>_set` に入る
+DERIVED = ("band", "display", "statement", "tag", "kicker")
+#: 書かなければ、頁の主役の 1 文 (= `Type.statement`) は題のこの倍の大きさ
+STATEMENT_SCALE = 1.5
 #: 行の高さの見積り (= 字の大きさに対する倍率)。案件が `leading` を書かなければ、これで数え、行間は書体に任せる
 LEADING = 1.45
 #: 案件が書ける `leading` の幅 (= 1 より詰めると行が重なり、2 を越えると行の間が段落の間に見える)

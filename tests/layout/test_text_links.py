@@ -77,7 +77,7 @@ class OneRuleForTheColourOfATone(unittest.TestCase):
 
 
 class TheRolesOfAText(unittest.TestCase):
-    """`role = "label"` and `role = "note"` stand beside `display`, and `tone` and `align` go with all of them."""
+    """`role = "label"`, `role = "note"` and `role = "statement"` stand beside `display`, and `tone` and `align` go with all of them."""
 
     def test_a_text_with_no_role_is_set_as_it_was(self) -> None:
         text = shown({"text": "Plain"})
@@ -91,18 +91,32 @@ class TheRolesOfAText(unittest.TestCase):
         text = shown({"text": "Counted over ten runs", "role": "note"})
         self.assertEqual((T.caption, False, P.muted), (text.size, text.bold, text.colour))
 
+    def test_a_statement_is_bold_at_one_and_a_half_times_the_title_in_the_body_colour(self) -> None:
+        text = shown({"text": "A page that says what it is for", "role": "statement"})
+        self.assertEqual((T.title * 1.5, True, P.ink, "left"), (text.size, text.bold, text.colour, text.align))
+        self.assertEqual("text", text.kind, "a statement is words, not the figure a display is")
+
+    def test_a_statement_wraps_by_the_width_of_its_cell_into_as_many_lines_as_it_has(self) -> None:
+        """The sentence folds where a text with no role folds, and the row is as tall as the lines it folds into."""
+        words = "A sentence long enough to fold onto a second line and then a third, as the page is wide."
+        text = shown({"text": words, "role": "statement"})
+        width = Page("A page", DEFAULT).body.width - 2 * S.text_inset
+        lines = DEFAULT.wraps(words, width, T.statement, bold=True)
+        self.assertGreater(lines, 1)
+        self.assertEqual(lines * DEFAULT.line_height(T.statement), text.rect.height)
+
     def test_each_role_is_as_tall_as_its_own_lines(self) -> None:
         """The row takes the height of the words at their own size (= a label wraps as bold type at `stage`)."""
         words = "Words long enough to wrap onto a second line of the cell, and then a third."
         width = Page("A page", DEFAULT).body.width - 2 * S.text_inset
         for role, size, bold in (("label", T.stage, True), ("note", T.caption, False), (None, T.body, False),
-                                 ("display", T.display, True)):
+                                 ("display", T.display, True), ("statement", T.statement, True)):
             with self.subTest(role=role):
                 text = shown({"text": words, "role": role} if role else {"text": words})
                 self.assertEqual(DEFAULT.wrapped_height(words, width, size, bold=bold), text.rect.height)
 
     def test_a_tone_that_carries_a_colour_is_that_colour_in_every_role(self) -> None:
-        for role in (None, "label", "note", "display"):
+        for role in (None, "label", "note", "display", "statement"):
             for tone, colour in (("accent", P.accent), ("good", P.good), ("bad", P.bad)):
                 with self.subTest(role=role, tone=tone):
                     cell = {"text": "Words", "tone": tone, **({"role": role} if role else {})}
@@ -117,6 +131,7 @@ class TheRolesOfAText(unittest.TestCase):
     def test_a_tone_wins_over_the_colour_a_role_has_of_its_own(self) -> None:
         self.assertEqual(P.bad, shown({"text": "Aside", "role": "note", "tone": "bad"}).colour)
         self.assertEqual(P.bad, shown({"text": "98%", "role": "display", "tone": "bad"}).colour)
+        self.assertEqual(P.bad, shown({"text": "Aim", "role": "statement", "tone": "bad"}).colour)
         self.assertEqual(P.accent, shown({"text": "98%", "role": "display"}).colour, "unsaid, the accent as before")
 
     def test_a_ground_the_project_named_gives_its_colour_when_it_is_deep_and_the_ink_when_it_is_pale(self) -> None:
@@ -127,10 +142,11 @@ class TheRolesOfAText(unittest.TestCase):
         self.assertEqual("center", shown({"text": "Heading", "role": "label", "align": "center"}).align)
         self.assertEqual("left", shown({"text": "Heading", "role": "label", "align": "left"}).align)
         self.assertEqual("center", shown({"text": "98%", "role": "display", "align": "center"}).align)
+        self.assertEqual("center", shown({"text": "Aim", "role": "statement", "align": "center"}).align)
 
     def test_what_a_text_cannot_say_is_refused_and_says_where(self) -> None:
         refused = (({"text": "A", "tone": "neon"}, "tone 'neon'"), ({"text": "A", "align": "right"}, "`align` is 'left' or 'center'"),
-                   ({"text": "A", "align": "middle"}, "not 'middle'"), ({"text": "A", "role": "title"}, "display, label, note, mono"),
+                   ({"text": "A", "align": "middle"}, "not 'middle'"), ({"text": "A", "role": "title"}, "display, statement, label, note, mono"),
                    ({"card": {"heading": "A"}, "tone": "accent"}, "`tone` belongs to a text"),
                    ({"figure": "dot.png", "align": "center"}, "`align` belongs to a text"),
                    ({"text": "x = 1", "role": "mono", "tone": "bad"}, "a mono text"),

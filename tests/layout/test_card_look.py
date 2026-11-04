@@ -69,6 +69,23 @@ class TheBandAndTheBigNumberHaveSizesOfTheirOwn(unittest.TestCase):
     def test_the_title_alone_still_takes_the_number_with_it(self) -> None:
         self.assertEqual(40, theme_from({"type": {"title": 20}}).type.display)
 
+    def test_left_unsaid_a_statement_is_one_and_a_half_times_the_title_in_every_use(self) -> None:
+        for use in ("read", "present", "sheet"):
+            with self.subTest(use=use):
+                type = DEFAULT.using(use).type
+                self.assertEqual(type.title * 1.5, type.statement)
+                self.assertNotEqual(type.display, type.statement, "the number and the sentence are two roles")
+
+    def test_a_project_writes_a_statement_under_theme_type_and_the_title_alone_takes_it_along(self) -> None:
+        self.assertEqual(30, theme_from({"type": {"statement": 30}}).type.statement)
+        self.assertEqual(30, theme_from({"type": {"title": 20}}).type.statement)
+        self.assertEqual(40, theme_from({"type": {"title": 20}}).type.display, "the number is as it was")
+
+    def test_a_statement_under_the_floor_of_its_use_is_refused(self) -> None:
+        with self.assertRaises(ThemeError) as small:
+            theme_from({"type": {"statement": 9}})
+        self.assertIn("statement", str(small.exception))
+
     def test_a_use_of_the_projects_writes_them_too(self) -> None:
         theme = theme_from({"uses": {"slim": {"like": "read", "heading": 11, "band": 16, "display": 36}}})
         type = theme.using("slim").type
@@ -127,6 +144,12 @@ class TheBandAndTheBigNumberHaveSizesOfTheirOwn(unittest.TestCase):
         theme = theme_from({"type": {"display": 40}})
         built = build({"type": "compose", "title": "T", "rows": [row({"text": "76%", "role": "display"})]}, theme)
         self.assertEqual(40, named(built, "76%").size)
+
+    def test_the_statement_of_a_compose_is_set_at_the_statement_size(self) -> None:
+        theme = theme_from({"type": {"statement": 30}})
+        built = build({"type": "compose", "title": "T", "rows": [row({"text": "Where we are going", "role": "statement"})]},
+                      theme)
+        self.assertEqual(30, named(built, "Where we are going").size)
 
 
 class AWordOrTwoOfACardMayBeLeftOut(unittest.TestCase):
