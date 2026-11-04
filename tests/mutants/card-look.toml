@@ -52,6 +52,30 @@ file = "src/pptx_agent_maker/layout/tokens.py"
 old = "(*_USE_KEYS, *SIZED, *DERIVED))"
 new = "(*_USE_KEYS, *SIZED))"
 
+[[mutant]]
+name = "a statement written under theme.type is not read"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "return self.title * STATEMENT_SCALE if self.statement_set is None else self.statement_set"
+new = "return self.title * STATEMENT_SCALE"
+
+[[mutant]]
+name = "a statement left unsaid is the same size as the title"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "return self.title * STATEMENT_SCALE if self.statement_set is None else self.statement_set"
+new = "return self.title if self.statement_set is None else self.statement_set"
+
+[[mutant]]
+name = "a statement left unsaid is as large as a display"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "STATEMENT_SCALE = 1.5"
+new = "STATEMENT_SCALE = 2"
+
+[[mutant]]
+name = "a statement is a role nobody reads under theme.type"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = 'DERIVED = ("band", "display", "statement", "tag", "kicker")'
+new = 'DERIVED = ("band", "display", "tag", "kicker")'
+
 # -- the band's words (layout/parts/page.py) -------------------------------------
 
 [[mutant]]

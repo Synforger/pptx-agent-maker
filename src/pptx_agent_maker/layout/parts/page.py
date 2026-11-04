@@ -768,18 +768,19 @@ class Page:
         """(size, bold) of the words of a `text` in this role (= the side that counts its height and the side that sets it read one).
 
         書かなければ本文 (= 本文の大きさ、太字でない)。`label` は列や行の見出し (= `stage` の大きさの太字)、`note` は
-        添える小さい字 (= `caption` の大きさ)、`display` は頁の主役の数字 (= `Type.display` の太字)。
+        添える小さい字 (= `caption` の大きさ)、`display` は頁の主役の数字 (= `Type.display` の太字)、`statement` は
+        頁の主役の 1 文 (= `Type.statement` の太字)。
         """
         t = self.theme.type
-        return {"display": (t.display, True), "label": (t.stage, True), "note": (t.caption, False)}.get(
-            role, (t.body, False))
+        return {"display": (t.display, True), "statement": (t.statement, True), "label": (t.stage, True),
+                "note": (t.caption, False)}.get(role, (t.body, False))
 
     def text(self, rect: Rect, text: str, *, role: str | None = None, tone: str | None = None,
              align: str = "left") -> None:
         """Words that are part of what the page says: the body's colour, at the body's size.
 
-        `role` は字の大きさと太さ (= `text_face`)。色は、書かなければ役ごと (= 本文と見出しは本文の色、`note` は
-        灰、`display` は差し色)。`tone` を書けばその色の役の字 (= `tone_ink`)。
+        `role` は字の大きさと太さ (= `text_face`)。色は、書かなければ役ごと (= 本文と見出しと `statement` は本文の色、
+        `note` は灰、`display` は差し色)。`tone` を書けばその色の役の字 (= `tone_ink`)。
         """
         p = self.theme.palette
         size, bold = self.text_face(role)

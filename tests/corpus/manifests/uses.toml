@@ -191,3 +191,21 @@ cards = [
   { heading = "Above", body = "the small words keep their own row over the title" },
   { heading = "Title", body = "the title's own row is as tall as ever" },
 ]
+
+[[pages]]
+kind = "declare"
+type = "compose"
+use = "banded"
+title = "The sentence the page is about is set large, apart from the number"
+condition = "A statement is bold in the body's colour at the size the use says; a display is the accent"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+text = "Every page of the deck says one thing, and the reader can say it back after a minute"
+role = "statement"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+card = { heading = "Statement", body = "thirty points, said by the use" }
+[[pages.rows.cells]]
+card = { heading = "Display", body = "forty points, for a figure" }

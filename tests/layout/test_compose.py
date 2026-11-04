@@ -397,6 +397,17 @@ class Roles(unittest.TestCase):
         (shown,) = kinds(page, "display")
         self.assertEqual(shown.rect.height, DEFAULT.line_height(DEFAULT.type.display))
 
+    def test_a_statement_is_one_and_a_half_times_the_title_bold_in_the_body_colour(self):
+        (shown,) = kinds(compose([row({"text": "Where we are going", "role": "statement"})]), "text")
+        self.assertEqual(shown.size, DEFAULT.type.title * 1.5)
+        self.assertTrue(shown.bold)
+        self.assertEqual(shown.colour, DEFAULT.palette.ink)
+
+    def test_a_statement_takes_the_height_of_its_own_large_lines(self):
+        page = compose([row({"text": "Where we are going", "role": "statement"})])
+        (shown,) = kinds(page, "text")
+        self.assertEqual(shown.rect.height, DEFAULT.line_height(DEFAULT.type.statement))
+
     def test_code_is_monospaced_as_written_on_a_light_ground(self):
         page = compose([row({"text": self.CODE, "role": "mono"})])
         (box,) = kinds(page, "code_box")
@@ -428,7 +439,7 @@ class Roles(unittest.TestCase):
         self.assertIn("`role` belongs to a text", str(wrong_part.exception))
         with self.assertRaises(PageTypeError) as unknown:
             compose([row({"text": "A", "role": "huge"})])
-        self.assertIn("display, label, note, mono", str(unknown.exception))
+        self.assertIn("display, statement, label, note, mono", str(unknown.exception))
 
     def test_written_out_the_code_keeps_its_face_and_lines_and_the_checks_find_nothing(self):
         page = compose([row({"text": "98%", "role": "display"}, {"text": self.CODE, "role": "mono"})])

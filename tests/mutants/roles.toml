@@ -37,3 +37,27 @@ name = "a display text is measured at the body's size"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
 old = 'size, bold = page.text_face(cell.get("role"))'
 new = "size, bold = (None, False)"
+
+[[mutant]]
+name = "a statement is not a role a text may take"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = 'ROLES = ("display", "statement", "label", "note", "mono")'
+new = 'ROLES = ("display", "label", "note", "mono")'
+
+[[mutant]]
+name = "a statement is set at the size of the body"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = '"statement": (t.statement, True), '
+new = ""
+
+[[mutant]]
+name = "a statement is not bold"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = '"statement": (t.statement, True)'
+new = '"statement": (t.statement, False)'
+
+[[mutant]]
+name = "a statement is set in the accent like a display"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = '{"note": p.muted, "display": p.accent}.get(role, p.ink)'
+new = '{"note": p.muted, "display": p.accent, "statement": p.accent}.get(role, p.ink)'

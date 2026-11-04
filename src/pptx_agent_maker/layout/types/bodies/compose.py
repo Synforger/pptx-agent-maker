@@ -81,9 +81,10 @@ from .chart import place_chart
 
 #: マスに 1 つ置ける部品のうち、ここで直に組む物
 PARTS = ("card", "panel", "figure", "table", "text", "points", "chart", "voices", "ring", "tree", "overlap", "legend")
-#: 文章の役 (= `role`)。書かなければ本文の色と大きさ。`display` = 頁の主役の数字を特大で、`label` = 列や行の
-#: 見出しを太字で、`note` = 添える小さい字を灰で、`mono` = コード・コマンド・数式の行を等幅で、折らずに薄い地の枠に
-ROLES = ("display", "label", "note", "mono")
+#: 文章の役 (= `role`)。書かなければ本文の色と大きさ。`display` = 頁の主役の数字を特大で、`statement` = 頁の主役の
+#: 1 文を大きな太字で、`label` = 列や行の見出しを太字で、`note` = 添える小さい字を灰で、`mono` = コード・コマンド・
+#: 数式の行を等幅で、折らずに薄い地の枠に
+ROLES = ("display", "statement", "label", "note", "mono")
 #: 文章が読むキーのうち、字の見え方 (= 色の役と寄せ。`mono` は枠の中に等幅で置くので読まない)
 TEXT_LOOKS = ("tone", "align")
 #: 部品がマスより低い時に、マスの中で縦に置く位置 (= `valign`。書かなければ上端)

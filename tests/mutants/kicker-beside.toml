@@ -48,8 +48,8 @@ new = "        if False:"
 [[mutant]]
 name = "the project's size for the small words is not a size it may write"
 file = "src/pptx_agent_maker/layout/tokens.py"
-old = 'DERIVED = ("band", "display", "tag", "kicker")'
-new = 'DERIVED = ("band", "display", "tag")'
+old = 'DERIVED = ("band", "display", "statement", "tag", "kicker")'
+new = 'DERIVED = ("band", "display", "statement", "tag")'
 
 [[mutant]]
 name = "beside a title, the row of the small words grows with their size and moves the band"

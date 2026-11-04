@@ -20,13 +20,14 @@ like = "read"
 heading = 14
 body = 11
 
-# A use that sets the size of the bands and of the big number apart from the headings.
+# A use that sets the size of the bands and of the big number and the big sentence apart from the headings.
 [theme.uses.banded]
 like = "read"
 heading = 12
 body = 11
 band = 16
 display = 40
+statement = 30
 
 # A use whose gaps are wide enough to hold words beside an arrow (= a sideways arrow's words stand in the gap).
 [theme.uses.airy]
