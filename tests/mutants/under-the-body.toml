@@ -23,7 +23,7 @@ new = "    if False:\n        found.append"
 [[mutant]]
 name = "the table is measured by its rows alone, as if no cell folded"
 file = "src/pptx_agent_maker/layout/types/core/frame.py"
-old = 'found.append(("table", theme.table_height(rows, theme.column_widths(rows, width))))'
+old = 'found.append(("table", theme.table_height(rows, theme.column_widths(rows, width, spec.table_columns(rows)))))'
 new = 'found.append(("table", theme.table_height(rows)))'
 
 [[mutant]]

@@ -12,7 +12,7 @@ from numbers import Real
 from pathlib import Path
 from typing import Callable
 
-from ...tokens import DEFAULT, PAPER, Band, Palette, Theme
+from ...tokens import DEFAULT, PAPER, Band, Palette, Theme, table_column_count
 from ...parts.elements import Mark, Shade
 from ...parts.look import Style, TONES
 from ...parts.page import CARD_ALIGNS, Card, Panel
@@ -63,6 +63,10 @@ class Spec:
 
     def rows(self, key: str = "table") -> list[list[str]]:
         return read_table(self.data[key], key, self.asset)
+
+    def table_columns(self, rows: list[list[str]]) -> tuple[float, ...] | None:
+        """The shares of the table's columns the page wrote (= `table_columns`); None when it wrote none."""
+        return read_table_columns(self.data.get("table_columns"), rows, "table")
 
     def cards(self) -> list[Card]:
         return [read_card(self, item, f"cards: card {number}")
@@ -140,6 +144,27 @@ def read_table(table, what: str, asset: Callable[[str], Path]) -> list[list[str]
     if isinstance(table, dict):
         return _read_table_file(table, what, asset)
     return _read_table_rows(table, what)
+
+
+def read_table_columns(written, rows: list[list[str]], what: str) -> tuple[float, ...] | None:
+    """The shares of a table's columns, `table_columns = [1, 2, 2]` (= None when the page writes none).
+
+    格子の `columns` と同じ読み方 (= 比。数は何でもよく、割合だけが効く)。表が行の並びでも CSV でも、書く場所は
+    表の隣の 1 つのキー。`table = { data = …, columns = [...] }` の `columns` は残す列の見出しの名前なので、
+    幅の比には使わない。⚠ **数は表の列の数と同じ。**違うまま黙って割ると、書いた人の意図の列がずれる。
+    """
+    if written is None:
+        return None
+    columns = table_column_count(rows)
+    where = f"{what}: table_columns"
+    if not isinstance(written, list) or not written:
+        raise PageTypeError(f"{where} is a list of shares, one for each column of the table, "
+                            f"as in table_columns = [{', '.join(['1'] * columns)}], not {written!r}")
+    if len(written) != columns:
+        raise PageTypeError(f"{where} has {len(written)} shares and the table has {columns} columns — "
+                            "one share for each column")
+    return tuple(read_weight({"weight": share}, f"{where}, column {number}")
+                 for number, share in enumerate(written, start=1))
 
 
 def _read_table_rows(rows, what: str) -> list[list[str]]:

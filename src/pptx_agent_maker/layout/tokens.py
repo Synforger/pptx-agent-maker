@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field, fields, replace
-from typing import ClassVar
+from typing import ClassVar, Sequence
 
 from .geometry import Rect, cm, pt
 
@@ -651,6 +651,11 @@ def divides(row) -> bool:
     return len(row) == 1 and isinstance(row[0], Band)
 
 
+def table_column_count(rows) -> int:
+    """How many columns a table has: its widest row of cells (= a band is one cell across them all, and counts none)."""
+    return max((len(row) for row in rows if not divides(row)), default=1)
+
+
 @dataclass(frozen=True)
 class Theme:
     """Everything a page is allowed to know about how the deck looks."""
@@ -806,8 +811,11 @@ class Theme:
             total += tallest * self.line_height() + 2 * self.spacing.cell_pad_y
         return total
 
-    def column_widths(self, rows, total: int) -> list[int]:
-        """Share the width out by how much each column has to say.
+    def column_widths(self, rows, total: int, shares: Sequence[float] | None = None) -> list[int]:
+        """Share the width out by how much each column has to say, or by the shares the page wrote (= `table_columns`).
+
+        書いた比があれば、字の量は見ない (= 比のとおりに割る。別の表と列を揃えるための口なので、中身が変わっても
+        幅は変わらない)。1 つの表を区切りごとに 2 つに割ると、幅が表ごとに字の量から決まってずれる。
 
         均等に割ると、長いラベルの列だけが折り返して表が縦に伸び、下に置いたはずの
         読み方を飲み込む。列ごとに、いちばん長いセルが 1 行で要る幅 (= 描かれる幅と、セルの左右の余白) を
@@ -817,9 +825,11 @@ class Theme:
         ⚠ **要る幅は字の数でなく描かれる幅で測る** (= `width`)。字の数の比で配った間は、全角の名前の列が
         数字の列と同じ割合でしか広がらず、折れて表が倍の高さに数えられた。見出しの行は太字で測る。
         """
+        if shares is not None:
+            return self.shared_widths(shares, total)
         heading = rows[0] if rows and not divides(rows[0]) else None
         rows = [row for row in rows if not divides(row)] or rows        # 区切りの行は列の幅を決めない
-        columns = max(len(row) for row in rows)
+        columns = table_column_count(rows)
         pad = 2 * self.spacing.cell_pad_x
         want = [max((self.width(str(row[i]), bold=row is heading) if i < len(row) else 0) for row in rows) + pad
                 for i in range(columns)]
@@ -832,6 +842,13 @@ class Theme:
             widths = [floor + round(room * w / scale) for w in want]
         widths[-1] = total - sum(widths[:-1])
         return widths
+
+    @staticmethod
+    def shared_widths(shares: Sequence[float], total: int) -> list[int]:
+        """`total` divided in the ratio of `shares`; the last column takes what rounding leaves (= the widths add up to `total`)."""
+        whole = sum(shares)
+        widths = [round(total * share / whole) for share in shares[:-1]]
+        return widths + [total - sum(widths)]
 
     def wraps(self, text: str, width: int, size: float | None = None, *, bold: bool = False) -> int:
         """How many lines this text takes at that width, broken the way a text box breaks it.

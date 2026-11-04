@@ -700,17 +700,19 @@ class Page:
         self._figures += 1
 
     def table(self, rect: Rect, rows: list[list[str]], *, header: bool = True,
-              highlight: dict[tuple[int, int], str] | None = None) -> Rect:
+              highlight: dict[tuple[int, int], str] | None = None, shares: Sequence[float] | None = None) -> Rect:
         """A small table. Empty cells are refused: write a dash if there is no value.
 
         セルは言葉か、状態の印 (= `Mark`) か、地の濃さを言った言葉 (= `Shade`。値の大小を地の濃さで見せる)。
         行は、列のセルの並びか、全部の列をまたぐ区切り (= `Band` 1 つの行。何を分けるかは `tone` が言う)。
 
+        列の幅は字の量で決まる。`shares` を渡すと、その比で割る (= 別の表と列を揃える)。
+
         ⚠ **表の高さは行数が決める。**渡した枠は上限であって指示ではなく、行が
         入り切らなければ PowerPoint は枠を下へ伸ばす (= 頁から溢れる)。ここで
         必要な高さを測り、入らない宣言をその場で拒む。
         """
-        widths = self.theme.column_widths(rows, rect.width)
+        widths = self.theme.column_widths(rows, rect.width, shares)
         needed = self.theme.table_height(rows, widths)
         if needed > rect.height:
             raise ValueError(

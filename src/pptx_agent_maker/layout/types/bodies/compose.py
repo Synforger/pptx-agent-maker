@@ -27,6 +27,8 @@
   同じ段のカードの字と同じ高さに並べる時に使う。カードと入れ物はマスの高さを使い切るので書けない
 * 図のマスの `inset` (= cm) は、絵の左右に取る内側の余白 (= 書かなければ 0 で、絵はマスの横幅いっぱい)。
   隣のマスとの間は変えずに、絵だけを細くする
+* 表のマスの `table_columns = [1, 2, 2]` (= 列の数と同じ数の比。格子の `columns` と同じ読み方) は、列の幅を字の量でなく
+  その比で割る。1 つの表を区切りごとに 2 つのマスに割った時に、上と下の列を揃える
 * 同じ段のマスとマスの間は使い方の `gap_x`、段と段の間は `gap_y` (= 書かなければどちらも `gap_m`)。
   横の間だけ広げ、縦は詰める頁に使う。入れ物の中の段とマスも同じ 2 つを使う
 * **空の文章 (`text = ""`) のマスは高さを取らない** (= 段の高さは同じ段のほかのマスで決まる。段の全部が空なら 0)。
@@ -74,7 +76,7 @@ from ...parts.look import Style
 from ...parts.page import CARD_ALIGNS, Card, Page, PageFullError, Panel, Voice
 from ..core.frame import Legend, legend_cells, legend_of
 from ..core.registry import TYPES, PageTypeError, register
-from ..core.read import Spec, read_card, read_panel, read_table, read_tone, read_weight, only_keys
+from ..core.read import Spec, read_card, read_panel, read_table, read_table_columns, read_tone, read_weight, only_keys
 from ..core.stack import card_height, spread
 from . import arrange
 from .chart import place_chart
@@ -99,7 +101,7 @@ VOICE_KEYS = ("text", "who", "tone")
 BODIES = ("figures", "figure_grid", "flow", "roadmap", "timeline", "board", "agenda")
 #: マスが書けるキー (= 部品のほかに、絵・文章・入れ子の段の見え方)。段のマスは `weight` を書き足せる
 CELL_KEYS = frozenset({"rows", "caption", "role", "marks", "guides", "guide_tone", "valign", "inset", "id",
-                       *TEXT_LOOKS, *PARTS, *BODIES})
+                       "table_columns", *TEXT_LOOKS, *PARTS, *BODIES})
 #: 格子の頁の `grid` が読むキー (= 列と行の幅と高さの比)
 GRID_KEYS = ("columns", "rows")
 #: 格子のマスが書けるキー (= 段のマスと同じ物に、格子のどこを覆うか)
@@ -534,6 +536,8 @@ def _part(cell: dict, what: str) -> str:
     if "legend" in cell and cell["legend"] is not True:
         raise PageTypeError(f"{what}: `legend` is true (= the cell holds the legend of the grounds this page uses), "
                             f"not {cell['legend']!r}")
+    if "table_columns" in cell and named[0] != "table":
+        raise PageTypeError(f"{what}: `table_columns` belongs to a table, and this cell holds {named[0]}")
     if "caption" in cell and named[0] != "figure":
         raise PageTypeError(f"{what}: `caption` belongs to a figure, and this cell holds {named[0]}")
     if "marks" in cell and named[0] != "figure":
@@ -612,7 +616,7 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
                 + page.panel_head(panel, inside) + 2 * s.pad)
     if part == "table":
         rows = _table(spec, cell, what)
-        return theme.table_height(rows, theme.column_widths(rows, width))
+        return theme.table_height(rows, theme.column_widths(rows, width, _table_columns(cell, rows, what)))
     if part == "legend":
         legend = _legend(page, spec, what)
         if page.legend_width(legend.names, dotted=legend.dotted) > width:
@@ -673,7 +677,8 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
         elif part == "panel":
             return _panel(page, spec, cell, rect if own_row or page.theme.box_height == "page" else fitted, what, seen)
         elif part == "table":
-            page.table(fitted, _table(spec, cell, what))
+            rows = _table(spec, cell, what)
+            page.table(fitted, rows, shares=_table_columns(cell, rows, what))
         elif part == "text" and cell.get("role") == "mono":
             page.code(fitted, str(cell["text"]))
         elif part == "text" and _blank(cell):
@@ -811,6 +816,11 @@ def _the_panel(spec: Spec, cell: dict, what: str) -> Panel:
 
 def _table(spec: Spec, cell: dict, what: str) -> list[list[str]]:
     return read_table(cell["table"], f"{what}: table", spec.asset)
+
+
+def _table_columns(cell: dict, rows: list[list[str]], what: str) -> tuple[float, ...] | None:
+    """The shares of the columns of the table a cell holds (= `table_columns`); None when the cell writes none."""
+    return read_table_columns(cell.get("table_columns"), rows, what)
 
 
 def _voices(spec: Spec, cell: dict, what: str) -> list[Voice]:
