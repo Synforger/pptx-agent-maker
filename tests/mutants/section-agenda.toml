@@ -61,3 +61,9 @@ name = "the check does not run with the others"
 file = "src/pptx_agent_maker/checks/declared/__init__.py"
 old = "ALL = (long_title, unsourced, unnamed_axis, section_agenda, untoned_cards)"
 new = "ALL = (long_title, unsourced, unnamed_axis, untoned_cards)"
+
+[[mutant]]
+name = "a chapter named in a list of one is not read as that chapter"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "            if isinstance(here, (list, tuple)) and len(here) == 1:\n                here = here[0]\n"
+new = ""

@@ -591,8 +591,53 @@ class WhatTheTypesRefuse(unittest.TestCase):
                 build({**self.APPENDIX, "list_only": numbers})
         with self.assertRaisesRegex(PageTypeError, r"`list_only` names every chapter"):
             build({**self.APPENDIX, "list_only": [1, 2, 3, 4]})
-        with self.assertRaisesRegex(PageTypeError, r"chapter 4 is in `list_only`"):
+        with self.assertRaisesRegex(PageTypeError, r"\(4\) is in `list_only` — none has a card"):
             build({**self.APPENDIX, "highlight": 4, "highlight_tone": "accent"})
+
+    def test_highlight_can_name_several_chapters_and_marks_each_as_the_one_in_hand(self):
+        """`highlight = [1, 2]` は並べた章を全部今の章と同じに描く (= 左の一覧の章の名前と、 右のカード)。"""
+        page, p = build({**self.APPENDIX, "highlight": [1, 2]}), DEFAULT.palette
+        self.assertEqual(["しょう 1", "しょう 2"], [e.text for e in self._kind(page, "agenda_item") if e.bold])
+        cards = sorted(self._kind(page, "agenda_card"), key=lambda e: e.rect.top)
+        discs = sorted(self._kind(page, "agenda_disc"), key=lambda e: e.rect.top)
+        self.assertEqual([p.thinned(p.FAINT), p.thinned(p.FAINT), p.wash], [card.colour for card in cards])
+        self.assertEqual([p.accent, p.accent, p.rule], [disc.colour for disc in discs])
+        self.assertEqual([p.accent, p.accent, p.muted], [e.colour for e in self._kind(page, "agenda_chapter")])
+
+    def test_a_list_of_one_chapter_is_the_chapter_named_alone(self):
+        for spec in (self.CARDS, self.AGENDA):
+            with self.subTest(look=spec.get("look", "boxes")):
+                alone, listed = build({**spec, "highlight": 2}), build({**spec, "highlight": [2]})
+                self.assertEqual([(e.kind, e.rect, getattr(e, "text", None), getattr(e, "colour", None))
+                                  for e in alone.build()],
+                                 [(e.kind, e.rect, getattr(e, "text", None), getattr(e, "colour", None))
+                                  for e in listed.build()])
+
+    def test_the_names_under_an_item_stand_in_every_chapter_highlight_names(self):
+        page = build({**self.CARDS, "buckets": self.NESTED + [["しょう 3", [["なか 4", ["ページ f"]]]]],
+                      "highlight": [1, 2]})
+        texts = [e.text for e in self._kind(page, "agenda_item")]
+        self.assertTrue({"ページ a", "ページ c", "ページ e"} <= set(texts))
+        self.assertNotIn("ページ f", texts)
+
+    def test_the_boxes_say_this_chapter_on_every_chapter_highlight_names(self):
+        page = build({**self.AGENDA, "highlight": [1, 2]})
+        said = [e.text for e in page.build() if "この章" in (getattr(e, "text", "") or "")]
+        self.assertEqual(2, len(said))
+
+    def test_a_tone_goes_to_the_named_chapters_that_have_a_card(self):
+        page, p = build({**self.APPENDIX, "highlight": [3, 4], "highlight_tone": "good"}, TONED), TONED.palette
+        discs = sorted(self._kind(page, "agenda_disc"), key=lambda e: e.rect.top)
+        self.assertEqual([p.rule, p.rule, p.good], [disc.colour for disc in discs])
+        self.assertEqual(["しょう 3", "ふろく"], [e.text for e in self._kind(page, "agenda_item") if e.bold])
+
+    def test_several_chapters_in_highlight_are_refused_in_a_shape_it_does_not_read_and_with_an_item(self):
+        for numbers in ([], [0], [5], ["1"], [True], [[1]]):
+            with self.subTest(numbers=numbers), self.assertRaisesRegex(PageTypeError, r"`highlight` is "):
+                build({**self.APPENDIX, "highlight": numbers})
+        with self.assertRaisesRegex(PageTypeError, r"`highlight_item` marks an item of one chapter"):
+            build({**self.CARDS, "highlight": [1, 2], "highlight_item": 1})
+        self.assertTrue(build({**self.CARDS, "highlight": [2], "highlight_item": 1}).build())
 
     def test_an_item_to_mark_is_counted_among_the_items_not_the_names_under_them(self):
         page = build({**self.CARDS, "buckets": self.NESTED, "highlight": 2, "highlight_item": 2})
