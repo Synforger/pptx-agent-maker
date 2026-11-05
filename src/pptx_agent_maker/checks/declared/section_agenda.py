@@ -7,7 +7,9 @@
 
 章の範囲は manifest の並びで決める ― 章を `highlight` した目次から、別の章を名指す目次 (か、章を名指さない
 目次) の手前まで。章の中の段は、その章の目次の `buckets` が書いた小項目。読むのは宣言で組む目次だけ
-(= 複製や輸入の目次は、どの章を強調したかが宣言から読めない)。
+(= 複製や輸入の目次は、どの章を強調したかが宣言から読めない)。章を 2 つ以上光らせた目次 (= `highlight = [1, 2]`)
+は、章を名指さない目次と同じに数える ― その後の頁は 1 つの章ではなく、中の段ごとの目次 (= `highlight_item`) は
+章を 1 つ名指した目次でしか書けない。`highlight = [2]` は `highlight = 2` と同じ。
 
 `LONG` は、目次 1 枚から次の目次までの間を、人が「今どこか」を覚えていられる長さとして置いた値で、実測では
 ない。案件が `[checks] section_agenda = <頁の数>` で変えられ、`false` で外せる。
@@ -44,6 +46,8 @@ def _chapters(manifest) -> list[dict]:
         data = entry.data if entry.kind == "declare" else {}
         if data.get("type") == "agenda":
             here = data.get("highlight")
+            if isinstance(here, (list, tuple)) and len(here) == 1:
+                here = here[0]
             if not isinstance(here, int) or isinstance(here, bool) or here < 1:
                 current = None
                 continue

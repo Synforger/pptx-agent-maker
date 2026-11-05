@@ -21,7 +21,7 @@ from pptx_agent_maker.checks.declared import section_agenda  # noqa: E402
 BUCKETS = [["Method", ["Data", "Model"]], ["Results", ["Quality", "Cost", "Time"]], ["Next", []]]
 
 
-def agenda(chapter: int | None = None, item: int | None = None) -> SimpleNamespace:
+def agenda(chapter: int | list[int] | None = None, item: int | None = None) -> SimpleNamespace:
     data = {"type": "agenda", "title": "Agenda", "look": "cards", "buckets": BUCKETS}
     if chapter is not None:
         data["highlight"] = chapter
@@ -63,6 +63,16 @@ class ALongChapter(unittest.TestCase):
         self.assertEqual([(1, "Method")], said(agenda(1), *pages(7), agenda(2, 1), *pages(3), agenda(2, 2), *pages(3)))
         self.assertEqual([], said(agenda(1), *pages(4), agenda(), *pages(4), agenda(1), *pages(4)),
                          "an agenda that names no chapter ends one; the chapter is counted again from its own")
+
+    def test_a_chapter_named_in_a_list_of_one_is_the_chapter_named_alone(self) -> None:
+        self.assertEqual(said(agenda(2), *pages(15)), said(agenda([2]), *pages(15)))
+        self.assertEqual([], said(agenda([2], 1), *pages(5), agenda(2, 2), *pages(5), agenda([2], 3), *pages(5)))
+
+    def test_an_agenda_that_marks_several_chapters_ends_a_chapter_and_starts_none(self) -> None:
+        """2 つ以上の章を光らせた目次の後は 1 つの章ではない (= 中の段ごとの目次は章を 1 つ名指した目次でしか書けない)。"""
+        self.assertEqual([], said(agenda([1, 2]), *pages(15)))
+        self.assertEqual([], said(agenda(2), *pages(4), agenda([2, 3]), *pages(15)),
+                         "the pages after it are not counted to the chapter before")
 
     def test_the_agendas_are_not_counted_as_pages_of_the_chapter(self) -> None:
         self.assertEqual([], said(agenda(2, 1), *pages(2), agenda(2, 2), *pages(2), agenda(2, 3), *pages(2)))

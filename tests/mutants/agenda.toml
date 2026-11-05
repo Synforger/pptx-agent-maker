@@ -113,13 +113,13 @@ new = "CHAPTER_MARK, colour, CHAPTER_MARK + \" \" + title.split(SUMMARY, 1)[0], 
 [[mutant]]
 name = "the names under an item stand under every chapter, not only the one in hand"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "if not here or number == here else []"
+old = "if not here or number in here else []"
 new = "if True else []"
 
 [[mutant]]
 name = "the names under an item never stand"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "if not here or number == here else []"
+old = "if not here or number in here else []"
 new = "if False else []"
 
 [[mutant]]
@@ -259,5 +259,47 @@ new = "    if False:"
 [[mutant]]
 name = "a tone is taken for a chapter that has no card"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "        if here in listed:"
+old = "        if here <= listed:"
 new = "        if False:"
+
+[[mutant]]
+name = "only the first chapter of a list is marked in the list"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        marked = number in here\n        colour = p.accent if marked else p.ink"
+new = "        marked = number == min(here, default=0)\n        colour = p.accent if marked else p.ink"
+
+[[mutant]]
+name = "only the first chapter of a list takes its card"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        marked = number in here\n        colour = marked_name if marked else p.muted"
+new = "        marked = number == min(here, default=0)\n        colour = marked_name if marked else p.muted"
+
+[[mutant]]
+name = "only the first chapter of a list says this chapter in the boxes"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        head = f\"{number_of(number)} {title}\"\n        marked = number in here"
+new = "        head = f\"{number_of(number)} {title}\"\n        marked = number == min(here, default=0)"
+
+[[mutant]]
+name = "only the first chapter of a list shows the names under its items"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "if not here or number in here else []"
+new = "if not here or number == min(here) else []"
+
+[[mutant]]
+name = "a list of chapters is let through unread"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        if not said or any(isinstance(n, bool) or not isinstance(n, int) or not 1 <= n <= count for n in said):"
+new = "        if False:"
+
+[[mutant]]
+name = "an item is marked with several chapters named"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        if len(here) > 1:"
+new = "        if False:"
+
+[[mutant]]
+name = "a tone is refused when one named chapter has no card though another has"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        if here <= listed:"
+new = "        if here & listed:"

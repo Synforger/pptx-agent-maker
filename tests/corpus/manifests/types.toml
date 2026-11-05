@@ -581,3 +581,18 @@ buckets = [
 list_only = [4]
 highlight = 4
 why = "an agenda whose appendix stands in the list only: the cards share the column among the other chapters, and the appendix in hand is marked in the list alone"
+
+[[pages]]
+kind = "declare"
+type = "agenda"
+title = "Two chapters talked through before the next agenda, both marked"
+look = "cards"
+buckets = [
+  ["Pictures", ["one", "side by side", "on a grid"]],
+  ["Diagrams", ["flow", "roadmap", "timeline"]],
+  ["Scaffolding", ["cards", "board"]],
+  ["Appendix", ["sources", "terms"]],
+]
+list_only = [4]
+highlight = [1, 2]
+why = "an agenda that marks every chapter talked through before the next one: two chapters marked in the list and on the cards"
