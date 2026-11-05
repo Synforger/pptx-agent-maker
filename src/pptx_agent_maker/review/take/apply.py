@@ -11,6 +11,9 @@
   その頁は**人が整えた版を正とし**、控えた手直し版からの `import` に切り替える
 - **足した頁**は、その位置に手直し版からの `import` を差し込む。**消した頁**は manifest から消す
 
+取り込んだ頁は、1 頁 1 行で `.pptx-agent-maker/reviews.jsonl` に残す (= `history.py`)。直す前の版 (= 道具が
+最後に焼いた版) は取り込みの最後に手直し版で上書きされるので、手直し版の控えの隣に `-built` を付けて写す。
+
 ⚠ **書く前に焼き直して、手直し版と全頁の文言と絵が一致することを確かめる。**1 か所でも
 違えば 1 file も書かずに止める (= 取り込んだつもりで直しが消える、を作らない)。
 """
@@ -20,10 +23,12 @@ from __future__ import annotations
 import difflib
 import os
 import re
+import shutil
 import tempfile
 import tomllib
 import zipfile
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 from lxml import etree
@@ -35,6 +40,8 @@ from ...deck.pages.swap import NS, pictures
 from ...project.files.manifest import Manifest, ManifestError
 from ...project.files.recipes import TABLE_HEAD, dump, toml_key
 from .fold import keep_safe
+from ..diff.compare import page_changes
+from ..history import record
 from ..ledger import last_machine_build, remember, touched_by_hand
 
 #: 形を比べる前に落とすもの (= 保存のたびに PowerPoint が書き換える印と、文言そのもの)
@@ -61,6 +68,9 @@ class Applied:
     manifest: Path | None = None
     kept_at: Path | None = None
     notes: list[str] = field(default_factory=list)
+    #: 取り込んだ頁ごとの記録の行 (= `history.record` が書く。資料・時刻・前後の版は書く時に足す)
+    rows: list[dict] = field(default_factory=list)
+    recorded_at: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -108,10 +118,12 @@ def apply(workspace, deck_name: str) -> Applied:
                                    reference_first=reference_first, edited_first=edited_first))
         for i in range(i1 + len(pairs), i2):
             result.notes.append(f"{page_label(i + 1, reference_first)}: removed in PowerPoint — dropped from the manifest")
+            result.rows.append(_row("removed", ours[i], None, i, None, reference_first, edited_first))
         for j in range(j1 + len(pairs), j2):
             new_pages.append({"kind": "import", "deck": shelf, "page": j + 1,
                               "why": "PowerPoint で足された頁"})
             result.notes.append(f"{page_label(j + 1, edited_first)} (edited): added in PowerPoint — imported as it is")
+            result.rows.append(_row("added", None, theirs[j], None, j, reference_first, edited_first))
 
     text = manifest_path.read_text(encoding="utf-8")
     rewritten = _rewrite(text, new_pages)
@@ -126,6 +138,13 @@ def apply(workspace, deck_name: str) -> Applied:
         raise
     finally:
         staged.unlink(missing_ok=True)
+    # 直す前の版は、次の remember で手直し版に上書きされる。前後を並べて見られるよう、控えの隣に写す
+    before = shelved.with_name(f"{shelved.stem}-built{shelved.suffix}")
+    shutil.copy2(reference, before)
+    common = {"at": datetime.now().astimezone().isoformat(timespec="seconds"), "deck": edited.name,
+              "manifest": manifest_path.name, "before": before.relative_to(workspace.root).as_posix(),
+              "after": shelf}
+    result.recorded_at = record(edited, [{**common, **row} for row in result.rows])
     # 手直し版を「最後に焼いた版」として覚える (= 次の build は、同じ中身で焼き直して上書きできる。
     # 開いている PowerPoint の file にはここで書かない)
     remember(edited)
@@ -139,6 +158,7 @@ def _take(i, j, old: _Page, new: _Page, raw: dict, manifest: Manifest, workspace
     page = page_label(i + 1, reference_first)
     if old.texts == new.texts and old.shape == new.shape and old.pictures == new.pictures:
         return i
+    row = _row("", old, new, i, j, reference_first, edited_first)
     same_shape = old.shape == new.shape and len(old.pictures) == len(new.pictures)
 
     if same_shape and old.pictures == new.pictures and len(old.texts) == len(new.texts):
@@ -146,6 +166,7 @@ def _take(i, j, old: _Page, new: _Page, raw: dict, manifest: Manifest, workspace
         updated = _text_into(dict(raw), entry.kind, changed)
         if updated is not None:
             result.notes.append(f"{page}: {len(changed)} words changed — written into the manifest")
+            result.rows.append({**row, "how": "words"})
             return updated
 
     if same_shape and old.texts == new.texts and raw.get("kind") in ("copy", "import"):
@@ -158,12 +179,30 @@ def _take(i, j, old: _Page, new: _Page, raw: dict, manifest: Manifest, workspace
             written.append(folder / name)
             names.append(name)
         result.notes.append(f"{page}: pictures changed — {len(names)} taken into assets/{manifest.assets}/")
+        result.rows.append({**row, "how": "pictures", "pictures": names})
         return {**raw, "pictures": names}
 
     result.notes.append(
         f"{page}: changed in a way the manifest cannot say (position, size, format, or text in a "
         f"new place) — now imported as it was edited, from {shelf} {page_label(j + 1, edited_first)}")
+    result.rows.append({**row, "how": "edited"})
     return {"kind": "import", "deck": shelf, "page": j + 1, "why": "PowerPoint で整えた頁"}
+
+
+def _row(how: str, old: _Page | None, new: _Page | None, i: int | None, j: int | None,
+         reference_first: int, edited_first: int) -> dict:
+    """One page's line of the record: where it stands in each version, and its words before and after.
+
+    `how` は取り込み方 (= `words` 文言を manifest へ / `pictures` 絵を素材へ / `edited` 直した版の頁を持ち込む /
+    `added` 足した頁 / `removed` 消した頁)。頁は 2 つの版それぞれの位置と、刷られた番号 (= 人が言う番号) で持つ。
+    """
+    words = page_changes((j if j is not None else i) + 1, list(old.texts if old else ()),
+                         list(new.texts if new else ()))
+    return {"how": how,
+            "page": None if j is None else j + 1, "printed": None if j is None else edited_first + j,
+            "built_page": None if i is None else i + 1,
+            "built_printed": None if i is None else reference_first + i,
+            "words": [[change.before, change.after] for change in words]}
 
 
 def _text_into(raw: dict, kind: str, changed: list[tuple[str, str]]) -> dict | None:

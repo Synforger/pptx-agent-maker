@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import io
+import json
 import shutil
 import sys
 import tempfile
@@ -198,6 +199,62 @@ class TakingAnEditIn(unittest.TestCase):
         self.assertEqual((self.root / "w1.toml").read_bytes(), before)
         self.assertEqual(self._run("build", str(self.root), "w1")[0], 1,
                          "the edited deck should still be protected after a refused take")
+
+    def _record(self) -> list[dict]:
+        path = self.root / ".pptx-agent-maker" / "reviews.jsonl"
+        return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()] if path.is_file() else []
+
+    def test_each_page_taken_in_leaves_a_line_with_its_words_and_both_versions(self) -> None:
+        """取り込んだ頁ごとに 1 行。何がどう直ったかと、直す前と後の版の在処が残る (= 好みを後から集める側が読む)。"""
+        self._edit(lambda d: self._retext(d, "手法 A の結果", "手法 A の結果 (改)"))
+        code, said = self._apply()
+        self.assertEqual(code, 0, said)
+        self.assertIn("recorded page by page in .pptx-agent-maker/reviews.jsonl", said)
+        [row] = self._record()
+        self.assertEqual(("words", 2, 2, 2, "w1.pptx", "w1.toml"),
+                         (row["how"], row["page"], row["printed"], row["built_page"], row["deck"], row["manifest"]))
+        self.assertEqual([["手法 A の結果", "手法 A の結果 (改)"]], row["words"])
+        before, after = self.root / row["before"], self.root / row["after"]
+        self.assertTrue(before.is_file() and after.is_file())
+        self.assertIn("手法 A の結果", [t for page in read(before) for t in page.texts()])
+        self.assertIn("手法 A の結果 (改)", [t for page in read(after) for t in page.texts()])
+        self.assertTrue(row["at"])
+
+    def test_the_way_each_page_was_taken_in_is_named(self) -> None:
+        def edit(deck):
+            box = deck.slides[3].shapes.add_textbox(Emu(900000), Emu(5000000), Emu(4000000), Emu(400000))
+            box.text_frame.paragraphs[0].add_run().text = "新しく足した一文"
+            slide = deck.slides.add_slide(deck.slide_layouts[0])
+            slide.shapes.add_textbox(Emu(900000), Emu(900000), Emu(4000000), Emu(400000)) \
+                .text_frame.paragraphs[0].add_run().text = "足した頁"
+            ids = deck.slides._sldIdLst
+            ids.remove(ids[1])
+        self._edit(edit)
+        code, said = self._apply()
+        self.assertEqual(code, 0, said)
+        rows = {row["how"]: row for row in self._record()}
+        self.assertEqual({"edited", "added", "removed"}, set(rows))
+        self.assertIn(["", "新しく足した一文"], rows["edited"]["words"])
+        self.assertEqual((None, 2), (rows["removed"]["page"], rows["removed"]["built_page"]))
+        self.assertEqual((4, None), (rows["added"]["page"], rows["added"]["built_page"]))
+        self.assertIn(["", "足した頁"], rows["added"]["words"])
+
+    def test_a_refused_take_records_nothing(self) -> None:
+        self._edit(lambda d: self._retext(d, "手法 A の結果", "手法 A の結果 (改)"))
+        rewrite = applying._rewrite
+        with mock.patch.object(applying, "_rewrite", side_effect=lambda text, pages: rewrite(text, pages[:-1])):
+            self.assertEqual(self._apply()[0], 1)
+        self.assertEqual([], self._record())
+        self.assertEqual([], list((self.root / "_edits").glob("*-built.pptx")))
+
+    def test_a_second_take_adds_its_lines_after_the_first(self) -> None:
+        self._edit(lambda d: self._retext(d, "手法 A の結果", "手法 A の結果 (改)"))
+        self.assertEqual(self._apply()[0], 0)
+        self.assertEqual(self._run("build", str(self.root), "w1", "--skip-checks")[0], 0)
+        self._edit(lambda d: self._retext(d, "まとめ", "まとめ (改)"))
+        self.assertEqual(self._apply()[0], 0)
+        self.assertEqual([["手法 A の結果", "手法 A の結果 (改)"], ["まとめ", "まとめ (改)"]],
+                         [row["words"][0] for row in self._record()])
 
     def test_nothing_changed_is_said(self) -> None:
         code, said = self._apply()

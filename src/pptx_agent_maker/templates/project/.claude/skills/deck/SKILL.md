@@ -73,6 +73,7 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
     仕事で、人に残さない。**文言は宣言か `replace` へ、絵は `assets/` と `pictures` へ、それ以外
     (= 位置・大きさ・書式・新しい場所の文字・足した頁) はその頁を人が直した版からの `import` にする。
     焼き直して直した版と同じに読めることを確かめてから書く (= 違えば何も書かずに止まる)
+    取り込んだ頁は 1 頁 1 行で、資料の隣の道具の置き場 (`.pptx-agent-maker`) の `reviews.jsonl` に残る (= 何がどう直ったか、直す前と後の版の在処)
 14. **同じ形を 2 回書いたら上げる** ― `task promote -- <名前> w1:5 w2:7`。
     ⚠ **3 回目を複製で書かない。**前の世代は上げずに複製し続け、同じ頁の手書きが溜まった
 
