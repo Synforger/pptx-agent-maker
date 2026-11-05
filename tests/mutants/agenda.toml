@@ -71,8 +71,8 @@ new = "        name, summary = title, \"\"\n"
 [[mutant]]
 name = "the cards stand as tall as their words and leave the column's foot empty"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = "zip(stack.rows(len(buckets), gap=s.gap_s),"
-new = "zip(stack.split_top(stack.height * 3 // 4)[0].rows(len(buckets), gap=s.gap_s),"
+old = "zip(stack.rows(len(carded), gap=s.gap_s), carded):"
+new = "zip(stack.split_top(stack.height * 3 // 4)[0].rows(len(carded), gap=s.gap_s), carded):"
 
 [[mutant]]
 name = "the items of the list are greyed like their marks"
@@ -187,8 +187,8 @@ new = "        if False:\n            raise PageTypeError(\"agenda: `list_marks`
 [[mutant]]
 name = "the cards are not told the tone a page names"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
-old = '_agenda_cards(page, area, buckets, here, item or 0, marks == "numbers", ground or "")'
-new = '_agenda_cards(page, area, buckets, here, item or 0, marks == "numbers", "")'
+old = '_agenda_cards(page, area, buckets, here, item or 0, marks == "numbers", ground or "", listed)'
+new = '_agenda_cards(page, area, buckets, here, item or 0, marks == "numbers", "", listed)'
 
 [[mutant]]
 name = "the card of the chapter in hand is washed in the accent whatever the tone"
@@ -230,4 +230,34 @@ new = "return card, disc, p.paper, name"
 name = "the cards let the circled numbers through"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
 old = '        if spec.get("numbers") is not None:'
+new = "        if False:"
+
+[[mutant]]
+name = "a chapter kept to the list still takes a card"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "if number not in listed]"
+new = "]"
+
+[[mutant]]
+name = "list_only is read outside the cards"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "    if look != \"cards\":\n        raise PageTypeError(\"agenda: `list_only`"
+new = "    if False:\n        raise PageTypeError(\"agenda: `list_only`"
+
+[[mutant]]
+name = "a number that is no chapter is let into list_only"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "or not 1 <= n <= count for n in numbers)):"
+new = "for n in numbers)):"
+
+[[mutant]]
+name = "every chapter can be kept off the cards"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "    if len(set(numbers)) == count:"
+new = "    if False:"
+
+[[mutant]]
+name = "a tone is taken for a chapter that has no card"
+file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
+old = "        if here in listed:"
 new = "        if False:"

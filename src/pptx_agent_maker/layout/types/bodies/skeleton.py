@@ -117,7 +117,7 @@ def _marked_colours(page: Page, tone: str) -> tuple[str, str, str, str]:
 
 
 def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, item: int, numbered: bool,
-                  tone: str = "") -> None:
+                  tone: str = "", listed: frozenset[int] = frozenset()) -> None:
     """The agenda drawn as cards: the list on the left, a heading and one card per chapter on the right.
 
     左の一覧は章を `•` で章の大きさの字に、 小項目を一段下げた `–` で本文の字に、 小項目の下の段をもう一段
@@ -129,6 +129,8 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, ite
     ほかの章の灰と、 左の一覧の差し色はそのまま)。
     `numbered` (= `list_marks = "numbers"`) は左の一覧の印を番号にする (= 章は右のカードの丸と同じ数、 小項目は章ごとに
     「(1)」 から、 下の段は印なし)。 印の幅は段ごとに一番広い物に揃え、 同じ段の字の頭を揃える。
+    `listed` (= `list_only`) の章は左の一覧にだけ出し、 右のカードは残りの章で列を等分する。 カードの丸の数は
+    章の番号のまま (= 左の一覧の番号と同じ章を指す)。 その章を `highlight` した頁は、 左の一覧だけが差し色になる。
     """
     theme = page.theme
     t, s, p = theme.type, theme.spacing, theme.palette
@@ -177,8 +179,8 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, ite
     # 番号の丸は見出しの行 2 つ分 (= 案件の資料の丸の大きさ)
     disc = 2 * theme.line_height(t.heading)
     marked_card, marked_disc, marked_number, marked_name = _marked_colours(page, tone)
-    for band, (number, (title, _items)) in zip(stack.rows(len(buckets), gap=s.gap_s),
-                                                enumerate(buckets, start=1)):
+    carded = [(number, chapter) for number, chapter in enumerate(buckets, start=1) if number not in listed]
+    for band, (number, (title, _items)) in zip(stack.rows(len(carded), gap=s.gap_s), carded):
         marked = number == here
         colour = marked_name if marked else p.muted
         name, _, summary = title.partition(SUMMARY)
@@ -206,8 +208,25 @@ def _agenda_cards(page: Page, area: Rect, buckets: list[Chapter], here: int, ite
                                       summary, t.body, colour))
 
 
+def _list_only(spec: Spec, look: str, count: int) -> frozenset[int]:
+    """The chapters `list_only` keeps to the list on the left (= no card on the right)."""
+    numbers = spec.get("list_only")
+    if numbers is None:
+        return frozenset()
+    if look != "cards":
+        raise PageTypeError("agenda: `list_only` keeps a chapter off the cards `look = \"cards\"` draws")
+    if (not isinstance(numbers, (list, tuple))
+            or any(isinstance(n, bool) or not isinstance(n, int) or not 1 <= n <= count for n in numbers)):
+        raise PageTypeError(
+            f"agenda: `list_only` is {numbers!r} — a list of the numbers of chapters (= [4]), each 1 to {count}")
+    if len(set(numbers)) == count:
+        raise PageTypeError("agenda: `list_only` names every chapter — the cards need one chapter at least")
+    return frozenset(numbers)
+
+
 @register("agenda", needs=["buckets"],
-          takes=["highlight", "highlight_tone", "numbers", "look", "highlight_item", "list_marks"], figure=False)
+          takes=["highlight", "highlight_tone", "numbers", "look", "highlight_item", "list_marks", "list_only"],
+          figure=False)
 def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     """Every item on the left, the buckets on the right, this chapter marked.
 
@@ -221,6 +240,7 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     その地になり、言葉は置かない (= 地が言っていることを、もう 1 度言葉で言わない)。`look = "cards"` では、
     今の章のカードの地と丸と題がその色の役になる (= 書かなければ差し色)。`numbers = "circled"`
     は章の番号を丸の数字で書く。`look = "cards"` の `list_marks = "numbers"` は、左の一覧の印を番号にする。
+    `look = "cards"` の `list_only = [4]` は、その章を左の一覧にだけ出し、右のカードに出さない (= 付録)。
 
     ⚠ **一覧も章の箱も、自分の言葉ぶんの高さが取れなければ止まる。**取れる高さに切り詰めて置いて
     いた間は、箱の中の字が箱の下の線に乗った (= 狭いマスに入れた目次で、焼いて出た)。
@@ -252,16 +272,21 @@ def _agenda(page: Page, spec: Spec, area: Rect) -> None:
         if not isinstance(marks, str) or marks not in LIST_MARKS:
             raise PageTypeError(
                 f"agenda: `list_marks` is {marks!r} — the list is marked {' or '.join(map(repr, LIST_MARKS))}")
+    listed = _list_only(spec, look, len(buckets))
     ground = spec.get("highlight_tone")
     if ground is not None:
         if not here:
             raise PageTypeError(
                 "agenda: `highlight_tone` is the ground of the chapter `highlight` names, and no chapter is named")
+        if here in listed:
+            raise PageTypeError(
+                f"agenda: `highlight_tone` is the ground of a card, and chapter {here} is in `list_only` — "
+                "it has no card; the list marks it in the accent")
         ground = read_tone(spec, {"tone": ground}, "agenda: `highlight_tone`", "box")
     if look == "cards":
         if spec.get("numbers") is not None:
             raise PageTypeError("agenda: `numbers` is for the boxes; the cards number their chapters in discs")
-        _agenda_cards(page, area, buckets, here, item or 0, marks == "numbers", ground or "")
+        _agenda_cards(page, area, buckets, here, item or 0, marks == "numbers", ground or "", listed)
         return
     number_of = _numbered(spec, len(buckets))
     listing, right = area.columns([1, 1], gap=page.theme.spacing.gap_l)

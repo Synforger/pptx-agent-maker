@@ -566,3 +566,18 @@ table = [
   ["Summer", "71", "the longest note of the upper table"],
 ]
 table_columns = [1, 1, 4]
+
+[[pages]]
+kind = "declare"
+type = "agenda"
+title = "The appendix in the list only, marked there, with no card for it"
+look = "cards"
+buckets = [
+  ["Pictures", ["one", "side by side", "on a grid"]],
+  ["Diagrams", ["flow", "roadmap", "timeline"]],
+  ["Scaffolding", ["cards", "board"]],
+  ["Appendix", ["sources", "terms"]],
+]
+list_only = [4]
+highlight = 4
+why = "an agenda whose appendix stands in the list only: the cards share the column among the other chapters, and the appendix in hand is marked in the list alone"

@@ -557,6 +557,43 @@ class WhatTheTypesRefuse(unittest.TestCase):
         with self.assertRaisesRegex(PageTypeError, r"`list_marks` is 'letters'"):
             build({**self.CARDS, "list_marks": "letters"})
 
+    APPENDIX = {**CARDS, "buckets": CARDS["buckets"] + [["ふろく", ["しりょう a", "しりょう b"]]], "list_only": [4]}
+
+    def test_a_chapter_in_list_only_stands_in_the_list_and_the_others_share_the_cards(self):
+        """`list_only` の章は左の一覧にだけ出て、 右のカードは残りの章で列を等分する (= 丸の数は章の番号のまま)。"""
+        page = build(self.APPENDIX)
+        self.assertEqual(["しょう 1", "こうもく", "しょう 2", "こうもく", "つぎ", "しょう 3", "ふろく", "しりょう a",
+                          "しりょう b"], [e.text for e in self._kind(page, "agenda_item")])
+        self.assertEqual(["しょう 1", "しょう 2", "しょう 3"], [e.text for e in self._kind(page, "agenda_chapter")])
+        self.assertEqual(["1", "2", "3"], [e.text for e in self._kind(page, "agenda_number")])
+        shared, unsaid = (sorted(self._kind(build(spec), "agenda_card"), key=lambda e: e.rect.top)
+                          for spec in (self.APPENDIX, self.CARDS))
+        self.assertEqual([card.rect for card in unsaid], [card.rect for card in shared])
+        middle = build({**self.APPENDIX, "list_only": [2], "list_marks": "numbers"})
+        self.assertEqual(["1", "3", "4"], [e.text for e in self._kind(middle, "agenda_number")])
+        self.assertIn("2", [e.text for e in self._kind(middle, "agenda_mark")])
+
+    def test_a_chapter_in_list_only_named_by_highlight_is_marked_in_the_list_and_no_card_is(self):
+        page, p = build({**self.APPENDIX, "highlight": 4}), DEFAULT.palette
+        self.assertEqual(["ふろく"], [e.text for e in self._kind(page, "agenda_item") if e.bold])
+        self.assertEqual({p.wash}, {card.colour for card in self._kind(page, "agenda_card")})
+        self.assertEqual({p.rule}, {disc.colour for disc in self._kind(page, "agenda_disc")})
+        self.assertEqual({p.muted}, {e.colour for e in self._kind(page, "agenda_chapter")})
+        self.assertEqual(["しりょう b"], [e.text for e in self._kind(build({**self.APPENDIX, "highlight": 4,
+                                                                         "highlight_item": 2}), "agenda_item")
+                                         if e.bold and e.text != "ふろく"])
+
+    def test_list_only_is_refused_outside_the_cards_and_in_a_shape_it_does_not_read(self):
+        with self.assertRaisesRegex(PageTypeError, r"`list_only` keeps a chapter off the cards"):
+            build({**self.AGENDA, "list_only": [1]})
+        for numbers in (4, [0], [5], ["4"], [True], "4"):
+            with self.subTest(numbers=numbers), self.assertRaisesRegex(PageTypeError, r"`list_only` is "):
+                build({**self.APPENDIX, "list_only": numbers})
+        with self.assertRaisesRegex(PageTypeError, r"`list_only` names every chapter"):
+            build({**self.APPENDIX, "list_only": [1, 2, 3, 4]})
+        with self.assertRaisesRegex(PageTypeError, r"chapter 4 is in `list_only`"):
+            build({**self.APPENDIX, "highlight": 4, "highlight_tone": "accent"})
+
     def test_an_item_to_mark_is_counted_among_the_items_not_the_names_under_them(self):
         page = build({**self.CARDS, "buckets": self.NESTED, "highlight": 2, "highlight_item": 2})
         self.assertEqual(["しょう 2", "なか 3"], [e.text for e in self._kind(page, "agenda_item") if e.bold])
