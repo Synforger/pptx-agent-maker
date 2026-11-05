@@ -573,6 +573,7 @@ def main(argv: list[str] | None = None) -> int:
             for note in done.notes:
                 print(f"  {note}")
             print("  checked: built again, every page reads and shows as it was edited")
+            print(f"  recorded page by page in {done.recorded_at.relative_to(workspace.root)}")
             return 0
 
         if args.command == "review":

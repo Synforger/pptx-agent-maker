@@ -1,0 +1,45 @@
+# A hand edit taken into a manifest leaves one line per page, with its words and both versions.
+
+tests = ["tests/review/test_apply.py"]
+
+[[mutant]]
+name = "the record is not written"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "    result.recorded_at = record(edited, [{**common, **row} for row in result.rows])"
+new = "    result.recorded_at = record(edited, [])"
+
+[[mutant]]
+name = "the version before the edit is not kept"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "    shutil.copy2(reference, before)"
+new = "    pass"
+
+[[mutant]]
+name = "the words of the page are not written"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = '            "words": [[change.before, change.after] for change in words]}'
+new = '            "words": []}'
+
+[[mutant]]
+name = "a page removed in PowerPoint leaves no line"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = '            result.rows.append(_row("removed", ours[i], None, i, None, reference_first, edited_first))'
+new = "            pass"
+
+[[mutant]]
+name = "a page taken in as edited is named as words"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = '    result.rows.append({**row, "how": "edited"})'
+new = '    result.rows.append({**row, "how": "words"})'
+
+[[mutant]]
+name = "a second take writes over the first"
+file = "src/pptx_agent_maker/review/history.py"
+old = 'with path.open("a", encoding="utf-8") as out:'
+new = 'with path.open("w", encoding="utf-8") as out:'
+
+[[mutant]]
+name = "a refused take still leaves a line"
+file = "src/pptx_agent_maker/review/take/apply.py"
+old = "        _verify(workspace, staged, shelved, assets=manifest.assets, first_number=edited_first)"
+new = "        record(edited, [{\"how\": \"refused\"}])\n        _verify(workspace, staged, shelved, assets=manifest.assets, first_number=edited_first)"

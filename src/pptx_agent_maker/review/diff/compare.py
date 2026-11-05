@@ -48,7 +48,7 @@ def changes(built: Path, edited: Path) -> list[Change]:
     ours, theirs = read(Path(built)), read(Path(edited))
     found: list[Change] = []
     for number, (mine, yours) in enumerate(zip(ours, theirs), start=1):
-        found.extend(_page_changes(number, mine.texts(), yours.texts()))
+        found.extend(page_changes(number, mine.texts(), yours.texts()))
     for extra in theirs[len(ours):]:
         found.append(Change(extra.number, "", f"(a whole page: {' / '.join(extra.texts()[:2])})"))
     for gone in ours[len(theirs):]:
@@ -56,7 +56,8 @@ def changes(built: Path, edited: Path) -> list[Change]:
     return found
 
 
-def _page_changes(page: int, before: list[str], after: list[str]) -> list[Change]:
+def page_changes(page: int, before: list[str], after: list[str]) -> list[Change]:
+    """The runs that differ between the words of one page before and after."""
     found: list[Change] = []
     matcher = difflib.SequenceMatcher(None, before, after, autojunk=False)
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
