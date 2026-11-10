@@ -62,6 +62,22 @@ toolkit built, do not follow this section: the method for finding the cause is i
 - Keep a deck's review PDF beside the deck, not in a shared or synced folder, so a client's deck
   does not leave the place it belongs
 
+**Showing the deck and handing out a PDF**
+
+- When the person asks to see the deck in the preview, add its folder to the preview's places file
+  as a `[[folder]]` entry with a `name`, and give them the preview's address with `?only=<name>`.
+  That page shows this folder alone, with no list to switch from, so it can be put on a shared screen.
+  The name is shown on the page: do not use the client's name or the folder's name
+- The resident preview reads `$AGENT_PLATFORM_ROOT/config/pptx-agent-maker/preview.toml` when its
+  service sets that variable, and `~/.config/pptx-agent-maker/preview.toml` only when it does not.
+  It reads the file again each time the page asks for the list, so a new entry needs no restart.
+  Give the address the person opens on their own device, not a `localhost` one
+- The PDF that LibreOffice makes is for your own check. LibreOffice puts another typeface in place
+  of one it does not have, so letter spacing and line breaks differ from PowerPoint. A PDF that goes
+  to anyone else is exported by the person in PowerPoint: ask them for it. Do not start PowerPoint on
+  the person's screen to export it yourself; it takes over their screen and can wait on a prompt
+  only they can answer
+
 **Removing and extracting slides**
 
 - To show one slide, narrow `<p:sldIdLst>` in `presentation.xml` to that slide's `sldId`; the others
