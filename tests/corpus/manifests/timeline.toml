@@ -68,7 +68,7 @@ bars = [
   { from = 1, to = 2, text = "a name that needs every lane it covers to fit inside", spans = 3, tentative = true },
   { from = 2, to = 4, text = "write" },
 ]
-marks = [{ at = 4.5, text = "print" }]
+marks = [{ at = 4.25, text = "print" }]
 
 [[pages.lanes]]
 name = "Covered only"
