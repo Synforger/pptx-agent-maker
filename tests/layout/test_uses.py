@@ -346,7 +346,7 @@ class APageReadOnOneSheet(unittest.TestCase):
             self.assertEqual(getattr(read, name), getattr(shown, name), name)
 
     def test_the_same_page_holds_more(self) -> None:
-        """同じ形の頁 (= 3 列の箱、見出しと本文 1 行) に載る枚数: 映す 12 → 読ませる 15 → 紙 1 枚 21。"""
+        """同じ形の頁 (= 3 列の箱、見出しと本文 1 行) に載る枚数: 映す 9 → 読ませる 15 → 紙 1 枚 18。"""
         from pptx_agent_maker.layout import types
         from pptx_agent_maker.layout.parts.page import PageFullError
 
@@ -362,7 +362,7 @@ class APageReadOnOneSheet(unittest.TestCase):
                 held = count
             return held
 
-        self.assertEqual((12, 15, 21), tuple(most(DEFAULT.using(use)) for use in ("present", "read", "sheet")))
+        self.assertEqual((9, 15, 18), tuple(most(DEFAULT.using(use)) for use in ("present", "read", "sheet")))
 
     def test_a_row_of_a_table_is_as_tall_as_its_line_and_its_tightened_padding(self) -> None:
         read, sheet = DEFAULT, DEFAULT.using("sheet")

@@ -242,12 +242,12 @@ class HowLargeTheTypeIsTest(unittest.TestCase):
         def bars(built) -> set:
             return {element.size for element in built.build() if element.kind == "bar"}
 
-        # 8 本は大きい方、9 本は詰まるので小さい方 (= 本文の大きさ)、11 本は読ませる資料でしか載らない
+        # 8 本は大きい方に載る。9 本は読ませる資料なら載るが、映す資料では小さい方 (= 本文の大きさ) でも詰まり、
+        # それより縮めずに止まる
         self.assertEqual({20}, bars(build_page(page(8), shown)))
-        self.assertEqual({18}, bars(build_page(page(9), shown)))
-        self.assertEqual({14}, bars(build_page(page(11))))
+        self.assertEqual({14}, bars(build_page(page(9))))
         with self.assertRaises(PageFullError) as stopped:
-            build_page(page(11), shown)
+            build_page(page(9), shown)
         self.assertIn("18pt", str(stopped.exception))
 
 

@@ -1,6 +1,6 @@
 """A deck or a use may write the height of a line; the layout counts with it and the writer sets it.
 
-⚠ **書かなければ今まで** ― 見積りは 1.45 倍、行間は書体任せ。書いた時は、見積りと書き出しの行間が同じ値になり、
+⚠ **書かなければ今まで** ― 見積りは `LEADING` の倍率、行間は書体任せ。書いた時は、見積りと書き出しの行間が同じ値になり、
 描かれる行の高さが書体に依らない (= 1 行が 1.2 倍の書体で、2 行の箱が骨組みより背高になった)。
 """
 

@@ -82,7 +82,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="432000" y="1080000"/>
-<a:ext cx="5097248" cy="257810"/>
+<a:ext cx="5097248" cy="266700"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -116,8 +116,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="1445810"/>
-<a:ext cx="5097248" cy="875620"/>
+<a:off x="432000" y="1454700"/>
+<a:ext cx="5097248" cy="893400"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -146,8 +146,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="1974450"/>
-<a:ext cx="4845248" cy="220980"/>
+<a:off x="558000" y="1993500"/>
+<a:ext cx="4845248" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -181,8 +181,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="1571810"/>
-<a:ext cx="4845248" cy="294640"/>
+<a:off x="558000" y="1580700"/>
+<a:ext cx="4845248" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -217,7 +217,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="6662753" y="1080000"/>
-<a:ext cx="5097247" cy="257810"/>
+<a:ext cx="5097247" cy="266700"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -251,8 +251,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="5637248" y="1445810"/>
-<a:ext cx="917505" cy="875620"/>
+<a:off x="5637248" y="1454700"/>
+<a:ext cx="917505" cy="893400"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -286,8 +286,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6662753" y="1445810"/>
-<a:ext cx="5097247" cy="875620"/>
+<a:off x="6662753" y="1454700"/>
+<a:ext cx="5097247" cy="893400"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -319,8 +319,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6788753" y="1974450"/>
-<a:ext cx="4845247" cy="220980"/>
+<a:off x="6788753" y="1993500"/>
+<a:ext cx="4845247" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -354,8 +354,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6788753" y="1571810"/>
-<a:ext cx="4845247" cy="294640"/>
+<a:off x="6788753" y="1580700"/>
+<a:ext cx="4845247" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>

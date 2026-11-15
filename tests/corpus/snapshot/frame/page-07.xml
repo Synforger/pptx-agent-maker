@@ -83,7 +83,7 @@
 </p:nvGraphicFramePr>
 <p:xfrm>
 <a:off x="432000" y="1296000"/>
-<a:ext cx="11328000" cy="557160"/>
+<a:ext cx="11328000" cy="572400"/>
 </p:xfrm>
 <a:graphic>
 <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table">
@@ -95,7 +95,7 @@
 <a:gridCol w="6233774"/>
 <a:gridCol w="5094226"/>
 </a:tblGrid>
-<a:tr h="278580">
+<a:tr h="286200">
 <a:tc>
 <a:txBody>
 <a:bodyPr/>
@@ -143,7 +143,7 @@
 </a:tcPr>
 </a:tc>
 </a:tr>
-<a:tr h="278580">
+<a:tr h="286200">
 <a:tc>
 <a:txBody>
 <a:bodyPr/>

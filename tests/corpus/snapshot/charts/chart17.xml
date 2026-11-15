@@ -10,9 +10,9 @@
 <c:xMode val="edge"/>
 <c:yMode val="edge"/>
 <c:x val="0.142839"/>
-<c:y val="0.023767"/>
+<c:y val="0.023847"/>
 <c:w val="0.847627"/>
-<c:h val="0.952465"/>
+<c:h val="0.952305"/>
 </c:manualLayout>
 </c:layout>
 <c:barChart>

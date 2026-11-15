@@ -8,10 +8,10 @@
 <c:layoutTarget val="inner"/>
 <c:xMode val="edge"/>
 <c:yMode val="edge"/>
-<c:x val="0.056719"/>
-<c:y val="0.022160"/>
-<c:w val="0.933747"/>
-<c:h val="0.758237"/>
+<c:x val="0.057392"/>
+<c:y val="0.022924"/>
+<c:w val="0.933074"/>
+<c:h val="0.752888"/>
 </c:manualLayout>
 </c:layout>
 <c:scatterChart>

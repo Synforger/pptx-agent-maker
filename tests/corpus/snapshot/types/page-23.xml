@@ -117,12 +117,12 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="432000" y="1080000"/>
-<a:ext cx="2670000" cy="693960"/>
+<a:ext cx="2670000" cy="709200"/>
 </a:xfrm>
 <a:prstGeom prst="wedgeRoundRectCallout">
 <a:avLst>
 <a:gd name="adj1" fmla="val -40561"/>
-<a:gd name="adj2" fmla="val 70750"/>
+<a:gd name="adj2" fmla="val 70304"/>
 <a:gd name="adj3" fmla="val 16667"/>
 </a:avLst>
 </a:prstGeom>
@@ -161,8 +161,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="1989960"/>
-<a:ext cx="2544000" cy="184150"/>
+<a:off x="558000" y="2005200"/>
+<a:ext cx="2544000" cy="190500"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -197,12 +197,12 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="3318000" y="1080000"/>
-<a:ext cx="2670000" cy="693960"/>
+<a:ext cx="2670000" cy="709200"/>
 </a:xfrm>
 <a:prstGeom prst="wedgeRoundRectCallout">
 <a:avLst>
 <a:gd name="adj1" fmla="val -40561"/>
-<a:gd name="adj2" fmla="val 70750"/>
+<a:gd name="adj2" fmla="val 70304"/>
 <a:gd name="adj3" fmla="val 16667"/>
 </a:avLst>
 </a:prstGeom>
@@ -241,8 +241,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="3444000" y="1989960"/>
-<a:ext cx="2544000" cy="184150"/>
+<a:off x="3444000" y="2005200"/>
+<a:ext cx="2544000" cy="190500"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -277,12 +277,12 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="6204000" y="1080000"/>
-<a:ext cx="2670000" cy="693960"/>
+<a:ext cx="2670000" cy="709200"/>
 </a:xfrm>
 <a:prstGeom prst="wedgeRoundRectCallout">
 <a:avLst>
 <a:gd name="adj1" fmla="val -40561"/>
-<a:gd name="adj2" fmla="val 70750"/>
+<a:gd name="adj2" fmla="val 70304"/>
 <a:gd name="adj3" fmla="val 16667"/>
 </a:avLst>
 </a:prstGeom>
@@ -321,8 +321,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6330000" y="1989960"/>
-<a:ext cx="2544000" cy="184150"/>
+<a:off x="6330000" y="2005200"/>
+<a:ext cx="2544000" cy="190500"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -357,12 +357,12 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="9090000" y="1080000"/>
-<a:ext cx="2670000" cy="693960"/>
+<a:ext cx="2670000" cy="709200"/>
 </a:xfrm>
 <a:prstGeom prst="wedgeRoundRectCallout">
 <a:avLst>
 <a:gd name="adj1" fmla="val -40561"/>
-<a:gd name="adj2" fmla="val 70750"/>
+<a:gd name="adj2" fmla="val 70304"/>
 <a:gd name="adj3" fmla="val 16667"/>
 </a:avLst>
 </a:prstGeom>

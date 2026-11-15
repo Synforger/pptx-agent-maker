@@ -82,11 +82,11 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="432000" y="1080000"/>
-<a:ext cx="4793143" cy="675680"/>
+<a:ext cx="4793143" cy="696000"/>
 </a:xfrm>
 <a:prstGeom prst="homePlate">
 <a:avLst>
-<a:gd name="adj" fmla="val 31967"/>
+<a:gd name="adj" fmla="val 31034"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>
@@ -124,8 +124,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="1863680"/>
-<a:ext cx="4577143" cy="1096600"/>
+<a:off x="432000" y="1884000"/>
+<a:ext cx="4577143" cy="1122000"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -156,8 +156,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="2392320"/>
-<a:ext cx="4325143" cy="441960"/>
+<a:off x="558000" y="2422800"/>
+<a:ext cx="4325143" cy="457200"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -191,8 +191,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="1989680"/>
-<a:ext cx="4325143" cy="294640"/>
+<a:off x="558000" y="2010000"/>
+<a:ext cx="4325143" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -226,8 +226,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="3068280"/>
-<a:ext cx="4577143" cy="1096600"/>
+<a:off x="432000" y="3114000"/>
+<a:ext cx="4577143" cy="1122000"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -258,8 +258,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="3596920"/>
-<a:ext cx="4325143" cy="441960"/>
+<a:off x="558000" y="3652800"/>
+<a:ext cx="4325143" cy="457200"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -293,8 +293,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="3194280"/>
-<a:ext cx="4325143" cy="294640"/>
+<a:off x="558000" y="3240000"/>
+<a:ext cx="4325143" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -329,11 +329,11 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="5225143" y="1080000"/>
-<a:ext cx="3267429" cy="675680"/>
+<a:ext cx="3267429" cy="696000"/>
 </a:xfrm>
 <a:prstGeom prst="chevron">
 <a:avLst>
-<a:gd name="adj" fmla="val 31967"/>
+<a:gd name="adj" fmla="val 31034"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>
@@ -371,8 +371,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="5225143" y="1863680"/>
-<a:ext cx="3051429" cy="875620"/>
+<a:off x="5225143" y="1884000"/>
+<a:ext cx="3051429" cy="893400"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -403,8 +403,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="5351143" y="2392320"/>
-<a:ext cx="2799429" cy="220980"/>
+<a:off x="5351143" y="2422800"/>
+<a:ext cx="2799429" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -438,8 +438,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="5351143" y="1989680"/>
-<a:ext cx="2799429" cy="294640"/>
+<a:off x="5351143" y="2010000"/>
+<a:ext cx="2799429" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -474,11 +474,11 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="8492572" y="1080000"/>
-<a:ext cx="1741714" cy="675680"/>
+<a:ext cx="1741714" cy="696000"/>
 </a:xfrm>
 <a:prstGeom prst="chevron">
 <a:avLst>
-<a:gd name="adj" fmla="val 31967"/>
+<a:gd name="adj" fmla="val 31034"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>
@@ -516,8 +516,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="8492572" y="1863680"/>
-<a:ext cx="1525714" cy="875620"/>
+<a:off x="8492572" y="1884000"/>
+<a:ext cx="1525714" cy="893400"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -548,8 +548,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="8618572" y="2392320"/>
-<a:ext cx="1273714" cy="220980"/>
+<a:off x="8618572" y="2422800"/>
+<a:ext cx="1273714" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -583,8 +583,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="8618572" y="1989680"/>
-<a:ext cx="1273714" cy="294640"/>
+<a:off x="8618572" y="2010000"/>
+<a:ext cx="1273714" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -619,11 +619,11 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="10234286" y="1080000"/>
-<a:ext cx="1525714" cy="675680"/>
+<a:ext cx="1525714" cy="696000"/>
 </a:xfrm>
 <a:prstGeom prst="chevron">
 <a:avLst>
-<a:gd name="adj" fmla="val 31967"/>
+<a:gd name="adj" fmla="val 31034"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>

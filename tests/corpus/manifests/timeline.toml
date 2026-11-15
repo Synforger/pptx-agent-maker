@@ -68,7 +68,7 @@ bars = [
   { from = 1, to = 2, text = "a name that needs every lane it covers to fit inside", spans = 3, tentative = true },
   { from = 2, to = 4, text = "write" },
 ]
-marks = [{ at = 4.5, text = "print" }]
+marks = [{ at = 4.25, text = "print" }]
 
 [[pages.lanes]]
 name = "Covered only"
@@ -116,9 +116,6 @@ bars = [{ from = 0, to = 1, text = "a" }, { from = 11, to = 12, text = "z" }]
 [[pages.lanes]]
 name = "Lane 11"
 bars = [{ from = 4, to = 8, text = "first" }]
-[[pages.lanes]]
-name = "Lane 12"
-bars = [{ from = 0, to = 5, text = "first" }, { from = 7, to = 12, text = "second" }]
 
 [[pages]]
 kind = "declare"

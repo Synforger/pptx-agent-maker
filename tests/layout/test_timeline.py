@@ -670,7 +670,7 @@ class WhatDoesNotFitIsNotShrunk(unittest.TestCase):
         self.assertLessEqual(built.theme.frame().bottom - bottom, len(lanes))
 
     def test_a_full_page_keeps_its_bars_at_their_natural_height(self):
-        lanes = [lane(f"Lane {n}", [bar(0, 6, "work")]) for n in range(12)]
+        lanes = [lane(f"Lane {n}", [bar(0, 6, "work")]) for n in range(11)]
         built = page(lanes)
         size = named(built, "work").size
         natural = DEFAULT.line_height(size) + 2 * DEFAULT.spacing.bar_pad_y
@@ -692,7 +692,7 @@ class TheSizeOfTheWords(unittest.TestCase):
 
     def test_a_crowded_page_takes_the_smaller_one_for_every_word_alike(self):
         lanes = [lane(f"Lane {n}", [bar(0, 3, "work"), bar(4, 4.1, "a name beside its bar")])
-                 for n in range(12)]
+                 for n in range(11)]
         built = page(lanes)
         self.assertEqual({DEFAULT.type.plan[-1]}, self.sizes(built))
         one_fewer = page(lanes[:10])

@@ -82,7 +82,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="4280000" y="1080000"/>
-<a:ext cx="3632000" cy="546640"/>
+<a:ext cx="3632000" cy="556800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -114,7 +114,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="4406000" y="1206000"/>
-<a:ext cx="3380000" cy="294640"/>
+<a:ext cx="3380000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -148,8 +148,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="2356000" y="1986640"/>
-<a:ext cx="3632000" cy="875620"/>
+<a:off x="2356000" y="1996800"/>
+<a:ext cx="3632000" cy="893400"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -180,8 +180,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="2482000" y="2112640"/>
-<a:ext cx="3380000" cy="623620"/>
+<a:off x="2482000" y="2122800"/>
+<a:ext cx="3380000" cy="641400"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -215,8 +215,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="3222260"/>
-<a:ext cx="3632000" cy="546640"/>
+<a:off x="432000" y="3250200"/>
+<a:ext cx="3632000" cy="556800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -247,8 +247,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="3348260"/>
-<a:ext cx="3380000" cy="294640"/>
+<a:off x="558000" y="3376200"/>
+<a:ext cx="3380000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -282,8 +282,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4280000" y="3222260"/>
-<a:ext cx="3632000" cy="546640"/>
+<a:off x="4280000" y="3250200"/>
+<a:ext cx="3632000" cy="556800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -314,8 +314,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4406000" y="3348260"/>
-<a:ext cx="3380000" cy="294640"/>
+<a:off x="4406000" y="3376200"/>
+<a:ext cx="3380000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -349,7 +349,7 @@
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4172000" y="2862260"/>
+<a:off x="4172000" y="2890200"/>
 <a:ext cx="0" cy="180000"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -370,7 +370,7 @@
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="2248000" y="3042260"/>
+<a:off x="2248000" y="3070200"/>
 <a:ext cx="3848000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -391,7 +391,7 @@
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="2248000" y="3042260"/>
+<a:off x="2248000" y="3070200"/>
 <a:ext cx="0" cy="180000"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -412,7 +412,7 @@
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6096000" y="3042260"/>
+<a:off x="6096000" y="3070200"/>
 <a:ext cx="0" cy="180000"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -433,8 +433,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="8128000" y="1986640"/>
-<a:ext cx="3632000" cy="875620"/>
+<a:off x="8128000" y="1996800"/>
+<a:ext cx="3632000" cy="893400"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -465,8 +465,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="8254000" y="2515280"/>
-<a:ext cx="3380000" cy="220980"/>
+<a:off x="8254000" y="2535600"/>
+<a:ext cx="3380000" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -500,8 +500,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="8254000" y="2112640"/>
-<a:ext cx="3380000" cy="294640"/>
+<a:off x="8254000" y="2122800"/>
+<a:ext cx="3380000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -535,7 +535,7 @@
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6096000" y="1626640"/>
+<a:off x="6096000" y="1636800"/>
 <a:ext cx="0" cy="180000"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -556,7 +556,7 @@
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4172000" y="1806640"/>
+<a:off x="4172000" y="1816800"/>
 <a:ext cx="5772000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -577,7 +577,7 @@
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4172000" y="1806640"/>
+<a:off x="4172000" y="1816800"/>
 <a:ext cx="0" cy="180000"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -598,7 +598,7 @@
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="9944000" y="1806640"/>
+<a:off x="9944000" y="1816800"/>
 <a:ext cx="0" cy="180000"/>
 </a:xfrm>
 <a:prstGeom prst="line">
