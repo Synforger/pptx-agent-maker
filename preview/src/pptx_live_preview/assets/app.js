@@ -786,10 +786,22 @@ window.addEventListener('hashchange', () => {
   if (h && h !== S.active) selectDeck(h);
 });
 
+/* How long to wait before opening the event stream again once the browser has given it up. */
+const RECONNECT_MS = 2000;
+
 let events = null;
+let reconnect = 0;
 function connectEvents() {
+  clearTimeout(reconnect);
   if (events) events.close();
   events = new EventSource(at('events'));
+  // A change made while the stream was down sends no event, so read the decks again on every open.
+  events.onopen = () => { loadDecks(); loadMeta(); };
+  // The browser retries a dropped connection by itself, but gives the stream up for good when the
+  // answer is an error status, which a proxy in front of the preview sends while the preview restarts.
+  events.onerror = () => {
+    if (events.readyState === EventSource.CLOSED) reconnect = setTimeout(connectEvents, RECONNECT_MS);
+  };
   events.onmessage = async () => {
     // 案件が 1 つも無い間に開いた画面は、最初の案件が出たら欄を組み、その案件の通知へ乗り換える
     if (S.listed && S.project === null && listingIsShared()) {
