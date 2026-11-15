@@ -11,6 +11,7 @@ import json
 import os
 import threading
 import traceback
+import unicodedata
 from collections.abc import Iterable
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -186,6 +187,15 @@ class DeckState:
         }
 
 
+def _composed(names: Iterable[str]) -> frozenset[str]:
+    """Names in the composed Unicode form (NFC), the form a listed file name is compared in.
+
+    A file name with voiced kana can be stored decomposed (NFD) while the project's settings hold
+    the composed form, and the two strings differ though they name one file.
+    """
+    return frozenset(unicodedata.normalize("NFC", name) for name in names)
+
+
 class DeckSet:
     """One or many decks behind a single watch loop and a single event stream.
 
@@ -202,7 +212,7 @@ class DeckSet:
         self.title = source.name if self.is_folder else source.stem
         self.dpi = dpi
         #: 見張らない stem (= 焼いた成果ではない pptx が folder に在る場合)
-        self.skip = frozenset(skip)
+        self.skip = _composed(skip)
         #: この案件を読めなかった理由 (= 画面の帯に出す。読めている間は None)
         self.problem: str | None = None
         self.lock = threading.Lock()
@@ -218,7 +228,7 @@ class DeckSet:
         return sorted(
             p for pattern in ("*.pptx", f"*{ALBUM}") for p in self.source.glob(pattern)
             if not p.name.startswith("~$")  # PowerPoint lock file
-            and p.stem not in self.skip
+            and unicodedata.normalize("NFC", p.stem) not in self.skip
         )
 
     def rescan_and_rerender(self, force: bool = False, rebuild: bool = False) -> None:
@@ -258,10 +268,10 @@ class DeckSet:
     def set_problem(self, problem: str | None, skip: Iterable[str]) -> None:
         """Say why the project could not be read (None once it can), and what to leave out."""
         with self.lock:
-            if problem == self.problem and frozenset(skip) == self.skip:
+            if problem == self.problem and _composed(skip) == self.skip:
                 return
             self.problem = problem
-            self.skip = frozenset(skip)
+            self.skip = _composed(skip)
             self._bump_locked()  # 帯の出し入れも画面への変化として届ける
 
     def deck_names(self) -> list[str]:

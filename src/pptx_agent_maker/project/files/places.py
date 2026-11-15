@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import hashlib
 import tomllib
+import unicodedata
 from pathlib import Path
 from typing import NamedTuple
 
@@ -120,6 +121,15 @@ def _points_at_a_template(settings: Path) -> bool:
         return False
     return template is not None and (settings.parent / Path(str(template)).expanduser() / "specimen.pptx").is_file()
 
+def _spelled(path: Path) -> str:
+    """A path as text in one Unicode form, so a typed path and a listed one compare equal.
+
+    A folder name with voiced kana can be stored decomposed (NFD) while the places file holds the
+    composed form (NFC) that was typed, and the two strings differ though they name one folder.
+    """
+    return unicodedata.normalize("NFC", str(path))
+
+
 def discover(places: dict, skip_of) -> dict[str, Offer]:
     """Name → what is offered under it, for everything the places file offers.
 
@@ -128,14 +138,14 @@ def discover(places: dict, skip_of) -> dict[str, Offer]:
     (= log には書かない。画面が 2 秒ごとに探し直すので、log が埋まる)。
     """
     found: dict[str, Offer] = {}
-    labels = {str(Path(k).expanduser().resolve()): str(v)
+    labels = {_spelled(Path(k).expanduser().resolve()): str(v)
               for k, v in (places.get("labels") or {}).items()}
     for entry in places.get("search", []):
         root = Path(entry["path"]).expanduser()
         if not root.is_dir():
             continue
         for folder in projects_under(root, int(entry.get("depth", 3))):
-            name = labels.get(str(folder.resolve())) or unnamed(folder)
+            name = labels.get(_spelled(folder.resolve())) or unnamed(folder)
             if name in found:
                 name = f"{name} ({unnamed(folder).split()[-1]})"
             try:

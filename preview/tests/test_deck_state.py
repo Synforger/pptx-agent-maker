@@ -288,6 +288,21 @@ def test_folder_scan_skips_lock_files(tmp_path, fake):
     assert deckset.deck_names() == ["w1", "w2"]
 
 
+def test_folder_scan_skips_a_name_stored_decomposed(tmp_path, fake):
+    """A deck to leave out is found when its file name is stored as NFD and the settings hold NFC."""
+    import unicodedata
+
+    typed = "\u30c6\u30f3\u30d7\u30ec\u30fc\u30c8"  # composed (NFC), with a voiced kana
+    stored = unicodedata.normalize("NFD", typed)
+    assert typed != stored
+    (tmp_path / f"{stored}.pptx").write_bytes(b"x")
+    (tmp_path / "w1.pptx").write_bytes(b"x")
+
+    deckset = st.DeckSet(tmp_path, skip=[typed])
+    deckset.rescan_and_rerender()
+    assert deckset.deck_names() == ["w1"]
+
+
 def test_folder_scan_drops_decks_that_disappear(tmp_path, fake):
     """フォルダから消えたデッキは一覧からも消える。"""
     (tmp_path / "w1.pptx").write_bytes(b"x")

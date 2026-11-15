@@ -98,6 +98,20 @@ class ReadingThePlaces(unittest.TestCase):
         self.assertEqual(found["A"][1], ["specimen"], "the project's template is listed as a deck")
         self.assertEqual(found["old decks"][1], [])
 
+    def test_a_label_reaches_a_folder_whose_name_is_stored_decomposed(self) -> None:
+        """A folder name with voiced kana may be stored as NFD while the places file holds the typed NFC."""
+        import unicodedata
+
+        from pptx_agent_maker.project.files.places import discover, load
+        typed = "\u30b1\u30fc\u30b9\u30c7\u30c3\u30ad"  # composed (NFC)
+        stored = unicodedata.normalize("NFD", typed)
+        self.assertNotEqual(typed, stored)
+        create(self.base / "cases" / stored)
+        places = load(self._places(
+            f'[[search]]\npath = "{self.base / "cases"}"\n\n'
+            f'[labels]\n"{self.base / "cases" / typed}" = "A"\n'))
+        self.assertEqual(sorted(discover(places, lambda folder: set())), ["A"])
+
     def test_a_project_with_no_label_does_not_show_its_folder_name(self) -> None:
         """⚠ folder 名には先方の名前が入りうる ― 発表中に欄を開くと別の会社の名前が並ぶ。"""
         from pptx_agent_maker.project.files.places import discover, load
