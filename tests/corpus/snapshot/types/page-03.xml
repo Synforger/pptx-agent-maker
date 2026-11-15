@@ -89,7 +89,7 @@
 </p:blipFill>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="1536925"/>
+<a:off x="432000" y="1533750"/>
 <a:ext cx="11328000" cy="4248000"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -105,8 +105,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="5892925"/>
-<a:ext cx="11328000" cy="184150"/>
+<a:off x="432000" y="5889750"/>
+<a:ext cx="11328000" cy="190500"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>

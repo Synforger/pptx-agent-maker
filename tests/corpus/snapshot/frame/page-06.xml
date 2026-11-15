@@ -82,7 +82,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="432000" y="1080000"/>
-<a:ext cx="5556000" cy="546640"/>
+<a:ext cx="5556000" cy="556800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -114,7 +114,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="558000" y="1206000"/>
-<a:ext cx="5304000" cy="294640"/>
+<a:ext cx="5304000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -149,7 +149,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="6204000" y="1080000"/>
-<a:ext cx="5556000" cy="546640"/>
+<a:ext cx="5556000" cy="556800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -181,7 +181,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="6330000" y="1206000"/>
-<a:ext cx="5304000" cy="294640"/>
+<a:ext cx="5304000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>

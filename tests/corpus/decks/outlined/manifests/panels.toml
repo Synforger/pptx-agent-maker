@@ -8,7 +8,6 @@ out = "panels.pptx"
 kind = "declare"
 type = "compose"
 title = "Panels in colours, with the words and the numbers standing straight on them"
-condition = "A colour is carried by the line and the heading; what is set inside reads in the ink of the body"
 conclusion = "A panel fills its cell, and so do the cards it holds"
 links = [
   { from = "a", to = "b", tone = "accent" },

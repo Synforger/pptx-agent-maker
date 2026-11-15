@@ -17,7 +17,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="432000" y="324000"/>
-<a:ext cx="11328000" cy="981960"/>
+<a:ext cx="11328000" cy="997200"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -51,7 +51,7 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="1305960"/>
+<a:off x="432000" y="1321200"/>
 <a:ext cx="11328000" cy="12700"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -81,8 +81,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="1521960"/>
-<a:ext cx="5484000" cy="5012040"/>
+<a:off x="432000" y="1537200"/>
+<a:ext cx="5484000" cy="4996800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -236,8 +236,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6276000" y="1521960"/>
-<a:ext cx="5484000" cy="546640"/>
+<a:off x="6276000" y="1537200"/>
+<a:ext cx="5484000" cy="556800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -268,8 +268,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6402000" y="1647960"/>
-<a:ext cx="5232000" cy="294640"/>
+<a:off x="6402000" y="1663200"/>
+<a:ext cx="5232000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -303,8 +303,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6276000" y="3264640"/>
-<a:ext cx="5484000" cy="546640"/>
+<a:off x="6276000" y="3274800"/>
+<a:ext cx="5484000" cy="556800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -333,8 +333,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6402000" y="3390640"/>
-<a:ext cx="5232000" cy="294640"/>
+<a:off x="6402000" y="3400800"/>
+<a:ext cx="5232000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -368,8 +368,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6276000" y="5007320"/>
-<a:ext cx="5484000" cy="546640"/>
+<a:off x="6276000" y="5012400"/>
+<a:ext cx="5484000" cy="556800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -400,8 +400,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6402000" y="5133320"/>
-<a:ext cx="5232000" cy="294640"/>
+<a:off x="6402000" y="5138400"/>
+<a:ext cx="5232000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>

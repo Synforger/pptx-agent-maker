@@ -82,11 +82,11 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="432000" y="1080000"/>
-<a:ext cx="3848000" cy="602020"/>
+<a:ext cx="3848000" cy="619800"/>
 </a:xfrm>
 <a:prstGeom prst="homePlate">
 <a:avLst>
-<a:gd name="adj" fmla="val 35879"/>
+<a:gd name="adj" fmla="val 34849"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>
@@ -125,11 +125,11 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="4280000" y="1080000"/>
-<a:ext cx="3848000" cy="602020"/>
+<a:ext cx="3848000" cy="619800"/>
 </a:xfrm>
 <a:prstGeom prst="chevron">
 <a:avLst>
-<a:gd name="adj" fmla="val 35879"/>
+<a:gd name="adj" fmla="val 34849"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>
@@ -168,11 +168,11 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="8128000" y="1080000"/>
-<a:ext cx="3632000" cy="602020"/>
+<a:ext cx="3632000" cy="619800"/>
 </a:xfrm>
 <a:prstGeom prst="chevron">
 <a:avLst>
-<a:gd name="adj" fmla="val 35879"/>
+<a:gd name="adj" fmla="val 34849"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>

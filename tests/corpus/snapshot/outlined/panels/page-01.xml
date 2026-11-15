@@ -17,7 +17,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="432000" y="324000"/>
-<a:ext cx="11328000" cy="981960"/>
+<a:ext cx="11328000" cy="997200"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -51,7 +51,7 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="1305960"/>
+<a:off x="432000" y="1321200"/>
 <a:ext cx="11328000" cy="12700"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -76,75 +76,6 @@
 <p:sp>
 <p:nvSpPr>
 <p:cNvPr id="4" name="Rounded Rectangle 3"/>
-<p:cNvSpPr/>
-<p:nvPr/>
-</p:nvSpPr>
-<p:spPr>
-<a:xfrm>
-<a:off x="432000" y="1521960"/>
-<a:ext cx="11328000" cy="396000"/>
-</a:xfrm>
-<a:prstGeom prst="roundRect">
-<a:avLst>
-<a:gd name="adj" fmla="val 27272"/>
-</a:avLst>
-</a:prstGeom>
-<a:solidFill>
-<a:srgbClr val="E4ECF5"/>
-</a:solidFill>
-<a:ln w="12700">
-<a:solidFill>
-<a:srgbClr val="1F5FA9"/>
-</a:solidFill>
-</a:ln>
-<a:effectLst/>
-</p:spPr>
-<p:txBody>
-<a:bodyPr rtlCol="0" anchor="ctr"/>
-<a:lstStyle/>
-<a:p>
-<a:pPr algn="ctr"/>
-</a:p>
-</p:txBody>
-</p:sp>
-<p:sp>
-<p:nvSpPr>
-<p:cNvPr id="5" name="TextBox 4"/>
-<p:cNvSpPr txBox="1"/>
-<p:nvPr/>
-</p:nvSpPr>
-<p:spPr>
-<a:xfrm>
-<a:off x="558000" y="1647960"/>
-<a:ext cx="11076000" cy="144000"/>
-</a:xfrm>
-<a:prstGeom prst="rect">
-<a:avLst/>
-</a:prstGeom>
-<a:noFill/>
-</p:spPr>
-<p:txBody>
-<a:bodyPr wrap="square" anchor="ctr">
-<a:spAutoFit/>
-</a:bodyPr>
-<a:lstStyle/>
-<a:p>
-<a:pPr algn="l"/>
-<a:r>
-<a:rPr sz="1600" b="1">
-<a:solidFill>
-<a:srgbClr val="1F5FA9"/>
-</a:solidFill>
-<a:latin typeface="Meiryo"/>
-</a:rPr>
-<a:t>A colour is carried by the line and the heading; what is set inside reads in the ink of the body</a:t>
-</a:r>
-</a:p>
-</p:txBody>
-</p:sp>
-<p:sp>
-<p:nvSpPr>
-<p:cNvPr id="6" name="Rounded Rectangle 5"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
@@ -178,7 +109,7 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="7" name="TextBox 6"/>
+<p:cNvPr id="5" name="TextBox 4"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
@@ -213,14 +144,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="8" name="Rounded Rectangle 7"/>
+<p:cNvPr id="6" name="Rounded Rectangle 5"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="2133960"/>
-<a:ext cx="3632000" cy="3788040"/>
+<a:off x="432000" y="1537200"/>
+<a:ext cx="3632000" cy="4384800"/>
 </a:xfrm>
 <a:prstGeom prst="roundRect">
 <a:avLst>
@@ -247,14 +178,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="9" name="TextBox 8"/>
+<p:cNvPr id="7" name="TextBox 6"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="2259960"/>
-<a:ext cx="3380000" cy="294640"/>
+<a:off x="558000" y="1663200"/>
+<a:ext cx="3380000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -282,13 +213,13 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="10" name="Rectangle 9"/>
+<p:cNvPr id="8" name="Rectangle 7"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="2600320"/>
+<a:off x="558000" y="2013720"/>
 <a:ext cx="3380000" cy="12700"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -312,14 +243,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="11" name="TextBox 10"/>
+<p:cNvPr id="9" name="TextBox 8"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="2721020"/>
-<a:ext cx="3380000" cy="257810"/>
+<a:off x="558000" y="2134420"/>
+<a:ext cx="3380000" cy="266700"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -347,14 +278,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="12" name="TextBox 11"/>
+<p:cNvPr id="10" name="TextBox 9"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="3194830"/>
-<a:ext cx="3380000" cy="441960"/>
+<a:off x="558000" y="2617120"/>
+<a:ext cx="3380000" cy="457200"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -382,14 +313,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="13" name="TextBox 12"/>
+<p:cNvPr id="11" name="TextBox 10"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="558000" y="3852790"/>
-<a:ext cx="3380000" cy="441960"/>
+<a:off x="558000" y="3290320"/>
+<a:ext cx="3380000" cy="457200"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -429,14 +360,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="14" name="Rounded Rectangle 13"/>
+<p:cNvPr id="12" name="Rounded Rectangle 11"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4280000" y="2133960"/>
-<a:ext cx="3632000" cy="3788040"/>
+<a:off x="4280000" y="1537200"/>
+<a:ext cx="3632000" cy="4384800"/>
 </a:xfrm>
 <a:prstGeom prst="roundRect">
 <a:avLst>
@@ -463,14 +394,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="15" name="TextBox 14"/>
+<p:cNvPr id="13" name="TextBox 12"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4406000" y="2259960"/>
-<a:ext cx="3380000" cy="294640"/>
+<a:off x="4406000" y="1663200"/>
+<a:ext cx="3380000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -498,13 +429,13 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="16" name="Rectangle 15"/>
+<p:cNvPr id="14" name="Rectangle 13"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4406000" y="2600320"/>
+<a:off x="4406000" y="2013720"/>
 <a:ext cx="3380000" cy="12700"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -528,14 +459,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="17" name="TextBox 16"/>
+<p:cNvPr id="15" name="TextBox 14"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4406000" y="2721020"/>
-<a:ext cx="3380000" cy="883920"/>
+<a:off x="4406000" y="2134420"/>
+<a:ext cx="3380000" cy="914400"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -563,18 +494,18 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="18" name="Rounded Rectangle 17"/>
+<p:cNvPr id="16" name="Rounded Rectangle 15"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4406000" y="3820940"/>
-<a:ext cx="3380000" cy="879530"/>
+<a:off x="4406000" y="3264820"/>
+<a:ext cx="3380000" cy="1157590"/>
 </a:xfrm>
 <a:prstGeom prst="roundRect">
 <a:avLst>
-<a:gd name="adj" fmla="val 12279"/>
+<a:gd name="adj" fmla="val 9329"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>
@@ -597,14 +528,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="19" name="TextBox 18"/>
+<p:cNvPr id="17" name="TextBox 16"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4532000" y="4305815"/>
-<a:ext cx="3128000" cy="220980"/>
+<a:off x="4532000" y="3889995"/>
+<a:ext cx="3128000" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -632,14 +563,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="20" name="TextBox 19"/>
+<p:cNvPr id="18" name="TextBox 17"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4532000" y="3903175"/>
-<a:ext cx="3128000" cy="294640"/>
+<a:off x="4532000" y="3477195"/>
+<a:ext cx="3128000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -667,18 +598,18 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="21" name="Rounded Rectangle 20"/>
+<p:cNvPr id="19" name="Rounded Rectangle 18"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4406000" y="4916470"/>
-<a:ext cx="3380000" cy="879530"/>
+<a:off x="4406000" y="4638410"/>
+<a:ext cx="3380000" cy="1157590"/>
 </a:xfrm>
 <a:prstGeom prst="roundRect">
 <a:avLst>
-<a:gd name="adj" fmla="val 12279"/>
+<a:gd name="adj" fmla="val 9329"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>
@@ -701,14 +632,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="22" name="TextBox 21"/>
+<p:cNvPr id="20" name="TextBox 19"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4532000" y="5401345"/>
-<a:ext cx="3128000" cy="220980"/>
+<a:off x="4532000" y="5263585"/>
+<a:ext cx="3128000" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -736,14 +667,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="23" name="TextBox 22"/>
+<p:cNvPr id="21" name="TextBox 20"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4532000" y="4998705"/>
-<a:ext cx="3128000" cy="294640"/>
+<a:off x="4532000" y="4850785"/>
+<a:ext cx="3128000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -771,14 +702,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="24" name="Rounded Rectangle 23"/>
+<p:cNvPr id="22" name="Rounded Rectangle 21"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="8128000" y="2133960"/>
-<a:ext cx="3632000" cy="3788040"/>
+<a:off x="8128000" y="1537200"/>
+<a:ext cx="3632000" cy="4384800"/>
 </a:xfrm>
 <a:prstGeom prst="roundRect">
 <a:avLst>
@@ -805,14 +736,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="25" name="TextBox 24"/>
+<p:cNvPr id="23" name="TextBox 22"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="8254000" y="2259960"/>
-<a:ext cx="3380000" cy="294640"/>
+<a:off x="8254000" y="1663200"/>
+<a:ext cx="3380000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -840,15 +771,15 @@
 </p:sp>
 <p:graphicFrame>
 <p:nvGraphicFramePr>
-<p:cNvPr id="26" name="Table 25"/>
+<p:cNvPr id="24" name="Table 23"/>
 <p:cNvGraphicFramePr>
 <a:graphicFrameLocks noGrp="1"/>
 </p:cNvGraphicFramePr>
 <p:nvPr/>
 </p:nvGraphicFramePr>
 <p:xfrm>
-<a:off x="8254000" y="2662600"/>
-<a:ext cx="3380000" cy="835740"/>
+<a:off x="8254000" y="2076000"/>
+<a:ext cx="3380000" cy="858600"/>
 </p:xfrm>
 <a:graphic>
 <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table">
@@ -860,7 +791,7 @@
 <a:gridCol w="1279966"/>
 <a:gridCol w="2100034"/>
 </a:tblGrid>
-<a:tr h="278580">
+<a:tr h="286200">
 <a:tc>
 <a:txBody>
 <a:bodyPr/>
@@ -948,7 +879,7 @@
 </a:tcPr>
 </a:tc>
 </a:tr>
-<a:tr h="278580">
+<a:tr h="286200">
 <a:tc>
 <a:txBody>
 <a:bodyPr/>
@@ -1036,7 +967,7 @@
 </a:tcPr>
 </a:tc>
 </a:tr>
-<a:tr h="278580">
+<a:tr h="286200">
 <a:tc>
 <a:txBody>
 <a:bodyPr/>
@@ -1130,15 +1061,15 @@
 </p:graphicFrame>
 <p:graphicFrame>
 <p:nvGraphicFramePr>
-<p:cNvPr id="27" name="Chart 26"/>
+<p:cNvPr id="25" name="Chart 24"/>
 <p:cNvGraphicFramePr>
 <a:graphicFrameLocks noGrp="1"/>
 </p:cNvGraphicFramePr>
 <p:nvPr/>
 </p:nvGraphicFramePr>
 <p:xfrm>
-<a:off x="8254000" y="3714340"/>
-<a:ext cx="3380000" cy="2081660"/>
+<a:off x="8254000" y="3150600"/>
+<a:ext cx="3380000" cy="2645400"/>
 </p:xfrm>
 <a:graphic>
 <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
@@ -1148,13 +1079,13 @@
 </p:graphicFrame>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="28" name="Connector 27"/>
+<p:cNvPr id="26" name="Connector 25"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4064000" y="4027980"/>
+<a:off x="4064000" y="3729600"/>
 <a:ext cx="216000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -1170,13 +1101,13 @@
 </p:cxnSp>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="29" name="Connector 28"/>
+<p:cNvPr id="27" name="Connector 26"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="7912000" y="4027980"/>
+<a:off x="7912000" y="3729600"/>
 <a:ext cx="216000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">

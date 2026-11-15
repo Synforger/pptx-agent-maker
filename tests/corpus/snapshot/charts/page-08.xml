@@ -117,9 +117,9 @@
 <p:grpSpPr>
 <a:xfrm>
 <a:off x="432000" y="1080000"/>
-<a:ext cx="11328000" cy="5017020"/>
+<a:ext cx="11328000" cy="5009400"/>
 <a:chOff x="432000" y="1080000"/>
-<a:chExt cx="11328000" cy="5017020"/>
+<a:chExt cx="11328000" cy="5009400"/>
 </a:xfrm>
 </p:grpSpPr>
 <p:graphicFrame>
@@ -131,8 +131,8 @@
 <p:nvPr/>
 </p:nvGraphicFramePr>
 <p:xfrm>
-<a:off x="432000" y="1408980"/>
-<a:ext cx="11328000" cy="4688040"/>
+<a:off x="432000" y="1416600"/>
+<a:ext cx="11328000" cy="4672800"/>
 </p:xfrm>
 <a:graphic>
 <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
@@ -148,8 +148,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="7182570" y="1300980"/>
-<a:ext cx="12700" cy="1194383"/>
+<a:off x="7182570" y="1308600"/>
+<a:ext cx="12700" cy="1189278"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -179,7 +179,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="6731720" y="1080000"/>
-<a:ext cx="914400" cy="220980"/>
+<a:ext cx="914400" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -214,8 +214,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="6313020"/>
-<a:ext cx="11328000" cy="220980"/>
+<a:off x="432000" y="6305400"/>
+<a:ext cx="11328000" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
