@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import unicodedata
 from pathlib import Path
 
 #: ツールが案件の folder に置く唯一のもの。**案件の持ち物と同じ階層に散らさない** ―
@@ -22,6 +23,20 @@ LAST = "last"
 
 def _state(deck: Path) -> Path:
     return Path(deck).parent / STATE
+
+
+def _key(name: str) -> str:
+    """A deck's file name as the ledger keys it: one Unicode form for the typed and the listed name.
+
+    The build writes the name from the manifest and a later command reads the name a person typed
+    or the shell completed; with voiced kana one can be composed (NFC) and the other decomposed.
+    """
+    return unicodedata.normalize("NFC", name)
+
+
+def _read(ledger: Path) -> dict[str, str]:
+    """The ledger's entries, keyed the way `_key` spells them (entries written before stay found)."""
+    return {_key(name): digest for name, digest in json.loads(ledger.read_text()).items()}
 
 
 def _digest(deck: Path) -> str:
@@ -41,8 +56,8 @@ def remember(deck: Path) -> None:
     deck = Path(deck)
     ledger = _path(deck)
     ledger.parent.mkdir(parents=True, exist_ok=True)
-    known = json.loads(ledger.read_text()) if ledger.is_file() else {}
-    known[deck.name] = _digest(deck)
+    known = _read(ledger) if ledger.is_file() else {}
+    known[_key(deck.name)] = _digest(deck)
     ledger.write_text(json.dumps(known, indent=2, sort_keys=True), encoding="utf-8")
 
     shelf = _state(deck) / LAST
@@ -64,5 +79,4 @@ def touched_by_hand(deck: Path) -> bool:
     ledger = _path(deck)
     if not ledger.is_file():
         return True  # something is there that we never wrote
-    known = json.loads(ledger.read_text())
-    return known.get(deck.name) != _digest(deck)
+    return _read(ledger).get(_key(deck.name)) != _digest(deck)
