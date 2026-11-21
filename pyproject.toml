@@ -6,9 +6,17 @@ requires-python = ">=3.11"
 dependencies = ["python-pptx>=1.0"]
 
 # `uv run` / `uv sync` が既定で入れる group。プレビューは下の packages.find が本体と一緒に入れるので、
-# ここに足すのはプレビューの試験 (pytest) と sdist / wheel を組む build だけ。
+# ここに足すのは試験 (pytest と 1 本ごとの上限の pytest-timeout) と sdist / wheel を組む build だけ。
 [dependency-groups]
-dev = ["pytest>=7", "build"]
+dev = ["pytest>=7", "pytest-timeout>=2", "build"]
+
+# 本体 (tests/) とプレビュー (preview/tests/) の両方の試験がこの 1 か所を読む。
+# 1 本が止まると全体が終わらず、流した側は気づかずに待ち続けるので、1 本ごとに上限を置き、
+# 遅い 10 本の名前を毎回出す (= 遅くなった 1 本がその場で名指される)。
+[tool.pytest.ini_options]
+# 普段一番遅い 1 本 (= 約 4 秒) の 3 倍
+timeout = 12
+addopts = "--durations=10"
 
 # 案件の folder から名前で呼べるようにする。`python -m ...` だけだと、ツールが
 # どの python に入っているかを人が覚えていないと 1 頁も焼けない。
