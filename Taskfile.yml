@@ -45,7 +45,8 @@ tasks:
   test:unit:
     desc: Run the toolkit's own suite
     cmds:
-      - uv run python -m unittest discover -s tests -v
+      # pytest で流す (= 1 本ごとの上限と遅い 10 本の名前は pyproject.toml の [tool.pytest.ini_options])
+      - uv run python -m pytest tests -q
 
   test:integration:
     desc: Run the vendored preview's suite (= server, cache and notes against real files)
