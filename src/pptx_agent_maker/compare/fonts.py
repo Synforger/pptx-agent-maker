@@ -1,7 +1,7 @@
 """Which typefaces a deck names, and which of them this machine does not have.
 
-`pptx-agent-maker compare` asks this before it prints, so a person who sees pages differ when nothing changed is
-told why. Reads the decks and starts `fc-match`; the judging is `font_match.py`.
+`pptx-agent-maker compare` asks this before it prints, so a person is told when the pages it counted were drawn
+in stand-in faces. Reads the decks and starts `fc-match`; the judging is `font_match.py`.
 
 A run that points at the theme's face (`+mn-lt` and the like) is resolved with `deck._internal.look.look_of`, the
 reader the toolkit already keeps for a deck's look. It is borrowed from the inside of `deck` rather than made public
@@ -52,9 +52,8 @@ def fonts_named(deck: Path) -> set[str]:
 def missing_fonts(faces: Iterable[str]) -> list[str] | None:
     """The typefaces among `faces` this machine does not have, in name order; None when `fc-match` is not here.
 
-    ⚠ **LibreOffice は無い書体を、描くたびに別の書体で置き換えることがある。**ここで見るのは fontconfig に
-    入っているかで、LibreOffice が自分で見つける書体の一覧と同じとは限らない (= 知らせは目安。この機械で
-    測った限り、`fc-match` で無い書体を使う資料は揺れ、有る書体を使う資料は揺れなかった)。
+    ⚠ **LibreOffice は無い書体を、process ごとに別の書体で置き換えることがある。**ここで見るのは fontconfig に
+    入っているかで、LibreOffice が自分で見つける書体の一覧と同じとは限らない (= 知らせは目安)。
     """
     faces = sorted(set(faces))
     if not faces:

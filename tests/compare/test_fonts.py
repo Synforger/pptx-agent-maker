@@ -1,7 +1,7 @@
 """Telling a person that a deck names a typeface this machine does not have.
 
-LibreOffice は無い書体を描くたびに別の書体で置き換えることがあり、字のある頁は、何も変えていない
-資料同士でも画素が違う。それを知らされないと「頁が変わった」と読んでしまう。ここは、どの書体を
+LibreOffice は無い書体を別の書体で置き換えて描くので、数えた差は PowerPoint の見え方の差ではなく、
+回によっても変わる。それを知らされないと数をそのまま読んでしまう。ここは、どの書体を
 名指しているかを読むこと、無い書体を見分けること、数も終わりの code も変えずに 1 行だけ出すことを見る。
 """
 
@@ -122,11 +122,11 @@ class SpellingsOfOneFamily(unittest.TestCase):
 
 class TheNoteTheCommandPrints(unittest.TestCase):
 
-    def test_missing_typefaces_make_one_line_saying_why_pages_with_words_may_differ(self) -> None:
+    def test_missing_typefaces_make_one_line_saying_the_words_are_in_a_stand_in_face(self) -> None:
         note = render_font_note(["Consolas", "Meiryo"])
         self.assertEqual(note, "note: a deck names Consolas, Meiryo, which this machine does not have: LibreOffice "
-                               "draws its words in a stand-in face that can change from one run to the next, so "
-                               "pages with words may differ when nothing changed")
+                               "draws its words in a stand-in face, picked once for both decks of a run, so the "
+                               "pictures are not PowerPoint's and the counts can change from one run to the next")
 
     def test_nothing_is_said_when_no_typeface_is_missing(self) -> None:
         self.assertIsNone(render_font_note([]))
