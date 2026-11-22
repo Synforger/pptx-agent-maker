@@ -14,6 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from .allowed_hosts import load_allowed_hosts
+from .reason_text import without_paths
 from .request_guard import refusal
 from .state import DeckSet, Nothing, Opened
 
@@ -101,6 +102,11 @@ def make_handler(deckset: DeckSet):
             self.end_headers()
             self.wfile.write(body)
 
+        def end_headers(self) -> None:
+            # Here and not in `_send`: the event stream and the answers of the standard library pass here too.
+            self.send_header("X-Content-Type-Options", "nosniff")
+            super().end_headers()
+
         def _json(self, payload, code: int = 200):
             self._send(code, "application/json", json.dumps(payload).encode())
 
@@ -150,7 +156,7 @@ def make_handler(deckset: DeckSet):
                 return
             # URL は中身の hash なので、同じ URL の中身は未来永劫変わらない。
             self._send(200, "image/jpeg", img.read_bytes(),
-                       cache="public, max-age=31536000, immutable")
+                       cache="private, max-age=31536000, immutable")
 
         # ---- routing -----------------------------------------------------
 
@@ -184,7 +190,7 @@ def make_handler(deckset: DeckSet):
                 # 束ねて見る時の題は表示名 (= folder 名には会社の名前が入りうる。タブの題にも出る)
                 self._json({"title": self.key if board else self.ds.title,
                             "folder": self.ds.is_folder,
-                            "problem": getattr(self.ds, "problem", None)})
+                            "problem": without_paths(getattr(self.ds, "problem", None))})
             elif path == "/api/decks":
                 self._json(self.ds.summaries())
             elif path == "/api/projects":
@@ -243,7 +249,7 @@ def make_handler(deckset: DeckSet):
             names = board.projects()
             # 読めなかった案件も欄に残し、印を付ける (= 黙って消すと「デッキが消えた」に見える)
             self._json({"projects": names, "active": board.project,
-                        "problems": board.problems()})
+                        "problems": {name: without_paths(why) for name, why in board.problems().items()}})
 
         def _select(self, name: str):
             if board is None or name not in board.projects():
