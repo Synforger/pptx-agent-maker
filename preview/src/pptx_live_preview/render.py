@@ -255,6 +255,11 @@ def numbered_as_powerpoint(pptx: Path, work_dir: Path) -> Path:
 
 def to_pdf(pptx: Path, work_dir: Path, profile: Path) -> Path:
     """Convert ``pptx`` to a PDF inside ``work_dir``, using ``profile``."""
+    return convert_to_pdfs([prepare_deck(pptx, work_dir)], work_dir, profile)[0]
+
+
+def prepare_deck(pptx: Path, work_dir: Path) -> Path:
+    """The file to hand LibreOffice for ``pptx``: the deck itself, or its copy numbered as PowerPoint prints it."""
     pptx = pptx.resolve()
     if not pptx.exists():
         raise RenderError(f"deck not found: {pptx}")
@@ -263,7 +268,14 @@ def to_pdf(pptx: Path, work_dir: Path, profile: Path) -> Path:
         pptx = numbered_as_powerpoint(pptx, work_dir)
     except UNREADABLE:
         pass  # 壊れた deck は LibreOffice に渡し、その失敗をそのまま画面へ出す (= 書きかけなら次の書き込みで描き直す)
+    return pptx
 
+
+def convert_to_pdfs(decks: list[Path], work_dir: Path, profile: Path) -> list[Path]:
+    """Convert prepared decks in one LibreOffice process; their PDFs in the order given.
+
+    ⚠ **PDF は資料の file 名で `work_dir` に並ぶ。**同じ名前の資料は後の物が上書きするので、呼び手が名前を分ける。
+    """
     result = subprocess.run(
         [
             soffice_bin(),
@@ -274,7 +286,7 @@ def to_pdf(pptx: Path, work_dir: Path, profile: Path) -> Path:
             "pdf",
             "--outdir",
             str(work_dir),
-            str(pptx),
+            *map(str, decks),
         ],
         capture_output=True,
         text=True,
@@ -286,10 +298,12 @@ def to_pdf(pptx: Path, work_dir: Path, profile: Path) -> Path:
             f"soffice failed: {result.stderr.strip() or result.stdout.strip()}"
         )
 
-    pdf = work_dir / f"{pptx.stem}.pdf"
-    if not pdf.exists():
-        raise RenderError(f"expected pdf not produced: {pdf}")
-    return pdf
+    pdfs = [work_dir / f"{deck.stem}.pdf" for deck in decks]
+    for pdf in pdfs:
+        # 複数を渡すと、1 本が変換できなくても終わりの code は 0 になりうる
+        if not pdf.exists():
+            raise RenderError(f"expected pdf not produced: {pdf}")
+    return pdfs
 
 
 def _slices(total: int, parts: int) -> list[tuple[int, int]]:

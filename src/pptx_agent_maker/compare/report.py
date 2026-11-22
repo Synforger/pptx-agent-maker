@@ -26,7 +26,7 @@ def render_report(differences: list[PageDifference], first_number: int = 1) -> s
 
 
 def render_font_note(missing: list[str] | None) -> str | None:
-    """The one line that says why pages with words may differ when nothing changed, or None when there is nothing to say.
+    """The one line that says the words were drawn in a stand-in face, or None when there is nothing to say.
 
     ``missing`` は `fonts.missing_fonts` の答え: 資料が名指して、この機械に無い書体 (= 無ければ空、
     `fc-match` が無い機械では None)。数の報告は変えず、この行は別に出す (= 終わりの code も変えない)。
@@ -36,8 +36,8 @@ def render_font_note(missing: list[str] | None) -> str | None:
     if not missing:
         return None
     return (f"note: a deck names {', '.join(missing)}, which this machine does not have: LibreOffice draws its words "
-            "in a stand-in face that can change from one run to the next, so pages with words may differ when "
-            "nothing changed")
+            "in a stand-in face, picked once for both decks of a run, so the pictures are not PowerPoint's and the "
+            "counts can change from one run to the next")
 
 
 def _line(difference: PageDifference, first_number: int) -> str:

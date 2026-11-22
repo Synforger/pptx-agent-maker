@@ -1,12 +1,13 @@
 # `compare` tells a person which pages of a deck changed, by the pixels that differ. A count that drops a change,
 # a missing page written as zero, or an exit code that ignores a change makes it say "unchanged" for a page that
-# changed; a deck whose typeface this machine lacks reads as changed too, unless the command says why.
+# changed; a deck whose typeface this machine lacks reads as changed too, unless both versions are drawn in one process.
 # (= run it with `task mutate -- tests/mutants/compare.toml`)
 
 tests = [
     "tests/compare/test_pictures.py",
     "tests/compare/test_report.py",
     "tests/compare/test_decks.py",
+    "tests/compare/test_bake.py",
     "tests/compare/test_fonts.py",
 ]
 
@@ -77,10 +78,40 @@ old = "[pdftoppm_bin(), \"-png\","
 new = "[pdftoppm_bin(), \"-jpeg\","
 
 [[mutant]]
-name = "both decks are drawn into one folder, so the second overwrites the first"
+name = "each deck is drawn by a process of its own, so each gets a stand-in face of its own"
+file = "src/pptx_agent_maker/compare/bake.py"
+old = "pdfs = convert_to_pdfs(copies, together, profile)"
+new = "pdfs = [convert_to_pdfs([copy], together, profile)[0] for copy in copies]"
+
+[[mutant]]
+name = "two versions with one file name give one PDF, so the second overwrites the first"
+file = "src/pptx_agent_maker/compare/bake.py"
+old = "copy = together / f\"{position}-{deck.stem}.pptx\""
+new = "copy = together / f\"{deck.stem}.pptx\""
+
+[[mutant]]
+name = "both decks' pictures go into one folder, so the second overwrites the first"
+file = "src/pptx_agent_maker/compare/bake.py"
+old = "folders = [work / str(position) for position in range(len(decks))]"
+new = "folders = [work / \"pages\" for position in range(len(decks))]"
+
+[[mutant]]
+name = "the decks are handed to LibreOffice without PowerPoint's numbers and hidden pages"
+file = "src/pptx_agent_maker/compare/bake.py"
+old = "shutil.copyfile(prepare_deck(deck, folder), copy)"
+new = "shutil.copyfile(deck, copy)"
+
+[[mutant]]
+name = "the two sides change places"
 file = "src/pptx_agent_maker/compare/decks.py"
-old = "pages_after = bake_pages(after, work / \"after\")"
-new = "pages_after = bake_pages(after, work / \"before\")"
+old = "pages_before, pages_after = bake_decks([before, after], Path(scratch))"
+new = "pages_after, pages_before = bake_decks([before, after], Path(scratch))"
+
+[[mutant]]
+name = "a deck that gave no PDF is not said, since LibreOffice ended with 0"
+file = "preview/src/pptx_live_preview/render.py"
+old = "        if not pdf.exists():\n            raise RenderError(f\"expected pdf not produced: {pdf}\")"
+new = "        if False:\n            raise RenderError(f\"expected pdf not produced: {pdf}\")"
 
 [[mutant]]
 name = "the command ends with 0 although a page changed"

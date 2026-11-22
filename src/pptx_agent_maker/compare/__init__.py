@@ -3,7 +3,7 @@
     page_difference.py   1 頁の比べた結果 (= 違う画素の数、または片方に頁が無い)
     pictures.py          2 つの資料の頁の絵を重ねて、違う画素を数える (= 判定)
     report.py            結果を 1 頁 1 行と「変わった頁 N / 全 M」にする。書体が無い時の 1 行も (= 判定)
-    bake.py              資料を頁ごとの絵に描く (= プレビューと同じ LibreOffice と pdftoppm)
+    bake.py              前後の資料を 1 つの process で頁ごとの絵に描く (= プレビューと同じ LibreOffice と pdftoppm)
     decks.py             2 つの資料を描いて比べる
     fonts.py             資料が名指した書体と、この機械に無い書体 (= 読み書き。`fc-match` を呼ぶ)
     font_match.py        `fc-match` の答えから、書体が入っているかを決める (= 判定)

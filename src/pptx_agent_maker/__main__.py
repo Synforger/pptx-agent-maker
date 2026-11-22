@@ -394,7 +394,7 @@ def main(argv: list[str] | None = None) -> int:
                 # 終わりの code 1 は「違う頁がある」の印なので、比べられなかった回は 2 で分ける
                 print(f"error: {error}", file=sys.stderr)
                 return 2
-            # 資料の書体がこの機械に無いと、同じ資料でも字のある頁の画素が揺れる。数は変えず、知らせるだけ
+            # 資料の書体がこの機械に無いと、代わりの書体で数えた差になる。数は変えず、知らせるだけ
             note = render_font_note(missing_fonts(fonts_named(before) | fonts_named(after)))
             if note:
                 print(note, file=sys.stderr)
