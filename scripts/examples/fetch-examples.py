@@ -155,7 +155,13 @@ def fetch_deck(entry: dict, to: Path) -> dict:
     files = tree(folder)
     if files is None:
         return {**entry, "missing": True}
-    deck = to / entry["difficulty"] / slug(entry["topic"]) / f'{entry["rank"]}-{entry["product"]}'
+    # The names come from the data set, so the folder they make is checked before anything is written. The
+    # check is on the spelling, so a collection kept behind a link of the person's own still works.
+    base = Path(os.path.normpath(to))
+    deck = Path(os.path.normpath(
+        base / entry["difficulty"] / slug(entry["topic"]) / f'{entry["rank"]}-{entry["product"]}'))
+    if base not in deck.parents:
+        return {**entry, "missing": True}
     deck.mkdir(parents=True, exist_ok=True)
     titles, failed = [], []
     for kind, suffix in (("slide_images", ".png"), ("slide_contents", ".md")):
@@ -177,7 +183,7 @@ def fetch_deck(entry: dict, to: Path) -> dict:
             if kind == "slide_contents":
                 titles.append(title_of(out.read_text(encoding="utf-8", errors="replace")))
     pages = len(list(deck.glob("page-*.jpg")))
-    return {**entry, "path": str(deck.relative_to(to.parent)), "pages": pages, "titles": titles,
+    return {**entry, "path": str(deck.relative_to(base.parent)), "pages": pages, "titles": titles,
             "failed": failed}
 
 

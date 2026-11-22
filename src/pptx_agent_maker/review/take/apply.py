@@ -36,6 +36,7 @@ from lxml import etree
 from ..._common.page_label import page_label
 from ..._common.slide import first_slide_number, read
 from ..._common.archive import Archive
+from ..._common.xml_part import load_part_text
 from ...deck.pages.swap import NS, pictures
 from ...project.files.manifest import Manifest, ManifestError
 from ...project.files.recipes import TABLE_HEAD, dump, toml_key
@@ -262,12 +263,12 @@ def _pages(deck: Path) -> list[_Page]:
             for pattern, repl in _UNSHAPE:
                 shape = pattern.sub(repl, shape)
             try:
-                rels = etree.fromstring(archive.read(f"ppt/slides/_rels/{slide}.rels"))
+                rels = load_part_text(archive.read(f"ppt/slides/_rels/{slide}.rels"))
             except KeyError:
                 rels = etree.fromstring(b"<Relationships/>")
             target = {r.get("Id"): r.get("Target", "") for r in rels}
             blobs, names = [], []
-            for pic in pictures(etree.fromstring(xml.encode("utf-8"))):
+            for pic in pictures(load_part_text(xml.encode("utf-8"))):
                 media = target.get(pic.find(".//a:blip", NS).get(f"{{{NS['r']}}}embed"), "")
                 name = media.rsplit("/", 1)[-1]
                 blobs.append(archive.read(f"ppt/media/{name}") if name else b"")
