@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import http.client
 import json
 import threading
 import time
@@ -50,6 +51,10 @@ def _json(url):
         return json.loads(r.read())
 
 
+def _post(url: str) -> http.client.HTTPResponse:
+    return urllib.request.urlopen(urllib.request.Request(url, method="POST"), timeout=5)
+
+
 @pytest.fixture
 def board(tmp_path, monkeypatch):
     _fake_render(monkeypatch)
@@ -74,7 +79,7 @@ def test_the_projects_are_listed_with_the_one_looked_at(board):
 def test_choosing_another_project_changes_the_decks(board):
     base, switchboard = board
     before = switchboard.version
-    with urllib.request.urlopen(base + "/api/projects/select/beta", timeout=5) as r:
+    with _post(base + "/api/projects/select/beta") as r:
         assert r.status == 202
     for _ in range(50):
         if [d["name"] for d in _json(base + "/api/decks")] == ["b1"]:
@@ -106,7 +111,7 @@ def test_a_page_waiting_for_news_hears_the_switch_at_once(board):
 def test_an_unknown_project_is_404(board):
     base, _ = board
     with pytest.raises(urllib.error.HTTPError) as caught:
-        urllib.request.urlopen(base + "/api/projects/select/gamma", timeout=5)
+        _post(base + "/api/projects/select/gamma")
     assert caught.value.code == 404
 
 
@@ -144,7 +149,7 @@ def test_a_new_project_appears_without_a_restart(tmp_path, monkeypatch):
 def test_the_decks_are_the_new_projects_as_soon_as_the_switch_answers(board):
     """⚠ 切り替えを裏で済ませていた間は、画面がすぐ取り直す一覧がまだ前の案件だった。"""
     base, _ = board
-    with urllib.request.urlopen(base + "/api/projects/select/beta", timeout=5) as r:
+    with _post(base + "/api/projects/select/beta") as r:
         assert r.status == 202
     assert [d["name"] for d in _json(base + "/api/decks")] == ["b1"]  # 待たずに
 
@@ -164,16 +169,16 @@ def test_the_last_opened_deck_and_project_outlive_a_restart(tmp_path, monkeypatc
 
     board, server, base = start()
     assert _json(base + "/api/opened") == {"deck": None}
-    urllib.request.urlopen(base + "/api/opened/a2", timeout=5).read()
-    urllib.request.urlopen(base + "/api/projects/select/beta", timeout=5).read()
-    urllib.request.urlopen(base + "/api/opened/b1", timeout=5).read()
+    _post(base + "/api/opened/a2").read()
+    _post(base + "/api/projects/select/beta").read()
+    _post(base + "/api/opened/b1").read()
     server.shutdown()
 
     board, server, base = start()  # 再起動
     try:
         assert _json(base + "/api/projects")["active"] == "beta"
         assert _json(base + "/api/opened") == {"deck": "b1"}
-        urllib.request.urlopen(base + "/api/projects/select/alpha", timeout=5).read()
+        _post(base + "/api/projects/select/alpha").read()
         assert _json(base + "/api/opened") == {"deck": "a2"}, "each project keeps its own"
     finally:
         server.shutdown()
@@ -182,7 +187,7 @@ def test_the_last_opened_deck_and_project_outlive_a_restart(tmp_path, monkeypatc
 def test_a_deck_that_is_not_there_is_not_remembered(board):
     base, _ = board
     with pytest.raises(urllib.error.HTTPError) as caught:
-        urllib.request.urlopen(base + "/api/opened/nope", timeout=5)
+        _post(base + "/api/opened/nope")
     assert caught.value.code == 404
 
 
@@ -195,7 +200,7 @@ def test_the_deck_list_says_when_each_deck_was_changed(board):
 def test_each_page_sees_the_project_it_names(board):
     """⚠ 発表用に 1 案件へ絞った画面は、別の画面が既定の案件を替えても動かない。"""
     base, _ = board
-    urllib.request.urlopen(base + "/api/projects/select/beta", timeout=5).read()
+    _post(base + "/api/projects/select/beta").read()
     for _ in range(50):
         if [d["name"] for d in _json(base + "/api/decks?p=alpha")] == ["a1"]:
             break

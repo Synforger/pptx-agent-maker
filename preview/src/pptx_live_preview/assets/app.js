@@ -41,6 +41,9 @@ const at = (path) => {
   return url + (url.includes('?') ? '&' : '?') + 'p=' + encodeURIComponent(S.project);
 };
 
+/* The server changes nothing on a GET. */
+const CHANGE = { method: 'POST' };
+
 /* 画面に入るまで絵を取りに行かない。
 
    loading="lazy" は当てにできない: Chromium は「画面から遠いか」を一番外側の
@@ -589,7 +592,7 @@ async function selectDeck(name) {
   S.active = name;
   location.hash = encodeURIComponent(name);
   // 最後に開いた物を server に覚えさせる (= 開き直した時、どの端末からでもここに戻る)
-  fetch(at('api/opened/' + encodeURIComponent(name))).catch(() => {});
+  fetch(at('api/opened/' + encodeURIComponent(name)), CHANGE).catch(() => {});
   renderPicker();
   // 見ていた頁のまま隣のデッキへ移る (= 同じ骨格から育ったデッキを突き合わせるとき、
   // 毎回先頭へ戻されると同じところまで送り直すことになる)
@@ -762,7 +765,7 @@ $('refreshBtn').onclick = async () => {
   const btn = $('refreshBtn');
   btn.classList.add('spinning');
   try {
-    await fetch(at('api/refresh'));
+    await fetch(at('api/refresh'), CHANGE);
   } finally {
     setTimeout(() => btn.classList.remove('spinning'), 800);
   }
@@ -860,7 +863,7 @@ async function loadProjects() {
   select.onchange = async () => {
     S.project = select.value;
     // 既定の案件として覚えさせる (= 名乗らずに開いた画面と、次の起動がここから始まる)
-    await fetch(at('api/projects/select/' + encodeURIComponent(select.value)));
+    await fetch(at('api/projects/select/' + encodeURIComponent(select.value)), CHANGE);
     S.active = null;
     S.details = {};
     history.replaceState(null, '', location.pathname + location.search);

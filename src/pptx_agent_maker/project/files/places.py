@@ -36,7 +36,7 @@ import unicodedata
 from pathlib import Path
 from typing import NamedTuple
 
-from pptx_live_preview.platform_root import tool_folder
+from pptx_live_preview.platform_root import config_folder
 
 FILENAME = "preview.toml"
 #: 探す時に下りない folder (= 控え・ツールの状態)
@@ -62,10 +62,7 @@ class Offer(NamedTuple):
 
 def default_places_file() -> Path:
     """The places file of this machine: under the platform root when one is given, else ~/.config."""
-    folder = tool_folder("config")
-    if folder is None:
-        folder = Path.home() / ".config" / "pptx-agent-maker"
-    return folder / FILENAME
+    return config_folder() / FILENAME
 
 
 def load(path: Path | str | None = None) -> dict:

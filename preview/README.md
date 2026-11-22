@@ -19,6 +19,9 @@ uv run pptx-live-preview path/to/deck-folder/  # every deck in the folder, as ta
 
 Options: `--port` (0 = pick a free one), `--dpi` (default 200), `--no-open` (do not launch a browser).
 
+The preview answers only to loopback names. To reach it through a reverse proxy or `tailscale serve`,
+write the name you open into `allowed-hosts.txt` — see [setup](docs/setup/).
+
 ## Reviewing a deck
 
 The page is built for reading a deck end to end, not just for watching it reload.

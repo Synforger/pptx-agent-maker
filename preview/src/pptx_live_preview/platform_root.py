@@ -28,3 +28,8 @@ def tool_folder(role: str) -> Path | None:
     if not root.is_absolute():
         raise ValueError(f"{ROOT_VARIABLE} must be an absolute path, not {given!r}")
     return root / role / TOOL_NAME
+
+
+def config_folder() -> Path:
+    """The folder of this machine's settings: under the platform root when one is given, else ~/.config."""
+    return tool_folder("config") or Path.home() / ".config" / TOOL_NAME
