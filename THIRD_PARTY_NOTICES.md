@@ -1,39 +1,25 @@
 # Third-Party Notices
 
-This file enumerates every OSS dependency this repository ships
-against (= direct + transitive) along with each license. It is
-**auto-generated** by `task gen-notices` (= wraps `pip-licenses`
-for Python and `license-checker-rseidelsohn` for Node). Do not edit
-this file by hand; re-run `task gen-notices` and commit the diff.
+What this repository uses at run time, at the versions `uv.lock` holds, and what it carries from others.
 
-## Why it ships in the repo
+## Run-time dependencies
 
-GitHub Actions + npm registries + PyPI all change license metadata
-asynchronously, so a snapshot in-tree is the only stable artefact for
-downstream review. Anyone reading the repo can confirm what they will
-be installing without first building the environment.
-
-## Regeneration
-
-```
-task gen-notices
-git diff --stat THIRD_PARTY_NOTICES.md
-git add THIRD_PARTY_NOTICES.md
-git commit -m "chore: refresh THIRD_PARTY_NOTICES"
-```
-
-Trigger conditions:
-- After every `pip install` / `npm install` / `cargo add` that touches
-  a new direct dep
-- Quarterly even when no new deps were added (= transitive deps shift)
-- Before every tagged release (= snapshot for the release notes)
-
-## Initial state
-
-This file is a placeholder until `task gen-notices` runs once. After
-the first run the table below is replaced with the real dependency
-list:
+Installed with the toolkit, not copied into this repository.
 
 | package | version | license | source |
 |---|---|---|---|
-| (run `task gen-notices` to populate) | — | — | — |
+| python-pptx | 1.0.2 | MIT | https://github.com/scanny/python-pptx |
+| lxml | 6.1.3 | BSD-3-Clause | https://lxml.de/ |
+| Pillow | 13.0.0 | MIT-CMU | https://github.com/python-pillow/Pillow |
+| XlsxWriter | 3.2.9 | BSD-2-Clause | https://github.com/jmcnamara/XlsxWriter |
+| typing_extensions | 4.16.0 | PSF-2.0 | https://github.com/python/typing_extensions |
+
+## Carried in this repository
+
+| what | from | license |
+|---|---|---|
+| The specimen deck of the project template (`specimen.pptx`) | the default template of python-pptx, changed | MIT, in [`third_party/python-pptx/LICENSE`](third_party/python-pptx/LICENSE) |
+
+## Called, not carried
+
+LibreOffice (MPL-2.0) and poppler (GPL) run as separate programs that the person installs.

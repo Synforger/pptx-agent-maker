@@ -17,7 +17,7 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 
 from PIL import Image
-from pptx_live_preview.cache import cache_root
+from pptx_live_preview.cache import private_cache_root
 from pptx_live_preview.render import (DEFAULT_DPI, ProfilePool, RenderError, convert_to_pdfs, pdftoppm_bin,
                                       poppler_environment, prepare_deck)
 
@@ -26,7 +26,7 @@ COMPARE_DPI = DEFAULT_DPI
 
 #: LibreOffice のプロファイルの置き場。プレビューの物とは別にする (= 常駐のプレビューが同じ
 #: プロファイルを掴んでいる間に変換すると、ロックがぶつかる)。変換は 1 本ずつなので 1 つで足りる
-PROFILES = ProfilePool(lambda: cache_root() / "_libreoffice-compare", 1)
+PROFILES = ProfilePool(lambda: private_cache_root() / "_libreoffice-compare", 1)
 
 _PAGE_PICTURE = re.compile(r"-(\d+)\.png$")
 

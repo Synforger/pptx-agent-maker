@@ -81,10 +81,10 @@ def stand_in(slide: Path, *, keep: set[str], replace: list[tuple[str, str]],
     返すのは (元の文言, 置いた文言) の並び (= 人が読んで `--keep` を決めるため)。
     PowerPoint が埋める欄 (= 頁番号などの `<a:fld>`) は触らない。
     """
-    from lxml import etree
+    from ..._common.xml_part import load_part
 
     ns = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
-    tree = etree.parse(str(slide))
+    tree = load_part(slide)
     placed: list[tuple[str, str]] = []
     for t in tree.iter(f"{ns}t"):
         if t.getparent() is not None and t.getparent().tag == f"{ns}fld":

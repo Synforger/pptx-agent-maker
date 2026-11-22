@@ -24,6 +24,9 @@ from pathlib import Path
 from .platform_root import tool_folder
 
 
+OWNER_ONLY = 0o700
+
+
 def digest(data: bytes) -> str:
     """Short content hash used for both file names and cache-busting URLs."""
     return hashlib.sha256(data).hexdigest()[:16]
@@ -49,6 +52,17 @@ def cache_root() -> Path:
     if pages is not None:
         return pages / "pages"
     return Path.home() / ".cache" / "pptx-live-preview"
+
+
+def private_cache_root() -> Path:
+    """The base cache directory, made readable by its owner alone (it holds decks' pages and names)."""
+    root = cache_root()
+    root.mkdir(parents=True, exist_ok=True)
+    try:
+        root.chmod(OWNER_ONLY)
+    except OSError:  # a folder of someone else's, or a file system without modes: still usable
+        pass
+    return root
 
 
 @dataclass(frozen=True)

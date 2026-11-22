@@ -77,6 +77,6 @@ treated as a deck.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE). Third-party dependencies are listed in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md); vulnerability reporting is described in
-[`SECURITY.md`](SECURITY.md).
+Apache-2.0 — see [`LICENSE`](../LICENSE). Third-party dependencies are listed in
+[`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md); vulnerability reporting is described in
+[`SECURITY.md`](../SECURITY.md).

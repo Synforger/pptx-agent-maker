@@ -19,7 +19,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from . import notes as notes_mod
-from .cache import DeckCache, cache_root, deck_key, digest
+from .cache import DeckCache, cache_root, deck_key, digest, private_cache_root
 from .rebuild_queue import RebuildQueue
 from .render import (ALBUM, DEFAULT_DPI, RENDERER, THUMB_DPI, ProfilePool, RenderError, album_pages,
                      rasterize, read_album, read_numbering, to_pdf)
@@ -30,7 +30,7 @@ MAX_RENDER_WORKERS = 4
 
 # LibreOffice のプロファイル置き場。デッキの絵と同じくプロセスの寿命から切り離す
 # (= 使い回さないと 1 本ごとに初期化の分だけ遅い、理由は render.ProfilePool)。
-PROFILES = ProfilePool(lambda: cache_root() / "_libreoffice", MAX_RENDER_WORKERS)
+PROFILES = ProfilePool(lambda: private_cache_root() / "_libreoffice", MAX_RENDER_WORKERS)
 
 
 class DeckState:
@@ -39,7 +39,7 @@ class DeckState:
     def __init__(self, pptx: Path, dpi: int = DEFAULT_DPI, cache_dir: Path | None = None) -> None:
         self.pptx = pptx
         self.dpi = dpi
-        self.cache = DeckCache(cache_dir or (cache_root() / deck_key(pptx)))
+        self.cache = DeckCache(cache_dir or (private_cache_root() / deck_key(pptx)))
         self.error: str | None = None
         self.last_ms = 0
         self.notes: list[str] = []
@@ -311,6 +311,7 @@ class Opened:
     """
 
     def __init__(self, path: Path | None = None) -> None:
+        self._in_cache = path is None
         self.path = path or cache_root() / "_opened.json"
         self._lock = threading.Lock()
 
@@ -321,6 +322,8 @@ class Opened:
             return {}
 
     def _write(self, data: dict) -> None:
+        if self._in_cache:
+            private_cache_root()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         staged = self.path.with_suffix(".tmp")
         staged.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")

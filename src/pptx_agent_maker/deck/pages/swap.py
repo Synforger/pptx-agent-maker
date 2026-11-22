@@ -22,6 +22,7 @@ from pathlib import Path
 
 from lxml import etree
 
+from ..._common.xml_part import load_part, load_part_text
 from ...write import aspect
 
 NS = {
@@ -123,8 +124,8 @@ def describe(deck: Path, page_number: int) -> str:
         raise SwapError(f"{deck.name} has {len(order)} pages; asked for {page_number}")
     with zipfile.ZipFile(deck) as archive:
         slide = order[page_number - 1]
-        tree = etree.fromstring(archive.read(f"ppt/slides/{slide}"))
-        rels = etree.fromstring(archive.read(f"ppt/slides/_rels/{slide}.rels"))
+        tree = load_part_text(archive.read(f"ppt/slides/{slide}"))
+        rels = load_part_text(archive.read(f"ppt/slides/_rels/{slide}.rels"))
     target = {rel.get("Id"): rel.get("Target", "").rsplit("/", 1)[-1] for rel in rels}
     cm = 360000
     lines = [f"{deck.name} page {page_number}"]
@@ -155,7 +156,7 @@ def swap_pictures(archive, slide: str, files: list[Path], *, refit: bool = True)
     作るので置き直さない (= `blank_pictures`)。
     """
     path = archive.slide(slide)
-    tree = etree.parse(str(path))
+    tree = load_part(path)
     found = pictures(tree)
     if len(found) != len(files):
         raise SwapError(
@@ -163,7 +164,7 @@ def swap_pictures(archive, slide: str, files: list[Path], *, refit: bool = True)
             "picture, in reading order (`show <deck>:<page>` lists them)"
         )
     rels_path = archive.rels_of(slide)
-    rels = etree.parse(str(rels_path))
+    rels = load_part(rels_path)
     used = [int(r.get("Id")[3:]) for r in rels.getroot() if r.get("Id", "").startswith("rId")
             and r.get("Id")[3:].isdigit()]
     next_id = max(used, default=0) + 1
@@ -220,7 +221,7 @@ def swap_tables(slide: Path, grids: list[list[list]]) -> None:
     溢れ、減らすと空白が残る。形の違う表は、形の違う頁。
     結合の続きのセル (= 左や上のセルに飲まれた側) は画面に出ないので、そこは空で渡す。
     """
-    tree = etree.parse(str(slide))
+    tree = load_part(slide)
     found = tables(tree)
     if len(found) != len(grids):
         raise SwapError(
@@ -294,7 +295,7 @@ def blank_pictures(archive, slide: str, scratch: Path) -> int:
     """
     from PIL import Image
 
-    tree = etree.parse(str(archive.slide(slide)))
+    tree = load_part(archive.slide(slide))
     found = pictures(tree)
     files = []
     for number, pic in enumerate(found, start=1):

@@ -81,6 +81,6 @@ SSE は変化時に即時通知するだけで、 待機中は 20 秒毎の keep
 
 ## ライセンス
 
-MIT (= [`LICENSE`](LICENSE))。 依存 OSS の一覧は
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)、 脆弱性の報告手順は
-[`SECURITY.md`](SECURITY.md) にある。
+Apache-2.0 (= [`LICENSE`](../LICENSE))。 依存 OSS の一覧は
+[`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)、 脆弱性の報告手順は
+[`SECURITY.md`](../SECURITY.md) にある。
