@@ -37,7 +37,7 @@ const BASE = location.pathname.endsWith('/') ? location.pathname : location.path
 const at = (path) => {
   const url = BASE + path;
   const scoped = (path.startsWith('api/') && !path.startsWith('api/projects')) || path === 'events';
-  if (!S.project || !scoped) return url;
+  if (S.project === null || !scoped) return url;
   return url + (url.includes('?') ? '&' : '?') + 'p=' + encodeURIComponent(S.project);
 };
 
@@ -836,6 +836,10 @@ const listingIsShared = () => new URLSearchParams(location.search).get('only') =
 /* 案件を束ねて起動した時だけ、上に案件を選ぶ欄を出す (= 1 案件の起動では /api/projects が 404)。
    選び直したら、覚えているデッキの情報は全部前の案件のものなので捨てる。 */
 async function loadProjects() {
+  // 発表用のリンク (?only=<表示名>) = その案件だけ。欄を出さず、画面から切り替えられない。
+  // The name is taken before the list is asked for, so a list that fails to arrive never leaves it unnamed.
+  const only = new URLSearchParams(location.search).get('only');
+  if (only !== null) S.project = only;
   let listing;
   try {
     const r = await fetch(at('api/projects'));
@@ -843,12 +847,7 @@ async function loadProjects() {
     listing = await r.json();
   } catch (e) { return; }
   S.listed = true;
-  // 発表用のリンク (?only=<表示名>) = その案件だけ。欄を出さず、画面から切り替えられない
-  const only = new URLSearchParams(location.search).get('only');
-  if (only !== null) {
-    S.project = listing.projects.includes(only) ? only : null;
-    return;
-  }
+  if (only !== null) return;
   S.project = listing.active;
   const select = $('projectSelect');
   select.innerHTML = '';

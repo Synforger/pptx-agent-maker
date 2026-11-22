@@ -31,6 +31,8 @@ SSE_PING_SECONDS = 20.0
 OPENED_PREFIX = "/api/opened/"
 SELECT_PREFIX = "/api/projects/select/"
 CHANGE_PREFIXES = (OPENED_PREFIX, SELECT_PREFIX)
+NOT_LISTED = ("the project this page names is not listed now — check the name in the address, "
+              "or choose again on the preview's own page")
 
 _CONTENT_TYPES = {
     ".css": "text/css; charset=utf-8",
@@ -57,21 +59,30 @@ def make_handler(deckset: DeckSet):
     # 最後に開いた物の覚え (= 束ねて見る時は切り替え盤が持ち、1 案件の時はここで持つ)
     opened = getattr(deckset, "opened", None) or Opened()
     board = deckset if hasattr(deckset, "projects") else None
+    not_listed = Nothing()
+    not_listed.set_problem(NOT_LISTED, ())
 
-    def resolve(query: dict) -> tuple[DeckSet, str]:
+    def resolve(query: dict) -> tuple[DeckSet, str, str | None]:
         """The decks this request is about, and the name they are remembered under.
 
         ⚠ **どの案件を見るかは画面ごと。**server 全体で 1 つにしていた間は、発表用に 1 案件へ
         絞った画面も、別の端末で案件を替えると一緒に替わった (= 発表中の画面に別の会社の
-        資料が出る)。画面は問い合わせのたびに `p` で案件を名乗る。無ければ既定の案件。
+        資料が出る)。画面は問い合わせのたびに `p` で案件を名乗る。名乗らなければ既定の案件。
+
+        The third value is the name asked for when it is not listed. Such a page is never given the
+        default project.
         """
         if board is None:
-            return deckset, str(deckset.source)
+            return deckset, str(deckset.source), None
         wanted = (query.get("p") or [None])[0]
-        name = wanted if wanted in board.projects() else board.project
-        if name is None:  # 案件が 1 つも無い間は、空の画面と理由の帯
-            return board.get(None), Nothing.TITLE
-        return board.get(name), name
+        names = board.projects()
+        unlisted = wanted if wanted is not None and wanted not in names else None
+        if board.project is None:  # 案件が 1 つも無い間は、空の画面と理由の帯
+            return board.get(None), Nothing.TITLE, unlisted
+        if unlisted is not None:
+            return not_listed, Nothing.TITLE, unlisted
+        name = board.project if wanted is None else wanted
+        return board.get(name), name, None
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -162,7 +173,8 @@ def make_handler(deckset: DeckSet):
             if path == "/api/refresh" or path.startswith(CHANGE_PREFIXES):
                 self._send(405, "text/plain", b"use POST", allow="POST")
                 return
-            self.ds, self.key = resolve(urllib.parse.parse_qs(query))
+            self.ds, self.key, self.unlisted = resolve(
+                urllib.parse.parse_qs(query, keep_blank_values=True))
 
             if path == "/":
                 self._index()
@@ -198,7 +210,8 @@ def make_handler(deckset: DeckSet):
             if self._is_refused(is_change=True):
                 return
             path, _, query = self.path.partition("?")
-            self.ds, self.key = resolve(urllib.parse.parse_qs(query))
+            self.ds, self.key, self.unlisted = resolve(
+                urllib.parse.parse_qs(query, keep_blank_values=True))
             if path == "/api/refresh":
                 self._refresh()
             elif path.startswith(OPENED_PREFIX):
@@ -270,6 +283,11 @@ def make_handler(deckset: DeckSet):
                         if self.ds.version == last:
                             self.ds.cond.wait(timeout=SSE_PING_SECONDS)
                         cur = self.ds.version
+                    if self.unlisted is not None and self.unlisted in board.projects():
+                        # The keep-alive header above would hold the socket open after the return.
+                        # Closed, the browser connects again and is then given the project.
+                        self.close_connection = True
+                        return
                     if cur != last:
                         last = cur
                         self.wfile.write(f"data: {cur}\n\n".encode())
