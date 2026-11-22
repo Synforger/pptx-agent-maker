@@ -31,14 +31,12 @@ your environment requires reproducibility.
 ## Threat model
 
 A local command-line toolkit and library. It reads a deck project that
-lives outside this repository (`.toml` manifests, `.py` page declarations,
-`.pptx` specimens) and writes `.pptx` files; the bundled preview serves the
+lives outside this repository (`.toml` manifests, `.pptx` specimens) and writes `.pptx` files; the bundled preview serves the
 rendered pages over a loopback HTTP server.
 
 Threats that follow from that shape:
 
-- a hostile project folder — a page declaration is imported and executed, and
-  a manifest names paths the toolkit opens
+- a hostile project folder — a manifest names paths the toolkit opens
 - a hostile `.pptx` — parsed by `python-pptx` and converted by LibreOffice
 - the preview's HTTP surface — it binds loopback only, but a reverse proxy can
   put it on a network, so path handling has to stay inside the served tree

@@ -66,8 +66,8 @@ my-mac.example.ts.net
 
 焼いた頁は `~/.cache/pptx-live-preview/<デッキ名>-<hash>/` に貯まる (= `XDG_CACHE_HOME` を
 設定していればその配下。 環境変数 `AGENT_PLATFORM_ROOT` を設定していれば
-`<根>/cache/pptx-agent-maker/pages/<デッキ名>-<hash>/`。 両方あれば `XDG_CACHE_HOME` が優先)。 デッキごとに 20 世代まで保持し、 どの世代からも参照されなくなった
-絵は自動で消える。 手で消しても次の描画で作り直されるだけで、 壊れることはない。
+`<根>/cache/pptx-agent-maker/pages/<デッキ名>-<hash>/`。 両方あれば `XDG_CACHE_HOME` が優先)。 デッキごとに今の 1 世代だけを持ち、 今の描画が使わない絵は
+描き直した時に消える。 手で消しても次の描画で作り直されるだけで、 壊れることはない。
 
 ## アンインストール
 

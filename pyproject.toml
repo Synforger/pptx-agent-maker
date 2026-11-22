@@ -3,6 +3,7 @@ name = "pptx-agent-maker"
 version = "0.9.3"
 description = "Build slide decks by declaring structure, not coordinates."
 requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
 dependencies = ["python-pptx>=1.0"]
 
 # `uv run` / `uv sync` が既定で入れる group。プレビューは下の packages.find が本体と一緒に入れるので、
