@@ -58,7 +58,8 @@ Four things then hold **by construction**, not by a checker run afterwards:
 
 And four things are refused outright, because no one managed to hold them by discipline:
 
-- a page with **no figure** (= prose and tables only)
+- a page with **no figure** (= prose and tables only), except in the four types that may carry none:
+  `agenda`, `board`, `cards` and `compose`
 - an **empty table cell** (write a dash; a blank reads as a value nobody filled in)
 - type **below the floor** (10pt on a deck to be read, 14pt on one to be shown)
 - a **table taller than the space given** — PowerPoint grows the frame instead of shrinking the
