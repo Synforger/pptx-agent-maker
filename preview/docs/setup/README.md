@@ -46,6 +46,22 @@ URL から自分の基準位置を割り出し、 見た目と動きの定義は
 tailscale serve --bg --set-path /pptx http://127.0.0.1:18096
 ```
 
+プレビューは `localhost`・`127.0.0.1`・`[::1]` の名前で届いた要求だけに応える。 前段を通す時は、
+ブラウザに打つ名前を設定 file に 1 行書く (= 再起動は要らない)。
+
+```text
+# ~/.config/pptx-agent-maker/allowed-hosts.txt
+# (= 環境変数 AGENT_PLATFORM_ROOT を設定していれば <根>/config/pptx-agent-maker/allowed-hosts.txt)
+my-mac.example.ts.net
+```
+
+- 書くのは名前だけ (= `https://`・port・path は書かない)。 `*` は使えない。
+- 前段は、 ブラウザが送った `Host` をそのまま渡すこと (= tailscale serve はそのまま渡す。 nginx は
+  `proxy_set_header Host $http_host;` が要る)。
+- 書き換える口 (再描画・案件の選択・最後に開いたデッキ) は POST だけを受け、 ほかの origin からの
+  要求は断る。 script から呼ぶ時は `curl -X POST` を使う。
+- これは認証ではない。 前段に届く人は全部の案件を読めるので、 公開する範囲は前段で絞る。
+
 ## 描画結果の置き場
 
 焼いた頁は `~/.cache/pptx-live-preview/<デッキ名>-<hash>/` に貯まる (= `XDG_CACHE_HOME` を

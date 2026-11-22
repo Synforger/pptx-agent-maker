@@ -72,6 +72,9 @@ toolkit built, do not follow this section: the method for finding the cause is i
   service sets that variable, and `~/.config/pptx-agent-maker/preview.toml` only when it does not.
   It reads the file again each time the page asks for the list, so a new entry needs no restart.
   Give the address the person opens on their own device, not a `localhost` one
+- The preview answers only to loopback names and to the names in `allowed-hosts.txt`, one per line,
+  in the same folder as the places file. When that address answers 403 for its host name, tell the
+  person which name is missing and add it only when they mean the preview to be served under it
 - The PDF that LibreOffice makes is for your own check. LibreOffice puts another typeface in place
   of one it does not have, so letter spacing and line breaks differ from PowerPoint. A PDF that goes
   to anyone else is exported by the person in PowerPoint: ask them for it. Do not start PowerPoint on

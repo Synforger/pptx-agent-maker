@@ -9,7 +9,7 @@ name: CI
 # repository this workflow refuses to run so it can never consume the
 # plan's minute quota. Local gates remain the source of truth there.
 #
-# LibreOffice is not installed here: it is 89 MB from a mirror that is slow on some runs, and the three tests
+# LibreOffice is not installed here: it is 89 MB from a mirror that is slow on some runs, and the tests
 # that convert a deck for real skip without it. They run on the machine that runs `task ci` before a commit.
 
 on:

@@ -20,6 +20,9 @@ uv run pptx-live-preview path/to/deck-folder/  # フォルダ内の全デッキ�
 
 オプション: `--port` (= 0 で空きポート自動)、 `--dpi` (= 既定 200)、 `--no-open` (= ブラウザを開かない)。
 
+応えるのは loopback の名前だけ。 リバースプロキシや `tailscale serve` を通して見る時は、 開く名前を
+`allowed-hosts.txt` に書く (= [Setup](docs/setup/))。
+
 ## デッキを見る
 
 画面は「保存のたびに更新される様子を眺める」ためでなく、 デッキを頭から通して読むために作ってある。

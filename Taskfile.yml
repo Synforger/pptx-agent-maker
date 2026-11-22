@@ -79,6 +79,7 @@ tasks:
       - task: lint
       - task: lint:lock
       - task: test:unit
+      - task: test:integration
       - task: docs:check
       - task: lint:versions
 

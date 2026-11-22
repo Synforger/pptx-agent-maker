@@ -20,6 +20,7 @@ from tempfile import TemporaryDirectory
 
 from . import notes as notes_mod
 from .cache import DeckCache, cache_root, deck_key, digest
+from .rebuild_queue import RebuildQueue
 from .render import (ALBUM, DEFAULT_DPI, RENDERER, THUMB_DPI, ProfilePool, RenderError, album_pages,
                      rasterize, read_album, read_numbering, to_pdf)
 
@@ -221,6 +222,7 @@ class DeckSet:
         self.version = 0
         # 0.5 秒ごとの巡回のたびに pool を作って捨てないよう、1 個を使い回す
         self._pool = ThreadPoolExecutor(max_workers=MAX_RENDER_WORKERS)
+        self._rebuilds = RebuildQueue(lambda: self.rescan_and_rerender(force=True, rebuild=True))
 
     def _discover(self) -> list[Path]:
         if not self.is_folder:
@@ -249,6 +251,10 @@ class DeckSet:
         # デッキ間は並列 (GIL は subprocess 待ちでは問題にならない)。ただし同時本数は
         # 抑える (= 1 本あたり CPU 1 コアと数百 MB、無制限だとフォルダが育つと詰まる)。
         list(self._pool.map(lambda deck: self._rerender_one(deck, force, rebuild), decks))
+
+    def request_rebuild(self) -> None:
+        """Have every deck redrawn without the store, joining a request already waiting."""
+        self._rebuilds.add()
 
     def _bump_locked(self) -> None:
         """version を進めて待機中の event stream を起こす (= lock 保持中に呼ぶ)。"""

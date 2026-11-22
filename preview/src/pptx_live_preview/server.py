@@ -9,11 +9,12 @@ from __future__ import annotations
 import json
 import re
 import sys
-import threading
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from .allowed_hosts import load_allowed_hosts
+from .request_guard import refusal
 from .state import DeckSet, Nothing, Opened
 
 ASSETS = Path(__file__).parent / "assets"
@@ -25,6 +26,11 @@ _HASH_RE = re.compile(r"^[0-9a-f]{16}$")
 # だけを決める。短くするとモバイルの無線が一度も休めず、閲覧しているだけで
 # 電池と通信を食い続ける。
 SSE_PING_SECONDS = 20.0
+
+# The paths that change something, besides /api/refresh: they take POST only.
+OPENED_PREFIX = "/api/opened/"
+SELECT_PREFIX = "/api/projects/select/"
+CHANGE_PREFIXES = (OPENED_PREFIX, SELECT_PREFIX)
 
 _CONTENT_TYPES = {
     ".css": "text/css; charset=utf-8",
@@ -73,8 +79,11 @@ def make_handler(deckset: DeckSet):
 
         # ---- plumbing ----------------------------------------------------
 
-        def _send(self, code, ctype, body: bytes, cache: str = "no-store"):
+        def _send(self, code, ctype, body: bytes, cache: str = "no-store",
+                  allow: str | None = None):
             self.send_response(code)
+            if allow:
+                self.send_header("Allow", allow)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", cache)
@@ -134,8 +143,25 @@ def make_handler(deckset: DeckSet):
 
         # ---- routing -----------------------------------------------------
 
-        def do_GET(self):  # noqa: N802
+        def _is_refused(self, *, is_change: bool) -> bool:
+            """Answer 403 and say so, for a request that is not to be served."""
+            reason = refusal(
+                self.headers.get_all("Host", []), self.headers.get_all("Origin", []),
+                self.headers.get_all("Sec-Fetch-Site", []),
+                is_change=is_change, allowed_names=load_allowed_hosts)
+            if reason is None:
+                return False
+            self._send(403, "text/plain; charset=utf-8", reason.encode())
+            return True
+
+        def do_GET(self) -> None:  # noqa: N802
+            # Before `resolve`: naming a project already starts drawing it.
+            if self._is_refused(is_change=False):
+                return
             path, _, query = self.path.partition("?")
+            if path == "/api/refresh" or path.startswith(CHANGE_PREFIXES):
+                self._send(405, "text/plain", b"use POST", allow="POST")
+                return
             self.ds, self.key = resolve(urllib.parse.parse_qs(query))
 
             if path == "/":
@@ -149,16 +175,10 @@ def make_handler(deckset: DeckSet):
                             "problem": getattr(self.ds, "problem", None)})
             elif path == "/api/decks":
                 self._json(self.ds.summaries())
-            elif path == "/api/refresh":
-                self._refresh()
             elif path == "/api/projects":
                 self._projects()
             elif path == "/api/opened":
                 self._json({"deck": opened.deck(self.key)})
-            elif path.startswith("/api/opened/"):
-                self._remember(urllib.parse.unquote(path[len("/api/opened/"):]))
-            elif path.startswith("/api/projects/select/"):
-                self._select(urllib.parse.unquote(path[len("/api/projects/select/"):]))
             elif path == "/events":
                 self._serve_events()
             elif path.startswith("/api/decks/"):
@@ -171,6 +191,20 @@ def make_handler(deckset: DeckSet):
                     return
                 deck_name, _, file_name = rest.partition("/")
                 self._image(kind, deck_name, file_name)
+            else:
+                self._not_found()
+
+        def do_POST(self) -> None:  # noqa: N802
+            if self._is_refused(is_change=True):
+                return
+            path, _, query = self.path.partition("?")
+            self.ds, self.key = resolve(urllib.parse.parse_qs(query))
+            if path == "/api/refresh":
+                self._refresh()
+            elif path.startswith(OPENED_PREFIX):
+                self._remember(urllib.parse.unquote(path[len(OPENED_PREFIX):]))
+            elif path.startswith(SELECT_PREFIX):
+                self._select(urllib.parse.unquote(path[len(SELECT_PREFIX):]))
             else:
                 self._not_found()
 
@@ -217,8 +251,7 @@ def make_handler(deckset: DeckSet):
 
         def _refresh(self):
             # 手動の再描画だけがキャッシュを無視する (= 中身が同じでも焼き直す)。
-            threading.Thread(target=self.ds.rescan_and_rerender,
-                             kwargs={"force": True, "rebuild": True}, daemon=True).start()
+            self.ds.request_rebuild()
             self._json({"ok": True}, code=202)
 
         def _serve_events(self):
