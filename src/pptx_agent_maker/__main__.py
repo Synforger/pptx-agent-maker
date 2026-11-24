@@ -619,13 +619,16 @@ def main(argv: list[str] | None = None) -> int:
             print(report(findings, first_number=first_slide_number(target)))
             return 1 if findings else 0
 
-        from .deck.build import build, theme_of
+        from .deck.build import build, figureless_lines, theme_of
 
         manifest = Manifest.load(workspace.manifest(args.manifest))
         built_deck = build(workspace, manifest)
         first_number = first_slide_number(built_deck)
         counted = f"; the page numbers printed start at {first_number}" if first_number != 1 else ""
         print(f"built {built_deck} ({len(manifest.entries)} pages{counted})")
+        # 図の規則を `no_figure` で通した頁は、通した言葉ごと 1 行ずつ (= 検査を飛ばした時も出す)
+        for line in figureless_lines(manifest, first_number):
+            print(line)
         # 案件に写した手順書と task が、このツールの物と違えば言う (= 古い手順で組んだまま気づかない)
         from .project.commands.refresh import stale
 

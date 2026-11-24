@@ -688,3 +688,12 @@ buckets = [
 list_only = [4]
 highlight = [1, 2]
 why = "an agenda that marks every chapter talked through before the next one: two chapters marked in the list and on the cards"
+
+[[pages]]
+kind = "declare"
+type = "board"
+title = "A table alone, because the requester asked for no figure"
+footer = "Source: the corpus"
+table = [["Part", "Is"], ["board", "a table"], ["no_figure", "the requester's words"]]
+no_figure = "asked for the table alone"
+why = "a page the figure rule lets through on the requester's words: the table stands alone and the build says so"

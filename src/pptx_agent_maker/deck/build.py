@@ -11,7 +11,7 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 
-from .._common.page_label import manifest_page_label
+from .._common.page_label import manifest_page_label, page_label
 from ..layout import types
 from ..layout.parts.page import PageFullError
 from ..layout.tokens import Theme, ThemeError, allowed_pairs, theme_from
@@ -153,6 +153,17 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
         where[index] = position
     where["path"] = save(deck, scratch / "declared.pptx")
     return where
+
+
+def figureless_lines(manifest: Manifest, first_number: int = 1) -> list[str]:
+    """One line for each declared page let through the figure rule by `no_figure`, with the words it was let through on.
+
+    ⚠ **通した頁は黙って通さない。**図の無い頁がどこに何枚在るかと、誰の言葉で通したかが、組んだ人にも
+    受け取る人にも見えなくなる。頁の番号は、検査の報告と同じ数え方 (= `page_label`)。
+    """
+    return [f"{page_label(number, first_number)}: carries no figure — {reason}"
+            for number, entry in enumerate(manifest.entries, start=1)
+            if entry.kind == "declare" and (reason := types.no_figure_reason(entry.data))]
 
 
 def declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index: int,
