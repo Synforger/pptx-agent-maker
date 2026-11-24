@@ -46,6 +46,7 @@ description: Build or change a slide deck with pptx-agent-maker. Use when asked 
    - **次の回は前の回から始める** ― `task round -- w2 --from w1` (= manifest を複製し、出力の名前と素材の
      置き場を新しい回へ。素材は写らないので、この回の絵を `assets/<回の名前>/` に置く)
    - `task build -- w1` が組んで検査まで行う。組めたら `task titles -- w1` で題だけを順に読み、話が通るかを見る
+   - 試しに組む時は、manifest を写さずに `task build -- w1 --out /tmp/try.pptx` で別の file に書き出す (= 写した manifest の `out` は本番の file を指したままで、組むと上書きする)
 8. **焼いて、全頁を 1 枚ずつ目で見る** ― 文字で確かめて済ませない。⚠ **検査が通っても、読みやすさは座標に
    出ない。**見る点 = 重なり・はみ出し・空き・量・同じ資料のほかの頁と作りが揃っているか・**しょぼく見えないか**
    (= 文字が主役になっていない・同じ箱の並びが続かない・主役の絵が頁の半分以上。ほかは `craft.md` の「運び方」に
