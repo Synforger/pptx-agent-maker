@@ -53,8 +53,9 @@ MINIMAL = {
     # 絵を持たなくてよい型は目次だけ (= 図解の数え方は `test_figure_rule.py`)
     "agenda": {"buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]],
                "highlight": 1},
-    # 表・段の流れは図解に数えない。絵かグラフと並べる部品 (= 札は型でなく付属で、`cards` の型は退いた)
+    # 表・段の流れは図解に数えない。絵かグラフと並べる部品
     "board": {"table": [["列", "値"], ["A", "1"]]},
+    "cards": {"cards": [["\u2460", "さいしょ"], ["\u2461", "つぎ"]]},
     # 本体を段とマスで書く型
     "compose": {"rows": [{"cells": [{"card": ["もくひょう", "ひとつ"]}]},
                          {"cells": [{"card": ["はしら", "ひとつめ"]}, {"card": ["はしら", "ふたつめ"]}]}]},
@@ -117,6 +118,9 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
         for name, data in MINIMAL.items():
             with self.subTest(name):
                 spec = {"type": name, "title": "だい", **data, **EXTRAS}
+                if name == "cards":
+                    spec.pop("cards", None)
+                    spec["cards"] = EXTRAS["cards"]
                 page = build(spec)
                 kinds = {e.kind for e in page.build()}
                 self.assertIn("table", kinds, f"{name} dropped the table")

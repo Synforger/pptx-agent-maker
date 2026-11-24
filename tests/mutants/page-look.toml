@@ -149,6 +149,30 @@ old = "    stacks, stack = fill_stacks(page, stacks, stack, area.height - head_h
 new = ""
 
 [[mutant]]
+name = "a cards page does not fill its body"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = '    if name == "cards" and theme.box_height == "page" and spec.get("figure") is None:'
+new = "    if False:"
+
+[[mutant]]
+name = "cards above another body fill the page and leave the body no room"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = '    if name == "cards" and theme.box_height == "page" and spec.get("figure") is None:'
+new = '    if theme.box_height == "page" and spec.get("figure") is None:'
+
+[[mutant]]
+name = "the cards fill the area but do not leave the table its room"
+file = "src/pptx_agent_maker/layout/types/__init__.py"
+old = "        area, trailing = reserve_trailing(page, spec, whole)\n        area, legend = reserve_legend(page, spec, area)\n        area = place_cards(page, spec, area, fill=True)"
+new = "        trailing, legend = None, None\n        area = place_cards(page, spec, whole, fill=True)"
+
+[[mutant]]
+name = "a cards page that fills its body is a page of text height"
+file = "src/pptx_agent_maker/layout/types/core/frame.py"
+old = "    if fill and wanted <= area.height:"
+new = "    if False:"
+
+[[mutant]]
 name = "the chapters of an agenda stay as tall as their words"
 file = "src/pptx_agent_maker/layout/types/bodies/skeleton.py"
 old = '        cell = band if page.theme.box_height == "page" else band.split_top(tall)[0]'

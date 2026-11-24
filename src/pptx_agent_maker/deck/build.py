@@ -155,12 +155,6 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
     return where
 
 
-def declared_pages(workspace: Workspace, manifest: Manifest, theme: Theme) -> dict:
-    """Every declared page as its type built it, by its number in the manifest (= what the page checks read)."""
-    return {index: declared_page(workspace, manifest, entry, index, theme)
-            for index, entry in enumerate(manifest.entries, start=1) if entry.kind == "declare"}
-
-
 def declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index: int,
                    theme: Theme):
     """Build a declared page, saying which page of the manifest went wrong."""

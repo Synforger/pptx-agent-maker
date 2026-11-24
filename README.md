@@ -38,8 +38,8 @@ footer = "measured on the load test of the day"
 
 The order of a page is settled and never varies: **title → condition → cards → body → table →
 reading → conclusion → footer.** A band left unwritten is simply not taken. The type decides one
-thing — what goes in the body — and there are nine of them (`figure`, `figures`, `figure_grid`,
-`flow`, `roadmap`, `timeline`, `chart`, `board`, `agenda`). Cards, a table and the reading
+thing — what goes in the body — and there are ten of them (`figure`, `figures`, `figure_grid`,
+`flow`, `roadmap`, `timeline`, `chart`, `cards`, `board`, `agenda`). Cards, a table and the reading
 can be added to any of them. One more, `compose`, writes the body as rows of cells instead, one part
 in each cell — a card, a picture (with marks that name points on it), a table, words (set very large,
 or monospaced for code), a chart, a ring, a tree, overlapping circles, or one of those types — for a
@@ -59,8 +59,9 @@ Four things then hold **by construction**, not by a checker run afterwards:
 And four things are refused outright, because no one managed to hold them by discipline:
 
 - a page with **no figure**, except the agenda. A chart, a picture, or a shape that shows how things relate
-  (a timeline's bars, overlapping circles) counts; words in boxes, cards, tables and boxes joined by arrows
-  do not, so cards, `board`, `flow` and `roadmap` are set beside a picture or a chart
+  (a timeline's bars, overlapping circles, boxes joined by three arrows or more across rows and columns) counts;
+  words in boxes, cards, tables and boxes joined by arrows in a single row or column do not, so `cards` takes
+  a `figure` of its own, and `board`, `flow` and `roadmap` are set beside a picture or a chart
 - an **empty table cell** (write a dash; a blank reads as a value nobody filled in)
 - type **below the floor** (10pt on a deck to be read, 14pt on one to be shown)
 - a **table taller than the space given** — PowerPoint grows the frame instead of shrinking the

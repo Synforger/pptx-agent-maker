@@ -914,11 +914,11 @@ class Page:
         self.elements.append(Text("caption", rect, text, t.caption, p.muted, align=align))
 
     def drew_a_diagram(self) -> None:
-        """Declare that this page shows a structure with shapes themselves (= a timeline's bars, overlapping circles).
+        """Declare that this page shows a structure with shapes themselves (= a timeline's bars, overlapping circles, boxes joined across rows and columns).
 
         図解は、形そのもので仕組みや関係を見せる物。置いた側にしか分からないので、型が
         ここで宣言する (= 宣言しない頁は、絵もグラフも持たないまま `build` に拒まれる)。
-        ⚠ **文字の箱を矢印や線でつないだ物 (= 流れ・道のり・輪・木) では呼ばない。**
+        ⚠ **一列に並べた文字の箱を矢印や線でつないだ物 (= 流れ・道のり・輪・木) では呼ばない。**
         読まれるのは箱の中の文字で、形は見せていないからだ。
         """
         self._figures += 1
@@ -1075,7 +1075,8 @@ class Page:
         if self._needs_figure and self._figures == 0:
             raise ValueError(
                 "this page has no figure — only a chart, a picture, or a shape that shows how things relate "
-                "(a timeline's bars, overlapping circles) counts; words in boxes, cards, tables and boxes "
+                "(a timeline's bars, overlapping circles, boxes joined by three arrows or more across rows "
+                "and columns) counts; words in boxes, cards, tables and boxes in a single row or column "
                 "joined by arrows do not, so set them beside a picture or a chart "
                 "(a `figure` or `chart` page with the cards or table added, or a `compose` cell for the picture "
                 "or chart next to them)"

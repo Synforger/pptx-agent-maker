@@ -1,4 +1,4 @@
-"""The one type allowed to carry no picture (= `agenda`, the deck's own scaffolding), and `board`, a table a page sets beside a picture."""
+"""Types made of words in boxes: `cards` (= with a picture under them if written), `board`, and `agenda`, the one type allowed to carry no picture."""
 
 from __future__ import annotations
 
@@ -9,6 +9,20 @@ from ...parts.page import Card, Page, PageFullError
 from ..core.read import Spec, read_tone
 from ..core.registry import PageTypeError, register
 from ..core.stack import card_height
+
+
+@register("cards", needs=[], takes=["figure"])
+def _cards(page: Page, spec: Spec, area: Rect) -> None:
+    """The cards are the page (= this week's plan, what a chapter concluded), with one picture under them if `figure` is written.
+
+    カードは全型が添えられるので、この型の本体は絵だけ。`figure` を書けば、札の下の残りに絵を 1 枚置く。
+    書かない頁は、図の規則が拒む (= 抜け方は `figure` を足すこと)。
+    """
+    if spec.get("cards") is None:
+        raise PageTypeError("cards: this type is the cards; give it some")
+    if spec.get("figure") is not None:
+        source, aspect = spec.figure()
+        page.figure(area, source, aspect)
 
 
 @register("board", needs=["table"])

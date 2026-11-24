@@ -226,6 +226,19 @@ class AUseMayPickHowTallItsBoxesStand(unittest.TestCase):
                 theme_from({"uses": {"said": {"like": "read", "box_height": value}}})
             self.assertIn("theme.uses.said.box_height", str(refused.exception))
 
+    def test_a_page_in_a_use_of_boxes_as_tall_as_the_page_fills_it_in_a_deck_that_does_not(self) -> None:
+        theme = theme_from({"uses": {"full": {"like": "read", "box_height": "page"}}})
+        full = theme.using("full")
+        data = {"type": "cards", "title": "T", "cards": CARDS, "card_columns": 1}
+        body = Page("T", full).body
+        self.assertEqual(body.bottom, max(e.rect.bottom for e in of_kind(build(data, full), "box")))
+        self.assertLess(max(e.rect.bottom for e in of_kind(build(data, theme), "box")), body.bottom - 1)
+
+    def test_a_page_naming_a_use_reads_it_at_build_time(self) -> None:
+        theme = theme_from({"uses": {"full": {"like": "read", "box_height": "page"}}})
+        body = Page("T", theme).body
+        built = build({"type": "cards", "title": "T", "cards": CARDS, "card_columns": 1, "use": "full"}, theme)
+        self.assertEqual(body.bottom, max(e.rect.bottom for e in of_kind(built, "box")))
 
 
 class TheBodyStandsInTheMiddle(unittest.TestCase):

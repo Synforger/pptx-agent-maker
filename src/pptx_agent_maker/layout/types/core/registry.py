@@ -27,20 +27,6 @@ EXTRA_KEYS = frozenset({"cards", "card_columns", "table", "table_columns", "note
 
 TYPES: dict[str, tuple[Filler, frozenset, bool]] = {}
 
-#: 退いた型の名前 → 抜け方 (= 古い資料がその名前で書いた時、型の一覧の代わりに言う 1 行)
-RETIRED: dict[str, str] = {
-    "cards": "`cards` is no longer a page type: set `cards = [...]` on a `figure` or `chart` page, "
-             "or put the cards in a `compose` beside a picture or a chart",
-}
-
-
-def way_out(name: str, known: list[str]) -> str:
-    """What to say of a type name no page type has: the way out of a retired one, else the types there are."""
-    return RETIRED.get(name) or (
-        f"unknown page type {name!r} — the deck may use only: {', '.join(known)}. "
-        "A page that fits none of them means a type is missing; add one rather than "
-        "placing shapes by hand.")
-
 
 class PageTypeError(ValueError):
     """The declaration does not describe a page any type can build."""
