@@ -626,13 +626,19 @@ def _called(rect: Rect, cells: dict[str, Rect]) -> str:
     return f"a cell with no id ({rect.left / EMU_PER_CM:.1f} cm from the left, {rect.top / EMU_PER_CM:.1f} cm from the top)"
 
 
+def _gap_to_widen(page: Page, gap: str) -> str:
+    """The distance of the page's use that makes room for words: `gap` when the use writes it, else `gap_m` (= which the gaps follow)."""
+    return f"`{gap}`" if gap in dict(page.theme.type.spaced) else "`gap_m`"
+
+
 def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, int], across: bool,
               ends: tuple[Rect, Rect], others: list[Rect], reach: int, where: str) -> None:
     """The words of a link: above a sideways arrow, to the right of a downward one.
 
     上は、矢印の上の隙間 (= 向き合う 2 つのマスの上端まで)、右は、矢印の右の隙間 (= 別のマスに突き当たるか、
     マスの並びの右端 `reach` まで)。言葉は隙間の中に、折って置く (= 本文の大きさの太字)。**隙間に入らなければ
-    縮めずに止まる** ― 隙間を広げるのは使い方の `gap_m`。
+    縮めずに止まる** ― 隙間を広げるのは使い方の `gap_x` (= 横の矢印) か `gap_y` (= 縦の矢印)。使い方が
+    それを書いていなければ `gap_m` (= 2 つの間はそれに従う)。
     言葉の見た目は矢印の色 (`tone`) とは別 (= 本文の大きさ・太字・本文の色)。
     """
     s, ty = page.theme.spacing, page.theme.type
@@ -640,7 +646,8 @@ def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, in
         left, right = sorted((start[0], end[0]))
         bottom = start[1] - s.gap_s // 2
         room = bottom - max(rect.top for rect in ends)
-        at, fix, align = "above the arrow, between the two cells", "a wider gap (= `gap_m` of the page's use)", "center"
+        at, align = "above the arrow, between the two cells", "center"
+        fix = f"a wider gap (= {_gap_to_widen(page, 'gap_x')} of the page's use)"
     else:
         above, below = sorted((start[1], end[1]))
         stops = [rect.left for rect in others if rect.left >= start[0] and rect.top < below and above < rect.bottom]
@@ -648,7 +655,7 @@ def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, in
         right = min(stops) - s.gap_s if stops else reach
         room = below - above
         at, fix, align = ("to the right of the arrow, in the gap between the two cells",
-                          "a taller gap (= `gap_m` of the page's use)", "left")
+                          f"a taller gap (= {_gap_to_widen(page, 'gap_y')} of the page's use)", "left")
     usable = right - left - 2 * s.text_inset
     if usable < pt(ty.body):
         raise PageFullError(f"{where}: the words have {max(usable, 0)} EMU of width {at} — not even one character "
