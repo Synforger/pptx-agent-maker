@@ -1079,6 +1079,7 @@ class Page:
                 "and columns) counts; words in boxes, cards, tables and boxes in a single row or column "
                 "joined by arrows do not, so set them beside a picture or a chart "
                 "(a `figure` or `chart` page with the cards or table added, or a `compose` cell for the picture "
-                "or chart next to them)"
+                "or chart next to them); when the person who asked for the page said no figure is wanted, "
+                'write their words as `no_figure = "…"`'
             )
         return list(self.elements)

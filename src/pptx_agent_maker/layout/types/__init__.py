@@ -32,7 +32,7 @@
 どの型にも無い組み方は `compose` (= `bodies/compose.py`) で書く。本体を段とマスの入れ子に割り、マスに
 部品を 1 つ置く。部品には上の型も入る ― 型は組み方の短縮形で、組み方そのものではない。
 
-⚠ **絵を持たなくてよいのは `agenda` (目次) だけ。** 頁の図解に数えるのは、絵・グラフ・`timeline` の棒・
+⚠ **絵を持たなくてよいのは `agenda` (目次) と、頼んだ人が図は要らないと言った頁 (= `no_figure` に言葉を書く) だけ。** 頁の図解に数えるのは、絵・グラフ・`timeline` の棒・
 `compose` や `arrange` の円の重なり (= 形で仕組みや関係を見せる物)。箱の中の文字・カード・表・文字の
 箱を矢印や線でつないだ物 (= `flow`・`roadmap`・箱の輪・箱の木) は数えない。だから `board`・
 `flow`・`roadmap` は 1 頁まるごとでは組めず、絵かグラフと並べる部品になる (= `figure`・`chart` の頁に
@@ -66,6 +66,22 @@ def skeleton() -> list[str]:
     return sorted(name for name, spec in TYPES.items() if not spec[3])
 
 
+def no_figure_reason(data: dict) -> str:
+    """The words the person who asked for the page gave for leaving its figure out (= "" when the page does not).
+
+    ⚠ **理由は 1 行の文字列だけ。**空・文字列でない値を通すと、書いた覚えのない頁が図の規則を外れる。
+    """
+    if "no_figure" not in data:
+        return ""
+    reason = data["no_figure"]
+    if not isinstance(reason, str) or not reason.strip():
+        raise PageTypeError(
+            f"`no_figure` is {reason!r} — write the words of the person who asked for a page without a figure "
+            '(= no_figure = "asked for the table alone"), or leave the key out'
+        )
+    return reason.strip()
+
+
 def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], float],
           theme: Theme = DEFAULT) -> Page:
     """Turn one declaration into a page, refusing anything no type can hold."""
@@ -78,6 +94,7 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
         )
     filler, needs, takes, wants_figure = TYPES[name]
     check_keys(name, data, needs, takes)
+    left_out = no_figure_reason(data)
     # 頁が使い方を名指していれば、その大きさで組む (= 映す資料の途中に挟む、詰めた 1 枚)
     theme = theme.using(data.get("use"))
 
@@ -98,7 +115,7 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
         conclusion=str(data.get("conclusion", "")),
         footer=str(data.get("footer", "")),
         sticker=sticker.strip(),
-        needs_figure=wants_figure,
+        needs_figure=wants_figure and not left_out,
     )
     spec = Spec(data, asset, aspect, theme)
     whole = page.body

@@ -814,11 +814,16 @@ unit = "M"
 
 ## どの型にも添えられるもの
 
-`cards` / `card_columns` / `table` / `table_columns` / `note` / `points`
+`cards` / `card_columns` / `table` / `table_columns` / `note` / `points` / `no_figure`
 
 `card_columns` = カードを何枚ずつ並べるか (= 省略すると全部 1 段)。`figure_grid` の `columns` とは別の数。
 カードは flow のノードと同じ 2 通りで書ける (= `["見出し", "本文"]` か `{ heading, body, tone, icon }`)。
 `type = "cards"` は札が本体の型で、`figure = "x.png"` を書けば札の下に絵を置く。書かない頁は図の規則が拒むので、`figure` か `chart` の頁に `cards = [...]` を添えるか、`compose` で絵かグラフと並べる。
+
+`no_figure = "…"` = 頼んだ人が「表だけ」「図は要らない」と言った頁が、図の規則を通る口。値は、その人の言葉を 1 行で書いた
+文字列だけ (= 空・文字列でない値は、理由を書けと言って拒む)。通した頁は、`build` の報告に
+`page 4: carries no figure — <書いた言葉>` の 1 行で出る (= 検査を飛ばした `--skip-checks` でも出る)。
+頼まれていない頁には書かない。図の規則を通すためにグラフを足して表を押し込むのではなく、頼まれた時だけ言葉で通す。
 
 ### 表のセルの状態の印
 

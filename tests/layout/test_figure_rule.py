@@ -94,6 +94,42 @@ class WhatCounts(unittest.TestCase):
         self.assertEqual(["agenda"], marked)
 
 
+class WhenTheRequesterSaidNoFigure(unittest.TestCase):
+    """A page whose requester said no figure is wanted writes their words in `no_figure`, and is let through."""
+
+    WORDS = "asked for the table alone"
+
+    def test_a_table_alone_with_their_words_is_built_on_any_type(self):
+        for name, make in {"a board": lambda: page("board", table=TABLE, no_figure=self.WORDS),
+                           "cards": lambda: page("cards", cards=CARDS, no_figure=self.WORDS),
+                           "a flow": lambda: page("flow", stages=STAGES, no_figure=self.WORDS),
+                           "a compose": lambda: page("compose", rows=[{"cells": [{"table": TABLE}]}],
+                                                     no_figure=self.WORDS)}.items():
+            with self.subTest(name):
+                self.assertTrue(make().build())
+
+    def test_the_words_are_read_back_without_the_spaces_round_them(self):
+        self.assertEqual(self.WORDS, types.no_figure_reason({"no_figure": f"  {self.WORDS}\n"}))
+        self.assertEqual("", types.no_figure_reason({}))
+
+    def test_an_empty_value_or_one_that_is_not_words_is_refused_with_the_reason_asked_for(self):
+        for value in ("", "   ", True, 1, ["asked"], {"by": "them"}):
+            with self.subTest(value=value):
+                with self.assertRaises(PageTypeError) as refused:
+                    page("board", table=TABLE, no_figure=value)
+                self.assertIn("no_figure", str(refused.exception))
+                self.assertIn("words of the person who asked", str(refused.exception))
+
+    def test_a_table_alone_without_them_is_still_refused(self):
+        with self.assertRaises(ValueError) as refused:
+            page("board", table=TABLE).build()
+        self.assertIn("no figure", str(refused.exception))
+
+    def test_the_listing_names_the_key_among_those_any_type_reads(self):
+        on_any = next(line for line in types.describe().splitlines() if "on any type" in line)
+        self.assertIn("no_figure", on_any)
+
+
 class TheCardsType(unittest.TestCase):
 
     def test_a_picture_goes_in_the_room_under_the_cards_even_where_boxes_fill_the_page(self):
@@ -128,7 +164,7 @@ class WhatTheRefusalSays(unittest.TestCase):
             self.assertIn(word, self.said)
 
     def test_it_says_the_way_out(self):
-        for word in ("`figure`", "`chart`", "`compose`"):
+        for word in ("`figure`", "`chart`", "`compose`", "`no_figure = "):
             self.assertIn(word, self.said)
 
 
