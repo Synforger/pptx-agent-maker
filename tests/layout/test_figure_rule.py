@@ -1,8 +1,9 @@
 """The rule "every page carries a figure": what counts as one, what does not, and what the refusal says.
 
 A figure is a chart, a picture, or a shape that shows how things relate (a timeline's bars, circles that
-overlap). Words in boxes do not count, however they are joined: cards, tables, a flow, a road, a ring of
-boxes, a tree of boxes. Only the agenda may carry none.
+overlap, boxes joined across rows and columns: `test_linked_boxes_diagram.py`). Words in boxes do not count,
+however they are joined in a row: cards, tables, a flow, a road, a ring of boxes, a tree of boxes. Only the
+agenda may carry none. The `cards` type reads a picture of its own, and is refused without one.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ sys.path.insert(0, str(REPO / "tests"))
 from support.pages import build  # noqa: E402
 
 from pptx_agent_maker.layout import types  # noqa: E402
+from pptx_agent_maker.layout.tokens import theme_from  # noqa: E402
 from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 
 
@@ -45,6 +47,7 @@ WORDS_ONLY = {
     "a flow going down": lambda: page("flow", stages=STAGES, direction="down"),
     "a road": lambda: page("roadmap", stages=ROAD),
     "a table alone": lambda: page("board", table=TABLE),
+    "cards without a picture": lambda: page("cards", cards=CARDS),
     "a ring of boxes": lambda: composed({"ring": RING}),
     "a tree of boxes": lambda: composed({"tree": TREE}),
     "cards and a table in a compose": lambda: composed({"card": ["Goal", "one"]}, {"table": TABLE}),
@@ -64,6 +67,7 @@ SHOWN = {
     "a flow beside a chart": lambda: composed({"flow": {"stages": STAGES}}, {"chart": CHART}),
     "cards beside a chart": lambda: composed({"card": ["Goal", "one"]}, {"chart": CHART}),
     "a picture with cards added": lambda: page("figure", figure=PICTURE, cards=CARDS),
+    "cards with a picture of their own": lambda: page("cards", cards=CARDS, figure=PICTURE),
     "a chart with a table added": lambda: page("chart", chart=CHART, table=TABLE),
 }
 
@@ -90,23 +94,22 @@ class WhatCounts(unittest.TestCase):
         self.assertEqual(["agenda"], marked)
 
 
-class ARetiredType(unittest.TestCase):
+class TheCardsType(unittest.TestCase):
 
-    def test_cards_as_a_page_type_is_refused_with_the_way_out(self):
-        with self.assertRaises(PageTypeError) as refused:
-            page("cards", cards=CARDS)
-        said = str(refused.exception)
-        for word in ("no longer a page type", "`cards = [...]`", "`figure`", "`chart`", "`compose`"):
-            self.assertIn(word, said)
-        self.assertNotIn("the deck may use only", said)
+    def test_a_picture_goes_in_the_room_under_the_cards_even_where_boxes_fill_the_page(self):
+        theme = theme_from({"box_height": "page"})
+        built = build({"type": "cards", "title": "A page", "cards": CARDS, "figure": PICTURE}, theme).build()
+        boxes = [e for e in built if e.kind == "box"]
+        picture = next(e for e in built if e.kind == "figure")
+        self.assertGreaterEqual(picture.rect.top, max(box.rect.bottom for box in boxes))
+
+    def test_the_cards_are_a_type_of_the_listing(self):
+        self.assertIn("cards", types.names())
 
     def test_a_name_no_type_ever_had_gets_the_list_of_types(self):
         with self.assertRaises(PageTypeError) as refused:
             page("nothing")
         self.assertIn("the deck may use only", str(refused.exception))
-
-    def test_the_cards_are_no_type_of_the_listing(self):
-        self.assertNotIn("cards", types.names())
 
 
 class WhatTheRefusalSays(unittest.TestCase):

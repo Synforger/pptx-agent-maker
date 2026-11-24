@@ -104,6 +104,16 @@ class WhereTheProjectSaysIt(unittest.TestCase):
 class TheBoxesTakeThePage(unittest.TestCase):
     CARDS = [["One", "first"], ["Two", "second " * 12], ["Three", "third"]]
 
+    def test_the_cards_of_a_cards_page_fill_the_body_down_to_its_last_line(self) -> None:
+        data = {"type": "cards", "title": "T", "cards": self.CARDS, "card_columns": 1,
+                "condition": "c", "conclusion": "d", "footer": "f"}
+        body = body_of(PAGE, condition="c", conclusion="d", footer="f")
+        boxes = of_kind(build(data, PAGE), "box")
+        self.assertEqual(body.bottom, max(box.rect.bottom for box in boxes))
+        self.assertEqual(body.top, boxes[0].rect.top)
+        # 字の高さの資料では、下が空く (= 今までの見た目)
+        self.assertLess(max(box.rect.bottom for box in of_kind(build(data), "box")), body.bottom - GAP_M)
+
     def test_the_reading_takes_what_is_left_under_a_body_that_did_not_fill_its_area(self) -> None:
         """A page of cards alone has an empty body, and room is left under the reading: its box stretches to it."""
         page = build({"type": "bare", "title": "T", "cards": self.CARDS, "note": "A reading in one line"})

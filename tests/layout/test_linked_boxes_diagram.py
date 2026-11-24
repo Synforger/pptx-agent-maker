@@ -1,10 +1,8 @@
 """Boxes joined by arrows across rows and columns are a shape diagram; a single row or column of them is not.
 
-* a `compose` page whose `links` are three or more and join boxes in two rows and two columns or more carries a
-  figure (= a fork, a swimlane, a web of links); one that joins boxes in a single row or column, or with fewer
-  than three lines, is still refused (= words in boxes with arrows between them)
-* the boxes such lines join are one diagram to the page checks: not boxes of one line, one part to
-  `crowded_page`, a lead that is a picture to `no_lead`; their words still count to `wordy_page`
+A `compose` page whose `links` are three or more and join boxes in two rows and two columns or more carries a
+figure (= a fork, a swimlane, a web of links); one that joins boxes in a single row or column, or with fewer
+than three lines, is still refused (= words in boxes with arrows between them).
 """
 
 from __future__ import annotations
@@ -18,14 +16,11 @@ sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tests"))
 from support.pages import build  # noqa: E402
 
-from pptx_agent_maker.checks._internal.page_reading import (  # noqa: E402
-    characters, diagram, is_a_picture, lead, one_line_boxes, parts)
 from pptx_agent_maker.layout.tokens import theme_from  # noqa: E402
 from pptx_agent_maker.layout.types.bodies.arrange import (  # noqa: E402
     LINKS_FOR_A_DIAGRAM, SPAN_FOR_A_DIAGRAM, shows_a_diagram)
 from pptx_agent_maker.layout.geometry import Rect  # noqa: E402
 
-PICTURE = "dot.png"
 #: a tight spacing, so that six rows of cards fit one page
 TIGHT = theme_from({"uses": {"tight": {"like": "read", "spacing": {"scale": 0.5}}}}).using("tight")
 
@@ -118,47 +113,6 @@ class TheEdgeOfTheValues(unittest.TestCase):
         column = [Rect(0, top, 10, 10) for top in (0, 20, 40)]
         self.assertFalse(shows_a_diagram(9, row))
         self.assertFalse(shows_a_diagram(9, column))
-
-
-class TheBoxesAreOneDiagram(unittest.TestCase):
-
-    def with_a_picture(self, links: list[dict]):
-        """The fork's four boxes, a picture beside them, and `links` between the boxes."""
-        data = {"type": "compose", "title": "A page", "grid": {"columns": [1, 1, 1], "rows": [1, 1]},
-                "cells": [*FORK_CELLS, {"figure": PICTURE, "at": [1, 3], "span": [2, 1]}]}
-        if links:
-            data["links"] = links
-        return build(data)
-
-    def test_boxes_of_one_line_are_counted_alone_but_not_once_they_are_joined(self):
-        self.assertEqual(4, one_line_boxes(self.with_a_picture([])))
-        self.assertEqual(0, one_line_boxes(self.with_a_picture(FORK_LINKS)))
-
-    def test_the_joined_boxes_are_one_part_to_crowded_page(self):
-        kinds = [kind for kind, _where in parts(self.with_a_picture(FORK_LINKS))]
-        self.assertEqual(["diagram", "figure"], sorted(kinds))
-        self.assertEqual(5, len(parts(self.with_a_picture([]))))
-
-    def test_the_diagram_is_the_rectangle_round_every_joined_box(self):
-        page = grid_page(FORK_CELLS, FORK_LINKS, 2, 2)
-        shape = diagram(page)
-        self.assertEqual(4, len(page.diagram_boxes))
-        for joined in page.diagram_boxes:
-            self.assertTrue(shape.contains(joined))
-
-    def test_the_diagram_can_lead_the_page(self):
-        page = grid_page(FORK_CELLS, FORK_LINKS, 2, 2)
-        self.assertEqual("diagram", lead(page))
-        self.assertTrue(is_a_picture(lead(page)))
-
-    def test_the_words_of_the_boxes_still_count_to_wordy_page(self):
-        page = grid_page(FORK_CELLS, FORK_LINKS, 2, 2)
-        self.assertEqual(len("startyesnoend"), characters(page))
-
-    def test_a_page_with_fewer_lines_keeps_its_boxes_apart(self):
-        page = self.with_a_picture(FORK_LINKS[:2])
-        self.assertEqual((), page.diagram_boxes)
-        self.assertEqual(4, one_line_boxes(page))
 
 
 if __name__ == "__main__":

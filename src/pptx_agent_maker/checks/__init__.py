@@ -35,28 +35,15 @@ def run_all(deck: Path | str, config: dict | None = None) -> list[Finding]:
     return findings
 
 
-def run_declared(manifest, theme, config: dict | None = None, pages: dict | None = None) -> list[Finding]:
-    """Every check that reads the manifest (= what the built deck cannot say about itself).
-
-    `pages` is the declared pages as the types built them (= manifest number → `Page`), for the checks
-    that read what a page holds (= `READS_PAGES`); without it those checks have nothing to read and say nothing.
-    It may be a function that builds them: it is called only when one of those checks is on, since building
-    every page again costs as much as building the deck.
-    """
-    config = config or {}
+def run_declared(manifest, theme, config: dict | None = None) -> list[Finding]:
+    """Every check that reads the manifest (= what the built deck cannot say about itself)."""
     findings: list[Finding] = []
-    reading = [check for check in DECLARED if getattr(check, "READS_PAGES", False) and not check.off(config)]
-    built = pages() if callable(pages) and reading else (None if callable(pages) else pages)
     for check in DECLARED:
-        if getattr(check, "READS_PAGES", False):
-            findings.extend(check.run(manifest, theme, config, built))
-        else:
-            findings.extend(check.run(manifest, theme, config))
+        findings.extend(check.run(manifest, theme, config or {}))
     return findings
 
 
-def run_built(deck: Path | str, manifest, theme, config: dict | None = None,
-              pages: dict | None = None) -> list[Finding]:
+def run_built(deck: Path | str, manifest, theme, config: dict | None = None) -> list[Finding]:
     """Every check over a deck just built from its manifest: the built deck's, then the manifest's.
 
     ⚠ **同じ名前の検査が両側に在るものは、宣言の頁では宣言の側だけが言う** (= `long_title`)。宣言の頁の
@@ -67,7 +54,7 @@ def run_built(deck: Path | str, manifest, theme, config: dict | None = None,
     declared = {number for number, entry in enumerate(manifest.entries, start=1) if entry.kind == "declare"}
     found = run_all(deck, config)
     built = [finding for finding in found if not (finding.check in both and finding.page in declared)]
-    return Findings(built + run_declared(manifest, theme, config, pages), found.allowed)
+    return Findings(built + run_declared(manifest, theme, config), found.allowed)
 
 
 def report(findings: list[Finding], declared: bool = False, first_number: int = 1) -> str:

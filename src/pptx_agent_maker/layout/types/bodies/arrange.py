@@ -415,7 +415,7 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     通る (= `link_routes`)。
     ただし `blank` (= 中身の無いマス。`text = ""`) は空きなので数えない (= 離れた 2 つのマスを、間の空きを
     またいで結べる)。`tone` は矢印の色の役 (= 書かなければ灰)、`text` は矢印のそばの言葉 (= `_words_by`)。
-    結んだマスが `shows_a_diagram` なら、全部のマスを 1 つの形の図として頁に宣言する (= `Page.drew_a_diagram`)。
+    結んだマスが `shows_a_diagram` なら、形の図を持つ頁として宣言する (= `Page.drew_a_diagram`)。
     """
     if not isinstance(written, list) or not written:
         raise PageTypeError(f"{what}: `links` is a list of {{ from = \"id\", to = \"id\" }}")
@@ -448,9 +448,8 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
         if link.words:
             _words_by(page, link.words.strip(), points[0], points[-1], link.facing == "across", (link.first, link.second),
                       others, reach, link.where)
-    joined = list(dict.fromkeys(box for link in items for box in (link.first, link.second)))
-    if shows_a_diagram(len(items), joined):
-        page.drew_a_diagram(joined)
+    if shows_a_diagram(len(items), [box for link in items for box in (link.first, link.second)]):
+        page.drew_a_diagram()
 
 
 def _may_share(ends: tuple[str, str], link_ends: tuple[str, str], written: set[tuple[str, str]]) -> bool:

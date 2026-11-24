@@ -113,10 +113,3 @@ section_agenda = false
 # The corpus names its grounds to show them, not to give every card a meaning, so a card written without a
 # tone is not a slip here.
 untoned_cards = false
-# The pages here lay out how a box, a card or an arrow is placed, not what a deck says, so the checks of how much a
-# page asks of a reader (= words, boxes of one line, parts, a lead that is not a picture) are off. They still stand
-# for a real project: `tests/layout/test_page_checks.py` holds them to a page made to hit each.
-wordy_page = false
-one_line_boxes = false
-crowded_page = false
-no_lead = false

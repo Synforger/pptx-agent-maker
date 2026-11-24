@@ -165,7 +165,7 @@ bars = [{ from = 1, to = 4, text = "write the guide" }]
 
 [[pages]]
 kind = "declare"
-type = "figure"
+type = "cards"
 figure = "wide.png"
 title = "Cards ride above the picture they sum up"
 cards = [["This week", "what was done"], ["Next week", "what comes next"], ["Open", "what is undecided"]]
