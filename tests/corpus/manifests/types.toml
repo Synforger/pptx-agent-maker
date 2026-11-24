@@ -167,14 +167,14 @@ bars = [{ from = 1, to = 4, text = "write the guide" }]
 kind = "declare"
 type = "figure"
 figure = "wide.png"
-title = "The cards are the page"
+title = "Cards ride above the picture they sum up"
 cards = [["This week", "what was done"], ["Next week", "what comes next"], ["Open", "what is undecided"]]
 
 [[pages]]
 kind = "declare"
 type = "figure"
 figure = "wide.png"
-title = "One table holds the page"
+title = "A table sits under the picture it reads"
 table = [
   ["Method", "Score", "Time", "Note"],
   ["A", "0.91", "12 s", "the baseline"],
