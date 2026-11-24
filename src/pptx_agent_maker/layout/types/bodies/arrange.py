@@ -638,7 +638,8 @@ def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, in
     上は、矢印の上の隙間 (= 向き合う 2 つのマスの上端まで)、右は、矢印の右の隙間 (= 別のマスに突き当たるか、
     マスの並びの右端 `reach` まで)。言葉は隙間の中に、折って置く (= 本文の大きさの太字)。**隙間に入らなければ
     縮めずに止まる** ― 隙間を広げるのは使い方の `gap_x` (= 横の矢印) か `gap_y` (= 縦の矢印)。使い方が
-    それを書いていなければ `gap_m` (= 2 つの間はそれに従う)。
+    それを書いていなければ `gap_m` (= 2 つの間はそれに従う)。縦の矢印の右に字の幅が 1 文字ぶんも無い時は、足りないのは
+    高さでなく幅で、決めるのは隣のマスとの間 (= `gap_x`)・字が矢印と隣のマスから離れる距離 (= `gap_s`)・列の幅。
     言葉の見た目は矢印の色 (`tone`) とは別 (= 本文の大きさ・太字・本文の色)。
     """
     s, ty = page.theme.spacing, page.theme.type
@@ -658,6 +659,10 @@ def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, in
                           f"a taller gap (= {_gap_to_widen(page, 'gap_y')} of the page's use)", "left")
     usable = right - left - 2 * s.text_inset
     if usable < pt(ty.body):
+        if not across:
+            at = "to the right of the arrow, up to the cell beside it"
+            fix = (f"a wider gap to the cell beside it (= {_gap_to_widen(page, 'gap_x')} of the page's use), a smaller "
+                   "`gap_s` (= what the words keep from the arrow and from that cell), or a wider column")
         raise PageFullError(f"{where}: the words have {max(usable, 0)} EMU of width {at} — not even one character "
                             f"({pt(ty.body)}); {fix}, or no words")
     height = page.theme.wrapped_height(words, usable, ty.body, bold=True)

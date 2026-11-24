@@ -317,6 +317,27 @@ class WordsBesideAnArrow(unittest.TestCase):
         self.assertIn("not even one character", str(stopped.exception))
         self.assertIn("to the right of the arrow", str(stopped.exception))
 
+    def test_words_with_no_width_beside_a_downward_arrow_say_it_is_the_width_and_what_sets_it(self) -> None:
+        """The width right of a downward arrow runs to the cell beside it, less `gap_s` at each end: `gap_y` has no part in it."""
+        def narrow(spacing):
+            theme = theme_from({"uses": {"n": {"like": "read", "spacing": spacing}}}).using("n")
+            return build({"type": "compose", "title": "A page", "links": [{"from": "a", "to": "b", "text": "Then"}],
+                          "rows": [row({"rows": [row({"id": "a", "card": {}}), row({"id": "b", "card": {}})],
+                                        "weight": 0.05}, {"card": {"heading": "Tall"}, "weight": 1})]}, theme)
+
+        with self.assertRaises(PageFullError) as follows:
+            narrow({"gap_m": 1.6, "gap_s": 1.0})
+        said = str(follows.exception)
+        self.assertIn("not even one character", said)
+        self.assertNotIn("taller", said, "what is short is the width, not the height")
+        self.assertIn("`gap_s`", said)
+        self.assertIn("`gap_m`", said, "`gap_x` follows `gap_m` on a page that does not write it")
+        self.assertNotIn("`gap_y`", said)
+        with self.assertRaises(PageFullError) as written:
+            narrow({"gap_m": 1.6, "gap_s": 1.0, "gap_x": 0.3})
+        self.assertIn("`gap_x`", str(written.exception))
+        self.assertNotIn("`gap_m`", str(written.exception))
+
     def test_an_arrow_crosses_an_empty_cell_and_its_words_stand_over_the_whole_span(self) -> None:
         """A cell of `text = ""` is space: two cells with one between them are joined across it, words on the line."""
         page = build({"type": "compose", "title": "A page", "links": [{"from": "a", "to": "b", "text": "Then"}],
