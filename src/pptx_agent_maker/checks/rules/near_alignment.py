@@ -1,4 +1,4 @@
-"""Siblings that were meant to line up and miss by a hair.
+"""Siblings that were meant to line up and miss by a hair (= told without stopping a build: a small miss is for a person to look at and decide on).
 
 宣言で組む頁は同じ枠から割るので揃う。**ずれるのは複製と輸入**で、手で並べた箱が 0.5 mm だけ
 上下にずれたまま来る。1 mm 以上離れた端は、わざとずらした物とみなして言わない。
@@ -33,6 +33,8 @@ from ..finding import Finding
 from ..._common.slide import Shape, read
 
 NAME = "near_alignment"
+#: a hit is reported and ends neither `build` nor `check` with 1 (= `checks.stopping`)
+STOPS = False
 #: 1 mm = 36000 EMU (= これ未満のずれを「揃え損ね」、同じ大きさの差もこれ未満を「同じ」とみなす)
 MM = 36000
 #: 所見に出すずれの桁 (= mm の小数)。この桁で 0 になるずれは揃っているとみなす
