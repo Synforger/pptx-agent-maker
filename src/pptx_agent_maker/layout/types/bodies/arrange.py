@@ -17,7 +17,9 @@
   後の線が跳び越す。`link_routes`)。互いの出る箱から互いの入る箱への矢印も書かれている 2 本は、同じ隙間を離して
   並べずに 1 本に重ねて走る (= 重ねて読める結びが、全部書かれている)。
   入れ物 (`panel`) の中のマスと外のマスも結べ、入れ物そのものも端になる (= 入れ物とその中身は結べない)。
-  色の役 (`tone`) と、真っすぐな矢印のそばに置く言葉 (`text`) も書ける
+  色の役 (`tone`) と、真っすぐな矢印のそばに置く言葉 (`text`) も書ける。
+  線が `LINKS_FOR_A_DIAGRAM` 本以上で、結ぶ箱が `SPAN_FOR_A_DIAGRAM` 行以上かつ列以上に広がる頁は、形の図を持つ
+  (= 条件で分かれる流れ図・泳ぎ線の図・つながりの図。一列の流れは数えない。`shows_a_diagram`)
 
 ⚠ **収まらなければ縮めずに止まる** (= どの並べ方も、箱か字を小さくして押し込むことはしない)。
 """
@@ -54,6 +56,10 @@ MARK_COLUMN = 1 / 3
 TREE_KEYS = ("heading", "body", "tone", "icon", "tentative", "strong", "children")
 #: マスどうしの線 1 本が読むキー
 LINK_KEYS = ("from", "to", "text", "tone", "tentative")
+#: 結んだ箱が形の図になる線の本数の下限 (= これより少ない線は、箱に添えた矢印)
+LINKS_FOR_A_DIAGRAM = 3
+#: 結んだ箱が形の図になる、広がりの行の数と列の数の下限 (= 一列の流れは、何本でも数えない)
+SPAN_FOR_A_DIAGRAM = 2
 
 
 # -- 輪 ----------------------------------------------------------------------
@@ -387,6 +393,17 @@ class _Link:
         return max(a.left, b.left), min(a.right, b.right)
 
 
+def shows_a_diagram(link_count: int, boxes: Sequence[Rect]) -> bool:
+    """Whether `link_count` lines joining `boxes` show a shape diagram, not words in boxes with arrows between them.
+
+    Lines that run across both rows and columns show the relation by where the boxes stand, not by the words set
+    side by side. A row (= a column) is a distinct top (= left) among the boxes.
+    """
+    return (link_count >= LINKS_FOR_A_DIAGRAM
+            and len({box.top for box in boxes}) >= SPAN_FOR_A_DIAGRAM
+            and len({box.left for box in boxes}) >= SPAN_FOR_A_DIAGRAM)
+
+
 def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[Rect], blank: list[Rect],
           what: str) -> None:
     """An arrow from each cell named in `from` to the one in `to`: straight where the two face each other, round the cells in between where they do not.
@@ -398,6 +415,7 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     通る (= `link_routes`)。
     ただし `blank` (= 中身の無いマス。`text = ""`) は空きなので数えない (= 離れた 2 つのマスを、間の空きを
     またいで結べる)。`tone` は矢印の色の役 (= 書かなければ灰)、`text` は矢印のそばの言葉 (= `_words_by`)。
+    結んだマスが `shows_a_diagram` なら、全部のマスを 1 つの形の図として頁に宣言する (= `Page.drew_a_diagram`)。
     """
     if not isinstance(written, list) or not written:
         raise PageTypeError(f"{what}: `links` is a list of {{ from = \"id\", to = \"id\" }}")
@@ -430,6 +448,9 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
         if link.words:
             _words_by(page, link.words.strip(), points[0], points[-1], link.facing == "across", (link.first, link.second),
                       others, reach, link.where)
+    joined = list(dict.fromkeys(box for link in items for box in (link.first, link.second)))
+    if shows_a_diagram(len(items), joined):
+        page.drew_a_diagram(joined)
 
 
 def _may_share(ends: tuple[str, str], link_ends: tuple[str, str], written: set[tuple[str, str]]) -> bool:

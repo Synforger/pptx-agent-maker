@@ -6,7 +6,8 @@ a deck: it takes a `Page` and answers, so a test can call it with a page it buil
 
 ⚠ **数える物は、人が頁を見て「1 つ」と数える物。** 箱の中の字は箱の一部で、箱とは別に数えない。線表の棒・
 期間・レーンと、円の重なりは、まとめて 1 つの形の図 (= `diagram`) として数える (= 棒 1 本ずつ数えると、
-線表が必ず「詰め込み」になる)。
+線表が必ず「詰め込み」になる)。行と列の両方に広がる線で結んだ箱 (= `Page.diagram_boxes`) も同じで、
+全部を囲む 1 つの形の図にまとめ、箱 1 つずつは数えない。箱の中の字は、これまでどおり字に数える。
 """
 
 from __future__ import annotations
@@ -53,11 +54,18 @@ def _lines_of(page: Page, text: str, width: int, size: float) -> int:
     return page.theme.wraps(text, max(width - 2 * page.theme.spacing.text_inset, 1), size)
 
 
+def _in_diagram(page: Page, rect: Rect) -> bool:
+    """Whether a box the type placed stands inside one of the boxes joined into the page's shape diagram."""
+    return any(joined.contains(rect) for joined in page.diagram_boxes)
+
+
 def one_line_boxes(page: Page) -> int:
-    """How many boxes hold their words on one line (= a heading alone is one line, too)."""
+    """How many boxes hold their words on one line (= a heading alone is one line, too; a box of a shape diagram is not counted)."""
     texts = [e for e in page.elements if isinstance(e, Text) and e.kind in IN_A_BOX]
     count = 0
     for element in page.elements:
+        if _in_diagram(page, element.rect):
+            continue
         if isinstance(element, Fill) and element.kind in BOX_FILLS:
             held = [t for t in texts if element.rect.contains(t.rect)]
             lines = sum(_lines_of(page, t.text, t.rect.width, t.size) for t in held)
@@ -68,8 +76,9 @@ def one_line_boxes(page: Page) -> int:
 
 
 def diagram(page: Page) -> Rect | None:
-    """The rectangle round the page's shape diagram (= a timeline's bars, overlapping circles), or None."""
-    shapes = [e.rect for e in page.elements
+    """The rectangle round the page's shape diagram (= a timeline's bars, overlapping circles, boxes joined across rows and columns), or None."""
+    shapes = [*page.diagram_boxes]
+    shapes += [e.rect for e in page.elements
               if (isinstance(e, Bar) and e.kind in DIAGRAM_BARS) or isinstance(e, Diamond)
               or (isinstance(e, Ellipse) and e.kind == "circle")
               or (isinstance(e, Text) and e.kind in DIAGRAM_TEXT)]
@@ -83,6 +92,8 @@ def parts(page: Page) -> list[tuple[str, Rect]]:
     """Each thing the reader counts on the page, as (what it is, where): `figure`, `chart`, `table`, `diagram`, `box`, `text`."""
     found: list[tuple[str, Rect]] = []
     for element in page.elements:
+        if _in_diagram(page, element.rect) and not isinstance(element, (Figure, Chart, Table)):
+            continue
         if isinstance(element, Figure) and element.kind == "figure":
             found.append(("figure", element.rect))
         elif isinstance(element, Chart):

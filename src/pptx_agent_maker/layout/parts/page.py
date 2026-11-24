@@ -143,6 +143,7 @@ class Page:
         self.elements: list[Element] = []
         self._remaining = theme.frame()
         self._figures = 0
+        self._diagram_boxes: list[Rect] = []
         # 図解を持たなくてよいのは目次だけ。決めるのは型で、宣言の側からは触れない ―
         # 本文の頁がここを外せるなら、箱の中の文字だけの頁が戻ってくる。
         self._needs_figure = needs_figure
@@ -913,15 +914,23 @@ class Page:
         t, p = self.theme.type, self.theme.palette
         self.elements.append(Text("caption", rect, text, t.caption, p.muted, align=align))
 
-    def drew_a_diagram(self) -> None:
-        """Declare that this page shows a structure with shapes themselves (= a timeline's bars, overlapping circles).
+    def drew_a_diagram(self, joined: Sequence[Rect] = ()) -> None:
+        """Declare that this page shows a structure with shapes themselves (= a timeline's bars, overlapping circles, boxes joined across rows and columns).
 
         図解は、形そのもので仕組みや関係を見せる物。置いた側にしか分からないので、型が
         ここで宣言する (= 宣言しない頁は、絵もグラフも持たないまま `build` に拒まれる)。
-        ⚠ **文字の箱を矢印や線でつないだ物 (= 流れ・道のり・輪・木) では呼ばない。**
+        `joined` は、線で結んだ箱の矩形 (= `arrange.links`)。頁の検査は、この箱を箱 1 つずつでなく、全部を囲む
+        1 つの形の図として読む (= `diagram_boxes`)。
+        ⚠ **一列に並べた文字の箱を矢印でつないだ物 (= 流れ・道のり・輪・木) では呼ばない。**
         読まれるのは箱の中の文字で、形は見せていないからだ。
         """
         self._figures += 1
+        self._diagram_boxes.extend(joined)
+
+    @property
+    def diagram_boxes(self) -> tuple[Rect, ...]:
+        """The boxes a type declared as one shape diagram by joining them (= what the page checks fold into it)."""
+        return tuple(self._diagram_boxes)
 
     def marker(self, rect: Rect, text: str) -> None:
         """A single character carrying direction (= the arrow between two stages).
@@ -1075,7 +1084,8 @@ class Page:
         if self._needs_figure and self._figures == 0:
             raise ValueError(
                 "this page has no figure — only a chart, a picture, or a shape that shows how things relate "
-                "(a timeline's bars, overlapping circles) counts; words in boxes, cards, tables and boxes "
+                "(a timeline's bars, overlapping circles, boxes joined by three arrows or more across rows "
+                "and columns) counts; words in boxes, cards, tables and boxes in a single row or column "
                 "joined by arrows do not, so set them beside a picture or a chart "
                 "(a `figure` or `chart` page with the cards or table added, or a `compose` cell for the picture "
                 "or chart next to them)"
