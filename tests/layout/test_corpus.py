@@ -63,9 +63,20 @@ def body(page: dict) -> list[dict]:
 CELLS = [cell for page in DECLARED if page["type"] == "compose" for cell in cells(body(page))]
 
 
+#: types whose body is words in boxes: a page of one is refused (= no figure), so each is set in a cell of a `compose`
+#: beside a picture or a chart, or (`cards`, `board`) written as the cards and the table a `figure` page carries.
+#: `cards` has no cell of its own (= a cell holds one card, `card`), so no page of the corpus can be of that type.
+WORDS_IN_BOXES = {"cards", "board", "flow", "roadmap"}
+
+
+def bodies_in_cells(name: str) -> list[dict]:
+    """Every cell that holds the type."""
+    return [cell[name] for cell in CELLS if name in cell]
+
+
 def bodies(name: str) -> list[dict]:
     """Every place a type is written: as a page of its own, and laid into a cell."""
-    return [page for page in DECLARED if page["type"] == name] + [cell[name] for cell in CELLS if name in cell]
+    return [page for page in DECLARED if page["type"] == name] + bodies_in_cells(name)
 
 
 def tables(found) -> list[dict]:
@@ -81,8 +92,12 @@ class TheCorpusUsesEverything(unittest.TestCase):
     def test_every_way_to_make_a_page(self) -> None:
         self.assertEqual(set(KINDS), {page["kind"] for page in WRITTEN})
 
-    def test_every_type_as_a_page_of_its_own(self) -> None:
-        self.assertEqual(set(types.names()), {page["type"] for page in DECLARED})
+    def test_every_type_a_page_can_be_of_its_own(self) -> None:
+        """The types whose body is words in boxes cannot be a whole page (= no figure); they stand in a cell beside one."""
+        self.assertEqual(set(types.names()) - WORDS_IN_BOXES, {page["type"] for page in DECLARED} - WORDS_IN_BOXES)
+
+    def test_every_type_made_of_words_in_boxes_stands_in_a_cell(self) -> None:
+        self.assertEqual(set(BODIES) & WORDS_IN_BOXES, {name for name in WORDS_IN_BOXES if bodies_in_cells(name)})
 
     def test_every_key_a_type_reads(self) -> None:
         for name, (_filler, needs, takes, _figure) in TYPES.items():

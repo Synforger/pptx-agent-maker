@@ -37,9 +37,9 @@ mutate = _tool("mutate")
 PAGE = """
 [[pages]]
 kind = "declare"
-type = "board"
+type = "chart"
 title = "{title}"
-table = [["Key", "Value"], ["a", "1"]]
+chart = {{ kind = "column", y = "Count", categories = ["a", "b"], series = [{{ name = "n", values = [1, 2] }}] }}
 footer = "Source: made up for this test"
 """
 
@@ -47,9 +47,11 @@ footer = "Source: made up for this test"
 CARDS = """
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "chart"
 title = "Cards"
+chart = { kind = "column", y = "Count", categories = ["a", "b"], series = [{ name = "n", values = [1, 2] }] }
 cards = [{ heading = "One", body = "words", tone = "accent" }]
+footer = "Source: made up for this test"
 """
 
 
@@ -84,7 +86,7 @@ class ASnapshot(unittest.TestCase):
 
     def test_a_page_is_kept_with_what_it_points_at(self) -> None:
         kept = sorted(path.name for path in (self._baked("first") / "deck").iterdir())
-        self.assertEqual(["page-01.rels", "page-01.xml"], kept)
+        self.assertEqual(["chart1.xml", "page-01.rels", "page-01.xml"], kept)
 
     def test_one_changed_word_is_found_and_the_page_is_named(self) -> None:
         before = self._baked("before")

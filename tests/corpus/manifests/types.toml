@@ -50,10 +50,15 @@ figures = [
 
 [[pages]]
 kind = "declare"
-type = "flow"
+type = "compose"
 title = "Stages left to right, each node as tall as its words"
 
-[[pages.stages]]
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.flow]
+
+[[pages.rows.cells.flow.stages]]
 name = "Intake"
 nodes = [
   ["Triage", "sort by impact"],
@@ -61,11 +66,11 @@ nodes = [
 ]
 settled = "one queue"
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "Work"
 nodes = [["Build", "in small steps"]]
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "Hand over"
 nodes = [
   ["Review", "by a second person"],
@@ -73,50 +78,72 @@ nodes = [
 ]
 settled = "nothing ships unreviewed"
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "flow"
+type = "compose"
 title = "同じ順番のノードを横に揃える"
+
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.flow]
 align_rows = true
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "設計"
 nodes = [
   ["担当 A", "要件を 1 枚にまとめる"],
   ["担当 B", "過去の事例を集め、使える物と使えない物に分ける"],
 ]
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "試作"
 nodes = [
   ["担当 A", "最小の形で動かす"],
   ["担当 B", "測る"],
 ]
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "roadmap"
+type = "compose"
 title = "The road to a goal, as arrowheads"
+
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.roadmap]
 align_rows = true
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Early Nov | 0.4"
 nodes = [
   ["Core", "reads every input"],
   ["Docs", "how to start"],
 ]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Dec | 0.5, the first version partners can try"
 nodes = [
   ["Core", "writes every output"],
   ["Docs", "one worked example"],
 ]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Jan | 1.0"
 goal = true
 nodes = [["Release", "anyone can install it"]]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
 
 [[pages]]
 kind = "declare"
@@ -138,13 +165,15 @@ bars = [{ from = 1, to = 4, text = "write the guide" }]
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "The cards are the page"
 cards = [["This week", "what was done"], ["Next week", "what comes next"], ["Open", "what is undecided"]]
 
 [[pages]]
 kind = "declare"
-type = "board"
+type = "figure"
+figure = "wide.png"
 title = "One table holds the page"
 table = [
   ["Method", "Score", "Time", "Note"],
@@ -168,6 +197,10 @@ card = { heading = "Goal", body = "one sentence everyone can repeat", tone = "ac
 card = ["Pillar one", "what it carries"]
 [[pages.rows.cells]]
 card = { heading = "Pillar two", body = "what it carries", icon = "square.png" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
 
 [[pages]]
 kind = "declare"
@@ -294,7 +327,8 @@ why = "an agenda whose list is numbered: the chapters as the discs, the items fr
 
 [[pages]]
 kind = "declare"
-type = "board"
+type = "figure"
+figure = "wide.png"
 title = "Cells that stand on a ground as deep as their value"
 table = [
   ["Region", "Last month", "This month"],
@@ -307,23 +341,32 @@ why = "a table whose cells say how deep their ground is"
 
 [[pages]]
 kind = "declare"
-type = "flow"
+type = "compose"
 title = "Stages top to bottom, branching sideways where a stage holds two nodes"
-direction = "down"
 why = "a flow that runs down the page"
 
-[[pages.stages]]
+[[pages.rows]]
+[[pages.rows.cells]]
+weight = 3
+[pages.rows.cells.flow]
+direction = "down"
+
+[[pages.rows.cells.flow.stages]]
 name = "Intake"
 nodes = [["Request", "comes in at the desk"]]
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "Review"
 nodes = [["Papers", "read against the rules"], { heading = "Site", body = "seen in person", tone = "tint" }]
 settled = "both must pass"
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "Decision"
 nodes = [["Notice", "the answer goes back"]]
+
+[[pages.rows.cells]]
+weight = 1
+figure = "tall.png"
 
 [[pages]]
 kind = "declare"
@@ -339,6 +382,10 @@ voices = [
   { text = "\"Great sound\"", who = "Work C" },
   { text = "\"Thank you\"" },
 ]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
 
 [[pages]]
 kind = "declare"
@@ -359,6 +406,10 @@ role = "mono"
 [[pages.rows]]
 [[pages.rows.cells]]
 text = "of tickets are answered within a day"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
 
 [[pages]]
 kind = "declare"
@@ -384,12 +435,17 @@ title = "Who answers what"
 
 [[pages.rows]]
 [[pages.rows.cells]]
+weight = 3
 [pages.rows.cells.tree]
 heading = "Support"
 children = [
   { heading = "Front desk", children = [ { heading = "Chat" }, { heading = "Mail" } ] },
   { heading = "Specialists", body = "the hard cases", tone = "tint" },
 ]
+
+[[pages.rows.cells]]
+weight = 1
+figure = "square.png"
 
 [[pages]]
 kind = "declare"
@@ -425,44 +481,63 @@ marks = [
 
 [[pages]]
 kind = "declare"
-type = "roadmap"
+type = "compose"
 title = "Arrowheads alone, when the stages need no words under them"
 
-[[pages.stages]]
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.roadmap]
+
+[[pages.rows.cells.roadmap.stages]]
 name = "Early Nov | 0.4"
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Dec | 0.5, the first version partners can try"
 tone = "tint"
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Jan | 1.0"
 goal = true
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "roadmap"
+type = "compose"
 title = "Or only some of them hold nodes, the rest standing empty"
+
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.roadmap]
 align_rows = true
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Early Nov | 0.4"
 nodes = [
   ["Core", "reads every input"],
   ["Docs", "how to start"],
 ]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Dec | 0.5"
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Jan | 1.0"
 goal = true
 nodes = [["Release", "anyone can install it"]]
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "board"
+type = "figure"
+figure = "wide.png"
 title = "Rows that divide a table"
 table = [
   ["Region", "Open", "Staff"],
@@ -479,11 +554,16 @@ why = "a table divided by bands: in the accent, on a named ground, and with no t
 
 [[pages]]
 kind = "declare"
-type = "roadmap"
+type = "compose"
 title = "A road whose stages take the width they need"
 why = "a road whose stages say their weight: some wider, one left at 1, the nodes breaking over the width of their own column"
 
-[[pages.stages]]
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.roadmap]
+
+[[pages.rows.cells.roadmap.stages]]
 name = "Spring | survey"
 weight = 3
 nodes = [
@@ -491,18 +571,22 @@ nodes = [
   ["Forms", "the questions that all of them were asked, kept for the next round"],
 ]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Summer | trial"
 weight = 2
 nodes = [["Pilot", "two markets"]]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Autumn"
 nodes = [["Review", "what held"]]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Winter | open"
 goal = true
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
 
 [[pages]]
 kind = "declare"
@@ -545,6 +629,10 @@ voices = [
   { text = "\"Thank you\"", who = "Work B" },
 ]
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
 type = "compose"
@@ -566,6 +654,10 @@ table = [
   ["Summer", "71", "the longest note of the upper table"],
 ]
 table_columns = [1, 1, 4]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
 
 [[pages]]
 kind = "declare"

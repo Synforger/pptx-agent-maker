@@ -6,7 +6,8 @@ out = "looks.pptx"
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "The six roles a ground may take"
 card_columns = 3
 cards = [
@@ -20,7 +21,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "A card with an icon, a dashed edge, a strong edge"
 card_columns = 3
 cards = [
@@ -34,56 +36,74 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "flow"
+type = "compose"
 title = "The nodes of a flow read the same four"
 
-[[pages.stages]]
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.flow]
+
+[[pages.rows.cells.flow.stages]]
 name = "Plan"
 nodes = [
   { heading = "Scope", body = "what is in", tone = "tint" },
   { heading = "Risk", body = "what may slip", tone = "bad", icon = "ring.png" },
 ]
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "Build"
 nodes = [
   { heading = "Core", body = "on the critical path", strong = true },
   { heading = "Extras", body = "if time allows", tentative = true },
 ]
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "Ship"
 nodes = [
   { heading = "Release", tone = "accent" },
   { heading = "Partners", body = "shown outside", tone = "Outside", icon = "square.png" },
 ]
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "roadmap"
+type = "compose"
 title = "So do the arrowheads of a roadmap"
 
-[[pages.stages]]
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.roadmap]
+
+[[pages.rows.cells.roadmap.stages]]
 name = "Now"
 icon = "circle.png"
 nodes = [["Draft", "a first version"]]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Next"
 tone = "tint"
 strong = true
 nodes = [{ heading = "Review", body = "by partners", tone = "Outside" }]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Maybe"
 tentative = true
 nodes = [{ heading = "Extras", tentative = true }]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Goal"
 goal = true
 icon = "ring.png"
 nodes = [{ heading = "Release", strong = true, icon = "square.png" }]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
 
 [[pages]]
 kind = "declare"
@@ -170,7 +190,8 @@ table = [["Look", "Key"], ["dashed", "tentative"], ["heavy", "strong"]]
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "What a card may leave out, and how it sets its words"
 card_columns = 3
 cards = [

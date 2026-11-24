@@ -787,9 +787,33 @@
 </a:p>
 </p:txBody>
 </p:sp>
+<p:pic>
+<p:nvPicPr>
+<p:cNvPr id="25" name="Picture 24"/>
+<p:cNvPicPr>
+<a:picLocks noChangeAspect="1"/>
+</p:cNvPicPr>
+<p:nvPr/>
+</p:nvPicPr>
+<p:blipFill>
+<a:blip r:embed="rId2"/>
+<a:stretch>
+<a:fillRect/>
+</a:stretch>
+</p:blipFill>
+<p:spPr>
+<a:xfrm>
+<a:off x="5215200" y="5261400"/>
+<a:ext cx="1761600" cy="660600"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+</p:spPr>
+</p:pic>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="25" name="Connector 24"/>
+<p:cNvPr id="26" name="Connector 25"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>
@@ -811,7 +835,7 @@
 </p:cxnSp>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="26" name="Connector 25"/>
+<p:cNvPr id="27" name="Connector 26"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>

@@ -31,6 +31,10 @@ card = { heading = "Third", body = "The row above is empty" }
 [[pages.rows.cells]]
 card = { heading = "Fourth", body = "and holds nothing but its gaps" }
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
 type = "compose"
@@ -110,3 +114,7 @@ valign = "bottom"
 [[pages.rows.cells]]
 weight = 14
 card = { body = "Three lines\nof words\nin a card" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"

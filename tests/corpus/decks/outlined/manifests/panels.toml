@@ -66,3 +66,7 @@ rows = [
     { panel = { tentative = true, heading = "Three", rows = [ { cells = [ { text = "not decided" } ] } ] } },
   ] },
 ]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"

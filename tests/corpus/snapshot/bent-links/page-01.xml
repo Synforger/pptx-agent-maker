@@ -539,9 +539,33 @@
 </a:p>
 </p:txBody>
 </p:sp>
+<p:pic>
+<p:nvPicPr>
+<p:cNvPr id="18" name="Picture 17"/>
+<p:cNvPicPr>
+<a:picLocks noChangeAspect="1"/>
+</p:cNvPicPr>
+<p:nvPr/>
+</p:nvPicPr>
+<p:blipFill>
+<a:blip r:embed="rId2"/>
+<a:stretch>
+<a:fillRect/>
+</a:stretch>
+</p:blipFill>
+<p:spPr>
+<a:xfrm>
+<a:off x="4203493" y="4502620"/>
+<a:ext cx="3785013" cy="1419380"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+</p:spPr>
+</p:pic>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="18" name="Connector 17"/>
+<p:cNvPr id="19" name="Connector 18"/>
 <p:cNvCxnSpPr>
 <a:stCxn id="8" idx="3"/>
 </p:cNvCxnSpPr>
@@ -565,7 +589,7 @@
 </p:cxnSp>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="19" name="Connector 18"/>
+<p:cNvPr id="20" name="Connector 19"/>
 <p:cNvCxnSpPr>
 <a:stCxn id="11" idx="1"/>
 <a:endCxn id="14" idx="0"/>

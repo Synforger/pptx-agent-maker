@@ -151,7 +151,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="432000" y="1692000"/>
-<a:ext cx="7480000" cy="4842000"/>
+<a:ext cx="7480000" cy="3674824"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -183,7 +183,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="540000" y="1800000"/>
-<a:ext cx="3416000" cy="4626000"/>
+<a:ext cx="3416000" cy="3458824"/>
 </a:xfrm>
 <a:prstGeom prst="roundRect">
 <a:avLst>
@@ -217,7 +217,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="666000" y="2338800"/>
-<a:ext cx="3164000" cy="3961200"/>
+<a:ext cx="3164000" cy="2794024"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -286,12 +286,12 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4388000" y="4329000"/>
-<a:ext cx="3416000" cy="2097000"/>
+<a:off x="4388000" y="3745412"/>
+<a:ext cx="3416000" cy="1513412"/>
 </a:xfrm>
 <a:prstGeom prst="roundRect">
 <a:avLst>
-<a:gd name="adj" fmla="val 5150"/>
+<a:gd name="adj" fmla="val 7136"/>
 </a:avLst>
 </a:prstGeom>
 <a:solidFill>
@@ -320,7 +320,7 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4514000" y="4455000"/>
+<a:off x="4514000" y="3871412"/>
 <a:ext cx="3164000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -355,7 +355,7 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4514000" y="4805520"/>
+<a:off x="4514000" y="4221932"/>
 <a:ext cx="3164000" cy="12700"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -385,7 +385,7 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="4514000" y="4926220"/>
+<a:off x="4514000" y="4342632"/>
 <a:ext cx="3164000" cy="457200"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -553,7 +553,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="8236000" y="1800000"/>
-<a:ext cx="3416000" cy="4626000"/>
+<a:ext cx="3416000" cy="3458824"/>
 </a:xfrm>
 <a:prstGeom prst="roundRect">
 <a:avLst>
@@ -587,7 +587,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="8362000" y="2338800"/>
-<a:ext cx="3164000" cy="3961200"/>
+<a:ext cx="3164000" cy="2794024"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -648,15 +648,39 @@
 </a:p>
 </p:txBody>
 </p:sp>
+<p:pic>
+<p:nvPicPr>
+<p:cNvPr id="21" name="Picture 20"/>
+<p:cNvPicPr>
+<a:picLocks noChangeAspect="1"/>
+</p:cNvPicPr>
+<p:nvPr/>
+</p:nvPicPr>
+<p:blipFill>
+<a:blip r:embed="rId2"/>
+<a:stretch>
+<a:fillRect/>
+</a:stretch>
+</p:blipFill>
+<p:spPr>
+<a:xfrm>
+<a:off x="5115765" y="5690824"/>
+<a:ext cx="1960469" cy="735176"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+</p:spPr>
+</p:pic>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="21" name="Connector 20"/>
+<p:cNvPr id="22" name="Connector 21"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="3956000" y="5377500"/>
+<a:off x="3956000" y="4502118"/>
 <a:ext cx="432000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -672,13 +696,13 @@
 </p:cxnSp>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="22" name="Connector 21"/>
+<p:cNvPr id="23" name="Connector 22"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="7804000" y="5377500"/>
+<a:off x="7804000" y="4502118"/>
 <a:ext cx="432000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">

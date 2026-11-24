@@ -46,6 +46,10 @@ weight = 2
 text = "A big figure takes a tone and a place too; what it counts goes in the words beside it"
 align = "center"
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
 type = "compose"
@@ -75,3 +79,7 @@ card = { heading = "Kept", body = "every ticket", tone = "band" }
 [[pages.rows.cells]]
 weight = 2
 text = "Nothing is thrown away; the arrow from the desk says so"
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"

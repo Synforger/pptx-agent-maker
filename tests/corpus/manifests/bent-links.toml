@@ -41,6 +41,10 @@ rows = [
 [[pages.rows.cells]]
 text = ""
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
 type = "compose"
@@ -65,12 +69,16 @@ text = ""
 id = "second"
 card = { heading = "Second", body = "Is entered by its left edge" }
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
 type = "compose"
 title = "Two boxes below two, each joined to each above"
 condition = "The two arrows that bend share one run across the gap, so the four read as an H and not as a ladder"
-grid = { columns = [1, 1, 1, 1, 1, 1], rows = [1, 0.4, 1] }
+grid = { columns = [1, 1, 1, 1, 1, 1], rows = [1, 0.4, 1, 0.55] }
 links = [
   { from = "a", to = "c" },
   { from = "a", to = "d" },
@@ -102,3 +110,8 @@ card = { heading = "A", body = "Below on the left" }
 at = [3, 3]
 id = "b"
 card = { heading = "B", body = "Below on the right" }
+
+[[pages.cells]]
+at = [4, 1]
+span = [1, 6]
+figure = "wide.png"

@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
-<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image11.png"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image15.png"/>
 </Relationships>
-<!-- image11.png sha256 30d3cd6e5b3a77bb01332a74b042ff0e8310289d2aaa5cb82de6005cc4a4cd14 -->
+<!-- image15.png sha256 30d3cd6e5b3a77bb01332a74b042ff0e8310289d2aaa5cb82de6005cc4a4cd14 -->
