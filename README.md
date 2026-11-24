@@ -58,8 +58,9 @@ Four things then hold **by construction**, not by a checker run afterwards:
 
 And four things are refused outright, because no one managed to hold them by discipline:
 
-- a page with **no figure** (= prose and tables only), except in the four types that may carry none:
-  `agenda`, `board`, `cards` and `compose`
+- a page with **no figure**, except the agenda. A chart, a picture, or a shape that shows how things relate
+  (a timeline's bars, overlapping circles) counts; words in boxes, cards, tables and boxes joined by arrows
+  do not, so `cards`, `board`, `flow` and `roadmap` are set beside a picture or a chart
 - an **empty table cell** (write a dash; a blank reads as a value nobody filled in)
 - type **below the floor** (10pt on a deck to be read, 14pt on one to be shown)
 - a **table taller than the space given** — PowerPoint grows the frame instead of shrinking the

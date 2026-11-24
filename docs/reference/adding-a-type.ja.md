@@ -22,14 +22,16 @@ script も塞いである)。「今回だけ」の形を手で置く道が無い
    `__init__.py` の並びに足す** (= 読まれた時に登録される)。
 
    ```python
-   @register("board", needs=["table"], figure=False)
-   def _board(page: Page, spec: Spec, area: Rect) -> None:
+   @register("agenda", needs=["buckets"], figure=False)
+   def _agenda(page: Page, spec: Spec, area: Rect) -> None:
        ...
    ```
 
    `needs` = その型が無いと成立しないキー。`takes` = **この型だけが読む任意のキー**
    (= `figure` の `caption` / `figure_grid` の `columns`)。`figure=False` は図を持たなくて
-   よい型 (= 頁の骨格。既定では図解を 1 つも持たない頁は組めない)。
+   よい型 (= 目次だけ。既定では図解を 1 つも持たない頁は組めない)。図解に数えるのは、絵・グラフ・
+   形で関係を見せる図 (= `timeline` の棒・円の重なり) で、箱の中の文字を矢印や線でつないだ物は数えない
+   (= その型は `page.drew_a_diagram()` を呼ばない)。
 
    ⚠ **読むキーは全部宣言する。**宣言し忘れたキーは拒まれるので書いた人がすぐ気づくが、
    逆に「どの型でも書ける」ことにすると、読まない型では黙って落ちる (= 実際に `figures` の

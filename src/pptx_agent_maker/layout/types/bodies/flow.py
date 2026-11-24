@@ -67,7 +67,6 @@ def _flow(page: Page, spec: Spec, area: Rect) -> None:
     # 字の高さの資料では、ここは何もしない。頁の高さを使う資料では、ノードが残りの高さを分け合う
     stacks, stack = fill_stacks(page, stacks, stack, area.height - (wanted - stack), aligned)
 
-    page.drew_a_diagram()  # 段とノードで組んだ流れ図そのものが、この頁の図解
     for index, (stage, column_nodes) in enumerate(zip(stages, stacks)):
         column = columns[index * 2]
         head, rest = column.split_top(head_height, gap=gap)
@@ -130,7 +129,6 @@ def _down(page: Page, spec: Spec, stages: list, area: Rect) -> None:
         rows = [(name, nodes, tall + more, settled, under)
                 for (name, nodes, tall, settled, under), more in zip(rows, spread(area.height - wanted, len(rows)))]
 
-    page.drew_a_diagram()  # 段とノードで組んだ流れ図そのものが、この頁の図解
     top = area.top
     for index, (name, nodes, tall, settled, under) in enumerate(rows):
         if index:

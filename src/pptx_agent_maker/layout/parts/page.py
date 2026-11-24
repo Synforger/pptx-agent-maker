@@ -143,9 +143,8 @@ class Page:
         self.elements: list[Element] = []
         self._remaining = theme.frame()
         self._figures = 0
-        # 図解を持たなくてよいのは骨格の頁だけ (= 目次と、毎週積み上げる早見表)。
-        # 決めるのは型で、宣言の側からは触れない ― 本文の頁がここを外せるなら、
-        # 「表と文章だけ」の頁が戻ってくる。
+        # 図解を持たなくてよいのは目次だけ。決めるのは型で、宣言の側からは触れない ―
+        # 本文の頁がここを外せるなら、箱の中の文字だけの頁が戻ってくる。
         self._needs_figure = needs_figure
         self._title_bar(title, kicker, sticker)
         if condition:
@@ -915,11 +914,12 @@ class Page:
         self.elements.append(Text("caption", rect, text, t.caption, p.muted, align=align))
 
     def drew_a_diagram(self) -> None:
-        """Declare that this page says something with shapes, not just words.
+        """Declare that this page shows a structure with shapes themselves (= a timeline's bars, overlapping circles).
 
-        図解は絵だけではない ― 工程の流れを図形で組んだ頁も図解を持っている。置いた
-        側にしか分からないので、型がここで宣言する (= 宣言しない頁は、絵を 1 枚も
-        持たないまま `build` に拒まれる)。
+        図解は、形そのもので仕組みや関係を見せる物。置いた側にしか分からないので、型が
+        ここで宣言する (= 宣言しない頁は、絵もグラフも持たないまま `build` に拒まれる)。
+        ⚠ **文字の箱を矢印や線でつないだ物 (= 流れ・道のり・輪・木) では呼ばない。**
+        読まれるのは箱の中の文字で、形は見せていないからだ。
         """
         self._figures += 1
 
@@ -1074,7 +1074,10 @@ class Page:
         """Hand over the placed elements, refusing a page with nothing to look at."""
         if self._needs_figure and self._figures == 0:
             raise ValueError(
-                "this page has no figure — a page of prose and tables is the one thing "
-                "the reader cannot use"
+                "this page has no figure — only a chart, a picture, or a shape that shows how things relate "
+                "(a timeline's bars, overlapping circles) counts; words in boxes, cards, tables and boxes "
+                "joined by arrows do not, so set them beside a picture or a chart "
+                "(a `figure` or `chart` page with the cards or table added, or a `compose` cell for the picture "
+                "or chart next to them)"
             )
         return list(self.elements)

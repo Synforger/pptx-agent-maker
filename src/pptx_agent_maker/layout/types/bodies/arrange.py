@@ -103,7 +103,6 @@ def ring(page: Page, rect: Rect, cards: list[Card], what: str) -> None:
         after = boxes[(number + 1) % len(boxes)]
         start, end = _between(box, after, s.gap_s)
         page.line(start, end, arrow=True)
-    page.drew_a_diagram()
 
 
 def _between(a: Rect, b: Rect, gap: int) -> tuple[tuple[int, int], tuple[int, int]]:
@@ -215,7 +214,6 @@ def tree(page: Page, rect: Rect, root: _Node, what: str) -> None:
         return here
 
     place(root, 0, 0)
-    page.drew_a_diagram()
 
 
 # -- 重なり ------------------------------------------------------------------
@@ -275,6 +273,7 @@ def overlap(page: Page, rect: Rect, sets: list[tuple[str, str]], shared: str, wh
     if shared:
         _words(page, Rect(round(middle[0] - room / 2), round(middle[1] - room / 2), room, room), shared,
                ty.body, False, what)
+    # 重なりは、形そのもので関係を見せる (= 文字の箱を線でつないだ輪や木とは違い、数える)
     page.drew_a_diagram()
 
 

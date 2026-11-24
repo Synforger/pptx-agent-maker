@@ -130,8 +130,7 @@ BACKDROP_KEYS = ("at", "span", "tone")
 BACKDROP_TONE = "band"
 
 
-@register("compose", needs=[], takes=["rows", "grid", "cells", "backdrops", "links", "dotted_legend", "detour"],
-          figure=False)
+@register("compose", needs=[], takes=["rows", "grid", "cells", "backdrops", "links", "dotted_legend", "detour"])
 def _compose(page: Page, spec: Spec, area: Rect) -> None:
     """Rows top to bottom (or cells on a grid), cells left to right, one part in each cell (or more rows); then the links."""
     gridded = _way(spec)

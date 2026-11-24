@@ -32,9 +32,12 @@
 どの型にも無い組み方は `compose` (= `bodies/compose.py`) で書く。本体を段とマスの入れ子に割り、マスに
 部品を 1 つ置く。部品には上の型も入る ― 型は組み方の短縮形で、組み方そのものではない。
 
-⚠ **絵を持たなくてよいのは後ろの 3 つだけ** (= グラフは数字を形で見せるので、絵と同じに数える)。
-本文の頁がここを外せるようになると、「表と文章だけ」の頁が戻ってくる (= 実際にそれで作った頁は
-全部差し戻された)。
+⚠ **絵を持たなくてよいのは `agenda` (目次) だけ。** 頁の図解に数えるのは、絵・グラフ・`timeline` の棒・
+`compose` や `arrange` の円の重なり (= 形で仕組みや関係を見せる物)。箱の中の文字・カード・表・文字の
+箱を矢印や線でつないだ物 (= `flow`・`roadmap`・箱の輪・箱の木) は数えない。だから `cards`・`board`・
+`flow`・`roadmap` は 1 頁まるごとでは組めず、絵かグラフと並べる部品になる (= `figure`・`chart` の頁に
+`cards`・`table` を添える、`compose` のマスに絵かグラフと並べる)。本文の頁がここを外せるようになると、
+箱の中の文字だけの頁が戻ってくる (= 実際にそれで作った頁は全部差し戻された)。
 """
 
 from __future__ import annotations
@@ -58,7 +61,7 @@ def names() -> list[str]:
 
 
 def skeleton() -> list[str]:
-    """The types allowed to carry no figure (= the deck's own scaffolding)."""
+    """The types allowed to carry no figure (= only `agenda`, the deck's own scaffolding)."""
     return sorted(name for name, spec in TYPES.items() if not spec[3])
 
 
@@ -124,7 +127,7 @@ def describe() -> str:
         needed = ", ".join(sorted(needs)) or "—"
         own = ", ".join(sorted(takes)) or "—"
         lines.append(f"  {name:<12} needs: {needed:<10} also reads: {own:<10}"
-                     f"{'' if figure else '  (may carry no picture)'}")
+                     f"{'' if figure else '  (may carry no picture: the agenda)'}")
     lines.append(f"  on any type: {', '.join(sorted(EXTRA_KEYS))}")
     lines.append(f"  a chart: kind ({' | '.join(chart.KINDS)}), categories, series = [{{ name, values, tone }}] "
                  'or data = "x.csv", highlight, unit, labels, totals (= of a waterfall), '
