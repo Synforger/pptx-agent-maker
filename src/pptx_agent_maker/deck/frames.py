@@ -12,7 +12,7 @@ from ..layout.geometry import EMU_PER_INCH, Rect
 from ..layout.parts.elements import Figure
 from ..project.files.manifest import Manifest
 from ..project.files.workspace import Workspace
-from .build import declared_page, theme_of
+from .build import declared_page, placed_elements, theme_of
 
 
 def frames(workspace: Workspace, manifest: Manifest) -> list[dict]:
@@ -27,7 +27,7 @@ def frames(workspace: Workspace, manifest: Manifest) -> list[dict]:
         if entry.kind != "declare":
             continue
         page = declared_page(workspace, manifest, entry, index, theme)
-        for element in page.build():
+        for element in placed_elements(page, index):
             if isinstance(element, Figure) and element.frame is not None:
                 found.append({"page": index, "picture": element.source.name,
                               "frame": _size(element.frame), "placed": _size(element.rect)})

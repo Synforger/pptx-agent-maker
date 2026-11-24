@@ -11,8 +11,8 @@ new = ""
 [[mutant]]
 name = "a page is written in the look of its deck, not its own"
 file = "src/pptx_agent_maker/deck/build.py"
-old = "        add_page(deck, page.build(), page.theme)"
-new = "        add_page(deck, page.build(), theme)"
+old = "        add_page(deck, placed_elements(page, index), page.theme)"
+new = "        add_page(deck, placed_elements(page, index), theme)"
 
 [[mutant]]
 name = "a look in another use keeps the bands of the first"

@@ -310,7 +310,12 @@ def main(argv: list[str] | None = None) -> int:
     built = sub.add_parser("build", help="build a deck from one of the project's manifests")
     built.add_argument("path", help="the project folder")
     built.add_argument("manifest", help="a manifest name, with or without .toml")
-    built.add_argument("--skip-checks", action="store_true", help="build without checking")
+    built.add_argument("--skip-checks", action="store_true",
+                       help="skip the checks `check` runs and nothing else: the figure rule and a page that "
+                            "cannot hold its content still stop the build (a page's `no_figure` lifts the figure rule)")
+    built.add_argument("--out", metavar="FILE",
+                       help="write the deck to this .pptx file instead of the manifest's `out` "
+                            "(a trial build: the real deck is left alone; a relative path is read from the current folder)")
 
     titled = sub.add_parser("titles", help="print every page's title in order, to read the story the deck tells")
     titled.add_argument("path", help="the project folder")
@@ -622,7 +627,7 @@ def main(argv: list[str] | None = None) -> int:
         from .deck.build import build, figureless_lines, theme_of
 
         manifest = Manifest.load(workspace.manifest(args.manifest))
-        built_deck = build(workspace, manifest)
+        built_deck = build(workspace, manifest, out=args.out)
         first_number = first_slide_number(built_deck)
         counted = f"; the page numbers printed start at {first_number}" if first_number != 1 else ""
         print(f"built {built_deck} ({len(manifest.entries)} pages{counted})")

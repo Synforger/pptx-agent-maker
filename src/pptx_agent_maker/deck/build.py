@@ -48,6 +48,14 @@ def _open_in_powerpoint(deck: Path) -> Path | None:
     return None
 
 
+def _trial_destination(out: Path | str) -> Path:
+    """Where `--out` writes: that path, read from the folder the command runs in, and always a `.pptx`."""
+    destination = Path(out).expanduser().resolve()
+    if destination.suffix.lower() != ".pptx":
+        raise ValueError(f"--out must name a .pptx file, not {destination.name!r}")
+    return destination
+
+
 def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
     """The look this manifest's declared pages are built in: the specimen's, with the project's laid over.
 
@@ -76,12 +84,17 @@ def theme_of(workspace: Workspace, manifest: Manifest) -> Theme:
         raise ManifestError(f"{where}: {reason}") from reason
 
 
-def build(workspace: Workspace, manifest: Manifest) -> Path:
-    """Assemble the deck the manifest describes and return where it landed."""
+def build(workspace: Workspace, manifest: Manifest, *, out: Path | str | None = None) -> Path:
+    """Assemble the deck the manifest describes and return where it landed.
+
+    `out` writes there instead of the manifest's own `out` (= a trial build that leaves the real deck alone).
+    The pictures are still found by the manifest's name, and the hand-edit and open-in-PowerPoint guards
+    look at the file written.
+    """
     theme = theme_of(workspace, manifest)
     specimen = workspace.specimen(manifest.specimen).resolve()
 
-    destination = workspace.out(manifest.out)
+    destination = workspace.out(manifest.out) if out is None else _trial_destination(out)
     lock = _open_in_powerpoint(destination)
     if lock is not None:
         raise OpenInPowerPointError(
@@ -149,7 +162,7 @@ def _bake_declared(workspace: Workspace, manifest: Manifest, scratch: Path,
     for position, (index, entry) in enumerate(declared, start=1):
         page = declared_page(workspace, manifest, entry, index, theme)
         # 頁は自分の使い方の見た目で書く (= 表の行の高さや箱の余白も、組んだ時と同じ大きさから出る)
-        add_page(deck, page.build(), page.theme)
+        add_page(deck, placed_elements(page, index), page.theme)
         where[index] = position
     where["path"] = save(deck, scratch / "declared.pptx")
     return where
@@ -176,4 +189,16 @@ def declared_page(workspace: Workspace, manifest: Manifest, entry: Entry, index:
     try:
         return types.build(entry.data, asset, aspect, theme)
     except (ValueError, KeyError, WorkspaceError, PageFullError) as reason:
+        raise ManifestError(f"{manifest_page_label(index)}: {reason}") from reason
+
+
+def placed_elements(page, index: int) -> list:
+    """The elements a declared page places, saying which page of the manifest went wrong when it refuses.
+
+    ⚠ **図の決まりは、頁を組み終えてから `Page.build` が見る。**型が頁を組む所 (= `declared_page`) の外なので、
+    ここでも同じ道で頁の番号を付ける。付けないと、図の無い頁の失敗だけが「どの頁か」を言わない。
+    """
+    try:
+        return page.build()
+    except ValueError as reason:
         raise ManifestError(f"{manifest_page_label(index)}: {reason}") from reason
