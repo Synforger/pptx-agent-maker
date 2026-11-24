@@ -7,6 +7,9 @@
 
 from __future__ import annotations
 
+#: built decks that carry no agenda page (= `tests/conftest.py`)
+AGENDA_RULE_LIFTED = True
+
 import contextlib
 import io
 import sys

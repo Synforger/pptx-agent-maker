@@ -7,6 +7,9 @@
 
 from __future__ import annotations
 
+#: built decks that carry no agenda page (= `tests/conftest.py`)
+AGENDA_RULE_LIFTED = True
+
 #: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
 FIGURE_RULE_LIFTED = True
 
