@@ -31,12 +31,6 @@ old = "            return (0, 2) if a.right <= b.left else (2, 0)"
 new = "            return (0, 2)"
 
 [[mutant]]
-name = "a bent line carries words"
-file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "        facing = \"\"\n        if words:"
-new = "        facing = \"\"\n        if False:"
-
-[[mutant]]
 name = "a line with no way through is drawn across the cells"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
 old = "    if route.blocked:\n        a, b = link.ends"

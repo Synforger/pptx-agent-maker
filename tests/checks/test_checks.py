@@ -217,6 +217,16 @@ class ChecksFireTest(unittest.TestCase):
         self.assertEqual([], near_alignment.run(self._boxes("other.pptx", 10800, height=600000), {}),
                          "boxes of a different height are not siblings in a row")
 
+    def test_boxes_of_two_heights_set_by_their_middle_are_not_a_miss(self) -> None:
+        """⚠ 凡例の色見本は字の枠の縦の中央に置く。高さが 1 mm 未満しか違わないと「同じ大きさの兄弟」になり、
+        上端が 0.15 mm ずれると言われた (= 中心は 1 EMU も違わない)。"""
+        short = 1000000 - 10800
+        self.assertEqual([], near_alignment.run(self._boxes("middle.pptx", 5400, height=short), {}),
+                         "a box set by its middle was called a miss at its top edge")
+        self.assertTrue(near_alignment.run(self._boxes("bottoms.pptx", 10800, height=short), {}),
+                        "boxes of two heights that share neither top nor middle went through")
+        self.assertTrue(near_alignment.run(self._boxes("hair.pptx", 10800), {}), "equal boxes 0.3 mm apart went through")
+
     def test_a_miss_that_shows_as_zero_is_lined_up(self) -> None:
         """⚠ 絵が並ぶ頁で「0.00 mm ずれている」が 5 件出た ― 所見の桁 (= 0.01 mm) で 0 になるずれは揃っている。"""
         self.assertEqual([], near_alignment.run(self._boxes("dust.pptx", 144), {}), "0.004 mm was reported")

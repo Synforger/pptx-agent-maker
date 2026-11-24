@@ -1,7 +1,7 @@
-# Siblings that miss by a hair: words in a card and words on the page are not siblings, and a miss
-# that shows as 0.00 mm is no miss.
+# Siblings that miss by a hair: words in a card and words on the page are not siblings, a miss that
+# shows as 0.00 mm is no miss, and two sizes set by their middle (= a legend's swatch and its words) are no miss.
 
-tests = ["tests/checks/test_checks.py"]
+tests = ["tests/checks/test_checks.py", "tests/layout/test_grid.py"]
 
 [[mutant]]
 name = "words in a card and words on the page are compared as siblings"
@@ -26,3 +26,9 @@ name = "the floor is taken from a coarser place than the finding shows"
 file = "src/pptx_agent_maker/checks/rules/near_alignment.py"
 old = "                if miss and round(miss[1] / MM, PLACES) > 0 and miss[1] < MM:"
 new = "                if miss and round(miss[1] / MM, PLACES - 1) > 0 and miss[1] < MM:"
+
+[[mutant]]
+name = "a swatch set by its middle is compared at its top edge"
+file = "src/pptx_agent_maker/checks/rules/near_alignment.py"
+old = " and not _centred(a.top, a.height, b.top, b.height)):"
+new = "):"

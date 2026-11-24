@@ -5,6 +5,10 @@ A module written when a page of words in boxes alone could be built is lifted ou
 written now is held by the rule, so nothing new runs outside it unseen; the modules that are lifted are the
 ones `grep -l LIFTED tests` lists.
 
+The rule "a deck has an agenda page" (= `section_agenda`) is lifted the same way, by `AGENDA_RULE_LIFTED = True`: the
+module builds decks of a page or two that were written without one, and adding a page would move the numbers it
+measures. A module written now is held by the rule.
+
 A module that tests what a page does with the extras alone (= cards, a table, a reading, a legend, with nothing
 in the body) says `BARE_PAGE_TYPE = True` and gets the page type `bare`: a body that places nothing and may
 carry no figure. It is a type of the tests only, so no module that lists the types sees it unasked.
@@ -12,6 +16,7 @@ carry no figure. It is a type of the tests only, so no module that lists the typ
 
 from __future__ import annotations
 
+import importlib
 import sys
 
 import pytest
@@ -53,3 +58,21 @@ def bare_type(request):
         yield
     finally:
         registry.TYPES.pop("bare", None)
+
+
+AGENDA_RULE = "pptx_agent_maker.checks.declared.section_agenda"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def agenda_rule(request):
+    """Lift the rule of an agenda page for a module that says so (= a deck with none is no longer stopped)."""
+    if not getattr(request.module, "AGENDA_RULE_LIFTED", False):
+        yield
+        return
+    # import it here: a module that loads the toolkit later would otherwise find nothing to lift
+    rule = importlib.import_module(AGENDA_RULE)
+    rule.NEEDS_AGENDA = False
+    try:
+        yield
+    finally:
+        rule.NEEDS_AGENDA = True

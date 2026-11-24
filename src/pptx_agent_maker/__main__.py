@@ -563,7 +563,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         from ._common.slide import first_slide_number
-        from .checks import report, run_all, run_built
+        from .checks import report, run_all, run_built, stopping
 
         if args.command == "review" and args.apply:
             from .review.take.apply import ApplyError, apply
@@ -622,7 +622,7 @@ def main(argv: list[str] | None = None) -> int:
             source = _manifest_of(workspace, target)
             findings = run_all(target, _checks(workspace, source, theme_of(workspace, source) if source else None))
             print(report(findings, first_number=first_slide_number(target)))
-            return 1 if findings else 0
+            return 1 if stopping(findings) else 0
 
         from .deck.build import build, figureless_lines, theme_of
 
@@ -646,7 +646,7 @@ def main(argv: list[str] | None = None) -> int:
         theme = theme_of(workspace, manifest)
         findings = run_built(built_deck, manifest, theme, _checks(workspace, manifest, theme))
         print(report(findings, declared=True, first_number=first_number))
-        return 1 if findings else 0
+        return 1 if stopping(findings) else 0
     except (WorkspaceError, ManifestError, FileExistsError, FileNotFoundError,
             ValueError, IndexError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)

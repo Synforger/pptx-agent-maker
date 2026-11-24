@@ -313,6 +313,21 @@ def only_keys(item, allowed: set, what: str, hint: str = "") -> None:
             f"{', '.join(sorted(allowed))}).{hint}")
 
 
+#: 箱の辺の名前 (= 線が出る・入る辺を書く時の言葉)
+EDGES = ("top", "bottom", "left", "right")
+
+
+def read_edge(item: dict, key: str, what: str) -> str | None:
+    """The edge of a box a line is written to leave or enter by (= `key` of a link), or None when it says nothing."""
+    if key not in item:
+        return None
+    edge = item[key]
+    if edge not in EDGES:
+        raise PageTypeError(f"{what}: `{key}` is the edge of the box the line {'leaves' if key == 'out' else 'goes into'} by "
+                            f"— one of {', '.join(EDGES)}, not {edge!r}")
+    return edge
+
+
 def read_weight(item: dict, what: str) -> float:
     """The share a row, a cell or a stage takes (= 1 when it says nothing; a number above 0).
 

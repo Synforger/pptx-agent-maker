@@ -1,4 +1,4 @@
-# A long chapter of several parts comes back to its agenda at the head of each part.
+# A deck has an agenda page, and a long chapter of several parts comes back to its agenda at the head of each part.
 
 tests = ["tests/checks/test_section_agenda.py"]
 
@@ -67,3 +67,21 @@ name = "a chapter named in a list of one is not read as that chapter"
 file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
 old = "            if isinstance(here, (list, tuple)) and len(here) == 1:\n                here = here[0]\n"
 new = ""
+
+[[mutant]]
+name = "a deck with no agenda page is not said"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "    if NEEDS_AGENDA and declared and not any("
+new = "    if False and not any("
+
+[[mutant]]
+name = "a deck of copied pages alone is said"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "    if NEEDS_AGENDA and declared and not any("
+new = "    if NEEDS_AGENDA and not any("
+
+[[mutant]]
+name = "a deck with an agenda page is said"
+file = "src/pptx_agent_maker/checks/declared/section_agenda.py"
+old = "not any(data.get(\"type\") == \"agenda\" for data in declared)"
+new = "any(data.get(\"type\") == \"agenda\" for data in declared)"

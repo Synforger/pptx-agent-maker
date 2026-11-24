@@ -28,6 +28,7 @@ sys.path.insert(0, str(REPO / "tests"))
 from support.pages import asset, box_of, build  # noqa: E402
 
 from pptx_agent_maker import DEFAULT, checks  # noqa: E402
+from pptx_agent_maker.checks.rules import near_alignment  # noqa: E402
 from pptx_agent_maker.layout.geometry import Rect  # noqa: E402
 from pptx_agent_maker.layout.parts.page import Page, PageFullError  # noqa: E402
 from pptx_agent_maker.layout.tokens import theme_from  # noqa: E402
@@ -392,6 +393,22 @@ class TheDottedLineInTheLegend(unittest.TestCase):
         with self.assertRaisesRegex(PageFullError, "the legend needs"):
             grid_page(cells, columns=(1, 2), rows=(1, 1), links=self.DOTTED, dotted_legend=words)
         grid_page(cells, columns=(1, 2), rows=(1, 1), links=self.DOTTED, dotted_legend="Short")
+
+    def test_a_legend_set_close_in_four_grounds_and_a_dotted_line_is_read_clean(self) -> None:
+        """⚠ 行間を詰めた案件で、字の枠が色見本より 1 mm 未満しか高くなく、凡例の中の見本と字が上端のずれとして
+        当たった (= 見本は字の枠の中央に置く。4 つの地と点線で 20 件)。"""
+        grounds = {"Alpha": "8B1E3F", "Beta": "EAF0F8", "Gamma": "FCE4CC", "Delta": "DDEEDD"}
+        theme = theme_from({"grounds": grounds, "leading": 1.02})
+        line, swatch = theme.line_height(T.body), theme.spacing.swatch
+        self.assertTrue(0 < line - swatch < 36000, "the words' frame must stand within 1 mm of the swatch")
+        cells = [card(name, tone=name, at=[number // 2 + 1, number % 2 + 1], id=name)
+                 for number, name in enumerate(grounds)]
+        page = grid_page(cells, columns=(1, 1), rows=(1, 1), theme=theme, legend=True, dotted_legend="Planned",
+                         no_figure="a legend test", links=[{"from": "Alpha", "to": "Beta", "tentative": True}])
+        deck = new_deck(theme)
+        add_page(deck, page.build(), theme)
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual([], near_alignment.run(save(deck, Path(tmp) / "legend.pptx")))
 
     def test_the_legend_under_the_page_keeps_room_for_the_sample(self) -> None:
         page = self.page(links=self.DOTTED, dotted_legend=" ".join(["a long line of words"] * 8), legend=True)

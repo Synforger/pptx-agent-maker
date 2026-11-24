@@ -14,6 +14,9 @@
 
 from __future__ import annotations
 
+#: built decks that carry no agenda page (= `tests/conftest.py`)
+AGENDA_RULE_LIFTED = True
+
 
 #: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
 BARE_PAGE_TYPE = True

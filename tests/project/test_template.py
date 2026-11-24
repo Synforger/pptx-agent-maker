@@ -250,6 +250,7 @@ class TheTemplateBuildsTest(unittest.TestCase):
             'specimen = "specimen.pptx"\nout = "example.pptx"\n\n'
             '[[pages]]\nkind = "copy"\npage = 1\n'
             'replace = [["案件名", "見本の案件"], ["第 N 回 進捗報告", "第 1 回 進捗報告"]]\n\n'
+            '[[pages]]\nkind = "declare"\ntype = "agenda"\ntitle = "目次"\nbuckets = [["見本", ["1 頁"]]]\nhighlight = 1\n\n'
             '[[pages]]\nkind = "declare"\ntype = "figure"\ntitle = "この見本に合わせた 1 頁"\n'
             'figure = "example.png"\ncaption = "この絵が示すこと"\nfooter = "出所 (= 見本)"\n',
             encoding="utf-8")
