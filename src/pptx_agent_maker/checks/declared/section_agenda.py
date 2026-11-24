@@ -1,4 +1,8 @@
-"""A long chapter of several parts that does not come back to its agenda at the head of each part.
+"""A deck with no agenda page, and a long chapter of several parts that does not come back to its agenda at each part.
+
+資料に目次 (= `agenda` の頁) が 1 枚も無いと、読み手は資料の全体も今の位置も持てない。宣言で組んだ頁が 1 枚でも
+在って、その中に目次が 1 枚も無い資料は止める (= 頁は 0、資料全体への当たり)。複製と輸入の頁は、目次かどうかが宣言から
+読めないので、宣言で組んだ頁が 1 枚も無い資料は見ない。以下は、長い章の中での目次の置き方。
 
 章の頁が増えると、読み手は今どこに居て、章が全体でどうまとまっているかを見失う。章の頭の目次 1 枚では、
 3 つ目の段に入った頃には最初の目次が遠い。章の頁 (= 目次を除く) が `LONG` を超え、中の段 (= 目次の小項目) が
@@ -20,6 +24,9 @@ from __future__ import annotations
 from ..finding import Finding
 
 NAME = "section_agenda"
+
+#: whether a deck of declared pages with no agenda page is stopped (= tests written before the rule lift it: `tests/conftest.py`)
+NEEDS_AGENDA = True
 
 #: 中の段ごとの目次が要る章の長さ (= 目次を除く頁の数が、これを超えたら)
 LONG = 6
@@ -72,6 +79,10 @@ def run(manifest, theme=None, config: dict | None = None) -> list[Finding]:
     if long is None:
         return []
     findings: list[Finding] = []
+    declared = [entry.data for entry in manifest.entries if entry.kind == "declare"]
+    if NEEDS_AGENDA and declared and not any(data.get("type") == "agenda" for data in declared):
+        findings.append(Finding(NAME, 0, "the deck", "the deck has no agenda page — add one (type = \"agenda\") so a "
+                                                      "reader sees the whole and where each part sits"))
     for chapter in _chapters(manifest):
         if chapter["parts"] < 2 or chapter["pages"] <= long:
             continue

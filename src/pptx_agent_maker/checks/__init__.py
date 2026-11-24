@@ -21,7 +21,17 @@ from .declared import ALL as DECLARED
 from .rules import ALL as CHECKS
 
 __all__ = ["Finding", "Findings", "CHECKS", "DECLARED",
-           "run_all", "run_declared", "run_built", "report"]
+           "run_all", "run_declared", "run_built", "stopping", "report"]
+
+
+def stopping(findings: list[Finding]) -> list[Finding]:
+    """The findings that end a `build` or a `check` with 1 (= every one but a check's that sets `STOPS = False`).
+
+    ⚠ **止めない検査は、当たりを報告に出して終わり方を変えない。**当たるかどうかを機械が決めきれず、人が見て直すか
+    決める物 (= 検査の file の先頭の 1 文が、止めない理由を言う)。
+    """
+    quiet = {check.NAME for check in (*CHECKS, *DECLARED) if not getattr(check, "STOPS", True)}
+    return [finding for finding in findings if finding.check not in quiet]
 
 
 def run_all(deck: Path | str, config: dict | None = None) -> list[Finding]:
@@ -60,6 +70,8 @@ def run_built(deck: Path | str, manifest, theme, config: dict | None = None) -> 
 def report(findings: list[Finding], declared: bool = False, first_number: int = 1) -> str:
     """The findings, then a line per check so a clean deck still says what was looked at.
 
+    止めない検査 (= `STOPS = False`) の当たりは、行は同じで、検査の行が `FAIL` でなく `note` になる。
+
     `declared` は、manifest を見る検査も回したか (= `build` は回す。焼いた deck だけを渡された
     `check` は回せない)。回していない検査を「ok」と言わない。案件が通した物 (= `Findings.allowed`) は、
     その検査の行の下に `pass` で 1 行ずつ出す (= 数えないが、黙って通さない)。
@@ -72,9 +84,11 @@ def report(findings: list[Finding], declared: bool = False, first_number: int = 
                      "the file, \"printed M\" is the number PowerPoint and the preview show)")
     lines.append("")
     names = list(dict.fromkeys(check.NAME for check in (*CHECKS, *(DECLARED if declared else ()))))
+    stops = {check.NAME: getattr(check, "STOPS", True) for check in (*CHECKS, *DECLARED)}
     for name in names:
         count = sum(1 for f in findings if f.check == name)
-        lines.append(f"  {'FAIL' if count else 'ok':4}  {name:<16} {count}")
+        mark = "ok" if not count else "FAIL" if stops[name] else "note"
+        lines.append(f"  {mark:4}  {name:<16} {count}")
         lines.extend(f"  {'pass':4}  {name:<16} {what}" for check, what in getattr(findings, "allowed", ())
                      if check == name)
     return "\n".join(lines)

@@ -1,0 +1,33 @@
+# A check that sets `STOPS = False` is told in the report and does not end a build or a check with 1.
+
+tests = ["tests/checks/test_stops.py"]
+
+[[mutant]]
+name = "the stopping check is not told apart: every hit ends the run with 1"
+file = "src/pptx_agent_maker/checks/__init__.py"
+old = "    return [finding for finding in findings if finding.check not in quiet]"
+new = "    return list(findings)"
+
+[[mutant]]
+name = "near_alignment stops the run again"
+file = "src/pptx_agent_maker/checks/rules/near_alignment.py"
+old = "STOPS = False\n"
+new = "STOPS = True\n"
+
+[[mutant]]
+name = "untoned_cards stops the run again"
+file = "src/pptx_agent_maker/checks/declared/untoned_cards.py"
+old = "STOPS = False\n"
+new = "STOPS = True\n"
+
+[[mutant]]
+name = "a quiet hit is marked FAIL in the report"
+file = "src/pptx_agent_maker/checks/__init__.py"
+old = "        mark = \"ok\" if not count else \"FAIL\" if stops[name] else \"note\""
+new = "        mark = \"ok\" if not count else \"FAIL\""
+
+[[mutant]]
+name = "every hit is let through"
+file = "src/pptx_agent_maker/checks/__init__.py"
+old = "    quiet = {check.NAME for check in (*CHECKS, *DECLARED) if not getattr(check, \"STOPS\", True)}"
+new = "    quiet = {check.NAME for check in (*CHECKS, *DECLARED)}"

@@ -1,4 +1,4 @@
-"""A long chapter of several parts comes back to its agenda at the head of each part.
+"""A deck has an agenda page, and a long chapter of several parts comes back to its agenda at the head of each part.
 
 章の頁 (= 目次を除く) が 6 を超え、中の段が 2 つ以上ある章は、中の段の頭ごとに目次を挟む (= 同じ章を
 `highlight` し、その段を `highlight_item` で強調した目次)。章の頭の目次 1 枚だけの長い章では、読み手は今どこか、
@@ -40,6 +40,37 @@ def pages(count: int) -> list[SimpleNamespace]:
 def said(*entries, config=None) -> list[tuple[int, str]]:
     return [(found.page, found.what) for found in section_agenda.run(SimpleNamespace(entries=list(entries)), None,
                                                                      config or {})]
+
+
+class ADeckWithNoAgenda(unittest.TestCase):
+    """A deck of declared pages with no agenda page is said once, at the deck (= page 0); the long chapters are said as before."""
+
+    def test_a_deck_with_no_agenda_page_is_said_at_the_deck(self) -> None:
+        found = section_agenda.run(SimpleNamespace(entries=pages(3)), None, {})
+        self.assertEqual([(0, "the deck")], [(f.page, f.what) for f in found])
+        self.assertIn("add one", found[0].why)
+
+    def test_one_agenda_page_anywhere_is_enough(self) -> None:
+        for entries in ([agenda(), *pages(3)], [*pages(3), agenda()], [*pages(2), agenda(2), *pages(2)]):
+            with self.subTest(first=entries[0].data["type"]):
+                self.assertEqual([], said(*entries))
+
+    def test_an_agenda_that_names_no_chapter_is_an_agenda(self) -> None:
+        self.assertEqual([], said(agenda(), *pages(2)))
+
+    def test_a_deck_of_copied_pages_alone_is_not_read(self) -> None:
+        """A copied or imported page does not say in the manifest whether it is an agenda."""
+        copied = SimpleNamespace(kind="copy", data={"source": 2})
+        self.assertEqual([], said(copied, copied))
+        self.assertEqual([], said())
+        self.assertEqual([(0, "the deck")], said(copied, *pages(1)))
+
+    def test_a_project_switches_it_off_with_the_rest_of_the_check(self) -> None:
+        self.assertEqual([], said(*pages(3), config={"section_agenda": False}))
+
+    def test_a_long_chapter_is_still_said_with_the_deck_that_has_an_agenda(self) -> None:
+        self.assertEqual([(1, "Results")], said(agenda(2), *pages(15)))
+        self.assertEqual([], said(agenda(2, 1), *pages(5), agenda(2, 2), *pages(5), agenda(2, 3), *pages(5)))
 
 
 class ALongChapter(unittest.TestCase):

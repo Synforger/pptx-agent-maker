@@ -1,4 +1,4 @@
-"""A card with no `tone`, in a project that names its own grounds.
+"""A card with no `tone`, in a project that names its own grounds (= told without stopping a build: forgetting a colour's name is a matter of taste).
 
 案件が `[theme.grounds]` で地に名前 (= 意味) を付けている資料では、カードの地の色が意味を運ぶ。`tone` を書き
 忘れたカードは道具の既定の薄い地 (= `box`) になり、案件が名付けた地のどれかと見分けがつかないことがある
@@ -13,6 +13,8 @@ from __future__ import annotations
 from ..finding import Finding
 
 NAME = "untoned_cards"
+#: a hit is reported and ends neither `build` nor `check` with 1 (= `checks.stopping`)
+STOPS = False
 
 
 def _untoned(written) -> int:

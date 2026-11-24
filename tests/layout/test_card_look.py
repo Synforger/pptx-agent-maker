@@ -203,6 +203,26 @@ class AlignmentAndTheMiddleOfTheBox(unittest.TestCase):
         self.assertEqual(("left", "left"), (named(left, "Head").align, named(left, "words").align))
         self.assertEqual(("center", "center"), (named(centre, "Head").align, named(centre, "words").align))
 
+    def test_a_card_written_in_a_cell_or_a_stage_is_centred_the_same_way(self) -> None:
+        """⚠ `cards` の他に、格子のマス・段のマス・流れ図のノードも同じ `read_card` を通る。"""
+        def pages(align: str) -> dict[str, dict]:
+            said = {"heading": "Head", "body": "words", "align": align}
+            return {"a cell of a grid": {"type": "compose", "grid": {"columns": [1], "rows": [1]},
+                                         "cells": [{"at": [1, 1], "card": said}]},
+                    "a cell of a row": {"type": "compose", "rows": [row({"card": said})]},
+                    "a node of a flow": {"type": "flow", "stages": [
+                        {"name": "S", "nodes": [said]}, {"name": "U", "nodes": [["Other", "o"]]}]}}
+
+        for where in pages("left"):
+            with self.subTest(where=where):
+                def made(align: str):
+                    return build({**pages(align)[where], "title": "T", "no_figure": "a card test"})
+                centred, left = made("center"), made("left")
+                self.assertEqual(("center", "center"), (named(centred, "Head").align, named(centred, "words").align))
+                self.assertEqual(("left", "left"), (named(left, "Head").align, named(left, "words").align))
+                with self.assertRaisesRegex(PageTypeError, "`align` is 'left' or 'center', not 'middle'"):
+                    made("middle")
+
     def test_an_alignment_nobody_knows_is_refused_with_the_key_and_the_card(self) -> None:
         for value in ("middle", "", 1, True):
             with self.subTest(value=value), self.assertRaises(PageTypeError) as refused:

@@ -1,4 +1,4 @@
-"""Siblings that were meant to line up and miss by a hair.
+"""Siblings that were meant to line up and miss by a hair (= told without stopping a build: a small miss is for a person to look at and decide on).
 
 宣言で組む頁は同じ枠から割るので揃う。**ずれるのは複製と輸入**で、手で並べた箱が 0.5 mm だけ
 上下にずれたまま来る。1 mm 以上離れた端は、わざとずらした物とみなして言わない。
@@ -12,6 +12,11 @@
 1 行が、たまたま同じ高さで横に並んで当たった (= 列ごとに別の割り方で置いた物)。片方だけが箱 (= 字を
 持たず、地を塗った図形) の中に在る組は比べない。どちらも箱の中に在る組 (= 並んだカード 2 枚の見出し) と、
 どちらも地に在る組は、今までどおり比べる。
+
+⚠ **大きさが違い、中心が揃っている組は、中心で揃えた物であって、上端の揃え損ねではない。**凡例は色見本を字の枠の
+縦の中央に置く (= 一辺 0.4 cm の見本と、行間を詰めた案件の字の枠は 1 mm 未満しか違わず、「同じ大きさ」の組になって
+上端が 0.16 mm ずれると言われた。見本と字の中心は 1 EMU も違わない)。中心の差が表示の桁で 0 で、高さ (縦に積むなら
+幅) が表示の桁で違う組は比べない。大きさが同じ組の上端は、これまでどおり比べる。
 
 閾値は 1 mm 未満のずれ (= 案件で外すなら `[checks] near_alignment = false`)。
 
@@ -28,6 +33,8 @@ from ..finding import Finding
 from ..._common.slide import Shape, read
 
 NAME = "near_alignment"
+#: a hit is reported and ends neither `build` nor `check` with 1 (= `checks.stopping`)
+STOPS = False
 #: 1 mm = 36000 EMU (= これ未満のずれを「揃え損ね」、同じ大きさの差もこれ未満を「同じ」とみなす)
 MM = 36000
 #: 所見に出すずれの桁 (= mm の小数)。この桁で 0 になるずれは揃っているとみなす
@@ -38,13 +45,22 @@ def _shared(a0: int, a1: int, b0: int, b1: int) -> int:
     return max(0, min(a1, b1) - max(a0, b0))
 
 
+def _centred(a_start: int, a_size: int, b_start: int, b_size: int) -> bool:
+    """Whether two spans of different sizes share their middle (= set by the middle, not by an edge).
+
+    Equal sizes are left to the edge: their middles differ exactly as their edges do.
+    """
+    return (round(abs(a_size - b_size) / MM, PLACES) > 0
+            and round(abs(2 * a_start + a_size - 2 * b_start - b_size) / 2 / MM, PLACES) == 0)
+
+
 def _miss(a: Shape, b: Shape) -> tuple[str, int] | None:
     """Which edge two siblings miss by, and by how much (EMU), or None."""
     if (not _shared(a.left, a.right, b.left, b.right) and _shared(a.top, a.bottom, b.top, b.bottom)
-            and abs(a.height - b.height) < MM):
+            and abs(a.height - b.height) < MM and not _centred(a.top, a.height, b.top, b.height)):
         return "top", abs(a.top - b.top)
     if (not _shared(a.top, a.bottom, b.top, b.bottom) and _shared(a.left, a.right, b.left, b.right)
-            and abs(a.width - b.width) < MM):
+            and abs(a.width - b.width) < MM and not _centred(a.left, a.width, b.left, b.width)):
         return "left", abs(a.left - b.left)
     return None
 

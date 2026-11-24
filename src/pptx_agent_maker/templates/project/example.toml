@@ -20,6 +20,14 @@ why = "表紙はテンプレートから複製して文言だけ差し替える"
 
 [[pages]]
 kind = "declare"
+type = "agenda"
+title = "目次"
+buckets = [["見本", ["型の選び方", "カードと読み方", "グラフと表"]]]
+highlight = 1
+why = "資料には目次の頁を 1 枚置く (= 目次が 1 枚も無い資料は、検査 section_agenda が止める)"
+
+[[pages]]
+kind = "declare"
 type = "figure"
 kicker = "01 | 見本"
 title = "型を選べば、頁の割り方は決まっている"

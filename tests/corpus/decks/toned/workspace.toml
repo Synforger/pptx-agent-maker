@@ -17,3 +17,6 @@ tentative_look = "toned"
 [checks]
 stale_words = ["案件名", "第 N 回"]
 unsourced = false
+# The pages here lay out one look after another and are not read as a story, so the check for a deck with no
+# agenda page is off, as the corpus's own workspace says.
+section_agenda = false
