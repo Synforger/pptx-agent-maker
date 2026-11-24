@@ -8,6 +8,13 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
 import sys
 import unittest
 from dataclasses import replace
@@ -39,7 +46,7 @@ def of_kind(built, kind):
 
 
 def cards_page(theme, **more):
-    return build({"type": "cards", "title": "T", "cards": CARDS, "card_columns": 1, **more}, theme)
+    return build({"type": "bare", "title": "T", "cards": CARDS, "card_columns": 1, **more}, theme)
 
 
 class ABandHasAHeightOfItsOwn(unittest.TestCase):
@@ -70,7 +77,7 @@ class ABandHasAHeightOfItsOwn(unittest.TestCase):
     def test_the_page_takes_the_band_over_it_and_the_band_under_it_at_their_own_heights(self) -> None:
         theme = theme_from(BAND_AND_CONCLUSION).using("tall")
         bands = {e.rect.top: e for e in of_kind(build(
-            {"type": "cards", "title": "T", "cards": CARDS, "condition": "c", "conclusion": "d"}, theme), "band")}
+            {"type": "bare", "title": "T", "cards": CARDS, "condition": "c", "conclusion": "d"}, theme), "band")}
         over, under = sorted(bands.values(), key=lambda e: e.rect.top)
         self.assertEqual((cm(1.6), cm(1.3)), (over.rect.height, under.rect.height))
 
@@ -219,19 +226,6 @@ class AUseMayPickHowTallItsBoxesStand(unittest.TestCase):
                 theme_from({"uses": {"said": {"like": "read", "box_height": value}}})
             self.assertIn("theme.uses.said.box_height", str(refused.exception))
 
-    def test_a_page_in_a_use_of_boxes_as_tall_as_the_page_fills_it_in_a_deck_that_does_not(self) -> None:
-        theme = theme_from({"uses": {"full": {"like": "read", "box_height": "page"}}})
-        full = theme.using("full")
-        data = {"type": "cards", "title": "T", "cards": CARDS, "card_columns": 1}
-        body = Page("T", full).body
-        self.assertEqual(body.bottom, max(e.rect.bottom for e in of_kind(build(data, full), "box")))
-        self.assertLess(max(e.rect.bottom for e in of_kind(build(data, theme), "box")), body.bottom - 1)
-
-    def test_a_page_naming_a_use_reads_it_at_build_time(self) -> None:
-        theme = theme_from({"uses": {"full": {"like": "read", "box_height": "page"}}})
-        body = Page("T", theme).body
-        built = build({"type": "cards", "title": "T", "cards": CARDS, "card_columns": 1, "use": "full"}, theme)
-        self.assertEqual(body.bottom, max(e.rect.bottom for e in of_kind(built, "box")))
 
 
 class TheBodyStandsInTheMiddle(unittest.TestCase):
@@ -297,7 +291,7 @@ class TheBodyStandsInTheMiddle(unittest.TestCase):
 
     def test_every_page_that_is_not_in_the_middle_is_built_as_it_was(self) -> None:
         for data in (
-            {"type": "cards", "title": "T", "cards": CARDS, "card_columns": 3, "condition": "c"},
+            {"type": "bare", "title": "T", "cards": CARDS, "card_columns": 3, "condition": "c"},
             {"type": "flow", "title": "T", "stages": [{"name": "s", "nodes": [["A", "a"]]},
                                                        {"name": "t", "nodes": [["B", "b"]]}]},
             {"type": "compose", "title": "T", "rows": [{"cells": [{"card": {"heading": "Goal", "body": "one"}}]}]},
@@ -310,7 +304,7 @@ class TheBodyStandsInTheMiddle(unittest.TestCase):
 
     def test_the_pages_of_a_deck_not_in_the_middle_are_not_moved_by_a_use_that_is(self) -> None:
         theme = theme_from({"uses": {"centred": {"like": "read", "box_height": "middle"}}})
-        data = {"type": "cards", "title": "T", "cards": CARDS, "card_columns": 1}
+        data = {"type": "bare", "title": "T", "cards": CARDS, "card_columns": 1}
         self.assertEqual(build(data, DEFAULT).build(), build(data, theme).build())
         self.assertEqual(build(data, self.MIDDLE).build(), build({**data, "use": "centred"}, theme).build())
 

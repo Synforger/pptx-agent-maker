@@ -6,6 +6,10 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+
 import re
 import sys
 import tempfile
@@ -49,9 +53,8 @@ MINIMAL = {
     # 絵を持たなくてよい型は目次だけ (= 図解の数え方は `test_figure_rule.py`)
     "agenda": {"buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]],
                "highlight": 1},
-    # 札・表・段の流れは図解に数えない。絵かグラフと並べる部品
+    # 表・段の流れは図解に数えない。絵かグラフと並べる部品 (= 札は型でなく付属で、`cards` の型は退いた)
     "board": {"table": [["列", "値"], ["A", "1"]]},
-    "cards": {"cards": [["\u2460", "さいしょ"], ["\u2461", "つぎ"]]},
     # 本体を段とマスで書く型
     "compose": {"rows": [{"cells": [{"card": ["もくひょう", "ひとつ"]}]},
                          {"cells": [{"card": ["はしら", "ひとつめ"]}, {"card": ["はしら", "ふたつめ"]}]}]},
@@ -114,9 +117,6 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
         for name, data in MINIMAL.items():
             with self.subTest(name):
                 spec = {"type": name, "title": "だい", **data, **EXTRAS}
-                if name == "cards":
-                    spec.pop("cards", None)
-                    spec["cards"] = EXTRAS["cards"]
                 page = build(spec)
                 kinds = {e.kind for e in page.build()}
                 self.assertIn("table", kinds, f"{name} dropped the table")
@@ -193,13 +193,6 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
                     self.assertEqual(above.bottom + s.gap_s, below.top)
                 self.assertEqual([tall[key] for key in wanted], [rect.height for rect in rects])
                 self.assertEqual(page.body.bottom, rects[-1].bottom)
-
-    def test_the_reading_takes_what_is_left_under_a_body_that_did_not_fill_its_area(self):
-        """カードだけの頁は本体が空で、読み方の下に場所が余る。読み方の枠はそこまで伸びる。"""
-        page = build({"type": "cards", "title": "だい", "cards": EXTRAS["cards"], "note": "読み方を 1 行"})
-        note = next(e.rect for e in page.build() if e.kind == "note")
-        self.assertEqual(page.body.bottom, note.bottom)
-        self.assertGreater(note.height, DEFAULT.line_height())
 
     def test_the_order_of_the_frame_never_changes(self):
         """並びは 1 つしかない ― カードは本体の上、表と読み方は本体の下。"""

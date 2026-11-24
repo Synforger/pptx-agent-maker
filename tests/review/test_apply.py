@@ -8,6 +8,9 @@
 
 from __future__ import annotations
 
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
 import io
 import json
 import shutil
@@ -57,7 +60,7 @@ page = 1
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "bare"
 title = "まとめ"
 cards = [["一", "いち"], ["二", "に"]]
 '''

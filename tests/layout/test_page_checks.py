@@ -20,8 +20,6 @@ sys.path.insert(0, str(REPO / "tests"))
 
 from support.pages import build  # noqa: E402
 
-#: this file tests the four checks, so they stay on (= `tests/conftest.py`)
-PAGE_CHECKS_KEPT = True
 
 from pptx_agent_maker.checks.declared import crowded_page, no_lead, one_line_boxes, wordy_page  # noqa: E402
 from pptx_agent_maker.__main__ import main  # noqa: E402

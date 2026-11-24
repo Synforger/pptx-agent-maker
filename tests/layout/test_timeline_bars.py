@@ -7,6 +7,9 @@
 
 from __future__ import annotations
 
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
 import re
 import sys
 import tempfile
@@ -150,7 +153,7 @@ def timeline(theme, *bars, **extra):
 
 def card_of(theme, tone: str, **extra):
     """A card of this tone in the same theme: its box and its words, to set a bar beside."""
-    built = build({"type": "cards", "title": "Cards", "cards": [{"heading": "head", "body": "words", "tone": tone,
+    built = build({"type": "bare", "title": "Cards", "cards": [{"heading": "head", "body": "words", "tone": tone,
                                                                  **extra}]}, theme)
     box = next(e for e in built.build() if e.kind == "box")
     return box, named(built, "words")

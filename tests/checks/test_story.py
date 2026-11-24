@@ -9,6 +9,13 @@
 
 from __future__ import annotations
 
+#: its pages are heavy on words by design, so the four checks of a page's weight are lifted (= `tests/conftest.py`)
+PAGE_CHECKS_LIFTED = True
+
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
 import contextlib
 import io
 import json
@@ -82,9 +89,9 @@ class TheTitlesInOrder(_Project):
     def setUp(self) -> None:
         super().setUp()
         self.write(COVER,
-                   page(type="cards", kicker="01 | Where we are", title="Sales grew in every region",
+                   page(type="bare", kicker="01 | Where we are", title="Sales grew in every region",
                         cards=[["North", "up"]]),
-                   page(type="cards", title="<to be worded>", cards=[["One", "a"]],
+                   page(type="bare", title="<to be worded>", cards=[["One", "a"]],
                         replace=[["<to be worded>", "The plan rests on two things"]]))
 
     def test_one_line_per_page_with_its_number_and_the_words_above_the_title(self) -> None:
@@ -106,14 +113,14 @@ class TheTitlesInOrder(_Project):
 
 class ATitleThatRunsTooLong(_Project):
     def test_three_lines_are_reported_with_the_page_and_two_are_not(self) -> None:
-        manifest = self.write(page(type="cards", title=ONE_LINE, cards=[["a", "b"]]),
-                              page(type="cards", title=TWO_LINES, cards=[["a", "b"]]),
-                              page(type="cards", title=THREE_LINES, cards=[["a", "b"]]))
+        manifest = self.write(page(type="bare", title=ONE_LINE, cards=[["a", "b"]]),
+                              page(type="bare", title=TWO_LINES, cards=[["a", "b"]]),
+                              page(type="bare", title=THREE_LINES, cards=[["a", "b"]]))
         self.assertEqual([("long_title", 3)], self.found(manifest))
 
     def test_the_lines_are_counted_at_the_size_the_title_is_set_in(self) -> None:
         """題の大きさが変われば、同じ文が折れる行も変わる (= 数え方を頁の組み方と別に持たない)。"""
-        manifest = self.write(page(type="cards", title=TWO_LINES, cards=[["a", "b"]]))
+        manifest = self.write(page(type="bare", title=TWO_LINES, cards=[["a", "b"]]))
         room = DEFAULT.frame().width - 2 * DEFAULT.spacing.text_inset
         self.assertEqual(2, DEFAULT.wraps(TWO_LINES, room, DEFAULT.type.title, bold=True),
                          "the sentence chosen does not sit on the boundary this test is about")
@@ -124,14 +131,14 @@ class ATitleThatRunsTooLong(_Project):
         self.assertEqual([], self.found(manifest))
 
     def test_the_build_fails_and_names_the_check(self) -> None:
-        self.write(page(type="cards", title=THREE_LINES, cards=[["a", "b"]]))
+        self.write(page(type="bare", title=THREE_LINES, cards=[["a", "b"]]))
         code, said = self.run_cli("build", "deck")
         self.assertEqual(1, code)
         self.assertIn("page 1:", said)
         self.assertRegex(said, r"FAIL\s+long_title\s+1")
 
     def test_a_project_can_switch_it_off(self) -> None:
-        self.write(page(type="cards", title=THREE_LINES, cards=[["a", "b"]]), checks="long_title = false\n")
+        self.write(page(type="bare", title=THREE_LINES, cards=[["a", "b"]]), checks="long_title = false\n")
         code, said = self.run_cli("build", "deck")
         self.assertEqual(0, code, said)
 
@@ -143,7 +150,7 @@ class DataWithNoSource(_Project):
             page(type="figure", title="B", figure="dot.png", footer="Source: the survey"),
             page(type="board", title="C", table=[["k", "v"], ["a", "1"]]),
             page(type="figures", title="D", figures=["dot.png", "dot.png"]),
-            page(type="cards", title="E", cards=[["a", "b"]], table=[["k", "v"], ["a", "1"]]))
+            page(type="bare", title="E", cards=[["a", "b"]], table=[["k", "v"], ["a", "1"]]))
         self.assertEqual([("unsourced", 1), ("unsourced", 3), ("unsourced", 4), ("unsourced", 5)],
                          self.found(manifest))
 
@@ -153,7 +160,7 @@ class DataWithNoSource(_Project):
         manifest = self.write(
             page(type="board", title="A", table=from_file),
             page(type="board", title="B", table=from_file, footer="Source: the survey"),
-            page(type="cards", title="C", cards=[["a", "b"]], table=from_file),
+            page(type="bare", title="C", cards=[["a", "b"]], table=from_file),
             page(type="compose", title="D", rows=[{"cells": [{"table": from_file}]}]),
             page(type="compose", title="E", rows=[{"cells": [{"table": from_file}]}], footer="Source: the survey"))
         self.assertEqual([("unsourced", 1), ("unsourced", 3), ("unsourced", 4)], self.found(manifest))
@@ -161,7 +168,7 @@ class DataWithNoSource(_Project):
     def test_a_page_that_shows_no_data_is_not_asked_for_a_source(self) -> None:
         """カードと図解 (= 流れ図・道のり・線表) は、どこかから持ってきた数字を見せていない。"""
         manifest = self.write(
-            page(type="cards", title="A", cards=[{"heading": "a", "icon": "dot.png"}]),
+            page(type="bare", title="A", cards=[{"heading": "a", "icon": "dot.png"}]),
             page(type="flow", title="B", stages=[{"name": "x", "nodes": [["a", "b"]]},
                                                  {"name": "y", "nodes": [["c", "d"]]}]),
             page(type="timeline", title="C", periods=["a", "b"],

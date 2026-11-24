@@ -12,6 +12,15 @@
 
 from __future__ import annotations
 
+#: its pages are heavy on words by design, so the four checks of a page's weight are lifted (= `tests/conftest.py`)
+PAGE_CHECKS_LIFTED = True
+
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
 import contextlib
 import io
 import re
@@ -127,7 +136,7 @@ footer = "出所"
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "bare"
 title = "差し色の箱"
 cards = [{ heading = "札A", tone = "accent" }, { heading = "札B", body = "本文B", tone = "accent" }]
 

@@ -637,7 +637,7 @@ def main(argv: list[str] | None = None) -> int:
         # 焼いた deck を読み直す検査と、manifest を読む検査を、1 つの報告に並べる
         theme = theme_of(workspace, manifest)
         findings = run_built(built_deck, manifest, theme, _checks(workspace, manifest, theme),
-                             declared_pages(workspace, manifest, theme))
+                             lambda: declared_pages(workspace, manifest, theme))
         print(report(findings, declared=True, first_number=first_number))
         return 1 if findings else 0
     except (WorkspaceError, ManifestError, FileExistsError, FileNotFoundError,

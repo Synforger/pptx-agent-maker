@@ -40,13 +40,18 @@ def run_declared(manifest, theme, config: dict | None = None, pages: dict | None
 
     `pages` is the declared pages as the types built them (= manifest number → `Page`), for the checks
     that read what a page holds (= `READS_PAGES`); without it those checks have nothing to read and say nothing.
+    It may be a function that builds them: it is called only when one of those checks is on, since building
+    every page again costs as much as building the deck.
     """
+    config = config or {}
     findings: list[Finding] = []
+    reading = [check for check in DECLARED if getattr(check, "READS_PAGES", False) and not check.off(config)]
+    built = pages() if callable(pages) and reading else (None if callable(pages) else pages)
     for check in DECLARED:
         if getattr(check, "READS_PAGES", False):
-            findings.extend(check.run(manifest, theme, config or {}, pages))
+            findings.extend(check.run(manifest, theme, config, built))
         else:
-            findings.extend(check.run(manifest, theme, config or {}))
+            findings.extend(check.run(manifest, theme, config))
     return findings
 
 

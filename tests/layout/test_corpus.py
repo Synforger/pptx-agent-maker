@@ -64,9 +64,8 @@ CELLS = [cell for page in DECLARED if page["type"] == "compose" for cell in cell
 
 
 #: types whose body is words in boxes: a page of one is refused (= no figure), so each is set in a cell of a `compose`
-#: beside a picture or a chart, or (`cards`, `board`) written as the cards and the table a `figure` page carries.
-#: `cards` has no cell of its own (= a cell holds one card, `card`), so no page of the corpus can be of that type.
-WORDS_IN_BOXES = {"cards", "board", "flow", "roadmap"}
+#: beside a picture or a chart, or (`board`) written as the table a `figure` page carries.
+WORDS_IN_BOXES = {"board", "flow", "roadmap"}
 
 
 def bodies_in_cells(name: str) -> list[dict]:

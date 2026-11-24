@@ -17,9 +17,8 @@ sys.path.insert(0, str(REPO / "tests"))
 from support.pages import build  # noqa: E402
 
 from pptx_agent_maker.layout import types  # noqa: E402
+from pptx_agent_maker.layout.types.core.registry import PageTypeError  # noqa: E402
 
-#: this file tests the rule itself, so the rule stays on (= `tests/conftest.py`)
-FIGURE_RULE_KEPT = True
 
 PICTURE = "dot.png"
 STAGES = [{"name": "In", "nodes": [["A", "first"]]}, {"name": "Out", "nodes": [["B", "then"]]}]
@@ -45,7 +44,6 @@ WORDS_ONLY = {
     "a flow": lambda: page("flow", stages=STAGES),
     "a flow going down": lambda: page("flow", stages=STAGES, direction="down"),
     "a road": lambda: page("roadmap", stages=ROAD),
-    "cards alone": lambda: page("cards", cards=CARDS),
     "a table alone": lambda: page("board", table=TABLE),
     "a ring of boxes": lambda: composed({"ring": RING}),
     "a tree of boxes": lambda: composed({"tree": TREE}),
@@ -92,11 +90,30 @@ class WhatCounts(unittest.TestCase):
         self.assertEqual(["agenda"], marked)
 
 
+class ARetiredType(unittest.TestCase):
+
+    def test_cards_as_a_page_type_is_refused_with_the_way_out(self):
+        with self.assertRaises(PageTypeError) as refused:
+            page("cards", cards=CARDS)
+        said = str(refused.exception)
+        for word in ("no longer a page type", "`cards = [...]`", "`figure`", "`chart`", "`compose`"):
+            self.assertIn(word, said)
+        self.assertNotIn("the deck may use only", said)
+
+    def test_a_name_no_type_ever_had_gets_the_list_of_types(self):
+        with self.assertRaises(PageTypeError) as refused:
+            page("nothing")
+        self.assertIn("the deck may use only", str(refused.exception))
+
+    def test_the_cards_are_no_type_of_the_listing(self):
+        self.assertNotIn("cards", types.names())
+
+
 class WhatTheRefusalSays(unittest.TestCase):
 
     def setUp(self):
         with self.assertRaises(ValueError) as refused:
-            page("cards", cards=CARDS).build()
+            page("board", table=TABLE).build()
         self.said = str(refused.exception)
 
     def test_it_names_what_counts(self):

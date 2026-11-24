@@ -6,6 +6,9 @@
 
 from __future__ import annotations
 
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
 import re
 import sys
 import tempfile
@@ -22,7 +25,7 @@ from pptx_agent_maker.layout.geometry import pt  # noqa: E402
 from pptx_agent_maker.layout.tokens import LEADING, ThemeError, theme_from  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
-PAGE = {"type": "cards", "title": "A page", "cards": [["One", "two\nthree"]], "table": [["a", "b"], ["c", "d"]]}
+PAGE = {"type": "bare", "title": "A page", "cards": [["One", "two\nthree"]], "table": [["a", "b"], ["c", "d"]]}
 
 
 def written(theme) -> str:
