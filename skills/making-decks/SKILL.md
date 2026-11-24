@@ -64,10 +64,14 @@ toolkit built, do not follow this section: the method for finding the cause is i
 
 **Showing the deck and handing out a PDF**
 
-- When the person asks to see the deck in the preview, add its folder to the preview's places file
-  as a `[[folder]]` entry with a `name`, and give them the preview's address with `?only=<name>`.
-  That page shows this folder alone, with no list to switch from, so it can be put on a shared screen.
-  The name is shown on the page: do not use the client's name or the folder's name
+- Whenever you show the person the deck (a draft, a fixed page, a finished version), show it in the
+  resident preview, whether or not they asked for the preview: add its folder to the preview's
+  places file as a `[[folder]]` entry with a `name`, and give them the preview's address with
+  `?only=<name>`. That page shows this folder alone, with no list to switch from, so it can be put
+  on a shared screen. The name is shown on the page: do not use the client's name or the folder's name
+- Do not show the deck as a PDF, as images, or by opening it in an app on the person's Mac. The PDF
+  and the images of the **Look** check below are for your own check; the person reads the deck in the
+  preview, where every new version appears without being sent again
 - The resident preview reads `$AGENT_PLATFORM_ROOT/config/pptx-agent-maker/preview.toml` when its
   service sets that variable, and `~/.config/pptx-agent-maker/preview.toml` only when it does not.
   It reads the file again each time the page asks for the list, so a new entry needs no restart.
@@ -100,4 +104,4 @@ toolkit built, do not follow this section: the method for finding the cause is i
    skill) does not stand in for this check; run both
 2. **Look.** Render with `soffice --headless --convert-to pdf`, turn the PDF into images with
    `pdftoppm -png`, and open every image one at a time. A script that reports "no problems" has not
-   looked at the page
+   looked at the page. These images are yours: the person sees the deck in the preview
