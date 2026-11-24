@@ -13,6 +13,11 @@
 持たず、地を塗った図形) の中に在る組は比べない。どちらも箱の中に在る組 (= 並んだカード 2 枚の見出し) と、
 どちらも地に在る組は、今までどおり比べる。
 
+⚠ **大きさが違い、中心が揃っている組は、中心で揃えた物であって、上端の揃え損ねではない。**凡例は色見本を字の枠の
+縦の中央に置く (= 一辺 0.4 cm の見本と、行間を詰めた案件の字の枠は 1 mm 未満しか違わず、「同じ大きさ」の組になって
+上端が 0.16 mm ずれると言われた。見本と字の中心は 1 EMU も違わない)。中心の差が表示の桁で 0 で、高さ (縦に積むなら
+幅) が表示の桁で違う組は比べない。大きさが同じ組の上端は、これまでどおり比べる。
+
 閾値は 1 mm 未満のずれ (= 案件で外すなら `[checks] near_alignment = false`)。
 
 ⚠ **所見に出す桁で 0 になるずれは、揃っている。**絵が並ぶ頁で「0.00 mm ずれている」が 5 件出た (= EMU の
@@ -38,13 +43,22 @@ def _shared(a0: int, a1: int, b0: int, b1: int) -> int:
     return max(0, min(a1, b1) - max(a0, b0))
 
 
+def _centred(a_start: int, a_size: int, b_start: int, b_size: int) -> bool:
+    """Whether two spans of different sizes share their middle (= set by the middle, not by an edge).
+
+    Equal sizes are left to the edge: their middles differ exactly as their edges do.
+    """
+    return (round(abs(a_size - b_size) / MM, PLACES) > 0
+            and round(abs(2 * a_start + a_size - 2 * b_start - b_size) / 2 / MM, PLACES) == 0)
+
+
 def _miss(a: Shape, b: Shape) -> tuple[str, int] | None:
     """Which edge two siblings miss by, and by how much (EMU), or None."""
     if (not _shared(a.left, a.right, b.left, b.right) and _shared(a.top, a.bottom, b.top, b.bottom)
-            and abs(a.height - b.height) < MM):
+            and abs(a.height - b.height) < MM and not _centred(a.top, a.height, b.top, b.height)):
         return "top", abs(a.top - b.top)
     if (not _shared(a.top, a.bottom, b.top, b.bottom) and _shared(a.left, a.right, b.left, b.right)
-            and abs(a.width - b.width) < MM):
+            and abs(a.width - b.width) < MM and not _centred(a.left, a.width, b.left, b.width)):
         return "left", abs(a.left - b.left)
     return None
 
