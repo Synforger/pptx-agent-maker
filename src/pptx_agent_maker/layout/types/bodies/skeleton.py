@@ -1,4 +1,4 @@
-"""The types allowed to carry no picture: the deck's own scaffolding."""
+"""The one type allowed to carry no picture (= `agenda`, the deck's own scaffolding), and `board`, a table a page sets beside a picture."""
 
 from __future__ import annotations
 
@@ -11,24 +11,12 @@ from ..core.registry import PageTypeError, register
 from ..core.stack import card_height
 
 
-@register("cards", needs=[], figure=False)
-def _cards(page: Page, spec: Spec, area: Rect) -> None:
-    """The cards are the page (= this week's plan, what a chapter concluded).
-
-    カードは全型が添えられるので、この型の本体は空でよい ― `cards` を本体として
-    置いた時点で、もう頁は組み上がっている。
-    """
-    if spec.get("cards") is None:
-        raise PageTypeError("cards: this type is the cards; give it some")
-
-
-@register("board", needs=["table"], figure=False)
+@register("board", needs=["table"])
 def _board(page: Page, spec: Spec, area: Rect) -> None:
-    """One table using the page (= the figures are the numbers).
+    """One table as the body (= the figures are the numbers).
 
-    ⚠ **これは例外の型。**「表と文章だけの頁を出さない」の唯一の抜け道で、毎週
-    積み上げる早見表のためにある (= 頁の面積は数字に使い、説明は指標の頁が持つ)。
-    本文の頁をここに逃がさない。
+    表は図解に数えない。毎週積み上げる早見表のような頁も、絵かグラフと並べて組む
+    (= `figure`・`chart` の頁に表を添える、`compose` のマスに絵かグラフと並べる)。
     """
 
 
@@ -244,7 +232,7 @@ def _list_only(spec: Spec, look: str, count: int) -> frozenset[int]:
 
 @register("agenda", needs=["buckets"],
           takes=["highlight", "highlight_tone", "numbers", "look", "highlight_item", "list_marks", "list_only"],
-          figure=False)
+          figure=False)  # 図解なしで通るのは目次だけ
 def _agenda(page: Page, spec: Spec, area: Rect) -> None:
     """Every item on the left, the buckets on the right, this chapter marked.
 

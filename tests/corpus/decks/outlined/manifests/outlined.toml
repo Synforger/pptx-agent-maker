@@ -7,11 +7,12 @@ out = "outlined.pptx"
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "Every way to fill an outlined card"
 condition = "A colour is on the line and on the heading; the words are in the middle"
 conclusion = "A card with only its heading stands in the middle just the same"
-card_columns = 3
+card_columns = 5
 cards = [
   { heading = "Both", body = "a heading and a body", tone = "accent" },
   { body = "only the words of the card", tone = "bad" },
@@ -75,34 +76,49 @@ card = { tone = "tint" }
 weight = 3
 card = { heading = "Wait for stage 2", tone = "accent", align = "center" }
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "flow"
+type = "compose"
 title = "The nodes of a flow are cards too"
-[[pages.stages]]
+
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.flow]
+
+[[pages.rows.cells.flow.stages]]
 name = "Plan"
 nodes = [
   { heading = "Scope", body = "what is in", tone = "accent" },
   { body = "a node with only its words", tone = "bad" },
 ]
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "Build"
 nodes = [
   { heading = "Core", tone = "good", strong = true },
   { heading = "Step 2", tag = true, tone = "accent" },
 ]
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "Ship"
 nodes = [
   { heading = "Release", body = ["notes", "the build"], tone = "accent" },
   { tone = "band" },
 ]
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "board"
+type = "figure"
+figure = "wide.png"
 title = "A plain table, divided by bands"
 table = [
   ["Bed", "Planted", "Water", "Yield"],
@@ -120,7 +136,8 @@ why = "a plain table, and the rows that divide it"
 
 [[pages]]
 kind = "declare"
-type = "board"
+type = "figure"
+figure = "wide.png"
 use = "blue"
 title = "A use sets its tables in a look of its own"
 table = [

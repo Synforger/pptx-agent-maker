@@ -65,3 +65,7 @@ role = "note"
 [[pages.rows.cells]]
 weight = 3
 card = { heading = "Wait for stage 2", tone = "accent", align = "center" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"

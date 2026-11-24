@@ -342,9 +342,33 @@
 </a:p>
 </p:txBody>
 </p:sp>
+<p:pic>
+<p:nvPicPr>
+<p:cNvPr id="12" name="Picture 11"/>
+<p:cNvPicPr>
+<a:picLocks noChangeAspect="1"/>
+</p:cNvPicPr>
+<p:nvPr/>
+</p:nvPicPr>
+<p:blipFill>
+<a:blip r:embed="rId2"/>
+<a:stretch>
+<a:fillRect/>
+</a:stretch>
+</p:blipFill>
+<p:spPr>
+<a:xfrm>
+<a:off x="2502400" y="3838800"/>
+<a:ext cx="7187200" cy="2695200"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+</p:spPr>
+</p:pic>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="12" name="Connector 11"/>
+<p:cNvPr id="13" name="Connector 12"/>
 <p:cNvCxnSpPr>
 <a:stCxn id="9" idx="1"/>
 <a:endCxn id="6" idx="2"/>

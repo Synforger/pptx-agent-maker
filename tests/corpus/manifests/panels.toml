@@ -46,6 +46,10 @@ rows = [
   { cells = [ { text = "A tentative panel is the paper with a dotted line." } ] },
 ]
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
 type = "compose"

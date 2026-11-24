@@ -81,138 +81,8 @@
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="1080000"/>
-<a:ext cx="11328000" cy="396000"/>
-</a:xfrm>
-<a:prstGeom prst="rect">
-<a:avLst/>
-</a:prstGeom>
-<a:solidFill>
-<a:srgbClr val="EAF0F8"/>
-</a:solidFill>
-<a:ln>
-<a:noFill/>
-</a:ln>
-<a:effectLst/>
-</p:spPr>
-<p:txBody>
-<a:bodyPr rtlCol="0" anchor="ctr"/>
-<a:lstStyle/>
-<a:p>
-<a:pPr algn="ctr"/>
-</a:p>
-</p:txBody>
-</p:sp>
-<p:sp>
-<p:nvSpPr>
-<p:cNvPr id="5" name="TextBox 4"/>
-<p:cNvSpPr txBox="1"/>
-<p:nvPr/>
-</p:nvSpPr>
-<p:spPr>
-<a:xfrm>
-<a:off x="558000" y="1206000"/>
-<a:ext cx="11076000" cy="144000"/>
-</a:xfrm>
-<a:prstGeom prst="rect">
-<a:avLst/>
-</a:prstGeom>
-<a:noFill/>
-</p:spPr>
-<p:txBody>
-<a:bodyPr wrap="square" anchor="ctr">
-<a:spAutoFit/>
-</a:bodyPr>
-<a:lstStyle/>
-<a:p>
-<a:pPr algn="l"/>
-<a:r>
-<a:rPr sz="1600" b="0">
-<a:solidFill>
-<a:srgbClr val="1A1A1A"/>
-</a:solidFill>
-<a:latin typeface="Meiryo"/>
-</a:rPr>
-<a:t>Going round the line down the middle is longer than detour times the way that hops it once</a:t>
-</a:r>
-</a:p>
-</p:txBody>
-</p:sp>
-<p:sp>
-<p:nvSpPr>
-<p:cNvPr id="6" name="Rectangle 5"/>
-<p:cNvSpPr/>
-<p:nvPr/>
-</p:nvSpPr>
-<p:spPr>
-<a:xfrm>
-<a:off x="432000" y="6138000"/>
-<a:ext cx="11328000" cy="396000"/>
-</a:xfrm>
-<a:prstGeom prst="rect">
-<a:avLst/>
-</a:prstGeom>
-<a:solidFill>
-<a:srgbClr val="D9D9D9"/>
-</a:solidFill>
-<a:ln>
-<a:noFill/>
-</a:ln>
-<a:effectLst/>
-</p:spPr>
-<p:txBody>
-<a:bodyPr rtlCol="0" anchor="ctr"/>
-<a:lstStyle/>
-<a:p>
-<a:pPr algn="ctr"/>
-</a:p>
-</p:txBody>
-</p:sp>
-<p:sp>
-<p:nvSpPr>
-<p:cNvPr id="7" name="TextBox 6"/>
-<p:cNvSpPr txBox="1"/>
-<p:nvPr/>
-</p:nvSpPr>
-<p:spPr>
-<a:xfrm>
-<a:off x="558000" y="6264000"/>
-<a:ext cx="11076000" cy="144000"/>
-</a:xfrm>
-<a:prstGeom prst="rect">
-<a:avLst/>
-</a:prstGeom>
-<a:noFill/>
-</p:spPr>
-<p:txBody>
-<a:bodyPr wrap="square" anchor="ctr">
-<a:spAutoFit/>
-</a:bodyPr>
-<a:lstStyle/>
-<a:p>
-<a:pPr algn="l"/>
-<a:r>
-<a:rPr sz="1600" b="1">
-<a:solidFill>
-<a:srgbClr val="1A1A1A"/>
-</a:solidFill>
-<a:latin typeface="Meiryo"/>
-</a:rPr>
-<a:t>detour = 1.2: the arrow hops the line rather than going round above the top row</a:t>
-</a:r>
-</a:p>
-</p:txBody>
-</p:sp>
-<p:sp>
-<p:nvSpPr>
-<p:cNvPr id="8" name="Rectangle 7"/>
-<p:cNvSpPr/>
-<p:nvPr/>
-</p:nvSpPr>
-<p:spPr>
-<a:xfrm>
-<a:off x="6312000" y="1800000"/>
-<a:ext cx="2454000" cy="1050000"/>
+<a:off x="6312000" y="1188000"/>
+<a:ext cx="2454000" cy="1137803"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -237,14 +107,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="9" name="TextBox 8"/>
+<p:cNvPr id="5" name="TextBox 4"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6438000" y="2338800"/>
-<a:ext cx="2202000" cy="385200"/>
+<a:off x="6438000" y="1726800"/>
+<a:ext cx="2202000" cy="473003"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -272,13 +142,13 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="10" name="TextBox 9"/>
+<p:cNvPr id="6" name="TextBox 5"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6438000" y="1926000"/>
+<a:off x="6438000" y="1314000"/>
 <a:ext cx="2202000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -307,14 +177,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="11" name="Rectangle 10"/>
+<p:cNvPr id="7" name="Rectangle 6"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6312000" y="4764000"/>
-<a:ext cx="2454000" cy="1050000"/>
+<a:off x="6312000" y="4327606"/>
+<a:ext cx="2454000" cy="1137803"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -339,14 +209,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="12" name="TextBox 11"/>
+<p:cNvPr id="8" name="TextBox 7"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6438000" y="5302800"/>
-<a:ext cx="2202000" cy="385200"/>
+<a:off x="6438000" y="4866406"/>
+<a:ext cx="2202000" cy="473003"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -374,13 +244,13 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="13" name="TextBox 12"/>
+<p:cNvPr id="9" name="TextBox 8"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="6438000" y="4890000"/>
+<a:off x="6438000" y="4453606"/>
 <a:ext cx="2202000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -409,14 +279,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="14" name="Rectangle 13"/>
+<p:cNvPr id="10" name="Rectangle 9"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="9198000" y="1800000"/>
-<a:ext cx="2454000" cy="1050000"/>
+<a:off x="9198000" y="1188000"/>
+<a:ext cx="2454000" cy="1137803"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -441,14 +311,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="15" name="TextBox 14"/>
+<p:cNvPr id="11" name="TextBox 10"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="9324000" y="2338800"/>
-<a:ext cx="2202000" cy="385200"/>
+<a:off x="9324000" y="1726800"/>
+<a:ext cx="2202000" cy="473003"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -476,13 +346,13 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="16" name="TextBox 15"/>
+<p:cNvPr id="12" name="TextBox 11"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="9324000" y="1926000"/>
+<a:off x="9324000" y="1314000"/>
 <a:ext cx="2202000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -511,14 +381,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="17" name="Rectangle 16"/>
+<p:cNvPr id="13" name="Rectangle 12"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="3426000" y="3282000"/>
-<a:ext cx="2454000" cy="1050000"/>
+<a:off x="3426000" y="2757803"/>
+<a:ext cx="2454000" cy="1137803"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -543,14 +413,14 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="18" name="TextBox 17"/>
+<p:cNvPr id="14" name="TextBox 13"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="3552000" y="3820800"/>
-<a:ext cx="2202000" cy="385200"/>
+<a:off x="3552000" y="3296603"/>
+<a:ext cx="2202000" cy="473003"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -578,13 +448,13 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="19" name="TextBox 18"/>
+<p:cNvPr id="15" name="TextBox 14"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="3552000" y="3408000"/>
+<a:off x="3552000" y="2883803"/>
 <a:ext cx="2202000" cy="304800"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -611,16 +481,40 @@
 </a:p>
 </p:txBody>
 </p:sp>
+<p:pic>
+<p:nvPicPr>
+<p:cNvPr id="16" name="Picture 15"/>
+<p:cNvPicPr>
+<a:picLocks noChangeAspect="1"/>
+</p:cNvPicPr>
+<p:nvPr/>
+</p:nvPicPr>
+<p:blipFill>
+<a:blip r:embed="rId2"/>
+<a:stretch>
+<a:fillRect/>
+</a:stretch>
+</p:blipFill>
+<p:spPr>
+<a:xfrm>
+<a:off x="5391212" y="5897409"/>
+<a:ext cx="1409576" cy="528591"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+</p:spPr>
+</p:pic>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="20" name="Connector 19"/>
+<p:cNvPr id="17" name="Connector 16"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="7539000" y="2850000"/>
-<a:ext cx="0" cy="1914000"/>
+<a:off x="7539000" y="2325803"/>
+<a:ext cx="0" cy="2001803"/>
 </a:xfrm>
 <a:prstGeom prst="line">
 <a:avLst/>
@@ -635,14 +529,14 @@
 </p:cxnSp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="21" name="Freeform 20"/>
+<p:cNvPr id="18" name="Freeform 17"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="5880000" y="2850000"/>
-<a:ext cx="4545000" cy="957000"/>
+<a:off x="5880000" y="2325803"/>
+<a:ext cx="4545000" cy="1000901"/>
 </a:xfrm>
 <a:custGeom>
 <a:avLst/>
@@ -651,19 +545,19 @@
 <a:cxnLst/>
 <a:rect l="0" t="0" r="r" b="b"/>
 <a:pathLst>
-<a:path w="4545000" h="957000" fill="none">
+<a:path w="4545000" h="1000901" fill="none">
 <a:moveTo>
 <a:pt x="4545000" y="0"/>
 </a:moveTo>
 <a:lnTo>
-<a:pt x="4545000" y="957000"/>
+<a:pt x="4545000" y="1000901"/>
 </a:lnTo>
 <a:lnTo>
-<a:pt x="1713000" y="957000"/>
+<a:pt x="1713000" y="1000901"/>
 </a:lnTo>
 <a:arcTo wR="54000" hR="54000" stAng="0" swAng="-10800000"/>
 <a:lnTo>
-<a:pt x="0" y="957000"/>
+<a:pt x="0" y="1000901"/>
 </a:lnTo>
 </a:path>
 </a:pathLst>

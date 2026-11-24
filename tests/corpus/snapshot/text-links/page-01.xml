@@ -353,15 +353,39 @@
 </a:p>
 </p:txBody>
 </p:sp>
+<p:pic>
+<p:nvPicPr>
+<p:cNvPr id="12" name="Picture 11"/>
+<p:cNvPicPr>
+<a:picLocks noChangeAspect="1"/>
+</p:cNvPicPr>
+<p:nvPr/>
+</p:nvPicPr>
+<p:blipFill>
+<a:blip r:embed="rId2"/>
+<a:stretch>
+<a:fillRect/>
+</a:stretch>
+</p:blipFill>
+<p:spPr>
+<a:xfrm>
+<a:off x="3286400" y="4090200"/>
+<a:ext cx="5619200" cy="2107200"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+</p:spPr>
+</p:pic>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="12" name="Rectangle 11"/>
+<p:cNvPr id="13" name="Rectangle 12"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="432000" y="4024500"/>
+<a:off x="432000" y="6347700"/>
 <a:ext cx="144000" cy="144000"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -387,13 +411,13 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="13" name="TextBox 12"/>
+<p:cNvPr id="14" name="TextBox 13"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="684000" y="3982200"/>
+<a:off x="684000" y="6305400"/>
 <a:ext cx="478536" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -422,13 +446,13 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="14" name="Rectangle 13"/>
+<p:cNvPr id="15" name="Rectangle 14"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="1378536" y="4024500"/>
+<a:off x="1378536" y="6347700"/>
 <a:ext cx="144000" cy="144000"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
@@ -452,13 +476,13 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="15" name="TextBox 14"/>
+<p:cNvPr id="16" name="TextBox 15"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="1630536" y="3982200"/>
+<a:off x="1630536" y="6305400"/>
 <a:ext cx="332232" cy="228600"/>
 </a:xfrm>
 <a:prstGeom prst="rect">

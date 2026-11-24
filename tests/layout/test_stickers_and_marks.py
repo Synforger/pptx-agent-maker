@@ -11,6 +11,13 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
 import re
 import sys
 import tempfile
@@ -132,7 +139,7 @@ class ASticker(unittest.TestCase):
     def test_a_page_carries_one_sticker_written_as_its_words(self) -> None:
         for sticker in (["暫定", "イメージ"], 3, True, {"text": "暫定"}):
             with self.subTest(sticker=sticker), self.assertRaises(PageTypeError) as refused:
-                build({"type": "cards", "title": "だい", "cards": [["a", "b"]], "sticker": sticker})
+                build({"type": "bare", "title": "だい", "cards": [["a", "b"]], "sticker": sticker})
             self.assertIn("one sticker", str(refused.exception))
 
     def test_the_check_of_a_long_title_counts_beside_the_sticker(self) -> None:
@@ -141,7 +148,7 @@ class ASticker(unittest.TestCase):
         self.assertEqual((2, 3), (DEFAULT.title_lines(title), DEFAULT.title_lines(title, "イメージ")))
         with tempfile.TemporaryDirectory() as tmp:
             head = 'specimen = "specimen.pptx"\nout = "deck.pptx"\n'
-            page = f'[[pages]]\nkind = "declare"\ntype = "cards"\ntitle = "{title}"\ncards = [["a", "b"]]\n'
+            page = f'[[pages]]\nkind = "declare"\ntype = "bare"\ntitle = "{title}"\ncards = [["a", "b"]]\n'
             plain, tagged = Path(tmp) / "plain.toml", Path(tmp) / "tagged.toml"
             plain.write_text(head + page, encoding="utf-8")
             tagged.write_text(head + page + 'sticker = " イメージ "\n', encoding="utf-8")
@@ -153,7 +160,7 @@ class ASticker(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             deck = new_deck()
             for title in (ONE, FOLDED):
-                page = build({"type": "cards", "title": title, "kicker": "01 | 背景", "sticker": "イメージ",
+                page = build({"type": "bare", "title": title, "kicker": "01 | 背景", "sticker": "イメージ",
                               "cards": [["a", "b"]]})
                 add_page(deck, page.build())
             saved = save(deck, Path(tmp) / "tagged.pptx")

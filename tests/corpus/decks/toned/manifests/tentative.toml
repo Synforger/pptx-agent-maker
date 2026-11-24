@@ -6,7 +6,8 @@ out = "tentative.pptx"
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "An unfinished card keeps the colour of its tone"
 card_columns = 3
 cards = [
@@ -27,36 +28,54 @@ table = [
 
 [[pages]]
 kind = "declare"
-type = "flow"
+type = "compose"
 title = "So do the nodes of a flow and the arrowheads of a roadmap"
 
-[[pages.stages]]
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.flow]
+
+[[pages.rows.cells.flow.stages]]
 name = "Now"
 nodes = [{ heading = "Draft", body = "a first version", tone = "good" }]
 
-[[pages.stages]]
+[[pages.rows.cells.flow.stages]]
 name = "Maybe"
 nodes = [{ heading = "Extras", body = "if there is time", tone = "accent", tentative = true }]
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "roadmap"
+type = "compose"
 title = "A road with an unfinished stage"
 
-[[pages.stages]]
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.roadmap]
+
+[[pages.rows.cells.roadmap.stages]]
 name = "Now"
 nodes = [["Draft", "a first version"]]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Maybe"
 tone = "good"
 tentative = true
 nodes = [{ heading = "Extras", tone = "good", tentative = true }]
 
-[[pages.stages]]
+[[pages.rows.cells.roadmap.stages]]
 name = "Goal"
 goal = true
 nodes = [{ heading = "Release" }]
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
 
 [[pages]]
 kind = "declare"

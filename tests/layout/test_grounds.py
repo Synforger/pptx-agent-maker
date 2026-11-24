@@ -7,6 +7,13 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
 import io
 import shutil
 import sys
@@ -45,7 +52,7 @@ def build(spec, theme=THEME):
 
 
 def cards(*tones, **extra):
-    return build({"type": "cards", "cards": [{"heading": f"Card {n}", "tone": tone}
+    return build({"type": "bare", "cards": [{"heading": f"Card {n}", "tone": tone}
                                              for n, tone in enumerate(tones, start=1)], **extra})
 
 
@@ -115,7 +122,7 @@ class WordsOnThem(unittest.TestCase):
         floor = reading_floor(DEFAULT.type.heading, True)
         for ground in ("2E9E5B", "777777", "5A9E3A", "FFD400", "1A1A1A", "F3F3F3"):
             with self.subTest(ground):
-                built = build({"type": "cards", "cards": [{"heading": "Card", "tone": "Here"}]},
+                built = build({"type": "bare", "cards": [{"heading": "Card", "tone": "Here"}]},
                               theme_from({"grounds": {"Here": ground}}))
                 words = named(built, "Card").colour
                 better = max((palette.ink, palette.paper), key=lambda colour: contrast(ground, colour))
@@ -163,7 +170,7 @@ class WhereTheyAreWritten(unittest.TestCase):
 
     def test_without_a_declaration_the_message_says_where_one_goes(self):
         with self.assertRaises(PageTypeError) as raised:
-            build({"type": "cards", "cards": [{"heading": "Card", "tone": "Inside"}]}, DEFAULT)
+            build({"type": "bare", "cards": [{"heading": "Card", "tone": "Inside"}]}, DEFAULT)
         self.assertIn("a project may name its own in [theme.grounds]", str(raised.exception))
 
 
@@ -202,7 +209,7 @@ class TheLegend(unittest.TestCase):
     def test_many_names_run_on_to_a_second_line(self):
         names = {f"A ground with a long name number {n}": "EAF0F8" for n in range(12)}
         theme = theme_from({"grounds": names})
-        built = build({"type": "cards", "cards": [{"heading": f"C{n}", "tone": name}
+        built = build({"type": "bare", "cards": [{"heading": f"C{n}", "tone": name}
                                                   for n, name in enumerate(names)]}, theme)
         tops = {e.rect.top for e in built.build() if e.kind == "label"}
         self.assertGreater(len(tops), 1)
@@ -213,7 +220,7 @@ class TheLegend(unittest.TestCase):
         """名前の長さがばらばらでも、同じ列の色見本は同じ左、同じ段は同じ上 (= 1 段目と 2 段目が 0.75 mm ずれて検査が赤になっていた)。"""
         names = {"Short" * (1 + n % 4) + f" {n}": "EAF0F8" for n in range(14)}
         theme = theme_from({"grounds": names})
-        built = build({"type": "cards", "cards": [{"heading": f"C{n}", "tone": name} for n, name in enumerate(names)]}, theme)
+        built = build({"type": "bare", "cards": [{"heading": f"C{n}", "tone": name} for n, name in enumerate(names)]}, theme)
         swatches = [e for e in built.build() if e.kind == "swatch"]
         lines = sorted({e.rect.top for e in swatches})
         rows = [sorted(e.rect.left for e in swatches if e.rect.top == top) for top in lines]
@@ -231,7 +238,7 @@ class TheLegend(unittest.TestCase):
         """Nine short names and one about four fifths of the body wide: two lines, as packing them takes, with every swatch on the columns of the first line (= a column as wide as the long name left room for two columns, and five lines)."""
         names = {f"Short {n}": "EAF0F8" for n in range(9)} | {" ".join(["spanning"] * 12): "EAF0F8"}
         theme = theme_from({"grounds": names})
-        built = build({"type": "cards", "title": "A page", "cards": [{"heading": f"C{n}", "tone": name} for n, name in enumerate(names)]},
+        built = build({"type": "bare", "title": "A page", "cards": [{"heading": f"C{n}", "tone": name} for n, name in enumerate(names)]},
                       theme)
         swatches = [e for e in built.build() if e.kind == "swatch"]
         lines = sorted({e.rect.top for e in swatches})
@@ -289,7 +296,7 @@ class ThroughTheProject(unittest.TestCase):
         a_specimen(root / "specimen.pptx", ["表紙"])
         (root / "workspace.toml").write_text('root = "."\n[theme.grounds]\n"内部向け" = "EAF0F8"\n', encoding="utf-8")
         (root / "deck.toml").write_text(
-            'specimen = "specimen.pptx"\nout = "built.pptx"\n\n[[pages]]\nkind = "declare"\ntype = "cards"\n'
+            'specimen = "specimen.pptx"\nout = "built.pptx"\n\n[[pages]]\nkind = "declare"\ntype = "bare"\n'
             'title = "カード"\nlegend = true\ncards = [{ heading = "内側", body = "ひとつ", tone = "内部向け" }]\n', encoding="utf-8")
         workspace = Workspace.load(root)
         built = build_deck(workspace, Manifest.load(workspace.manifest("deck")))

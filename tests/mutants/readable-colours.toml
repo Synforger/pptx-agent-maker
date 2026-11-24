@@ -138,8 +138,8 @@ new = "        pass"
 [[mutant]]
 name = "a build drops what was let through"
 file = "src/pptx_agent_maker/checks/__init__.py"
-old = "    return Findings(built + run_declared(manifest, theme, config), found.allowed)"
-new = "    return Findings(built + run_declared(manifest, theme, config))"
+old = "    return Findings(built + run_declared(manifest, theme, config, pages), found.allowed)"
+new = "    return Findings(built + run_declared(manifest, theme, config, pages))"
 
 [[mutant]]
 name = "the report lets pairs through silently"

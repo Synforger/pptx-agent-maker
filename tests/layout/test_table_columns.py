@@ -7,6 +7,13 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
 import sys
 import tempfile
 import unittest
@@ -165,7 +172,7 @@ class AWrongRatioStopsAndSaysWhere(unittest.TestCase):
 
     def test_a_ratio_with_no_table_to_share_is_refused(self) -> None:
         with self.assertRaises(PageTypeError) as refused:
-            build({"type": "cards", "title": "t", "cards": [["a", "b"]], "table_columns": SHARES})
+            build({"type": "bare", "title": "t", "cards": [["a", "b"]], "table_columns": SHARES})
         self.assertIn("no `table`", str(refused.exception))
 
     def test_a_cell_that_holds_no_table_refuses_the_ratio(self) -> None:

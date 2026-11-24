@@ -6,6 +6,9 @@
 
 from __future__ import annotations
 
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
 import sys
 import unittest
 from pathlib import Path
@@ -22,7 +25,7 @@ NAMED = theme_from({"grounds": {"Single": "FCE4CC", "Shared": "EEEEEE"}})
 
 
 def declared(**data) -> SimpleNamespace:
-    return SimpleNamespace(kind="declare", data={"type": "cards", "title": "A page", **data})
+    return SimpleNamespace(kind="declare", data={"type": "bare", "title": "A page", **data})
 
 
 def said(*entries, theme=NAMED, config=None) -> list[tuple[int, str]]:

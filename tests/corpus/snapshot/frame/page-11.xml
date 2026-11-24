@@ -423,6 +423,30 @@
 </a:graphicData>
 </a:graphic>
 </p:graphicFrame>
+<p:pic>
+<p:nvPicPr>
+<p:cNvPr id="10" name="Picture 9"/>
+<p:cNvPicPr>
+<a:picLocks noChangeAspect="1"/>
+</p:cNvPicPr>
+<p:nvPr/>
+</p:nvPicPr>
+<p:blipFill>
+<a:blip r:embed="rId2"/>
+<a:stretch>
+<a:fillRect/>
+</a:stretch>
+</p:blipFill>
+<p:spPr>
+<a:xfrm>
+<a:off x="912800" y="2646600"/>
+<a:ext cx="10366400" cy="3887400"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+</p:spPr>
+</p:pic>
 </p:spTree>
 </p:cSld>
 <p:clrMapOvr>

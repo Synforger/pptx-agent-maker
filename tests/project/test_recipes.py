@@ -7,6 +7,13 @@
 
 from __future__ import annotations
 
+
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
 import io
 import shutil
 import sys
@@ -88,7 +95,7 @@ why = "毎週の結果頁"
 # 次の頁の前の注記 (= 書き換えで消えてはいけない)
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "bare"
 title = "まとめ"
 cards = [["一", "いち"], ["二", "に"]]
 '''

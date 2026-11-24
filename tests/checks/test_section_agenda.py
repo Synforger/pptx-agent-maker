@@ -7,6 +7,9 @@
 
 from __future__ import annotations
 
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
 import sys
 import unittest
 from pathlib import Path
@@ -31,7 +34,7 @@ def agenda(chapter: int | list[int] | None = None, item: int | None = None) -> S
 
 
 def pages(count: int) -> list[SimpleNamespace]:
-    return [SimpleNamespace(kind="declare", data={"type": "cards", "title": f"page {n}"}) for n in range(count)]
+    return [SimpleNamespace(kind="declare", data={"type": "bare", "title": f"page {n}"}) for n in range(count)]
 
 
 def said(*entries, config=None) -> list[tuple[int, str]]:

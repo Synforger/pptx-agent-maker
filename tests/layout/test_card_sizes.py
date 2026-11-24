@@ -11,6 +11,13 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
 import re
 import sys
 import tempfile
@@ -37,7 +44,7 @@ OUTLINED_PAGE = theme_from({"card_look": "outlined", "box_height": "page"})
 
 
 def cards(*items, theme=DEFAULT, **extra):
-    return build({"type": "cards", "title": "Cards", "cards": list(items), **extra}, theme)
+    return build({"type": "bare", "title": "Cards", "cards": list(items), **extra}, theme)
 
 
 def of_kind(built, kind):

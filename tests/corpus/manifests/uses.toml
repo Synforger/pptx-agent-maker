@@ -7,7 +7,8 @@ use = "present"
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "A deck made to be shown says little on a page"
 card_columns = 2
 cards = [
@@ -17,7 +18,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "read"
 title = "One page to be read, in the middle of it"
 card_columns = 3
@@ -32,7 +34,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "detail"
 title = "A page in a use the project named for itself"
 card_columns = 3
@@ -44,7 +47,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "The deck's own use again"
 card_columns = 2
 cards = [
@@ -54,7 +58,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "sheet"
 title = "One sheet to be read close up"
 card_columns = 3
@@ -72,7 +77,8 @@ footer = "source: made up for the corpus"
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "proposal"
 title = "A use that sets a floor and a spacing of its own"
 card_columns = 4
@@ -85,7 +91,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "banded"
 title = "The band is set apart from the heading of a card"
 condition = "Headings are 12 points; this band stays at 16"
@@ -111,9 +118,14 @@ role = "display"
 weight = 2
 card = { heading = "Display", body = "forty points, said by the use" }
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "ruled"
 title = "A band is as tall as its use says, the one over a page and the one under it apart"
 condition = "This band is 1.5 cm tall at 14 points"
@@ -127,7 +139,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "filled"
 title = "A use whose boxes take the page, in a deck whose boxes do not"
 card_columns = 1
@@ -138,7 +151,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "centred"
 title = "A use whose boxes stand in the middle of the body"
 condition = "The boxes are as tall as their words"
@@ -152,7 +166,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "tagged"
 title = "A tag is set larger than the headings of the cards beside it"
 condition = "Headings are 10.5 points; the tags are 14"
@@ -168,7 +183,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "board"
+type = "figure"
+figure = "wide.png"
 use = "tagged"
 title = "A use sets its tables in a look of its own"
 table = [
@@ -182,7 +198,8 @@ footer = "made up for the corpus"
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "headed"
 kicker = "05 | Headed"
 title = "A use sets the small words above a title larger than the captions"
@@ -209,3 +226,7 @@ role = "statement"
 card = { heading = "Statement", body = "thirty points, said by the use" }
 [[pages.rows.cells]]
 card = { heading = "Display", body = "forty points, for a figure" }
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"

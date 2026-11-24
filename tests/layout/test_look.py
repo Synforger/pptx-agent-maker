@@ -7,6 +7,13 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
 import re
 import sys
 import tempfile
@@ -48,7 +55,7 @@ def shape_of(built, text):
 
 # 箱の形をした部品の全部 (= 名前, 見た目のキーを渡すと 1 頁を組む関数)
 def card(look):
-    return build({"type": "cards", "cards": [{"heading": "It", **look}]})
+    return build({"type": "bare", "cards": [{"heading": "It", **look}]})
 
 
 def node(look):

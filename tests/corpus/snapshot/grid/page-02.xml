@@ -212,7 +212,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="540000" y="1800000"/>
-<a:ext cx="3416000" cy="3677400"/>
+<a:ext cx="3416000" cy="2156516"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -244,7 +244,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="666000" y="2338800"/>
-<a:ext cx="3164000" cy="3012600"/>
+<a:ext cx="3164000" cy="1491716"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -314,7 +314,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="4388000" y="1800000"/>
-<a:ext cx="3416000" cy="3677400"/>
+<a:ext cx="3416000" cy="2156516"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -346,7 +346,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="4514000" y="2338800"/>
-<a:ext cx="3164000" cy="3012600"/>
+<a:ext cx="3164000" cy="1491716"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -416,7 +416,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="8236000" y="1800000"/>
-<a:ext cx="3416000" cy="3677400"/>
+<a:ext cx="3416000" cy="2156516"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -449,7 +449,7 @@
 <p:spPr>
 <a:xfrm>
 <a:off x="8362000" y="2338800"/>
-<a:ext cx="3164000" cy="3012600"/>
+<a:ext cx="3164000" cy="1491716"/>
 </a:xfrm>
 <a:prstGeom prst="rect">
 <a:avLst/>
@@ -510,15 +510,39 @@
 </a:p>
 </p:txBody>
 </p:sp>
+<p:pic>
+<p:nvPicPr>
+<p:cNvPr id="17" name="Picture 16"/>
+<p:cNvPicPr>
+<a:picLocks noChangeAspect="1"/>
+</p:cNvPicPr>
+<p:nvPr/>
+</p:nvPicPr>
+<p:blipFill>
+<a:blip r:embed="rId2"/>
+<a:stretch>
+<a:fillRect/>
+</a:stretch>
+</p:blipFill>
+<p:spPr>
+<a:xfrm>
+<a:off x="4644154" y="4388516"/>
+<a:ext cx="2903691" cy="1088884"/>
+</a:xfrm>
+<a:prstGeom prst="rect">
+<a:avLst/>
+</a:prstGeom>
+</p:spPr>
+</p:pic>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="17" name="Connector 16"/>
+<p:cNvPr id="18" name="Connector 17"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="3956000" y="3638700"/>
+<a:off x="3956000" y="2878258"/>
 <a:ext cx="432000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -534,13 +558,13 @@
 </p:cxnSp>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="18" name="Connector 17"/>
+<p:cNvPr id="19" name="Connector 18"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>
 <p:spPr>
 <a:xfrm>
-<a:off x="7804000" y="3638700"/>
+<a:off x="7804000" y="2878258"/>
 <a:ext cx="432000" cy="0"/>
 </a:xfrm>
 <a:prstGeom prst="line">
@@ -557,7 +581,7 @@
 </p:cxnSp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="19" name="Rectangle 18"/>
+<p:cNvPr id="20" name="Rectangle 19"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
@@ -589,7 +613,7 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="20" name="TextBox 19"/>
+<p:cNvPr id="21" name="TextBox 20"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
@@ -624,7 +648,7 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="21" name="Rectangle 20"/>
+<p:cNvPr id="22" name="Rectangle 21"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
@@ -656,7 +680,7 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="22" name="TextBox 21"/>
+<p:cNvPr id="23" name="TextBox 22"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
@@ -691,7 +715,7 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="23" name="Rectangle 22"/>
+<p:cNvPr id="24" name="Rectangle 23"/>
 <p:cNvSpPr/>
 <p:nvPr/>
 </p:nvSpPr>
@@ -721,7 +745,7 @@
 </p:sp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="24" name="TextBox 23"/>
+<p:cNvPr id="25" name="TextBox 24"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>
@@ -756,7 +780,7 @@
 </p:sp>
 <p:cxnSp>
 <p:nvCxnSpPr>
-<p:cNvPr id="25" name="Connector 24"/>
+<p:cNvPr id="26" name="Connector 25"/>
 <p:cNvCxnSpPr/>
 <p:nvPr/>
 </p:nvCxnSpPr>
@@ -778,7 +802,7 @@
 </p:cxnSp>
 <p:sp>
 <p:nvSpPr>
-<p:cNvPr id="26" name="TextBox 25"/>
+<p:cNvPr id="27" name="TextBox 26"/>
 <p:cNvSpPr txBox="1"/>
 <p:nvPr/>
 </p:nvSpPr>

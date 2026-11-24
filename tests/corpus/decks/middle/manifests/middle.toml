@@ -6,7 +6,8 @@ out = "middle.pptx"
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "Three cards in the middle of the body"
 condition = "The cards are as tall as their words"
 conclusion = "The rest of the body is above and below them"
@@ -19,7 +20,8 @@ cards = [
 
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 title = "Cards with a table and a reading under them"
 card_columns = 3
 cards = [
@@ -38,13 +40,23 @@ note = "The table and the reading stand with the cards, as one block."
 
 [[pages]]
 kind = "declare"
-type = "flow"
+type = "compose"
 title = "A flow in the middle of the body"
+
+[[pages.rows]]
+weight = 3
+[[pages.rows.cells]]
+[pages.rows.cells.flow]
 stages = [
   { name = "Collect", nodes = [["Raw", "what comes in"]] },
   { name = "Clean", nodes = [["Tidy", "what stays"]] },
   { name = "Use", nodes = [["Result", "what goes out"]] },
 ]
+
+
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
 
 [[pages]]
 kind = "declare"
@@ -61,9 +73,14 @@ card = { heading = "Left", body = "holds it up" }
 [[pages.rows.cells]]
 card = { heading = "Right", body = "holds it too" }
 
+[[pages.rows]]
+[[pages.rows.cells]]
+figure = "wide.png"
+
 [[pages]]
 kind = "declare"
-type = "cards"
+type = "figure"
+figure = "wide.png"
 use = "topped"
 title = "A use that puts its boxes back at the top"
 condition = "Said by the use, not by the deck"

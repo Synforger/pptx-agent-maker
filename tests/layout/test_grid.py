@@ -8,6 +8,13 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
 import re
 import sys
 import tempfile
@@ -420,8 +427,8 @@ class TheDottedLineInTheLegend(unittest.TestCase):
                 self.page(links=self.DOTTED, dotted_legend=words, legend=True)
 
     def test_only_a_compose_page_reads_it(self) -> None:
-        with self.assertRaisesRegex(PageTypeError, "cards: does not take dotted_legend"):
-            build({"type": "cards", "title": "A page", "cards": [{"heading": "A", "tentative": True}],
+        with self.assertRaisesRegex(PageTypeError, "bare: does not take dotted_legend"):
+            build({"type": "bare", "title": "A page", "cards": [{"heading": "A", "tentative": True}],
                    "dotted_legend": self.WORDS})
 
 

@@ -10,6 +10,13 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
 import sys
 import tempfile
 import unittest
@@ -84,7 +91,7 @@ class WhereTheProjectSaysIt(unittest.TestCase):
     def test_a_page_written_the_old_way_is_not_moved(self) -> None:
         said = {"box_height": "text", "card_look": "filled", "band_look": "plain"}
         for data in (
-            {"type": "cards", "title": "T", "cards": [["A", "a"], {"heading": "B", "tone": "accent"}],
+            {"type": "bare", "title": "T", "cards": [["A", "a"], {"heading": "B", "tone": "accent"}],
              "condition": "c", "conclusion": "d"},
             {"type": "flow", "title": "T", "stages": [{"name": "s", "nodes": [["A", "a"]]},
                                                        {"name": "t", "nodes": [["B", "b"]]}]},
@@ -97,18 +104,15 @@ class WhereTheProjectSaysIt(unittest.TestCase):
 class TheBoxesTakeThePage(unittest.TestCase):
     CARDS = [["One", "first"], ["Two", "second " * 12], ["Three", "third"]]
 
-    def test_the_cards_of_a_cards_page_fill_the_body_down_to_its_last_line(self) -> None:
-        data = {"type": "cards", "title": "T", "cards": self.CARDS, "card_columns": 1,
-                "condition": "c", "conclusion": "d", "footer": "f"}
-        body = body_of(PAGE, condition="c", conclusion="d", footer="f")
-        boxes = of_kind(build(data, PAGE), "box")
-        self.assertEqual(body.bottom, max(box.rect.bottom for box in boxes))
-        self.assertEqual(body.top, boxes[0].rect.top)
-        # 字の高さの資料では、下が空く (= 今までの見た目)
-        self.assertLess(max(box.rect.bottom for box in of_kind(build(data), "box")), body.bottom - GAP_M)
+    def test_the_reading_takes_what_is_left_under_a_body_that_did_not_fill_its_area(self) -> None:
+        """A page of cards alone has an empty body, and room is left under the reading: its box stretches to it."""
+        page = build({"type": "bare", "title": "T", "cards": self.CARDS, "note": "A reading in one line"})
+        note = next(e.rect for e in page.build() if e.kind == "note")
+        self.assertEqual(page.body.bottom, note.bottom)
+        self.assertGreater(note.height, DEFAULT.line_height())
 
     def test_each_card_row_takes_an_equal_share_on_top_of_its_words(self) -> None:
-        data = {"type": "cards", "title": "T", "cards": self.CARDS, "card_columns": 1}
+        data = {"type": "bare", "title": "T", "cards": self.CARDS, "card_columns": 1}
         boxes = of_kind(build(data, PAGE), "box")
         heights = [box.rect.height for box in boxes]
         self.assertLessEqual(max(heights) - min(heights), 1, "the rows of one cards page share one height")
@@ -116,7 +120,7 @@ class TheBoxesTakeThePage(unittest.TestCase):
             self.assertEqual(GAP_M, other.rect.top - one.rect.bottom)
 
     def test_a_table_and_a_reading_keep_their_room_under_the_cards(self) -> None:
-        data = {"type": "cards", "title": "T", "cards": self.CARDS, "card_columns": 3,
+        data = {"type": "bare", "title": "T", "cards": self.CARDS, "card_columns": 3,
                 "table": [["列", "値"], ["A", "1"]], "note": "How to read this"}
         built = build(data, PAGE)
         boxes, table, note = of_kind(built, "box"), of_kind(built, "table")[0], of_kind(built, "note")[0]
@@ -131,7 +135,7 @@ class TheBoxesTakeThePage(unittest.TestCase):
         self.assertEqual(of_kind(build(data), "box"), of_kind(build(data, PAGE), "box"))
 
     def test_cards_that_do_not_fit_are_still_refused(self) -> None:
-        data = {"type": "cards", "title": "T", "cards": [[f"Card {n}", "a body " * 40] for n in range(8)],
+        data = {"type": "bare", "title": "T", "cards": [[f"Card {n}", "a body " * 40] for n in range(8)],
                 "card_columns": 1}
         with self.assertRaises(PageFullError):
             build(data, PAGE)
@@ -256,11 +260,11 @@ class FlowsAndRoadsTakeThePage(unittest.TestCase):
 
 class ACardCarriesItsColourOnItsLine(unittest.TestCase):
     def painted(self, theme, **style):
-        return box_of(build({"type": "cards", "title": "T", "cards": [{"heading": "Head", "body": "words", **style}]},
+        return box_of(build({"type": "bare", "title": "T", "cards": [{"heading": "Head", "body": "words", **style}]},
                             theme), "Head")
 
     def heading(self, theme, **style):
-        built = build({"type": "cards", "title": "T", "cards": [{"heading": "Head", "body": "words", **style}]}, theme)
+        built = build({"type": "bare", "title": "T", "cards": [{"heading": "Head", "body": "words", **style}]}, theme)
         return named(built, "Head"), named(built, "words")
 
     def test_a_card_that_says_a_reading_is_nearly_paper_with_its_colour_on_the_line_and_the_heading(self) -> None:
@@ -364,7 +368,7 @@ def named_in(page, text):
 class WhatIsWrittenIsAFileThatOpens(unittest.TestCase):
     def test_a_page_in_all_three_looks_is_written_and_passes_the_checks(self) -> None:
         theme = theme_from({"box_height": "page", "card_look": "outlined", "band_look": "outlined"})
-        data = {"type": "cards", "title": "A page", "condition": "If this holds", "conclusion": "Then that follows",
+        data = {"type": "bare", "title": "A page", "condition": "If this holds", "conclusion": "Then that follows",
                 "cards": [{"heading": "Read", "body": "what it says", "tone": "accent"},
                           {"heading": "Careful", "body": "what to mind", "tone": "bad"},
                           {"heading": "Open", "body": "not yet", "tentative": True}]}

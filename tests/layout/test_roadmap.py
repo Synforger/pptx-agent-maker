@@ -6,6 +6,13 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
 import re
 import sys
 import tempfile
@@ -408,7 +415,7 @@ class AnIcon(unittest.TestCase):
     """A box may carry one picture, top left, its words beside it."""
 
     def cards(self, *cards):
-        return build({"type": "cards", "title": "Cards", "cards": list(cards)})
+        return build({"type": "bare", "title": "Cards", "cards": list(cards)})
 
     def test_it_sits_top_left_inside_its_box_at_its_own_proportions(self):
         built = self.cards({"heading": "One", "body": "a", "icon": WIDE})
@@ -471,7 +478,7 @@ class AnIcon(unittest.TestCase):
             asked.append(name)
             return DATA / name
 
-        types.build({"type": "cards", "title": "C", "cards": [{"heading": "One", "icon": SQUARE}]}, asset, aspect)
+        types.build({"type": "bare", "title": "C", "cards": [{"heading": "One", "icon": SQUARE}]}, asset, aspect)
         self.assertEqual([SQUARE], asked)
 
     def test_an_svg_is_refused_and_told_to_be_a_png(self):

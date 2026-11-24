@@ -6,6 +6,10 @@
 
 from __future__ import annotations
 
+#: written when a page of words in boxes alone could be built (= `tests/conftest.py`)
+FIGURE_RULE_LIFTED = True
+
+
 import re
 import sys
 import tempfile
@@ -46,18 +50,15 @@ MINIMAL = {
                  "lanes": [{"name": "しごと", "bars": [{"from": 0, "to": 1, "text": "きめる"}]}]},
     "chart": {"chart": {"kind": "column", "categories": ["いま", "つぎ"],
                         "series": [{"name": "かず", "values": [1, 2]}]}},
-    # 絵を持たなくてよい型 (= デッキの骨格)
+    # 絵を持たなくてよい型は目次だけ (= 図解の数え方は `test_figure_rule.py`)
     "agenda": {"buckets": [["しょう 1", ["こうもく"]], ["しょう 2", ["こうもく"]]],
                "highlight": 1},
+    # 表・段の流れは図解に数えない。絵かグラフと並べる部品 (= 札は型でなく付属で、`cards` の型は退いた)
     "board": {"table": [["列", "値"], ["A", "1"]]},
-    "cards": {"cards": [["\u2460", "さいしょ"], ["\u2461", "つぎ"]]},
-    # 本体を段とマスで書く型 (= カードだけの頁も組めるよう、絵を要らない)
+    # 本体を段とマスで書く型
     "compose": {"rows": [{"cells": [{"card": ["もくひょう", "ひとつ"]}]},
                          {"cells": [{"card": ["はしら", "ひとつめ"]}, {"card": ["はしら", "ふたつめ"]}]}]},
 }
-
-#: 絵を持たなくてよい型 (= デッキの骨格と、本体を段とマスで書く型)
-SKELETON = {"agenda", "board", "cards", "compose"}
 
 #: 本体に添えられるもの (= どの型でも同じように効く)
 EXTRAS = {"table": [["列", "値"], ["A", "1"]],
@@ -71,9 +72,6 @@ class EveryTypeBuilds(unittest.TestCase):
 
     def test_every_type_is_covered_here(self):
         self.assertEqual(sorted(MINIMAL), types.names())
-
-    def test_only_the_scaffolding_may_skip_the_figure(self):
-        self.assertEqual(sorted(SKELETON), types.skeleton())
 
     def test_each_type_builds_a_page_inside_its_frame(self):
         for name, data in MINIMAL.items():
@@ -119,9 +117,6 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
         for name, data in MINIMAL.items():
             with self.subTest(name):
                 spec = {"type": name, "title": "だい", **data, **EXTRAS}
-                if name == "cards":
-                    spec.pop("cards", None)
-                    spec["cards"] = EXTRAS["cards"]
                 page = build(spec)
                 kinds = {e.kind for e in page.build()}
                 self.assertIn("table", kinds, f"{name} dropped the table")
@@ -198,13 +193,6 @@ class TheExtrasWorkOnEveryType(unittest.TestCase):
                     self.assertEqual(above.bottom + s.gap_s, below.top)
                 self.assertEqual([tall[key] for key in wanted], [rect.height for rect in rects])
                 self.assertEqual(page.body.bottom, rects[-1].bottom)
-
-    def test_the_reading_takes_what_is_left_under_a_body_that_did_not_fill_its_area(self):
-        """カードだけの頁は本体が空で、読み方の下に場所が余る。読み方の枠はそこまで伸びる。"""
-        page = build({"type": "cards", "title": "だい", "cards": EXTRAS["cards"], "note": "読み方を 1 行"})
-        note = next(e.rect for e in page.build() if e.kind == "note")
-        self.assertEqual(page.body.bottom, note.bottom)
-        self.assertGreater(note.height, DEFAULT.line_height())
 
     def test_the_order_of_the_frame_never_changes(self):
         """並びは 1 つしかない ― カードは本体の上、表と読み方は本体の下。"""
@@ -722,27 +710,6 @@ class CoordinatesCannotBeDeclared(unittest.TestCase):
         offenders = re.findall(r"(?<![\w.])\d{4,}(?![\w.])", code)
         self.assertEqual([], offenders,
                          f"a page type wrote a raw dimension: {offenders}")
-
-    def test_a_body_type_must_show_something(self):
-        """本文の型が図解を落とせるなら、表と文章だけの頁が戻ってくる。
-
-        絵を持つか、図形で組んだ図解を持つか (= `flow` / `timeline`)、数字から描くグラフを持つかの
-        どれかでなければ組めない。
-        """
-        for name, data in MINIMAL.items():
-            if name in SKELETON:
-                continue
-            with self.subTest(name):
-                shows = {"figure", "figures", "stages", "lanes", "chart"} & data.keys()
-                self.assertTrue(shows, f"{name} can be built without anything to look at")
-
-    def test_the_scaffolding_stays_small(self):
-        """例外の型は増やさない (= 増えた分だけ「表だけの頁」の逃げ道になる)。
-
-        4 つめの `compose` は、承知の上で足した逃げ道。カードだけで組む頁 (= 目標と柱) を拒むと、
-        型に合わせて指定を曲げる組み方が戻るため (= 2026-10-03 に決めた)。
-        """
-        self.assertLessEqual(len(types.skeleton()), 4)
 
 
 class ManifestCarriesTheType(unittest.TestCase):

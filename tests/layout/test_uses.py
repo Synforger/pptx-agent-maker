@@ -14,6 +14,15 @@
 
 from __future__ import annotations
 
+#: its pages are heavy on words by design, so the four checks of a page's weight are lifted (= `tests/conftest.py`)
+PAGE_CHECKS_LIFTED = True
+
+
+#: its pages are the extras alone, so it asks for the body-less test type (= `tests/conftest.py`)
+BARE_PAGE_TYPE = True
+
+
+
 import contextlib
 import io
 import re
@@ -143,7 +152,7 @@ class _Project(unittest.TestCase):
 
     def page(self, title: str, use: str | None = None) -> str:
         said = f'use = "{use}"\n' if use else ""
-        return f'[[pages]]\nkind = "declare"\ntype = "cards"\n{said}title = "{title}"\n' + self.CARDS
+        return f'[[pages]]\nkind = "declare"\ntype = "bare"\n{said}title = "{title}"\n' + self.CARDS
 
     def project(self, look: str, checks: str = "") -> Path:
         """A project whose `workspace.toml` says `look`, with `checks` added to the checks it already asks for."""
@@ -196,7 +205,7 @@ class BuiltByName(_Project):
     def test_the_page_is_the_one_a_deck_to_be_read_would_hold(self) -> None:
         """挟んだ頁は、読ませる資料で組んだ同じ頁と 1 字も違わない (= 表の行の高さも箱の余白も、その頁の
         大きさから出る)。資料の側の大きさが 1 つでも混ざれば、ここで食い違う。"""
-        table = ('[[pages]]\nkind = "declare"\ntype = "cards"\n__USE__title = "表を持つ頁"\n' + self.CARDS.rstrip("\n")
+        table = ('[[pages]]\nkind = "declare"\ntype = "bare"\n__USE__title = "表を持つ頁"\n' + self.CARDS.rstrip("\n")
                  + '\ntable = [["手法", "値"], ["A", "1"], ["B", "2"]]\nnote = "読み方の 1 行"\nfooter = "出所 (= 見本)"\n\n')
 
         def second_page(look: str, use: str) -> str:
@@ -248,7 +257,7 @@ class BuiltByName(_Project):
         self.assertIn("names its use in words", said)
 
     def test_a_page_cannot_say_a_size_only_the_name_of_a_use(self) -> None:
-        code, said, _root = self.build("", '[[pages]]\nkind = "declare"\ntype = "cards"\nbody = 10\ntitle = "題"\n'
+        code, said, _root = self.build("", '[[pages]]\nkind = "declare"\ntype = "bare"\nbody = 10\ntitle = "題"\n'
                                        + self.CARDS)
         self.assertNotEqual(0, code)
         self.assertIn("does not take body", said)
@@ -355,7 +364,7 @@ class APageReadOnOneSheet(unittest.TestCase):
             for count in range(3, 60, 3):
                 cards = [{"heading": f"見出し {i}", "body": "本文の字が 1 行ぶん"} for i in range(count)]
                 try:
-                    types.build({"type": "cards", "title": "題", "card_columns": 3, "cards": cards},
+                    types.build({"type": "bare", "title": "題", "card_columns": 3, "cards": cards},
                                 lambda name: None, lambda path: 1.0, theme)
                 except PageFullError:
                     break

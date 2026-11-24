@@ -25,16 +25,19 @@
     roadmap         到達点までの段が矢羽根で左から右へ (= 各段の下に、その段で渡す物)
     timeline        期間が左から右、レーンが上から下 (= レーンの中に棒と印)
     chart           数字から描くグラフ (= 棒・縦棒・折れ線・積み上げ・滝グラフ。数字は deck の中)
-    cards           カードの並びが本体 (= 今週の計画、まとめ)
     board           表 1 枚が本体 (= 毎週積み上げる早見表)
     agenda          目次 (= 左に全項目、右にバケット。今いる章を強調する)
 
 どの型にも無い組み方は `compose` (= `bodies/compose.py`) で書く。本体を段とマスの入れ子に割り、マスに
 部品を 1 つ置く。部品には上の型も入る ― 型は組み方の短縮形で、組み方そのものではない。
 
-⚠ **絵を持たなくてよいのは後ろの 3 つだけ** (= グラフは数字を形で見せるので、絵と同じに数える)。
-本文の頁がここを外せるようになると、「表と文章だけ」の頁が戻ってくる (= 実際にそれで作った頁は
-全部差し戻された)。
+⚠ **絵を持たなくてよいのは `agenda` (目次) だけ。** 頁の図解に数えるのは、絵・グラフ・`timeline` の棒・
+`compose` や `arrange` の円の重なり (= 形で仕組みや関係を見せる物)。箱の中の文字・カード・表・文字の
+箱を矢印や線でつないだ物 (= `flow`・`roadmap`・箱の輪・箱の木) は数えない。だから `board`・
+`flow`・`roadmap` は 1 頁まるごとでは組めず、絵かグラフと並べる部品になる (= `figure`・`chart` の頁に
+`table` を添える、`compose` のマスに絵かグラフと並べる)。カードは付属で、型ではない (= `cards` の型は
+退いた。`figure`・`chart` の頁に `cards = [...]` を添える)。本文の頁がここを外せるようになると、
+箱の中の文字だけの頁が戻ってくる (= 実際にそれで作った頁は全部差し戻された)。
 """
 
 from __future__ import annotations
@@ -47,7 +50,7 @@ from ..tokens import DEFAULT, Theme
 from ..parts.page import Page
 from .core.frame import centre_body, place_cards, place_legend, place_trailing, reserve_legend, reserve_trailing
 from .core.read import MARKS, Spec
-from .core.registry import check_keys, EXTRA_KEYS, FRAME_KEYS, PageTypeError, TYPES
+from .core.registry import check_keys, EXTRA_KEYS, FRAME_KEYS, PageTypeError, TYPES, way_out
 from . import bodies  # noqa: F401 (= 本体の file を読むと、その型が登録される)
 from .bodies import chart
 
@@ -58,7 +61,7 @@ def names() -> list[str]:
 
 
 def skeleton() -> list[str]:
-    """The types allowed to carry no figure (= the deck's own scaffolding)."""
+    """The types allowed to carry no figure (= only `agenda`, the deck's own scaffolding)."""
     return sorted(name for name, spec in TYPES.items() if not spec[3])
 
 
@@ -67,11 +70,7 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
     """Turn one declaration into a page, refusing anything no type can hold."""
     name = str(data.get("type", "")).strip()
     if name not in TYPES:
-        raise PageTypeError(
-            f"unknown page type {name!r} — the deck may use only: {', '.join(names())}. "
-            "A page that fits none of them means a type is missing; add one rather than "
-            "placing shapes by hand."
-        )
+        raise PageTypeError(way_out(name, names()))
     filler, needs, takes, wants_figure = TYPES[name]
     check_keys(name, data, needs, takes)
     # 頁が使い方を名指していれば、その大きさで組む (= 映す資料の途中に挟む、詰めた 1 枚)
@@ -99,15 +98,9 @@ def build(data: dict, asset: Callable[[str], Path], aspect: Callable[[Path], flo
     spec = Spec(data, asset, aspect, theme)
     whole = page.body
     first = len(page.elements)
-    if name == "cards" and theme.box_height == "page":
-        # カードが本体そのもの: 表・読み方・凡例が要る高さを先に取り、残りをカードが使い切る
-        area, trailing = reserve_trailing(page, spec, whole)
-        area, legend = reserve_legend(page, spec, area)
-        area = place_cards(page, spec, area, fill=True)
-    else:
-        area = place_cards(page, spec, whole)
-        area, trailing = reserve_trailing(page, spec, area)
-        area, legend = reserve_legend(page, spec, area)
+    area = place_cards(page, spec, whole)
+    area, trailing = reserve_trailing(page, spec, area)
+    area, legend = reserve_legend(page, spec, area)
     filler(page, spec, area)
     place_legend(page, legend, Rect(area.left, whole.top, area.width, area.bottom - whole.top))
     place_trailing(page, spec, trailing)
@@ -124,7 +117,7 @@ def describe() -> str:
         needed = ", ".join(sorted(needs)) or "—"
         own = ", ".join(sorted(takes)) or "—"
         lines.append(f"  {name:<12} needs: {needed:<10} also reads: {own:<10}"
-                     f"{'' if figure else '  (may carry no picture)'}")
+                     f"{'' if figure else '  (may carry no picture: the agenda)'}")
     lines.append(f"  on any type: {', '.join(sorted(EXTRA_KEYS))}")
     lines.append(f"  a chart: kind ({' | '.join(chart.KINDS)}), categories, series = [{{ name, values, tone }}] "
                  'or data = "x.csv", highlight, unit, labels, totals (= of a waterfall), '

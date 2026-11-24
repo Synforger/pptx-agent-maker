@@ -81,7 +81,6 @@ def _roadmap(page: Page, spec: Spec, area: Rect) -> None:
     # 字の高さの資料では、ここは何もしない。頁の高さを使う資料では、ノードが残りの高さを分け合う
     stacks, stack = fill_stacks(page, stacks, stack, area.height - head_height - gap, aligned)
 
-    page.drew_a_diagram()  # 矢羽根とノードで組んだ道のりそのものが、この頁の図解
     for (rect, shape, size, _tall, style), stage, column, column_nodes in zip(
             arrows, stages, columns, stacks):
         page.chevron(Rect(rect.left, area.top, rect.width, head_height), str(stage["name"]), style,
