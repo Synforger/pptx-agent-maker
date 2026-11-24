@@ -246,6 +246,60 @@ bars = [ { from = 0, to = 2, text = "build" } ]
 - **間** ― 同じ段のマスとマスの間は使い方の `gap_x`、段と段の間は `gap_y` (= 書かなければどちらも `gap_m`)。
   横の間だけ広げて縦は詰める頁は、使い方の `[theme.uses.<名前>.spacing]` に `gap_x` と `gap_y` を書く。入れ物 (`panel`)
   の中の段とマスも同じ 2 つ。題・帯と本体の間は `band_gap` (下の「資料の使い方」の表)
+- **左右で縦の並びが違う流れ図** ― 左と右が別の数の箱、別の所の分岐を持つ流れ図は、段 1 つに**マスを 2 つ**置き、
+  マスごとに `rows` で自分の段を持たせる (= 入れ子。左右は自分の段の高さで上から積まれ、矢印は左右をまたいで `id` で結べる)。
+  `grid` は使わない (= 格子は 1 つのマスが内側に `gap_m` の半分を四方に取るので、箱が多い列では高さが先に尽きる。
+  入れ子の箱と箱の間は `gap_y` だけ)。分岐は、同じ段に箱を 2 つ並べて書く。合流は、2 つの箱から同じ箱へ線を引く。
+  縦の矢印が読める長さは `gap_y` が持つので、`[theme.uses.<名前>.spacing]` の `gap_y` を 0.4cm 以上にする
+  (= 矢印のそばに `text` を置く時は、本文の 1 行が入る 0.6cm)
+
+  ```toml
+  [[pages]]
+  kind = "declare"
+  type = "compose"
+  title = "申込を受けてから、結果を返すまで"
+  links = [
+    { from = "l1", to = "l2" }, { from = "l2", to = "l3a" }, { from = "l2", to = "l3b" },
+    { from = "l3a", to = "l4" }, { from = "l3b", to = "l4" },
+    { from = "l4", to = "r1", tone = "accent" },                   # 左の終わりから右の始まりへ
+    { from = "r1", to = "r2" },
+  ]
+
+  [[pages.rows]]                                           # 段は 1 つ。マスが左と右
+  [[pages.rows.cells]]                                     # 左のマス = 自分の段を持つ
+  [[pages.rows.cells.rows]]
+  [[pages.rows.cells.rows.cells]]
+  id = "l1"
+  card = { heading = "受け取る", body = "窓口で受ける" }
+  [[pages.rows.cells.rows]]
+  [[pages.rows.cells.rows.cells]]
+  id = "l2"
+  card = { heading = "判断する" }
+  [[pages.rows.cells.rows]]                                # 分岐 = 同じ段に 2 つ
+  [[pages.rows.cells.rows.cells]]
+  id = "l3a"
+  card = { heading = "そろっている" }
+  [[pages.rows.cells.rows.cells]]
+  id = "l3b"
+  card = { heading = "足りない" }
+  [[pages.rows.cells.rows]]
+  [[pages.rows.cells.rows.cells]]
+  id = "l4"
+  card = { heading = "担当へ渡す" }
+
+  [[pages.rows.cells]]                                     # 右のマス = 左と別の段の数
+  [[pages.rows.cells.rows]]
+  [[pages.rows.cells.rows.cells]]
+  id = "r1"
+  card = { heading = "審査する" }
+  [[pages.rows.cells.rows]]
+  [[pages.rows.cells.rows.cells]]
+  id = "r2"
+  card = { heading = "結果を返す" }
+  ```
+
+  左右の矢印は、向き合わなければ 1 度折れて間を通る。段の数が多い側が頁の高さを決め、少ない側は上に寄る
+  (= 左右の同じ段を同じ高さに揃えたい時は、格子の `rows` を細かく割って書く)。
 - **格子 (`grid`)** ― 1 つの箱が複数の行や列をまたぐ頁 (= 部門をまたぐ流れ図のように、帯と、帯をまたぐ箱) は、段とマスでは
   書けない。`rows` の代わりに `grid` と `cells` で書く (= `rows` と `grid` は同じ頁に書けない。止まる。今までの `rows` の
   書き方は変わらない)。`grid` と `links` は、最初の `[[pages.cells]]` より上に書く:
