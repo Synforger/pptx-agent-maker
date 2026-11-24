@@ -160,6 +160,22 @@ class LinesThatLeaveOneEdgeTogether(unittest.TestCase):
         self.assertEqual({(p.left + p.width // 2, p.bottom)}, {line.start for line in lines})
         self.assertTrue(all(line.corners for line in lines), "each part along the cross line")
 
+    def test_a_branch_with_no_edge_written_goes_into_the_edge_facing_the_trunk(self):
+        """Nothing is written for the edge in: a box below the trunk is entered by its top, though a side is nearer for the one far off."""
+        rows = [row(blank(), card("p"), blank(), blank()), row(card("x"), blank(), blank(), card("z"))]
+        page = compose(rows, [{"from": "p", "to": "x", "out": "bottom"}, {"from": "p", "to": "z", "out": "bottom"}])
+        for line, name in zip(lines_of(page), ("X", "Z")):
+            child = box_of(page, name).rect
+            self.assertEqual(child.top, line.end[1], name)
+
+    def test_a_box_beside_the_trunk_is_not_given_an_edge_it_does_not_face(self):
+        """`out = "bottom"` to a box higher than the parent: no edge faces the trunk, so the way picks it (= it is not forced to the top)."""
+        rows = [row(card("x"), blank()), row(blank(), card("p")), row(blank(), card("y"))]
+        page = compose(rows, [{"from": "p", "to": "x", "out": "bottom"}, {"from": "p", "to": "y", "out": "bottom"}])
+        x = box_of(page, "X").rect
+        line = lines_of(page)[0]
+        self.assertNotEqual(x.top, line.end[1], "the line goes into x from below or the side, not by its top")
+
     def test_a_link_written_alone_is_no_trunk_and_keeps_its_straight_line(self):
         page = compose(PARENT_AND_CHILDREN, [{"from": "p", "to": "y", "out": "bottom"}])
         (line,) = lines_of(page)

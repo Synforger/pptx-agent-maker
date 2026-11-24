@@ -55,6 +55,18 @@ file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
 old = "    return (Counter((link.ends[0], link.out_side) for link in items if link.out_side is not None),"
 new = "    return (Counter((link.ends[0], 0) for link in items if link.out_side is not None),"
 
+[[mutant]]
+name = "a branch with no edge written is not given the edge facing the trunk"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    leaving, _ = _written_edges(items)\n    beyond = ("
+new = "    return items\n    beyond = ("
+
+[[mutant]]
+name = "a box that does not lie beyond the trunk is given the edge facing it anyway"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "                and beyond[link.out_side](link.first, link.second)) else link for link in items]"
+new = "                and True) else link for link in items]"
+
 # -- words on a bent line --
 
 [[mutant]]

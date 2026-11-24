@@ -432,7 +432,7 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     s = page.theme.spacing
     room = Room(page.body, s.gap_x // 2, s.gap_y // 2, _hop(s))
     _clear_shared_words(items)
-    items = _bent_by_sides(items)
+    items = _bent_by_sides(_facing_the_trunk(items))
     in_the_way = [[other for other in every if other not in (link.first, link.second) and other not in blank
                    and not other.contains(link.first) and not other.contains(link.second)] for link in items]
     # 向き合っていても、真っすぐの線の上に別の箱が在れば、向き合わない 2 つと同じく折れ線で回る
@@ -469,6 +469,20 @@ def _written_edges(items: list[_Link]) -> tuple[Counter, Counter]:
     """How many links are written to leave each (cell, edge), and how many to enter each (cell, edge)."""
     return (Counter((link.ends[0], link.out_side) for link in items if link.out_side is not None),
             Counter((link.ends[1], link.in_side) for link in items if link.in_side is not None))
+
+
+def _facing_the_trunk(items: list[_Link]) -> list[_Link]:
+    """The links, each of those that part from a trunk given the edge facing the trunk to go into, where it wrote none.
+
+    同じ箱の同じ辺から出ると書いた線が 2 本以上なら、`in` を書かない線は、幹に向いた辺 (= 出る辺の反対側。相手の箱が
+    出る辺の向こうに在る時だけ) から入る。書かなければ、道が辺を選ぶので、横の辺から入る道を選ぶことがある。
+    """
+    leaving, _ = _written_edges(items)
+    beyond = (lambda a, b: b.left >= a.right, lambda a, b: b.top >= a.bottom,
+              lambda a, b: b.right <= a.left, lambda a, b: b.bottom <= a.top)
+    return [replace(link, in_side=(link.out_side + 2) % 4)
+            if (link.in_side is None and link.out_side is not None and leaving[(link.ends[0], link.out_side)] > 1
+                and beyond[link.out_side](link.first, link.second)) else link for link in items]
 
 
 def _bent_by_sides(items: list[_Link]) -> list[_Link]:

@@ -179,7 +179,7 @@ new = "if False:"
 name = "the words of a sideways arrow may rise above the cells"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
 old = "        return max(link.first.top, link.second.top)"
-new = "        return page.body.top"
+new = "        return 0"
 
 [[mutant]]
 name = "the words of an arrow are not bold"
