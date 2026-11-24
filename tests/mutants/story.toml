@@ -85,7 +85,7 @@ new = "(*CHECKS, *DECLARED)"
 [[mutant]]
 name = "the build does not run the checks that read the manifest"
 file = "src/pptx_agent_maker/__main__.py"
-old = "findings = run_built(built_deck, manifest, theme, _checks(workspace, manifest, theme))"
+old = "findings = run_built(built_deck, manifest, theme, _checks(workspace, manifest, theme),\n                             declared_pages(workspace, manifest, theme))"
 new = "findings = run_all(built_deck, _checks(workspace, manifest, theme))"
 
 

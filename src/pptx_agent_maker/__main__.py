@@ -619,7 +619,7 @@ def main(argv: list[str] | None = None) -> int:
             print(report(findings, first_number=first_slide_number(target)))
             return 1 if findings else 0
 
-        from .deck.build import build, theme_of
+        from .deck.build import build, declared_pages, theme_of
 
         manifest = Manifest.load(workspace.manifest(args.manifest))
         built_deck = build(workspace, manifest)
@@ -636,7 +636,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         # 焼いた deck を読み直す検査と、manifest を読む検査を、1 つの報告に並べる
         theme = theme_of(workspace, manifest)
-        findings = run_built(built_deck, manifest, theme, _checks(workspace, manifest, theme))
+        findings = run_built(built_deck, manifest, theme, _checks(workspace, manifest, theme),
+                             declared_pages(workspace, manifest, theme))
         print(report(findings, declared=True, first_number=first_number))
         return 1 if findings else 0
     except (WorkspaceError, ManifestError, FileExistsError, FileNotFoundError,
