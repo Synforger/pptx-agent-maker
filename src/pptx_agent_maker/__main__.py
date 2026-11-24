@@ -310,7 +310,9 @@ def main(argv: list[str] | None = None) -> int:
     built = sub.add_parser("build", help="build a deck from one of the project's manifests")
     built.add_argument("path", help="the project folder")
     built.add_argument("manifest", help="a manifest name, with or without .toml")
-    built.add_argument("--skip-checks", action="store_true", help="build without checking")
+    built.add_argument("--skip-checks", action="store_true",
+                       help="skip the checks `check` runs and nothing else: the figure rule and a page that "
+                            "cannot hold its content still stop the build (a page's `no_figure` lifts the figure rule)")
 
     titled = sub.add_parser("titles", help="print every page's title in order, to read the story the deck tells")
     titled.add_argument("path", help="the project folder")
