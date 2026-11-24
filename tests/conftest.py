@@ -16,6 +16,7 @@ carry no figure. It is a type of the tests only, so no module that lists the typ
 
 from __future__ import annotations
 
+import importlib
 import sys
 
 import pytest
@@ -65,10 +66,11 @@ AGENDA_RULE = "pptx_agent_maker.checks.declared.section_agenda"
 @pytest.fixture(scope="module", autouse=True)
 def agenda_rule(request):
     """Lift the rule of an agenda page for a module that says so (= a deck with none is no longer stopped)."""
-    rule = sys.modules.get(AGENDA_RULE)
-    if rule is None or not getattr(request.module, "AGENDA_RULE_LIFTED", False):
+    if not getattr(request.module, "AGENDA_RULE_LIFTED", False):
         yield
         return
+    # import it here: a module that loads the toolkit later would otherwise find nothing to lift
+    rule = importlib.import_module(AGENDA_RULE)
     rule.NEEDS_AGENDA = False
     try:
         yield

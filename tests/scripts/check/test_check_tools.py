@@ -18,6 +18,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+#: the snapshot tests bake small decks of one or two pages that carry no agenda page (= `tests/conftest.py`)
+AGENDA_RULE_LIFTED = True
+
 REPO = Path(__file__).resolve().parents[3]
 ASSETS = REPO / "tests" / "corpus" / "assets"
 
