@@ -17,7 +17,9 @@
   後の線が跳び越す。`link_routes`)。互いの出る箱から互いの入る箱への矢印も書かれている 2 本は、同じ隙間を離して
   並べずに 1 本に重ねて走る (= 重ねて読める結びが、全部書かれている)。
   入れ物 (`panel`) の中のマスと外のマスも結べ、入れ物そのものも端になる (= 入れ物とその中身は結べない)。
-  色の役 (`tone`) と、真っすぐな矢印のそばに置く言葉 (`text`) も書ける。
+  色の役 (`tone`) と、矢印のそばに置く言葉 (`text`) も書ける (= 曲がる線の言葉は、出る辺から最初に曲がるまでの区間のそば)。
+  出る辺 (`out`) と入る辺 (`in`) も書ける (= 書いた辺から出て、書いた辺へ入る。同じ箱の同じ辺から出る線が 2 本以上、
+  または同じ辺へ入る線が 2 本以上なら、1 本の幹と横の線にまとまる。幹がほかの箱をよけて回る道は曲がる線と同じ)。
   線が `LINKS_FOR_A_DIAGRAM` 本以上で、結ぶ箱が `SPAN_FOR_A_DIAGRAM` 行以上かつ列以上に広がる頁は、形の図を持つ
   (= 条件で分かれる流れ図・泳ぎ線の図・つながりの図。一列の流れは数えない。`shows_a_diagram`)
 
@@ -27,12 +29,13 @@
 from __future__ import annotations
 
 import math
+from collections import Counter
 from dataclasses import dataclass, replace
 from typing import Sequence
 
 from ...geometry import EMU_PER_CM, Rect, pt
 from ...parts.page import Card, Page, PageFullError
-from ..core.read import Spec, read_card, read_tone, only_keys
+from ..core.read import Spec, read_card, read_edge, read_tone, only_keys
 from ..core.registry import PageTypeError
 from ..core.stack import card_height
 from .link_routes import (MAX_BENDS, SIDES, Attach, NoRoute, Point, Port, Room, Route, RouteSearch, hops, middle_ports,
@@ -55,7 +58,7 @@ MARK_COLUMN = 1 / 3
 #: 木の箱の子を持つ側のキー
 TREE_KEYS = ("heading", "body", "tone", "icon", "tentative", "strong", "children")
 #: マスどうしの線 1 本が読むキー
-LINK_KEYS = ("from", "to", "text", "tone", "tentative")
+LINK_KEYS = ("from", "to", "text", "tone", "tentative", "out", "in")
 #: 結んだ箱が形の図になる線の本数の下限 (= これより少ない線は、箱に添えた矢印)
 LINKS_FOR_A_DIAGRAM = 3
 #: 結んだ箱が形の図になる、広がりの行の数と列の数の下限 (= 一列の流れは、何本でも数えない)
@@ -377,6 +380,9 @@ class _Link:
     facing: str
     #: 点線 (= 構想の段の流れ。カードの `tentative` と同じ書き方)
     dashed: bool = False
+    #: 書いた出る辺・入る辺 (= `SIDES` の番号。書かなければ None で、道が選ぶ)
+    out_side: int | None = None
+    in_side: int | None = None
 
     def sides(self) -> tuple[int, int]:
         """The sides of the two rects a straight line leaves by and goes into (= indexes of `SIDES`)."""
@@ -414,7 +420,9 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     近い道がどのマスを横切るかを言う)。曲がる線は、マスどうしの間の空いた通り道を、曲がる回数の一番少ない道で
     通る (= `link_routes`)。
     ただし `blank` (= 中身の無いマス。`text = ""`) は空きなので数えない (= 離れた 2 つのマスを、間の空きを
-    またいで結べる)。`tone` は矢印の色の役 (= 書かなければ灰)、`text` は矢印のそばの言葉 (= `_words_by`)。
+    またいで結べる)。`tone` は矢印の色の役 (= 書かなければ灰)、`text` は矢印のそばの言葉 (= `_words_by`。曲がる線は
+    最初の区間のそば)。`out` / `in` は出る辺・入る辺 (= `_bent_by_sides`: 書いた辺が真っすぐの線の辺と違う線と、同じ辺を
+    分け合う線は折れ線になる)。
     結んだマスが `shows_a_diagram` なら、形の図を持つ頁として宣言する (= `Page.drew_a_diagram`)。
     """
     if not isinstance(written, list) or not written:
@@ -423,6 +431,8 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     detour = _read_detour(spec.get("detour"), what)
     s = page.theme.spacing
     room = Room(page.body, s.gap_x // 2, s.gap_y // 2, _hop(s))
+    _clear_shared_words(items)
+    items = _bent_by_sides(items)
     in_the_way = [[other for other in every if other not in (link.first, link.second) and other not in blank
                    and not other.contains(link.first) and not other.contains(link.second)] for link in items]
     # 向き合っていても、真っすぐの線の上に別の箱が在れば、向き合わない 2 つと同じく折れ線で回る
@@ -446,10 +456,53 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
         drawn.append(points)
         drawn_ends.append(link.ends)
         if link.words:
-            _words_by(page, link.words.strip(), points[0], points[-1], link.facing == "across", (link.first, link.second),
-                      others, reach, link.where)
+            end = points[-1] if link.facing else points[1]
+            across = points[0][1] == end[1]
+            _words_by(page, link.words.strip(), points[0], end, across,
+                      _ceiling(page, link, points[0][1], sorted((points[0][0], end[0])), others) if across else 0,
+                      others, reach, link.where, bent=not link.facing)
     if shows_a_diagram(len(items), [box for link in items for box in (link.first, link.second)]):
         page.drew_a_diagram()
+
+
+def _written_edges(items: list[_Link]) -> tuple[Counter, Counter]:
+    """How many links are written to leave each (cell, edge), and how many to enter each (cell, edge)."""
+    return (Counter((link.ends[0], link.out_side) for link in items if link.out_side is not None),
+            Counter((link.ends[1], link.in_side) for link in items if link.in_side is not None))
+
+
+def _bent_by_sides(items: list[_Link]) -> list[_Link]:
+    """The links, each made a bent line when it is written to leave or enter by an edge a straight line would not use, or to leave (enter) by an edge together with another.
+
+    向き合う 2 つの線は、書いた辺が真っすぐの線の辺と同じなら真っすぐのまま (= 書かなかった線の座標は変わらない)。
+    同じ箱の同じ辺から出る (= 同じ辺へ入る) と書いた線が 2 本以上なら、向き合う線も折れ線で結ぶ (= 1 本の幹から横の線を
+    通って分かれる形。真っすぐな線が混ざると、幹から出る線と離れて出る線が並ぶ)。
+    """
+    leaving, entering = _written_edges(items)
+
+    def bends(link: _Link) -> bool:
+        if not link.facing:
+            return False
+        out_side, in_side = link.sides()
+        leaves_otherwise = link.out_side is not None and (
+            link.out_side != out_side or leaving[(link.ends[0], link.out_side)] > 1)
+        enters_otherwise = link.in_side is not None and (
+            link.in_side != in_side or entering[(link.ends[1], link.in_side)] > 1)
+        return leaves_otherwise or enters_otherwise
+
+    return [replace(link, facing="") if bends(link) else link for link in items]
+
+
+def _clear_shared_words(items: list[_Link]) -> None:
+    """Stop the page when words are written on a line that leaves an edge together with others: its first run is theirs too."""
+    leaving, _ = _written_edges(items)
+    for link in items:
+        if link.words and link.out_side is not None and leaving[(link.ends[0], link.out_side)] > 1:
+            raise PageTypeError(
+                f"{link.where}: this line leaves {link.ends[0]!r} by its {SIDES[link.out_side]} edge together with "
+                f"{leaving[(link.ends[0], link.out_side)] - 1} other line(s), so the run it starts with is one they share "
+                "and words beside it would read as the words of all of them — drop `text` on it, or let it leave by an "
+                "edge of its own")
 
 
 def _may_share(ends: tuple[str, str], link_ends: tuple[str, str], written: set[tuple[str, str]]) -> bool:
@@ -463,7 +516,7 @@ def _may_share(ends: tuple[str, str], link_ends: tuple[str, str], written: set[t
 
 
 def _read_link(spec: Spec, item, number: int, cells: dict[str, Rect], what: str) -> _Link:
-    """One written link, checked: both ends known, neither holding the other, a tone that exists, words only on a straight line."""
+    """One written link, checked: both ends known, neither holding the other, a tone that exists, edges that are edges."""
     where = f"{what}: link {number}"
     only_keys(item, set(LINK_KEYS), where)
     ends = [str(item.get(key, "")) for key in ("from", "to")]
@@ -475,6 +528,8 @@ def _read_link(spec: Spec, item, number: int, cells: dict[str, Rect], what: str)
     dashed = item.get("tentative", False)
     if not isinstance(dashed, bool):
         raise PageTypeError(f"{where}: `tentative` is true or false (= a dotted line), not {dashed!r}")
+    out_side, in_side = (None if edge is None else SIDES.index(edge) for edge in
+                         (read_edge(item, "out", where), read_edge(item, "in", where)))
     words = item.get("text")
     if "text" in item and (not isinstance(words, str) or not words.strip()):
         raise PageTypeError(f"{where}: `text` is the words set beside the arrow, not {words!r} — "
@@ -490,11 +545,7 @@ def _read_link(spec: Spec, item, number: int, cells: dict[str, Rect], what: str)
         facing = "down"
     else:
         facing = ""
-        if words:
-            raise PageTypeError(f"{where}: {ends[0]!r} and {ends[1]!r} do not face each other, so the line bends — "
-                                "a bent line carries no words; drop `text`, or put the two cells side by side or "
-                                "one above the other")
-    return _Link(where, (ends[0], ends[1]), a, b, tone, words, facing, dashed)
+    return _Link(where, (ends[0], ends[1]), a, b, tone, words, facing, dashed, out_side, in_side)
 
 
 def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, cells: dict[str, Rect],
@@ -545,6 +596,11 @@ def _joined(box: Rect, port: Port) -> tuple[Rect, int] | None:
     return (box, port.side) if port in middle_ports(box) else None
 
 
+def _ports_on(box: Rect, side: int | None) -> list[Port]:
+    """The ports in the middle of a box's edges: the one on `side`, or all four when no side is written."""
+    return [port for port in middle_ports(box) if side is None or port.side == side]
+
+
 def _port_at(box: Rect, side: int, along: int) -> Port:
     """The port on a side of a box at a coordinate along the edge."""
     return Port(((box.right, along), (along, box.bottom), (box.left, along), (along, box.top))[side], side)
@@ -556,7 +612,8 @@ def _route(link: _Link, others: list[Rect], drawn: list[tuple[Point, ...]], room
 
     `detour` が在れば、交わらない道が、跳び越す道のうち一番短い道の `detour` 倍より長い時に、その跳び越す道を選ぶ。
     """
-    starts, ends = (middle_ports(link.first), middle_ports(link.second)) if ports is None else ([ports[0]], [ports[1]])
+    starts, ends = ((_ports_on(link.first, link.out_side), _ports_on(link.second, link.in_side)) if ports is None
+                    else ([ports[0]], [ports[1]]))
     try:
         route = RouteSearch(link.first, link.second, others, drawn, room, starts, ends, strict=strict, kin=kin).cheapest()
         if detour is not None and not route.blocked:
@@ -631,8 +688,20 @@ def _gap_to_widen(page: Page, gap: str) -> str:
     return f"`{gap}`" if gap in dict(page.theme.type.spaced) else "`gap_m`"
 
 
+def _ceiling(page: Page, link: _Link, along: int, span: list[int], others: list[Rect]) -> int:
+    """How high the words above a sideways run (at `along`, over `span`) may stand.
+
+    向き合う 2 つのマスの間の真っすぐな線は、2 つのマスの上端まで (= 隙間の高さ)。曲がる線の最初の区間は、出るマスの
+    横の空いた所を走るので、上は、その区間の上に在る別のマスの下端か、頁の本体の上端まで。
+    """
+    if link.facing:
+        return max(link.first.top, link.second.top)
+    above = [rect.bottom for rect in (*others, link.second) if rect.bottom <= along and rect.left < span[1] and span[0] < rect.right]
+    return max([page.body.top, *above])
+
+
 def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, int], across: bool,
-              ends: tuple[Rect, Rect], others: list[Rect], reach: int, where: str) -> None:
+              ceiling: int, others: list[Rect], reach: int, where: str, *, bent: bool = False) -> None:
     """The words of a link: above a sideways arrow, to the right of a downward one.
 
     上は、矢印の上の隙間 (= 向き合う 2 つのマスの上端まで)、右は、矢印の右の隙間 (= 別のマスに突き当たるか、
@@ -640,15 +709,19 @@ def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, in
     縮めずに止まる** ― 隙間を広げるのは使い方の `gap_x` (= 横の矢印) か `gap_y` (= 縦の矢印)。使い方が
     それを書いていなければ `gap_m` (= 2 つの間はそれに従う)。縦の矢印の右に字の幅が 1 文字ぶんも無い時は、足りないのは
     高さでなく幅で、決めるのは隣のマスとの間 (= `gap_x`)・字が矢印と隣のマスから離れる距離 (= `gap_s`)・列の幅。
-    言葉の見た目は矢印の色 (`tone`) とは別 (= 本文の大きさ・太字・本文の色)。
+    言葉の見た目は矢印の色 (`tone`) とは別 (= 本文の大きさ・太字・本文の色)。曲がる線 (`bent`) は、出る辺から
+    最初に曲がるまでの区間 (= `start` から `end`) のそばに置く。
     """
     s, ty = page.theme.spacing, page.theme.type
     if across:
         left, right = sorted((start[0], end[0]))
         bottom = start[1] - s.gap_s // 2
-        room = bottom - max(rect.top for rect in ends)
+        room = bottom - ceiling
         at, align = "above the arrow, between the two cells", "center"
         fix = f"a wider gap (= {_gap_to_widen(page, 'gap_x')} of the page's use)"
+        if bent:
+            at = "above the first run of the line, out of the cell it leaves"
+            fix = f"more room above that run (= a taller gap there, {_gap_to_widen(page, 'gap_y')} of the page's use)"
     else:
         above, below = sorted((start[1], end[1]))
         stops = [rect.left for rect in others if rect.left >= start[0] and rect.top < below and above < rect.bottom]
@@ -657,6 +730,8 @@ def _words_by(page: Page, words: str, start: tuple[int, int], end: tuple[int, in
         room = below - above
         at, fix, align = ("to the right of the arrow, in the gap between the two cells",
                           f"a taller gap (= {_gap_to_widen(page, 'gap_y')} of the page's use)", "left")
+        if bent:
+            at = "to the right of the first run of the line, out of the cell it leaves"
     usable = right - left - 2 * s.text_inset
     if usable < pt(ty.body):
         if not across:

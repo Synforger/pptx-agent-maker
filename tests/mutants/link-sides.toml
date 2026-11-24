@@ -1,0 +1,82 @@
+# The edges a link is written to leave and enter by, the lines that leave or enter one edge together, and the words on
+# a bent line.
+
+tests = ["tests/layout/test_link_sides.py"]
+
+# -- the edge a line leaves and enters by --
+
+[[mutant]]
+name = "a link written to leave by another edge than a straight line uses stays straight"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "link.out_side != out_side or leaving[(link.ends[0], link.out_side)] > 1)"
+new = "False or leaving[(link.ends[0], link.out_side)] > 1)"
+
+[[mutant]]
+name = "a link written to enter by another edge than a straight line uses stays straight"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "link.in_side != in_side or entering[(link.ends[1], link.in_side)] > 1)"
+new = "False or entering[(link.ends[1], link.in_side)] > 1)"
+
+[[mutant]]
+name = "a line leaves by any edge, not the one written"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return [port for port in middle_ports(box) if side is None or port.side == side]"
+new = "    return [port for port in middle_ports(box)]"
+
+[[mutant]]
+name = "a bent line is made straight whatever edge is written"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return [replace(link, facing=\"\") if bends(link) else link for link in items]"
+new = "    return items"
+
+[[mutant]]
+name = "a word that is not an edge is taken as none"
+file = "src/pptx_agent_maker/layout/types/core/read.py"
+old = "    if edge not in EDGES:\n        raise"
+new = "    if False:\n        raise"
+
+# -- lines that leave or enter one edge together --
+
+[[mutant]]
+name = "lines written to leave one edge together are drawn straight where they face"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "link.out_side != out_side or leaving[(link.ends[0], link.out_side)] > 1)"
+new = "link.out_side != out_side)"
+
+[[mutant]]
+name = "lines written to enter one edge together are drawn straight where they face"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "link.in_side != in_side or entering[(link.ends[1], link.in_side)] > 1)"
+new = "link.in_side != in_side)"
+
+[[mutant]]
+name = "lines leaving one edge together are counted by the box alone, whatever edge"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return (Counter((link.ends[0], link.out_side) for link in items if link.out_side is not None),"
+new = "    return (Counter((link.ends[0], 0) for link in items if link.out_side is not None),"
+
+# -- words on a bent line --
+
+[[mutant]]
+name = "the words of a bent line stand beside the whole line, not its first run"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "            end = points[-1] if link.facing else points[1]"
+new = "            end = points[-1]"
+
+[[mutant]]
+name = "words on a line that leaves an edge with others are let through"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "        if link.words and link.out_side is not None and leaving[(link.ends[0], link.out_side)] > 1:"
+new = "        if False:"
+
+[[mutant]]
+name = "the words above a first run rise into the cell above it"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    return max([page.body.top, *above])"
+new = "    return page.body.top"
+
+[[mutant]]
+name = "the words of a bent line are set at a height the first run does not have"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    if height > room:\n        raise PageFullError(f\"{where}: its words need"
+new = "    if False:\n        raise PageFullError(f\"{where}: its words need"

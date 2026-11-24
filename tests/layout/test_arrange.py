@@ -313,12 +313,6 @@ class BentLinks(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "a bent line runs along an axis between its corners"):
             page.line((0, 0), (10, 10), corners=[(5, 3)])
 
-    def test_a_bent_line_carries_no_words(self):
-        rows = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"text": ""}]},
-                {"cells": [{"text": ""}, {"id": "b", "card": {"heading": "B"}}]}]
-        with self.assertRaisesRegex(PageTypeError, "a bent line carries no words"):
-            Links().build(rows, [{"from": "a", "to": "b", "text": "then"}])
-
     def test_the_colour_of_a_bent_line_is_the_colour_of_its_tone(self):
         rows = [{"cells": [{"id": "a", "card": {"heading": "A"}}, {"text": ""}]},
                 {"cells": [{"text": ""}, {"id": "b", "card": {"heading": "B"}}]}]

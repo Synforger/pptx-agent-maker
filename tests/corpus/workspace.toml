@@ -113,3 +113,13 @@ section_agenda = false
 # The corpus names its grounds to show them, not to give every card a meaning, so a card written without a
 # tone is not a slip here.
 untoned_cards = false
+
+# A use whose arrows have room for words beside a short run, and whose boxes are low enough for a flow chart of
+# many boxes in one column (= the words of a line that leaves a box sideways stand in the half of the box above it).
+[theme.uses.flowing]
+like = "read"
+
+[theme.uses.flowing.spacing]
+gap_x = 1.0
+gap_y = 0.8
+gap_s = 0.1

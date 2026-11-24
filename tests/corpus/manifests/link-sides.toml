@@ -1,0 +1,47 @@
+# The edges a link is written to leave and enter by (= `out` and `in`): lines that leave one edge together by one
+# trunk and parting along a cross line, lines that enter one edge together joining before they go in, and words on a
+# bent line standing beside its first run.
+
+specimen = "specimen.pptx"
+out = "link-sides.pptx"
+
+[[pages]]
+kind = "declare"
+type = "compose"
+title = "A flow chart in two columns, its lines written to leave and enter by edges"
+use = "flowing"
+links = [
+  { from = "Start", to = "QA" },
+  { from = "QA", to = "DocA", text = "Yes", out = "left", in = "top" },
+  { from = "QA", to = "QB", text = "No", out = "right", in = "top" },
+  { from = "QB", to = "DocA", text = "Yes", out = "left", in = "top" },
+  { from = "QB", to = "DocB", text = "No", out = "bottom", in = "top" },
+  { from = "DocA", to = "Q1", out = "bottom", in = "top" },
+  { from = "DocB", to = "Q1", out = "bottom", in = "top" },
+  { from = "Q1", to = "Add1", text = "Yes" },
+  { from = "Q1", to = "Q2", text = "No" },
+  { from = "Q2", to = "Add2", text = "Yes" },
+  { from = "Q2", to = "Q3", text = "No" },
+  { from = "Q3", to = "Add3", text = "Yes" },
+  { from = "Q3", to = "Q4", text = "No" },
+  { from = "Q4", to = "Add4", text = "Yes" },
+  { from = "Q4", to = "C1", out = "bottom", in = "top" },
+  { from = "Q4", to = "C2", out = "bottom", in = "top" },
+  { from = "Q4", to = "C3", out = "bottom", in = "top" },
+  { from = "Q4", to = "C4", out = "bottom", in = "top" },
+]
+
+[[pages.rows]]
+cells = [
+  { weight = 2163, rows = [ { cells = [ { text = "", weight = 810 }, { id = "Start", weight = 500, card = { heading = "Start", body = "Begin here" } }, { text = "", weight = 853 } ] },
+      { cells = [ { text = "", weight = 770 }, { id = "QA", weight = 582, card = { heading = "Known?" } }, { text = "", weight = 811 } ] },
+      { cells = [ { text = "", weight = 1400 }, { id = "QB", weight = 575, card = { heading = "Urgent?" } }, { text = "", weight = 188 } ] },
+      { cells = [ { text = "", weight = 148 }, { id = "DocA", weight = 592, card = { heading = "Doc A" } }, { text = "", weight = 528 }, { id = "DocB", weight = 707, card = { heading = "Doc B" } }, { text = "", weight = 188 } ] } ] },
+  { weight = 2073, rows = [ { cells = [ { text = "", weight = 2073 } ] },
+      { cells = [ { text = "", weight = 25 }, { id = "Q1", weight = 910, card = { heading = "Check 1" } }, { text = "", weight = 175 }, { id = "Add1", weight = 822, card = { heading = "Add1" } }, { text = "", weight = 141 } ] },
+      { cells = [ { text = "", weight = 25 }, { id = "Q2", weight = 910, card = { heading = "Check 2" } }, { text = "", weight = 175 }, { id = "Add2", weight = 822, card = { heading = "Add2" } }, { text = "", weight = 141 } ] },
+      { cells = [ { text = "", weight = 25 }, { id = "Q3", weight = 910, card = { heading = "Check 3" } }, { text = "", weight = 175 }, { id = "Add3", weight = 822, card = { heading = "Add3" } }, { text = "", weight = 141 } ] },
+      { cells = [ { text = "", weight = 25 }, { id = "Q4", weight = 910, card = { heading = "Check 4" } }, { text = "", weight = 175 }, { id = "Add4", weight = 822, card = { heading = "Add4" } }, { text = "", weight = 141 } ] },
+      { cells = [ { text = "", weight = 25 }, { id = "C1", weight = 465, card = { heading = "C1" } }, { text = "", weight = 30 }, { id = "C2", weight = 465, card = { heading = "C2" } }, { text = "", weight = 30 }, { id = "C3", weight = 465, card = { heading = "C3" } }, { text = "", weight = 30 }, { id = "C4", weight = 465, card = { heading = "C4" } }, { text = "", weight = 98 } ] } ] },
+]
+
