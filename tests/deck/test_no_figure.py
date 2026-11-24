@@ -70,6 +70,15 @@ class TheBuildReport(unittest.TestCase):
         self.assertIn("this page has no figure", said)
         self.assertNotIn("carries no figure", said)
 
+    def test_a_third_page_without_a_figure_says_it_is_page_3_of_the_manifest(self):
+        copied = '[[pages]]\nkind = "copy"\npage = 1\n'
+        for flags in ((), ("--skip-checks",)):
+            with self.subTest(flags=flags):
+                code, said = self.build(copied * 2 + TABLE_PAGE, *flags)
+                self.assertEqual(1, code)
+                self.assertIn("page 3 of the manifest", said)
+                self.assertIn("this page has no figure", said)
+
     def test_an_empty_reason_is_refused_and_says_to_write_one(self):
         for value in ('""', "1"):
             with self.subTest(value=value):
