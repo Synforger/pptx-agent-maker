@@ -290,6 +290,22 @@ class WordsBesideAnArrow(unittest.TestCase):
             two_over({"text": "Then"})
         self.assertIn("`gap_m`", str(tight.exception), "one line of body type is taller than the gap a page has unsaid")
 
+    def test_the_stop_names_the_gap_a_page_writes_not_the_one_it_does_not_move(self) -> None:
+        """`gap_y` and `gap_x` written beat `gap_m`, so widening `gap_m` would not help a page that writes them."""
+        written = theme_from({"uses": {"set": {"like": "read", "spacing": {"gap_x": 0.5, "gap_y": 0.45}}}}).using("set")
+        with self.assertRaises(PageFullError) as down:
+            two_over({"text": "Then"}, written)
+        self.assertIn("`gap_y`", str(down.exception))
+        self.assertNotIn("`gap_m`", str(down.exception))
+        with self.assertRaises(PageFullError) as across:
+            side_by_side({"text": "Words that are longer than the gap between two cells"}, written)
+        self.assertIn("`gap_x`", str(across.exception))
+        self.assertNotIn("`gap_m`", str(across.exception))
+        only_m = theme_from({"uses": {"m": {"like": "read", "spacing": {"gap_m": 0.5}}}}).using("m")
+        with self.assertRaises(PageFullError) as follows:
+            two_over({"text": "Then"}, only_m)
+        self.assertIn("`gap_m`", str(follows.exception), "a page that writes only `gap_m` moves both gaps with it")
+
     def test_a_downward_arrow_with_no_room_on_its_right_stops(self) -> None:
         """A column narrower than the distance the words keep from the arrow and from the cell beside it."""
         loose = theme_from({"uses": {"loose": {"like": "read", "spacing": {"gap_m": 1.6, "gap_s": 1.0}}}}).using("loose")
@@ -300,6 +316,27 @@ class WordsBesideAnArrow(unittest.TestCase):
         self.assertIn("link 1", str(stopped.exception))
         self.assertIn("not even one character", str(stopped.exception))
         self.assertIn("to the right of the arrow", str(stopped.exception))
+
+    def test_words_with_no_width_beside_a_downward_arrow_say_it_is_the_width_and_what_sets_it(self) -> None:
+        """The width right of a downward arrow runs to the cell beside it, less `gap_s` at each end: `gap_y` has no part in it."""
+        def narrow(spacing):
+            theme = theme_from({"uses": {"n": {"like": "read", "spacing": spacing}}}).using("n")
+            return build({"type": "compose", "title": "A page", "links": [{"from": "a", "to": "b", "text": "Then"}],
+                          "rows": [row({"rows": [row({"id": "a", "card": {}}), row({"id": "b", "card": {}})],
+                                        "weight": 0.05}, {"card": {"heading": "Tall"}, "weight": 1})]}, theme)
+
+        with self.assertRaises(PageFullError) as follows:
+            narrow({"gap_m": 1.6, "gap_s": 1.0})
+        said = str(follows.exception)
+        self.assertIn("not even one character", said)
+        self.assertNotIn("taller", said, "what is short is the width, not the height")
+        self.assertIn("`gap_s`", said)
+        self.assertIn("`gap_m`", said, "`gap_x` follows `gap_m` on a page that does not write it")
+        self.assertNotIn("`gap_y`", said)
+        with self.assertRaises(PageFullError) as written:
+            narrow({"gap_m": 1.6, "gap_s": 1.0, "gap_x": 0.3})
+        self.assertIn("`gap_x`", str(written.exception))
+        self.assertNotIn("`gap_m`", str(written.exception))
 
     def test_an_arrow_crosses_an_empty_cell_and_its_words_stand_over_the_whole_span(self) -> None:
         """A cell of `text = ""` is space: two cells with one between them are joined across it, words on the line."""
