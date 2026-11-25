@@ -1,7 +1,8 @@
-"""A declared page that shows a picture, a chart or a table and does not say where it came from.
+"""A declared page that shows a picture, a chart or a table and does not say where it came from, in a deck that goes out.
 
-データの図には出所を置く。頁を見た人が最初に訊くのは「この数字はどこから」で、書いていない頁は、
-その場で答えられない数字を見せていることになる。
+出所の行は、社外に出す資料で、数字・引用・他の人の図の出典が要る時だけ頁に置く。ほかの資料の出どころは
+頁の `why` が持ち、頁には出さない。資料が社外に出るかは道具からは読めないので、検査は案件が
+`[checks] unsourced = true` と書いた時だけ回る (= 書かなければ回らない)。
 
 見るのは宣言で組む頁だけ ― 複製や輸入の頁は、出所をどこに書いたかが頁ごとに違い、宣言からは
 読めない。図解 (= 流れ図・道のり・線表) とカードだけの頁は、データを見せていないので対象外。
@@ -26,8 +27,8 @@ def _shows_data(written) -> bool:
 
 
 def run(manifest, theme=None, config: dict | None = None) -> list[Finding]:
-    """A project may switch the check off (= `[checks] unsourced = false`)."""
-    if (config or {}).get(NAME, True) is False:
+    """Only for a project that switches the check on (= `[checks] unsourced = true`, a deck that goes out)."""
+    if (config or {}).get(NAME, False) is not True:
         return []
     findings: list[Finding] = []
     for number, entry in enumerate(manifest.entries, start=1):

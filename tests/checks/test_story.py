@@ -144,6 +144,18 @@ class ATitleThatRunsTooLong(_Project):
 
 
 class DataWithNoSource(_Project):
+    """The source line is asked for only by a project that hands its decks out (= `[checks] unsourced = true`)."""
+
+    def found(self, manifest: Manifest, config: dict | None = None) -> list[tuple[str, int]]:
+        return super().found(manifest, {"unsourced": True, **(config or {})})
+
+    def test_a_project_that_does_not_switch_it_on_is_not_asked_for_a_source(self) -> None:
+        """出どころは頁の `why` が持ち、頁には出さない (= 社外に出す資料だけが出所の行を置く)。"""
+        manifest = self.write(page(type="figure", title="A", figure="dot.png"),
+                              page(type="board", title="B", table=[["k", "v"], ["a", "1"]]))
+        self.assertEqual([], super().found(manifest))
+        self.assertEqual([], super().found(manifest, {"unsourced": False}))
+
     def test_a_picture_or_a_table_without_a_footer_is_reported(self) -> None:
         manifest = self.write(
             page(type="figure", title="A", figure="dot.png"),
@@ -185,15 +197,15 @@ class DataWithNoSource(_Project):
     def test_a_copied_page_is_not_asked(self) -> None:
         self.assertEqual([], self.found(self.write(COVER)))
 
-    def test_switching_it_off_leaves_the_other_check_on(self) -> None:
+    def test_switched_on_it_stops_the_build_and_left_off_it_leaves_the_other_check_on(self) -> None:
         pages = (page(type="figure", title=THREE_LINES, figure="dot.png"),)
-        self.write(*pages)
+        self.write(*pages, checks="unsourced = true\n")
         code, said = self.run_cli("build", "deck")
         self.assertEqual(1, code)
         self.assertRegex(said, r"FAIL\s+long_title\s+1")
         self.assertRegex(said, r"FAIL\s+unsourced\s+1")
 
-        self.write(*pages, checks="unsourced = false\n")
+        self.write(*pages)
         code, said = self.run_cli("build", "deck")
         self.assertEqual(1, code, "the title is still too long")
         self.assertRegex(said, r"FAIL\s+long_title\s+1")

@@ -69,10 +69,16 @@ old = "    if isinstance(written, list):\n        return any(_shows_data(value) 
 new = "    if isinstance(written, list):\n        return False"
 
 [[mutant]]
-name = "the source check cannot be switched off"
+name = "the source check runs in a project that did not switch it on"
 file = "src/pptx_agent_maker/checks/declared/unsourced.py"
-old = "if (config or {}).get(NAME, True) is False:"
-new = "if False:"
+old = "if (config or {}).get(NAME, False) is not True:"
+new = "if (config or {}).get(NAME, True) is False:"
+
+[[mutant]]
+name = "the source check does not run when switched on"
+file = "src/pptx_agent_maker/checks/declared/unsourced.py"
+old = "if (config or {}).get(NAME, False) is not True:"
+new = "if True:"
 
 # -- the report and the build ---------------------------------------------------
 
