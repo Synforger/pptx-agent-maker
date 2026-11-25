@@ -582,6 +582,19 @@ class ALineThatWouldBendMoreToShareAPoint(unittest.TestCase):
         self.assertEqual(straight.points()[-1][0], bent.points()[-1][0], "both go into the left edge of E")
         self.assertNotEqual(straight.points()[-1][1], bent.points()[-1][1], "not into the point of the straight line")
 
+    def test_a_box_over_the_straight_line_leaves_the_gap_between_the_rows(self) -> None:
+        """The equal divisions of the edge stand beside H and beside F; the line goes in at the height of the gap between them."""
+        cells = [card("H", (1, 1), span=(1, 2), id="h"), card("G", (2, 1), id="g"), card("F", (2, 2), id="f"),
+                 card("E", (1, 3), span=(2, 1), id="e")]
+        page = grid_page(cells, (1, 1, 1), (1, 1), [{"from": "f", "to": "e"},
+                                                     {"from": "g", "to": "e", "out": "top", "in": "left"}])
+        straight, bent = lines_of(page)
+        h, f = box_of(page, "H").rect, box_of(page, "F").rect
+        self.assertEqual(1, len(bent.corners), "up out of G into the gap under H, then along into E")
+        self.assertEqual(straight.points()[-1][0], bent.points()[-1][0])
+        self.assertLess(h.bottom, bent.points()[-1][1])
+        self.assertLess(bent.points()[-1][1], f.top)
+
     def test_the_straight_line_stays_where_it_was(self) -> None:
         straight, _bent = lines_of(self.page())
         self.assertEqual([], list(straight.corners))
