@@ -104,6 +104,18 @@ file = "src/pptx_agent_maker/layout/parts/page.py"
 old = "outline=hue, rounded=True))"
 new = "outline=hue, rounded=False))"
 
+[[mutant]]
+name = "the condition band is washed as deep as the conclusion band"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "else p.thinned(self.theme.band_wash, hue)"
+new = "else p.thinned(p.BAND_WASH, hue)"
+
+[[mutant]]
+name = "the wash a project writes for the condition band is not read"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        band_wash=band_wash,\n"
+new = ""
+
 # -- sharing out the height ---------------------------------------------------
 
 [[mutant]]

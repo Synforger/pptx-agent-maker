@@ -362,6 +362,9 @@ STATEMENT_SCALE = 1.5
 LEADING = 1.5
 #: 案件が書ける `leading` の幅 (= 1 より詰めると行が重なり、2 を越えると行の間が段落の間に見える)
 LEADINGS = (1.0, 2.0)
+#: 案件が書ける `band_wash` の幅 (= `band_look = "outlined"` の条件の帯の地に、差し色を紙へ混ぜる割合)。0 は紙 (= 既定)、
+#: 上の端は結論の帯と同じ透け方 (= `Palette.BAND_WASH`。条件の帯がこの地だった頃、読み手には「水色」と見えた)
+BAND_WASHES = (0.0, 0.12)
 #: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
 #: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
 TIGHTENED = ("gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap", "title_gap", "pad", "cell_pad_y", "cell_pad_x",
@@ -676,6 +679,8 @@ class Theme:
     box_height: str = "text"
     card_look: str = "filled"
     band_look: str = "plain"
+    #: `band_look = "outlined"` の条件の帯の地に混ぜる差し色の割合 (= `BAND_WASHES`。0 は紙)
+    band_wash: float = 0.0
     #: 線表の棒の見た目 (= `BAR_LOOKS`)
     bar_look: str = "filled"
     #: 内容未定の物の見た目 (= `TENTATIVE_LOOKS`)
@@ -1039,7 +1044,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "bar_look", "tentative_look", "band_look", "caption_look", "leading",
+_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "bar_look", "tentative_look", "band_look", "band_wash", "caption_look", "leading",
          "table_look", "layout_of_page")
 
 
@@ -1093,6 +1098,7 @@ def theme_from(settings: dict | None) -> Theme:
     bar_look = _choice(settings, "bar_look", BAR_LOOKS, "the look of a bar of a timeline")
     tentative_look = _choice(settings, "tentative_look", TENTATIVE_LOOKS, "the look of a tentative box, bar or arrow")
     band_look = _choice(settings, "band_look", BAND_LOOKS, "the look of the bands over and under a page")
+    band_wash = _band_wash(settings)
     caption_look = _choice(settings, "caption_look", CAPTION_LOOKS, "the look of the name under a picture")
     table_look = _choice(settings, "table_look", TABLE_LOOKS, "the look of a table")
     # 型の頁を乗せるレイアウトは、見本を読む所が使う (= `deck/_internal/under.py`)。ここは書き方だけ確かめる
@@ -1132,6 +1138,7 @@ def theme_from(settings: dict | None) -> Theme:
         bar_look=bar_look,
         tentative_look=tentative_look,
         band_look=band_look,
+        band_wash=band_wash,
         caption_look=caption_look,
         table_look=type.table_look_set,
     )
@@ -1244,6 +1251,16 @@ def _kicked(scales: dict[str, Type], declared, named: dict[str, Type]) -> dict[s
                 f"it — write that use's own kicker under [theme.uses.{name}]")
         kicked[name] = replace(sized, kicker_set=size)
     return kicked
+
+
+def _band_wash(said: dict) -> float:
+    """How much of the accent the outlined condition band's ground takes (= `[theme] band_wash`); unsaid, the paper."""
+    value = said.get("band_wash", BAND_WASHES[0])
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not BAND_WASHES[0] <= value <= BAND_WASHES[1]:
+        raise ThemeError(f"theme.band_wash is {value!r} — the share of the accent mixed into the paper for the ground of "
+                         f"the condition band of `band_look = \"outlined\"`, from {BAND_WASHES[0]} (= the paper) to "
+                         f"{BAND_WASHES[1]} (= as deep as the conclusion band)")
+    return float(value)
 
 
 def _leading(said: dict, where: str) -> float | None:

@@ -358,6 +358,20 @@ class TheBandsHaveALineAndAColour(unittest.TestCase):
         top, _w, bottom, _v = self.bands(BANDED)
         self.assertNotEqual((top.colour, top.outline), (bottom.colour, bottom.outline))
 
+    def test_a_deck_may_give_the_condition_band_a_faint_wash_of_the_accent(self) -> None:
+        washed = theme_from({"band_look": "outlined", "band_wash": 0.03})
+        top, words, bottom, _v = self.bands(washed)
+        self.assertEqual((P.thinned(0.03, P.accent), P.accent), (top.colour, top.outline))
+        self.assertNotEqual(P.paper, top.colour)
+        self.assertEqual(P.accent, words.colour)
+        self.assertEqual(self.bands(BANDED)[2].colour, bottom.colour, "the conclusion band keeps its own ground")
+
+    def test_a_wash_outside_paper_to_the_conclusion_band_is_refused(self) -> None:
+        for value in (-0.01, 0.13, True, "faint"):
+            with self.subTest(value=value), self.assertRaises(ThemeError) as said:
+                theme_from({"band_look": "outlined", "band_wash": value})
+            self.assertIn("band_wash", str(said.exception))
+
     def test_plain_bands_are_the_grey_ones_with_no_line(self) -> None:
         top, words, bottom, under = self.bands(DEFAULT)
         self.assertEqual((P.band, ""), (top.colour, top.outline))

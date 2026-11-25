@@ -311,7 +311,8 @@ class Page:
     def _band(self, text: str, *, conclusion: bool = False) -> None:
         """A declared condition (top) or the reading to take away (bottom).
 
-        `band_look = "outlined"` の帯は枠と色を持つ。上 (= 条件) は紙の地に差し色の枠と太字、
+        `band_look = "outlined"` の帯は枠と色を持つ。上 (= 条件) は紙の地 (= `[theme] band_wash` を書けば、差し色を
+        その割合だけ混ぜた地) に差し色の枠と太字、
         下 (= 結論) は灰のごく薄い地に灰の枠と本文の色の太字 ― 上は頁が前提にする読み、下は読み手に
         持ち帰らせる言葉で、下は本文の大きさ (= 上より一段小さい)。
 
@@ -330,7 +331,7 @@ class Page:
                 else self._take_top(s.band_height + folded))
         if outlined:
             hue = p.muted if conclusion else p.accent
-            ground = p.thinned(p.BAND_WASH, hue) if conclusion else p.paper
+            ground = p.thinned(p.BAND_WASH, hue) if conclusion else p.thinned(self.theme.band_wash, hue)
             self.elements.append(Fill("band", rect, ground, outline=hue, rounded=True))
             self.elements.append(Text("band_text", rect.inset(s.pad), text, size,
                                       p.ink if conclusion else hue, bold=bold))
