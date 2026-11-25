@@ -689,7 +689,7 @@ marks = [ { at = 1, text = "1.0 release" } ]           # レーンの中の菱�
 kind = "declare"
 type = "chart"
 title = "…"
-footer = "出所: …"                                    # データの頁には出所を書く (= 検査 unsourced)
+footer = "出所: …"                                    # 社外に出す資料のデータの頁にだけ書く (= 検査 unsourced)
 
 [pages.chart]
 kind = "column"                                        # bar / column / line / stacked / waterfall / scatter / strip
@@ -1039,7 +1039,7 @@ table = { data = "results.csv" }
   書けない**。並びは CSV が決める。印や濃さのセルが要る表は、行を manifest に書く
 - CSV に空のセルがある (= 行で書いた表と同じ。値が無いなら、`cells` の `text = "―"` で置く)
 
-出所 (`footer`) は、CSV から読んだ表でも行で書いた表と同じに要る (= 検査 `unsourced`)。
+出所 (`footer`) は、CSV から読んだ表でも行で書いた表と同じに扱う (= 検査 `unsourced` を入れた案件では要る)。
 
 ⚠ **その型が読まないキーは拒まれる** (= 書いたつもりで頁に無い、を作らない)。
 
@@ -1466,7 +1466,7 @@ gap_m = 0.3
 **揃え損ね** (`near_alignment`)
 
 manifest を読む検査 (= `build` だけが回す):
-**題が 3 行以上** (`long_title`、宣言で組む頁) / **出所の無いデータの頁** (`unsourced`) /
+**題が 3 行以上** (`long_title`、宣言で組む頁) / **出所の無いデータの頁** (`unsourced`、入れた案件だけ) /
 **値の軸の名前が無いグラフ** (`unnamed_axis`) / **目次の無い資料と、中の段ごとの目次の無い長い章** (`section_agenda`) /
 **`tone` の無いカード** (`untoned_cards`、地に名前を付けた案件だけ)
 
@@ -1488,8 +1488,9 @@ manifest を読む検査 (= `build` だけが回す):
   (= `cards` の並びと、`compose` のマスや入れ物の中の `card`) を、頁ごとに数えて知らせる。`["見出し", "本文"]`
   の書き方は `tone` を持てないので当たる (= 表の書き方にして `tone` を書く)。名前を宣言していない案件では見ない。
   止めずに知らせる (= 上のとおり)
-- `unsourced` ― 宣言で組む頁が絵・表・グラフを持つのに `footer` が空なら知らせる (= どこから来たかを `footer` に
-  書く)。流れ図・道のり・線表とカードだけの頁は対象外
+- `unsourced` ― **案件が `[checks] unsourced = true` と書いた時だけ回る** (= 社外に出す資料の案件。作法の
+  「注と出所の行」)。宣言で組む頁が絵・表・グラフを持つのに `footer` が空なら止める (= どこから来たかを `footer` に
+  書く)。流れ図・道のり・線表とカードだけの頁は対象外。書かない案件では、出どころは頁の `why` が持つ
 - `unnamed_axis` ― 宣言で組む頁の項目のグラフ (= `bar` / `column` / `line` / `stacked` / `waterfall`。`compose` の
   マスの中も) が値の軸の名前を持たなければ知らせる (= 縦のグラフは `y`、横棒は `x` に単位も含めて書く)。
   `bare` の棒と点の列は値の軸を持たないので対象外
@@ -1524,7 +1525,7 @@ manifest を読む検査 (= `build` だけが回す):
 ```toml
 [checks]
 stale_words = ["案件名", "第 N 回"]
-unsourced = false       # 出所の検査を外す (= 絵が図解ばかりで、出所を書く物が無い案件)
+unsourced = true        # 出所の検査を入れる (= 社外に出す資料の案件。書かなければ回らない)
 unnamed_axis = false    # 値の軸の名前の検査を外す
 section_agenda = 8      # 中の段ごとに目次が要る章の長さ (= 目次を除く頁の数。書かなければ 6。false で外す)
 untoned_cards = false   # tone の無いカードの検査を外す

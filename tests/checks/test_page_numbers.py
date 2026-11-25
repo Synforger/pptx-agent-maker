@@ -165,7 +165,10 @@ class WhatTheCommandsPrint(unittest.TestCase):
         (self.root / "assets" / "deck").mkdir(parents=True)
         (self.root / "assets" / "deck" / "example.png").write_bytes(
             (self.root / "assets" / "example" / "example.png").read_bytes())
-        # 出所の無い図の頁は、宣言を読む検査 (`unsourced`) が止める
+        # 出所の無い図の頁は、宣言を読む検査 (`unsourced`) を入れた案件で止まる
+        settings = self.root / "workspace.toml"
+        settings.write_text(settings.read_text(encoding="utf-8").replace("[checks]\n", "[checks]\nunsourced = true\n", 1),
+                            encoding="utf-8")
         body = '[[pages]]\nkind = "declare"\ntype = "figure"\ntitle = "出所の無い頁"\nfigure = "example.png"\n\n'
         (self.root / "deck.toml").write_text(
             'specimen = "specimen.pptx"\nout = "deck.pptx"\n\n[[pages]]\nkind = "copy"\npage = 1\n\n' + body * 2,

@@ -57,6 +57,11 @@ assets = "assets"       # images and other material, one folder per round
 # was never reworded, and the check after the build stops it.
 [checks]
 stale_words = ["案件名", "第 N 回"]
+# A deck handed outside (to a client, say) names where its numbers, quotes and other people's
+# figures came from on the page (`footer`). Switched on, a page that shows a picture, a chart or a
+# table and has no `footer` stops the build. Left off, where a page's material came from goes in
+# its `why` and not on the page.
+# unsourced = true
 
 # Words the readers of the deck do not use — a made-up rendering of a term, say. A word written
 # here is stopped wherever it stands on a page or in a chart, and the check says what to write
