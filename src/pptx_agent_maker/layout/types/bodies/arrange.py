@@ -598,31 +598,40 @@ def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, ce
         route = chosen[number]
         ports[number] = (_port_at(link.first, route.start.side, coordinates[(number, False)]),
                          _port_at(link.second, route.end.side, coordinates[(number, True)]))
+    leaving, entering = _written_edges(items)
     for number, link in enumerate(items):
         if not link.facing:
-            ports[number] = _apart_if_fewer_bends(number, link, ports[number], in_the_way[number], room, attaches,
-                                                  coordinates, 2 * room.hop)
+            trunk = (leaving[(link.ends[0], link.out_side)] > 1, entering[(link.ends[1], link.in_side)] > 1)
+            ports[number] = _apart_if_fewer_bends(number, link, ports[number], trunk, in_the_way[number], room,
+                                                  attaches, coordinates, 2 * room.hop)
     return ports
 
 
-def _apart_if_fewer_bends(number: int, link: _Link, shared: tuple[Port, Port], others: list[Rect], room: Room,
-                          attaches: list[Attach], coordinates: dict[tuple[int, bool], int], clear: int) -> tuple[Port, Port]:
+def _apart_if_fewer_bends(number: int, link: _Link, shared: tuple[Port, Port], trunk: tuple[bool, bool],
+                          others: list[Rect], room: Room, attaches: list[Attach], coordinates: dict[tuple[int, bool], int],
+                          clear: int) -> tuple[Port, Port]:
     """The ports of a bent line: those `positions` gave it, or a point of its own on the same edge where sharing costs bends.
 
     端の点を別の線と分け合う (= 幹から分かれる・合流する) と、その点へ寄るために曲がりが増えることがある。分け合う点で
-    引いた道より、同じ辺の空いた点 (= 辺を等しく割った点のうち、ほかの線の端から `clear` 以上離れた物) で引いた道の方が
-    曲がりが少ない時だけ、その端を空いた点へ離す。曲がりが同じなら分け合ったまま (= 幹の形を保つ)。
+    引いた道より、同じ辺の空いた点で引いた道の方が曲がりが少ない時だけ、その端を空いた点へ離す。曲がりが同じなら
+    分け合ったまま (= 幹の形を保つ)。空いた点の候補は、辺を等しく割った点と、道を探す格子がその辺に持つ座標 (= 箱と箱の
+    間の隙間の真ん中など。等しく割った点が隣の箱の高さに当たって届かない時も、隙間の高さからはそのまま刺さる) のうち、
+    ほかの線の端から `clear` 以上離れた物。同じ辺から出る (= 入る) と 2 本以上が書いた端 (`trunk`) は、書き手が幹を
+    頼んだので離さない。
     """
+    probe = RouteSearch(link.first, link.second, others, [], room, [shared[0]], [shared[1]], strict=False)
     ends = []
-    for last, port, box in ((False, shared[0], link.first), (True, shared[1], link.second)):
+    for last, port, box, written in ((False, shared[0], link.first, trunk[0]), (True, shared[1], link.second, trunk[1])):
         near = [coordinates[(each.link, each.last)] for each in attaches
                 if each.box == box and each.side == port.side and (each.link, each.last) != (number, last)]
         at = coordinates[(number, last)]
-        if at not in near:
+        if written or at not in near:
             ends.append([port])
             continue
         start, end = edge_span(box, port.side)
-        steps = [start + (end - start) * n // (len(near) + 2) for n in range(1, len(near) + 2)]
+        lanes = probe.ys if port.side % 2 == 0 else probe.xs
+        steps = sorted({start + (end - start) * n // (len(near) + 2) for n in range(1, len(near) + 2)}
+                       | {lane for lane in lanes if start < lane < end})
         ends.append([_port_at(box, port.side, step) for step in steps
                      if all(abs(step - other) >= clear for other in near)] or [port])
     if ends == [[shared[0]], [shared[1]]]:

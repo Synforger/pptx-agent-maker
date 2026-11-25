@@ -439,3 +439,9 @@ name = "a line that bends more to share a point shares it all the same"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
 old = "    if apart.blocked or (not joined.blocked and apart.bends >= joined.bends):"
 new = "    if True:"
+
+[[mutant]]
+name = "a free point on the edge is only one of its equal divisions, never the height of a gap"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "                       | {lane for lane in lanes if start < lane < end})"
+new = "                       )"

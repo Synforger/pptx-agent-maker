@@ -92,3 +92,9 @@ name = "the words of a bent line are set at a height the first run does not have
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
 old = "    if height > room:\n        raise PageFullError(f\"{where}: its words need"
 new = "    if False:\n        raise PageFullError(f\"{where}: its words need"
+
+[[mutant]]
+name = "a line written into a trunk with others leaves the trunk to save a bend"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "        if written or at not in near:"
+new = "        if at not in near:"
