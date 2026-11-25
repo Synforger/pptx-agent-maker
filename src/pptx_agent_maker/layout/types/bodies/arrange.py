@@ -423,6 +423,8 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     またいで結べる)。`tone` は矢印の色の役 (= 書かなければ灰)、`text` は矢印のそばの言葉 (= `_words_by`。曲がる線は
     最初の区間のそば)。`out` / `in` は出る辺・入る辺 (= `_bent_by_sides`: 書いた辺が真っすぐの線の辺と違う線と、同じ辺を
     分け合う線は折れ線になる)。
+    結ぶ 2 つのマスの中身 (= 入れ物の中の段・札・字のマス) は、線がよける物に数えない (= 入れ物の縁へ入る最後の区間と、
+    縁から出る最初の区間は、中のマスの手前を通るため)。ほかのマスは中身ごとよける。
     結んだマスが `shows_a_diagram` なら、形の図を持つ頁として宣言する (= `Page.drew_a_diagram`)。
     """
     if not isinstance(written, list) or not written:
@@ -434,7 +436,8 @@ def links(page: Page, spec: Spec, written, cells: dict[str, Rect], every: list[R
     _clear_shared_words(items)
     items = _bent_by_sides(_facing_the_trunk(items))
     in_the_way = [[other for other in every if other not in (link.first, link.second) and other not in blank
-                   and not other.contains(link.first) and not other.contains(link.second)] for link in items]
+                   and not other.contains(link.first) and not other.contains(link.second)
+                   and not link.first.contains(other) and not link.second.contains(other)] for link in items]
     # 向き合っていても、真っすぐの線の上に別の箱が在れば、向き合わない 2 つと同じく折れ線で回る
     items = [replace(link, facing="") if link.facing and _blocked(link, _straight(link, sum(link.overlap()) // 2), others)
              else link for link, others in zip(items, in_the_way)]
