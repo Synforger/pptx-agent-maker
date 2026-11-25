@@ -565,3 +565,24 @@ class ALineIntoAPanelOrOutOfOne(unittest.TestCase):
         self.assertTrue(line.corners, "the panel between stands on the straight way, so the line bends round it")
         panel = next(e for e in page.build() if e.kind == "panel").rect
         self.assertFalse(passes_through(line.points(), panel))
+
+
+class ALineThatWouldBendMoreToShareAPoint(unittest.TestCase):
+    """A bent line shares its point on an edge with the other lines there only when that costs it no bends."""
+
+    def page(self):
+        cells = [card("G", (2, 1), id="g"), card("F", (2, 2), id="f"), card("E", (1, 3), span=(2, 1), id="e")]
+        return grid_page(cells, (1, 1, 1), (1, 1), [{"from": "f", "to": "e"},
+                                                     {"from": "g", "to": "e", "out": "top", "in": "left"}])
+
+    def test_it_goes_into_the_edge_at_a_point_of_its_own_with_one_bend(self) -> None:
+        page = self.page()
+        straight, bent = lines_of(page)
+        self.assertEqual(1, len(bent.corners), "up out of G, then along into the left edge of E")
+        self.assertEqual(straight.points()[-1][0], bent.points()[-1][0], "both go into the left edge of E")
+        self.assertNotEqual(straight.points()[-1][1], bent.points()[-1][1], "not into the point of the straight line")
+
+    def test_the_straight_line_stays_where_it_was(self) -> None:
+        straight, _bent = lines_of(self.page())
+        self.assertEqual([], list(straight.corners))
+        self.assertEqual(straight.points()[0][1], straight.points()[-1][1])

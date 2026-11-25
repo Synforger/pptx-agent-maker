@@ -38,8 +38,8 @@ from ...parts.page import Card, Page, PageFullError
 from ..core.read import Spec, read_card, read_edge, read_tone, only_keys
 from ..core.registry import PageTypeError
 from ..core.stack import card_height
-from .link_routes import (MAX_BENDS, SIDES, Attach, NoRoute, Point, Port, Room, Route, RouteSearch, hops, middle_ports,
-                          positions)
+from .link_routes import (MAX_BENDS, SIDES, Attach, NoRoute, Point, Port, Room, Route, RouteSearch, edge_span, hops,
+                          middle_ports, positions)
 
 #: 跳び越しの半円の半径の下限 (= 矢印の線の太さの倍率)。既定の使い方では半径 (= `gap_s` の半分) が線の太さの
 #: 約 2.8 倍で、交わりと読める。`gap_s` を詰めた使い方でも、その少し下までは小さくしない
@@ -598,7 +598,43 @@ def _plan_ports(items: list[_Link], in_the_way: list[list[Rect]], room: Room, ce
         route = chosen[number]
         ports[number] = (_port_at(link.first, route.start.side, coordinates[(number, False)]),
                          _port_at(link.second, route.end.side, coordinates[(number, True)]))
+    for number, link in enumerate(items):
+        if not link.facing:
+            ports[number] = _apart_if_fewer_bends(number, link, ports[number], in_the_way[number], room, attaches,
+                                                  coordinates, 2 * room.hop)
     return ports
+
+
+def _apart_if_fewer_bends(number: int, link: _Link, shared: tuple[Port, Port], others: list[Rect], room: Room,
+                          attaches: list[Attach], coordinates: dict[tuple[int, bool], int], clear: int) -> tuple[Port, Port]:
+    """The ports of a bent line: those `positions` gave it, or a point of its own on the same edge where sharing costs bends.
+
+    端の点を別の線と分け合う (= 幹から分かれる・合流する) と、その点へ寄るために曲がりが増えることがある。分け合う点で
+    引いた道より、同じ辺の空いた点 (= 辺を等しく割った点のうち、ほかの線の端から `clear` 以上離れた物) で引いた道の方が
+    曲がりが少ない時だけ、その端を空いた点へ離す。曲がりが同じなら分け合ったまま (= 幹の形を保つ)。
+    """
+    ends = []
+    for last, port, box in ((False, shared[0], link.first), (True, shared[1], link.second)):
+        near = [coordinates[(each.link, each.last)] for each in attaches
+                if each.box == box and each.side == port.side and (each.link, each.last) != (number, last)]
+        at = coordinates[(number, last)]
+        if at not in near:
+            ends.append([port])
+            continue
+        start, end = edge_span(box, port.side)
+        steps = [start + (end - start) * n // (len(near) + 2) for n in range(1, len(near) + 2)]
+        ends.append([_port_at(box, port.side, step) for step in steps
+                     if all(abs(step - other) >= clear for other in near)] or [port])
+    if ends == [[shared[0]], [shared[1]]]:
+        return shared
+    try:
+        joined = RouteSearch(link.first, link.second, others, [], room, [shared[0]], [shared[1]], strict=False).cheapest()
+        apart = RouteSearch(link.first, link.second, others, [], room, ends[0], ends[1], strict=False).cheapest()
+    except NoRoute:
+        return shared
+    if apart.blocked or (not joined.blocked and apart.bends >= joined.bends):
+        return shared
+    return apart.start, apart.end
 
 
 def _attach(link: int, last: bool, box: Rect, side: int, points: tuple[Point, ...]) -> Attach:
