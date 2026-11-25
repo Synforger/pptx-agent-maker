@@ -31,6 +31,7 @@ from support.pages import box_of, build, named  # noqa: E402
 from pptx_agent_maker import DEFAULT, Page, checks  # noqa: E402
 from pptx_agent_maker.layout.tokens import ThemeError, theme_from  # noqa: E402
 from pptx_agent_maker.layout.parts.page import PageFullError  # noqa: E402
+from pptx_agent_maker.layout.types.core.stack import spread  # noqa: E402
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 
 PAGE = theme_from({"box_height": "page"})
@@ -122,7 +123,7 @@ class TheBoxesTakeThePage(unittest.TestCase):
         self.assertGreater(note.height, DEFAULT.line_height())
 
     def test_each_card_row_takes_an_equal_share_on_top_of_its_words(self) -> None:
-        data = {"type": "bare", "title": "T", "cards": self.CARDS, "card_columns": 1}
+        data = {"type": "cards", "title": "T", "cards": self.CARDS, "card_columns": 1}
         boxes = of_kind(build(data, PAGE), "box")
         heights = [box.rect.height for box in boxes]
         self.assertLessEqual(max(heights) - min(heights), 1, "the rows of one cards page share one height")
@@ -130,7 +131,7 @@ class TheBoxesTakeThePage(unittest.TestCase):
             self.assertEqual(GAP_M, other.rect.top - one.rect.bottom)
 
     def test_a_table_and_a_reading_keep_their_room_under_the_cards(self) -> None:
-        data = {"type": "bare", "title": "T", "cards": self.CARDS, "card_columns": 3,
+        data = {"type": "cards", "title": "T", "cards": self.CARDS, "card_columns": 3,
                 "table": [["列", "値"], ["A", "1"]], "note": "How to read this"}
         built = build(data, PAGE)
         boxes, table, note = of_kind(built, "box"), of_kind(built, "table")[0], of_kind(built, "note")[0]
@@ -144,8 +145,23 @@ class TheBoxesTakeThePage(unittest.TestCase):
         data = {"type": "figure", "title": "T", "figure": "dot.png", "cards": [["A", "a"], ["B", "b"]]}
         self.assertEqual(of_kind(build(data), "box"), of_kind(build(data, PAGE), "box"))
 
+    def test_cards_on_a_page_of_another_type_stay_as_tall_as_their_words(self) -> None:
+        """カードそのものが本体の頁 (= `cards`) だけが、頁を使い切る。ほかの型の頁では、札は字の分の高さ。"""
+        data = {"type": "bare", "title": "T", "cards": self.CARDS, "card_columns": 1}
+        self.assertEqual(of_kind(build(data), "box"), of_kind(build(data, PAGE), "box"))
+
+    def test_what_rounding_leaves_goes_to_the_last_box_so_the_boxes_reach_the_end(self) -> None:
+        """余りを捨てると、最後の箱が頁の端より数 EMU 手前で止まる (= 線の検査も揃いの検査も掴まない)。"""
+        for extra, count in ((10, 3), (7, 7), (5, 2), (0, 4), (-3, 2)):
+            with self.subTest(extra=extra, count=count):
+                shares = spread(extra, count)
+                self.assertEqual(count, len(shares))
+                self.assertEqual(max(extra, 0), sum(shares))
+                self.assertLessEqual(max(shares) - min(shares), count - 1)
+        self.assertEqual([3, 3, 4], spread(10, 3))
+
     def test_cards_that_do_not_fit_are_still_refused(self) -> None:
-        data = {"type": "bare", "title": "T", "cards": [[f"Card {n}", "a body " * 40] for n in range(8)],
+        data = {"type": "cards", "title": "T", "cards": [[f"Card {n}", "a body " * 40] for n in range(8)],
                 "card_columns": 1}
         with self.assertRaises(PageFullError):
             build(data, PAGE)
