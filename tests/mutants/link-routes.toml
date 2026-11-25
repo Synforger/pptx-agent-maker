@@ -21,8 +21,14 @@ new = "    return any(False and between.left < other.right"
 [[mutant]]
 name = "a cell that holds both ends of a link stands between them"
 file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
-old = "                   and not other.contains(link.first) and not other.contains(link.second)] for link in items]"
-new = "                   and True] for link in items]"
+old = "                   and not other.contains(link.first) and not other.contains(link.second)\n"
+new = "                   and True\n"
+
+[[mutant]]
+name = "the rows inside the panel a link joins stand in the way of that link"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "                   and not link.first.contains(other) and not link.second.contains(other)] for link in items]"
+new = "                   ] for link in items]"
 
 [[mutant]]
 name = "a link backwards points forwards"

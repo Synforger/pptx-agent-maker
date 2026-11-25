@@ -15,6 +15,7 @@ FIGURE_RULE_LIFTED = True
 import sys
 import tomllib
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -517,3 +518,50 @@ class ADottedLink(unittest.TestCase):
         cells = [card("A", (1, 1), id="a"), card("B", (1, 2), id="b")]
         with self.assertRaises(Exception):
             grid_page(cells, columns=(1, 1), rows=(1,), links=[{"from": "a", "to": "b", "tentative": "yes"}])
+
+
+#: 横の間 (= 線が箱から離れる幅の元) を、入れ物の内側の余白より広げた資料
+WIDE_GAPS = replace(DEFAULT, spacing=replace(S, gap_x=2 * S.pad + S.gap_x, gap_y=2 * S.pad + S.gap_y))
+
+
+class ALineIntoAPanelOrOutOfOne(unittest.TestCase):
+    """⚠ 結ぶ箱が入れ物 (`panel`) だと、その中の段 (= `id` の無いマス) を、線がよける別のマスに数えていた。段は箱の縁から
+    内側の余白だけ離れて立つので、線が箱から離れる幅の方が広い資料では、段のよけしろが箱の縁の外へはみ出し、箱の縁へ入る
+    最後の区間 (= 出る最初の区間) が段を横切ることになって、道が全部塞がっていた。結ぶ 2 つの箱の中身は、線がよける物に数えない。
+    """
+
+    #: 左の 2 列に箱が 1 つずつ (= a と、同じ段の間の箱)、右の列に 2 段をまたぐ入れ物 c (= 下の段が、c の縁の真ん中の高さを覆う)
+    PANEL = {"panel": {"rows": [{"cells": [{"card": {"heading": "K", "body": "words"}}]},
+                                {"weight": 3, "cells": [{"text": "note", "role": "note"}]}]},
+             "at": [1, 3], "span": [2, 1], "id": "c"}
+
+    def page(self, link):
+        cells = [card("A", (2, 1), id="a"), card("M", (2, 2), id="m"), self.PANEL]
+        return build({"type": "compose", "title": "A page", "no_figure": "a test of the way a line runs",
+                      "grid": {"columns": [1, 1, 1], "rows": [1, 1]}, "cells": cells, "links": [link]}, WIDE_GAPS)
+
+    def test_a_line_goes_into_a_panel_whose_rows_stand_at_its_edge(self) -> None:
+        for link in ({"from": "a", "to": "c", "out": "top", "in": "left"}, {"from": "a", "to": "c"}):
+            with self.subTest(link=link):
+                page = self.page(link)
+                (line,) = lines_of(page)
+                self.assertEqual(1, len(line.corners), "one bend: up out of A, then along into the left edge of the panel")
+                c = next(e for e in page.build() if e.kind == "panel").rect
+                self.assertEqual(c.left, line.points()[-1][0])
+
+    def test_a_line_goes_out_of_a_panel_whose_rows_stand_at_its_edge(self) -> None:
+        page = self.page({"from": "c", "to": "a", "out": "left", "in": "top"})
+        (line,) = lines_of(page)
+        c = next(e for e in page.build() if e.kind == "panel").rect
+        self.assertEqual(c.left, line.points()[0][0])
+
+    def test_the_rows_of_another_panel_are_still_gone_round(self) -> None:
+        between = {"panel": {"rows": [{"cells": [{"card": {"heading": "K", "body": "words"}}]}]}, "at": [1, 2]}
+        cells = [card("A", (1, 1), id="a"), between, card("B", (1, 3), id="b")]
+        page = build({"type": "compose", "title": "A page", "no_figure": "a test of the way a line runs",
+                      "grid": {"columns": [1, 1, 1], "rows": [1, 1]}, "cells": cells,
+                      "links": [{"from": "a", "to": "b"}]}, WIDE_GAPS)
+        (line,) = lines_of(page)
+        self.assertTrue(line.corners, "the panel between stands on the straight way, so the line bends round it")
+        panel = next(e for e in page.build() if e.kind == "panel").rect
+        self.assertFalse(passes_through(line.points(), panel))

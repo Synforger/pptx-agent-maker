@@ -337,8 +337,8 @@ BAR_LOOKS = ("filled", "outlined")
 #: 点線のまま、枠と字を色の役の色にする (= 決まった物と同じ色の意味を保つ。地は紙の色)。案件が
 #: `[theme] tentative_look` で決める
 TENTATIVE_LOOKS = ("muted", "toned")
-#: 条件の帯と結論の帯の見た目。`plain` は枠の無い帯 (= 既定)、`outlined` は枠と色を持つ (= 上は差し色、
-#: 下は灰)。案件が `[theme] band_look` で決める
+#: 条件の帯と結論の帯の見た目。`plain` は枠の無い帯 (= 既定)、`outlined` は枠と色を持つ (= 上は紙の地に
+#: 差し色の枠と字、下は灰)。案件が `[theme] band_look` で決める
 BAND_LOOKS = ("plain", "outlined")
 #: 絵の下の名の見た目。`plain` は出所と同じ小さい灰の字 (= 既定。絵の読み方を添える)、`label` は本文の色の太字で
 #: `compose` の `role = "label"` と同じ大きさ (= 絵が何かを示す名。灰の字だと読み飛ばされる)。案件が
@@ -517,8 +517,8 @@ class Palette:
 
     #: 目次の今の章の地 (= 差し色のごく薄い色)。差し色をこの割合だけ紙に混ぜる
     FAINT: ClassVar[float] = 0.07
-    #: 枠を色で描くカードの地 (= `card_look = "outlined"`) と、枠を持つ帯の地 (= `band_look = "outlined"`)。
-    #: 色をこの割合だけ紙に混ぜる ― カードはほぼ白、帯はそれより一段濃い (= 案件の資料の見本の透け方)
+    #: 枠を色で描くカードの地 (= `card_look = "outlined"`) と、枠を持つ結論の帯の地 (= `band_look = "outlined"`。
+    #: 条件の帯は紙の地)。色をこの割合だけ紙に混ぜる ― カードはほぼ白、帯はそれより一段濃い
     CARD_WASH: ClassVar[float] = 0.03
     BAND_WASH: ClassVar[float] = 0.12
     #: 案件が名前を付けた地を「色で何も言わない薄い地」と見る明るさの下限: 作り付けの薄い地

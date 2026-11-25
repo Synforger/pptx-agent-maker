@@ -344,9 +344,9 @@ class TheBandsHaveALineAndAColour(unittest.TestCase):
                 named_in(page, "If this holds"), [e for e in page.elements if e.kind == "band"][1],
                 named_in(page, "Then that follows"))
 
-    def test_the_condition_is_the_accent_on_a_nearly_white_ground_in_bold(self) -> None:
+    def test_the_condition_is_the_accent_on_the_paper_in_bold(self) -> None:
         band, words, _under, _words = self.bands(BANDED)
-        self.assertEqual((P.thinned(P.BAND_WASH), P.accent, True), (band.colour, band.outline, band.rounded))
+        self.assertEqual((P.paper, P.accent, True), (band.colour, band.outline, band.rounded))
         self.assertEqual((P.accent, True, BANDED.type.heading), (words.colour, words.bold, words.size))
 
     def test_the_conclusion_is_grey_with_its_words_in_ink_at_the_body_size(self) -> None:
