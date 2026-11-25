@@ -270,6 +270,24 @@ class WordsBesideAnArrow(unittest.TestCase):
         left, right = (e.rect for e in kinds(page, "box"))
         self.assertEqual((left.right, right.left), (named(page, "Back").rect.left, named(page, "Back").rect.right))
 
+    def test_written_out_the_words_over_a_sideways_arrow_keep_no_room_above_or_below_in_their_frame(self) -> None:
+        """The frame is the block of the words: room inside it would drop them by that much onto the line."""
+        from pptx import Presentation
+
+        page = side_by_side({"text": "Next"}, AIRY)
+        words = named(page, "Next")
+        (line,) = kinds(page, "line")
+        with tempfile.TemporaryDirectory() as tmp:
+            deck = new_deck(AIRY)
+            add_page(deck, page.build(), AIRY)
+            saved = save(deck, Path(tmp) / "words.pptx")
+            (frame,) = [shape for shape in Presentation(str(saved)).slides[0].shapes
+                        if shape.has_text_frame and shape.text_frame.text == "Next"]
+        self.assertEqual((0, 0), (frame.text_frame.margin_top, frame.text_frame.margin_bottom))
+        self.assertEqual(words.rect.bottom, frame.top + frame.height)
+        self.assertEqual(AIRY.spacing.gap_s // 2, line.start[1] - (frame.top + frame.height),
+                         "the words end half of `gap_s` above the line")
+
     def test_words_that_rise_above_the_cells_beside_a_sideways_arrow_stop(self) -> None:
         """Above the arrow there is the height of the cells, and no more: the words are not set over the page's bands."""
         with self.assertRaises(PageFullError) as stopped:

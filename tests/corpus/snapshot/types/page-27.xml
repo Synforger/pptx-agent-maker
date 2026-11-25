@@ -555,7 +555,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" tIns="0" bIns="0" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -641,7 +641,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" tIns="0" bIns="0" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
@@ -727,7 +727,7 @@
 <a:noFill/>
 </p:spPr>
 <p:txBody>
-<a:bodyPr wrap="square" anchor="t">
+<a:bodyPr wrap="square" tIns="0" bIns="0" anchor="t">
 <a:spAutoFit/>
 </a:bodyPr>
 <a:lstStyle/>
