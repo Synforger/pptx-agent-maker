@@ -433,3 +433,9 @@ name = "the ends of a connector drawn backwards keep their places"
 file = "src/pptx_agent_maker/write/lines.py"
 old = "            _join(slide, shape, *((element.ends_on, element.begins_on) if reversed_path else (element.begins_on, element.ends_on)))"
 new = "            _join(slide, shape, element.begins_on, element.ends_on)"
+
+[[mutant]]
+name = "a line that bends more to share a point shares it all the same"
+file = "src/pptx_agent_maker/layout/types/bodies/arrange.py"
+old = "    if apart.blocked or (not joined.blocked and apart.bends >= joined.bends):"
+new = "    if True:"
