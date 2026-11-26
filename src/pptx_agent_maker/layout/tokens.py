@@ -365,6 +365,9 @@ LEADINGS = (1.0, 2.0)
 #: 案件が書ける `band_wash` の幅 (= `band_look = "outlined"` の条件の帯の地に、差し色を紙へ混ぜる割合)。0 は紙 (= 既定)、
 #: 上の端は結論の帯と同じ透け方 (= `Palette.BAND_WASH`。条件の帯がこの地だった頃、読み手には「水色」と見えた)
 BAND_WASHES = (0.0, 0.12)
+#: 案件が書ける `strong_line` の幅 (pt)。太枠 (= `strong = true` の箱と入れ物) の線の太さで、書かなければ道具の
+#: 既定 (= `Spacing.strong_line`、2.25pt)。グラフの折れ線は変えない
+STRONG_LINES = (1.5, 8.0)
 #: 使い方の倍率が掛かる余白と間隔 (= 物の内側と、物どうしの間、字に添える小さい物)。頁の縁の余白と
 #: 線の太さには掛からない ― 縁は資料のどの頁でも同じ所に在り、線は細くすると消える
 TIGHTENED = ("gap_s", "gap_m", "gap_l", "gap_x", "gap_y", "band_gap", "title_gap", "pad", "cell_pad_y", "cell_pad_x",
@@ -681,6 +684,8 @@ class Theme:
     band_look: str = "plain"
     #: `band_look = "outlined"` の条件の帯の地に混ぜる差し色の割合 (= `BAND_WASHES`。0 は紙)
     band_wash: float = 0.0
+    #: 案件が書いた太枠の太さ (pt、= `STRONG_LINES`)。書かなければ None で、道具の既定 (= `Spacing.strong_line`)
+    strong_line_set: float | None = None
     #: 線表の棒の見た目 (= `BAR_LOOKS`)
     bar_look: str = "filled"
     #: 内容未定の物の見た目 (= `TENTATIVE_LOOKS`)
@@ -755,6 +760,11 @@ class Theme:
         return min((thing.top for thing in self.under.prints
                     if thing.left < middle < thing.right and half <= thing.top < self.slide.bottom),
                    default=self.slide.bottom)
+
+    @property
+    def strong_line(self) -> int:
+        """How thick the line of a strong box is, in EMU: as the project wrote it (= `[theme] strong_line`), else the tool's."""
+        return self.spacing.strong_line if self.strong_line_set is None else pt(self.strong_line_set)
 
     def line_height(self, size: float | None = None) -> int:
         """One line of type, including its leading."""
@@ -1044,7 +1054,7 @@ DEFAULT = Theme()
 #: 色は 6 桁の 16 進で書く (= pptx がそう持つので、途中で変換しない)
 _HEX = re.compile(r"\A[0-9A-Fa-f]{6}\Z")
 #: 案件が自分で決めてよいもの。これ以外はツールが持つ
-_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "bar_look", "tentative_look", "band_look", "band_wash", "caption_look", "leading",
+_MINE = ("font", "palette", "grounds", "use", "type", "uses", "kicker", "box_height", "card_look", "bar_look", "tentative_look", "band_look", "band_wash", "strong_line", "caption_look", "leading",
          "table_look", "layout_of_page")
 
 
@@ -1099,6 +1109,7 @@ def theme_from(settings: dict | None) -> Theme:
     tentative_look = _choice(settings, "tentative_look", TENTATIVE_LOOKS, "the look of a tentative box, bar or arrow")
     band_look = _choice(settings, "band_look", BAND_LOOKS, "the look of the bands over and under a page")
     band_wash = _band_wash(settings)
+    strong_line = _strong_line(settings)
     caption_look = _choice(settings, "caption_look", CAPTION_LOOKS, "the look of the name under a picture")
     table_look = _choice(settings, "table_look", TABLE_LOOKS, "the look of a table")
     # 型の頁を乗せるレイアウトは、見本を読む所が使う (= `deck/_internal/under.py`)。ここは書き方だけ確かめる
@@ -1139,6 +1150,7 @@ def theme_from(settings: dict | None) -> Theme:
         tentative_look=tentative_look,
         band_look=band_look,
         band_wash=band_wash,
+        strong_line_set=strong_line,
         caption_look=caption_look,
         table_look=type.table_look_set,
     )
@@ -1260,6 +1272,17 @@ def _band_wash(said: dict) -> float:
         raise ThemeError(f"theme.band_wash is {value!r} — the share of the accent mixed into the paper for the ground of "
                          f"the condition band of `band_look = \"outlined\"`, from {BAND_WASHES[0]} (= the paper) to "
                          f"{BAND_WASHES[1]} (= as deep as the conclusion band)")
+    return float(value)
+
+
+def _strong_line(said: dict) -> float | None:
+    """How thick a strong box's line is, in points (= `[theme] strong_line`); unsaid, None (= the tool's)."""
+    if "strong_line" not in said:
+        return None
+    value = said["strong_line"]
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not STRONG_LINES[0] <= value <= STRONG_LINES[1]:
+        raise ThemeError(f"theme.strong_line is {value!r} — the thickness of the line of a strong box in points, "
+                         f"from {STRONG_LINES[0]} to {STRONG_LINES[1]} (= unsaid, the tool's 2.25)")
     return float(value)
 
 
