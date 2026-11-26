@@ -131,7 +131,7 @@ def _edge(shape, outline: str, theme: Theme, *, dashed: bool = False, heavy: boo
         shape.line.fill.background()
         return
     shape.line.color.rgb = _colour(outline)
-    shape.line.width = Emu(theme.spacing.strong_line if heavy else theme.spacing.hairline)
+    shape.line.width = Emu(theme.strong_line if heavy else theme.spacing.hairline)
     if dashed:
         shape.line.dash_style = MSO_LINE_DASH_STYLE.DASH
 

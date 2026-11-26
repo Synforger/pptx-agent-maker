@@ -271,3 +271,30 @@ class OnceBaked(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AProjectSetsTheStrongLine(unittest.TestCase):
+    """`[theme] strong_line` sets the thickness of a strong box's line in points; unsaid, the tool's."""
+
+    def line_of(self, theme) -> set[str]:
+        page = types.build({"type": "compose", "title": "A page", "no_figure": "a test of the line",
+                            "rows": [{"cells": [{"card": {"heading": "S", "body": "x", "strong": True}}]}]},
+                           lambda name: name, aspect, theme)
+        deck = new_deck(theme)
+        add_page(deck, page.build(), theme)
+        with tempfile.TemporaryDirectory() as tmp:
+            xml = zipfile.ZipFile(save(deck, Path(tmp) / "a.pptx")).read("ppt/slides/slide1.xml").decode("utf-8")
+        return set(re.findall(r'<a:ln w="(\d+)"', xml))
+
+    def test_unsaid_the_line_is_the_tools_and_said_it_is_the_projects(self) -> None:
+        self.assertEqual({str(DEFAULT.spacing.strong_line)}, self.line_of(theme_from({})))
+        self.assertEqual({str(44450)}, self.line_of(theme_from({"strong_line": 3.5})))
+
+    def test_it_stays_when_the_page_takes_a_use_of_its_own(self) -> None:
+        theme = theme_from({"strong_line": 3.5, "uses": {"airy": {"like": "read"}}}).using("airy")
+        self.assertEqual(44450, theme.strong_line)
+
+    def test_a_thickness_outside_its_range_or_not_a_number_stops_with_the_range(self) -> None:
+        for value in (1.0, 9, "thick", True):
+            with self.subTest(value=value), self.assertRaisesRegex(Exception, r"theme\.strong_line .* from 1\.5 to 8\.0"):
+                theme_from({"strong_line": value})

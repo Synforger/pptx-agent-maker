@@ -1,0 +1,21 @@
+# A project sets the thickness of a strong box's line in points (= `[theme] strong_line`); unsaid, the tool's.
+
+tests = ["tests/layout/test_look.py"]
+
+[[mutant]]
+name = "the line a project writes is not read"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "        strong_line_set=strong_line,\n"
+new = ""
+
+[[mutant]]
+name = "a strong box keeps the tool's line whatever the project writes"
+file = "src/pptx_agent_maker/write/pptx.py"
+old = "Emu(theme.strong_line if heavy else theme.spacing.hairline)"
+new = "Emu(theme.spacing.strong_line if heavy else theme.spacing.hairline)"
+
+[[mutant]]
+name = "any thickness is let through"
+file = "src/pptx_agent_maker/layout/tokens.py"
+old = "or not STRONG_LINES[0] <= value <= STRONG_LINES[1]:"
+new = "or False:"
