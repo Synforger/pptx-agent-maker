@@ -1,0 +1,60 @@
+# A word wider than the room its box has for words is told: in a text box and in a cell of a table, split where a
+# line may break before it is measured, never for a box that does not wrap or a word of no size, and without stopping.
+
+tests = ["tests/checks/test_broken_words.py", "tests/checks/test_stops.py"]
+
+# -- where a word may break --
+
+[[mutant]]
+name = "a word is not split after a hyphen or a slash"
+file = "src/pptx_agent_maker/checks/rules/broken_words.py"
+old = '''_PIECES = re.compile(r"[^\s⺀-￿\-/]*[\-/]|[^\s⺀-￿\-/]+")'''
+new = '''_PIECES = re.compile(r"[^\s⺀-￿]+")'''
+
+[[mutant]]
+name = "full-width letters are measured as one word"
+file = "src/pptx_agent_maker/checks/rules/broken_words.py"
+old = '''_PIECES = re.compile(r"[^\s⺀-￿\-/]*[\-/]|[^\s⺀-￿\-/]+")'''
+new = '''_PIECES = re.compile(r"[^\s\-/]*[\-/]|[^\s\-/]+")'''
+
+# -- the room for words --
+
+[[mutant]]
+name = "the room for words is the whole width of the box"
+file = "src/pptx_agent_maker/checks/rules/broken_words.py"
+old = "    room = (shape.width - _attribute(_INSET[\"lIns\"], properties, LEFT_INSET)"
+new = "    room = (shape.width - 0 * _attribute(_INSET[\"lIns\"], properties, LEFT_INSET)"
+
+[[mutant]]
+name = "a cell across two columns has the room of its first column"
+file = "src/pptx_agent_maker/checks/rules/broken_words.py"
+old = "width = sum(columns[column:column + span])"
+new = "width = sum(columns[column:column + 1])"
+
+# -- what is not measured --
+
+[[mutant]]
+name = "a box that does not wrap is measured too"
+file = "src/pptx_agent_maker/checks/rules/broken_words.py"
+old = "    if properties and _NO_WRAP.search(properties.group(0)):"
+new = "    if False:"
+
+[[mutant]]
+name = "a run of no size is measured at 12 points"
+file = "src/pptx_agent_maker/checks/rules/broken_words.py"
+old = "points = int(size.group(1)) / 100 * scale if size else None"
+new = "points = int(size.group(1)) / 100 * scale if size else 12.0"
+
+# -- how it is told --
+
+[[mutant]]
+name = "a broken word stops the build"
+file = "src/pptx_agent_maker/checks/rules/broken_words.py"
+old = "STOPS = False"
+new = "STOPS = True"
+
+[[mutant]]
+name = "a project cannot switch it off"
+file = "src/pptx_agent_maker/checks/rules/broken_words.py"
+old = "    if (config or {}).get(NAME, True) is False:\n        return []"
+new = "    if False:\n        return []"

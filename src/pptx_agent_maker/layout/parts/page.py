@@ -589,24 +589,31 @@ class Page:
                 self.elements.append(Text("box_heading", head, heading, t.tag if said.tag else t.heading, head_ink,
                                           bold=True, align=align, middle=alone))
 
-    def _panel_heading_height(self, panel: Panel, width: int) -> int:
+    def panel_heading_height(self, panel: Panel, width: int) -> int:
         """How tall the heading of a panel stands at this width of its inside (= 0 without one)."""
         if not panel.heading:
             return 0
         room = max(width - 2 * self.theme.spacing.text_inset, 1)
         return self.theme.wrapped_height(panel.heading, room, self.theme.type.heading, bold=True)
 
-    def panel_head(self, panel: Panel, width: int) -> int:
+    def panel_head(self, panel: Panel, width: int, head_room: int = 0) -> int:
         """How far under the top of a panel's inside the rows it holds begin (= 0 for a panel without a heading).
 
         `width` は箱の中の幅 (= 箱の幅から左右の `pad` を引いた幅)。置く側 (= `panel`) と、段の高さを数える側
         (= `compose`) が同じ数を使う。線は字の塊のすぐ下に引く (= 字の頭は枠の上端から `TEXT_INSET_Y` 下がる)。
+
+        `head_room` は、同じ段に並ぶ見出しを持つ入れ物のうち、中の段が一番低く始まる物の、この値 (= `compose` が
+        渡す)。中の段はどの入れ物でも同じ高さから始まる (= 見出しの行の数も、下線の有無も吸収する)。見出しの字と
+        下線は自分の高さのまま上に置き、空きは線と中の段の間に出る。見出しの無い入れ物は揃えない (= 中の段が上端から)。
+
+        ⚠ **並んだ入れ物の中の段は、一番低く始まる物に揃える。**入れ物ごとに自分の見出しの高さを取っていた間は、
+        1 つだけ見出しが 2 行に折れると、その入れ物の中のカードだけが他の列より下にずれた (= 検査も通った)。
         """
-        tall = self._panel_heading_height(panel, width)
+        tall = self.panel_heading_height(panel, width)
         if not tall:
             return 0
         s = self.theme.spacing
-        return tall + (TEXT_INSET_Y + s.hairline if panel.rule else 0) + s.gap_s
+        return max(tall + (TEXT_INSET_Y + s.hairline if panel.rule else 0) + s.gap_s, head_room)
 
     def reads_ink(self, style: Style) -> bool:
         """Whether words in the body's ink read straight on the ground a box of this style paints.
@@ -618,7 +625,7 @@ class Page:
             return True
         return self.look(style, self.theme.type.body).ink == self.theme.palette.ink
 
-    def panel(self, rect: Rect, panel: Panel) -> Rect:
+    def panel(self, rect: Rect, panel: Panel, head_room: int = 0) -> Rect:
         """A box that holds others, with its heading in the top left corner; the room left inside it.
 
         見た目は資料の `card_look` に従い、カードと同じ決まりを読む (= `outlined_look` / `look`)。
@@ -638,8 +645,8 @@ class Page:
         self.elements.append(Fill("panel", rect, look.fill, outline=look.outline,
                                   dashed=look.dashed, heavy=look.heavy, rounded=outlined))
         inner = rect.inset(s.pad)
-        tall = self._panel_heading_height(panel, inner.width)
-        head = self.panel_head(panel, inner.width)
+        tall = self.panel_heading_height(panel, inner.width)
+        head = self.panel_head(panel, inner.width, head_room)
         if head >= inner.height:
             raise PageFullError(
                 f"a panel has {inner.height} EMU of height inside and its heading takes {head} — nothing is "
@@ -648,6 +655,7 @@ class Page:
             self.elements.append(Text("panel_heading", Rect(inner.left, inner.top, inner.width, tall),
                                       panel.heading, t.heading, head_ink, bold=True))
             if panel.rule:
+                # 線は自分の見出しのすぐ下 (= 見出しの下線。揃えるのは中の段の始まりだけ)
                 self.elements.append(Fill("rule", Rect(inner.left, inner.top + TEXT_INSET_Y + tall,
                                                        inner.width, s.hairline), head_ink))
         return inner.inset(top=head)

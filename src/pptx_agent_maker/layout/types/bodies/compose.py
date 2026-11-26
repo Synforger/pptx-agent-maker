@@ -194,13 +194,15 @@ def _stack(page: Page, spec: Spec, rows, area: Rect, where: str, seen: list) -> 
             tall = height + (next(more) if grows and not shares else 0)
         # 入れ物と並ぶカードは、字を入れ物の見出しと同じ上端から置く (= 見出しどうしが同じ高さに並ぶ)
         by_panel = any("panel" in cell for cell, _column, _natural in cells)
+        room = _head_room(page, spec, [(cell, column.width, f"{where}: row {number}, cell {index}")
+                                          for index, (cell, column, _natural) in enumerate(cells, start=1)])
         for index, (cell, column, natural) in enumerate(cells, start=1):
             rect = Rect(area.left + column.left, top, column.width, tall)
             at = len(seen)
             seen.append((str(cell["id"]) if "id" in cell else None, rect, _blank(cell)))
             try:
                 drawn = _place(page, spec, cell, rect, natural, height is not None, f"{where}: row {number}, cell {index}",
-                               seen, by_panel=by_panel)
+                               seen, by_panel=by_panel, head_room=room)
             except PageFullError as reason:
                 if height is not None or not fixed:
                     raise
@@ -244,6 +246,30 @@ def _grid(page: Page, spec: Spec, area: Rect, seen: list) -> None:
         raise PageFullError(f"{reason}{_columns_that_fit(page, spec, area, widths, down, backdrops, cells, inset)}") from reason
 
 
+def _grid_head_rooms(page: Page, spec: Spec, squares: tuple[list[Rect], list[Rect]], cells: list,
+                     inset: int) -> dict[int, int]:
+    """For each row of a grid, where the rows inside the panels that begin on it begin (= `_head_room`).
+
+    ⚠ **読めないマスは飛ばす。**書き間違いのマスはここで止めず、置く順に読む `_lay` が今までどおりの順で止める
+    (= 前のマスが入らずに止まる頁は、後ろのマスの書き間違いより先にそれを言う)。
+    """
+    across, down = squares
+    begins: dict[int, list[tuple[dict, int, str]]] = {}
+    for number, cell in enumerate(cells, start=1):
+        if not isinstance(cell, dict) or "panel" not in cell:
+            continue
+        what = f"compose: cell {number}"
+        try:
+            only_keys(cell, set(GRID_CELL_KEYS), what)
+            first, last = _span_of(cell, len(down), len(across), what)
+            width = _frame(across, down, first, last).inset(inset).width
+            _the_panel(spec, cell, what)
+        except (PageTypeError, ValueError):
+            continue
+        begins.setdefault(first[0], []).append((cell, width, what))
+    return {line: _head_room(page, spec, listed) for line, listed in begins.items()}
+
+
 def _lay(page: Page, spec: Spec, squares: tuple[list[Rect], list[Rect]], backdrops: list, cells: list, inset: int,
          seen: list) -> None:
     """The backdrops, then the cells, on the squares of a grid (= the columns and the rows, as rects)."""
@@ -259,6 +285,7 @@ def _lay(page: Page, spec: Spec, squares: tuple[list[Rect], list[Rect]], backdro
         rects.append((_frame(across, down, first, last), read_tone(spec, backdrop, what, BACKDROP_TONE)))
     for rect, tone in rects:
         page.backdrop(rect, tone)
+    rooms = _grid_head_rooms(page, spec, squares, cells, inset)
     covered = {}
     for number, cell in enumerate(cells, start=1):
         what = f"{where}: cell {number}"
@@ -271,12 +298,13 @@ def _lay(page: Page, spec: Spec, squares: tuple[list[Rect], list[Rect]], backdro
             raise PageFullError(f"{what}: the squares it covers are too small to keep {inset} EMU round what stands "
                                 "in them — fewer rows or columns, or a larger share for them; nothing will "
                                 "shrink") from reason
-        natural = _natural(page, spec, cell, rect.width, what)
+        start = first[0]
+        natural = _natural(page, spec, cell, rect.width, what, head_room=rooms.get(start, 0))
         at = len(seen)
         seen.append((str(cell["id"]) if "id" in cell else None, rect, _blank(cell)))
         # 格子のカードは字を箱の上端から置く (= 行をまたぐカードと 1 行のカードで箱の高さが違い、縦の中央に
         # 置くと、同じ行から始まるカードの見出しの上端がずれる)
-        drawn = _place(page, spec, cell, rect, natural, True, what, seen, by_panel=True)
+        drawn = _place(page, spec, cell, rect, natural, True, what, seen, by_panel=True, head_room=rooms.get(start, 0))
         if drawn is not None:
             seen[at] = (seen[at][0], drawn, seen[at][2])
 
@@ -498,6 +526,16 @@ def _grows(page: Page, cell: dict) -> bool:
     return "card" in cell or "panel" in cell or any(_grows(page, inner) for row in cell.get("rows", []) for inner in row["cells"])
 
 
+def _head_room(page: Page, spec: Spec, cells: list[tuple[dict, int, str]]) -> int:
+    """How far under the top of their insides the rows of the panels side by side begin, at the lowest (= all begin there).
+
+    `cells` は (マス, マスの幅, 誤りの文で呼ぶマスの名前) の組。測る側 (= `_measure`) と置く側 (= `_stack`・`_lay`) が同じ数を使う。
+    """
+    s = page.theme.spacing
+    return max((page.panel_head(_the_panel(spec, cell, what), max(width - 2 * s.pad, 1))
+                for cell, width, what in cells if "panel" in cell), default=0)
+
+
 def _measure(page: Page, spec: Spec, rows, width: int, where: str):
     """Each row with its cells, the row's own height (None = it shares the rest), its share, and whether it grows."""
     if not isinstance(rows, list) or not rows:
@@ -514,7 +552,9 @@ def _measure(page: Page, spec: Spec, rows, width: int, where: str):
             only_keys(cell, {"weight", *CELL_KEYS}, f"{what}, cell {index}")
         weights = [read_weight(cell, f"{what}, cell {index}") for index, cell in enumerate(cells, start=1)]
         columns = Rect(0, 0, width, 1).columns(weights, gap=gap)
-        measured = [(cell, column, _natural(page, spec, cell, column.width, f"{what}, cell {index}"))
+        room = _head_room(page, spec, [(cell, column.width, f"{what}, cell {index}")
+                                          for index, (cell, column) in enumerate(zip(cells, columns), start=1)])
+        measured = [(cell, column, _natural(page, spec, cell, column.width, f"{what}, cell {index}", head_room=room))
                     for index, (cell, column) in enumerate(zip(cells, columns), start=1)]
         shares = "weight" in row
         naturals = [natural for _cell, _column, natural in measured]
@@ -599,8 +639,11 @@ def _guides(spec: Spec, cell: dict, what: str) -> tuple[tuple[float, ...], str]:
     return tuple(float(value) for value in listed), tone
 
 
-def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int | None:
-    """How tall a cell is for its own words, or None when it takes whatever room it is given."""
+def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str, *, head_room: int = 0) -> int | None:
+    """How tall a cell is for its own words, or None when it takes whatever room it is given.
+
+    `head_room` は、同じ段に並ぶ入れ物の見出しの一番高い物 (= `_head_room`)。入れ物はその高さを見出しに取る。
+    """
     part = _part(cell, what)
     theme, s = page.theme, page.theme.spacing
     if part == "card":
@@ -612,7 +655,7 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
         if any(height is None for _row, _cells, height, _weight, _g in laid):
             return None
         return (sum(height for _r, _c, height, _w, _g in laid) + s.gap_y * (len(laid) - 1)
-                + page.panel_head(panel, inside) + 2 * s.pad)
+                + page.panel_head(panel, inside, head_room) + 2 * s.pad)
     if part == "table":
         rows = _table(spec, cell, what)
         return theme.table_height(rows, theme.column_widths(rows, width, _table_columns(cell, rows, what)))
@@ -652,7 +695,7 @@ def _natural(page: Page, spec: Spec, cell: dict, width: int, what: str) -> int |
 
 
 def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, own_row: bool,
-           what: str, seen: list, *, by_panel: bool = False) -> Rect | None:
+           what: str, seen: list, *, by_panel: bool = False, head_room: int = 0) -> Rect | None:
     """Put one cell's part in its rect; the rect an enclosure is drawn in when that is not the cell's (= otherwise None).
 
     `own_row` は、段が中身の言葉ぶんの高さの段か (= その段のカードは段の高さに揃える)。
@@ -674,7 +717,7 @@ def _place(page: Page, spec: Spec, cell: dict, rect: Rect, natural: int | None, 
             page.boxes(rect if own_row or page.theme.box_height == "page" else fitted, [_the_card(spec, cell, what)],
                        top=by_panel)
         elif part == "panel":
-            return _panel(page, spec, cell, rect if own_row or page.theme.box_height == "page" else fitted, what, seen)
+            return _panel(page, spec, cell, rect if own_row or page.theme.box_height == "page" else fitted, what, seen, head_room)
         elif part == "table":
             rows = _table(spec, cell, what)
             page.table(fitted, rows, shares=_table_columns(cell, rows, what))
@@ -743,7 +786,7 @@ def _stood(rect: Rect, height: int, valign: str) -> Rect:
     return Rect(rect.left, rect.top + {"top": 0, "middle": spare // 2, "bottom": spare}[valign], rect.width, height)
 
 
-def _panel(page: Page, spec: Spec, cell: dict, rect: Rect, what: str, seen: list) -> Rect:
+def _panel(page: Page, spec: Spec, cell: dict, rect: Rect, what: str, seen: list, head_room: int = 0) -> Rect:
     """A panel in its rect, and the rows it holds divided in what is left inside it (= the rect it was drawn in).
 
     中の段は、段とマスの組み方をそのまま使う (= `_stack`)。中のマスの `id` も `links` に使える。
@@ -761,7 +804,7 @@ def _panel(page: Page, spec: Spec, cell: dict, rect: Rect, what: str, seen: list
                 f"{where}: a {bare} stands straight on the ground of this panel, which is deep in this look "
                 f"(= tone {panel.style.tone!r}), and the ink of the body does not read on it — put it in a card, "
                 "give the panel a pale tone, or set the deck's `card_look` to \"outlined\"")
-    _stack(page, spec, cell["panel"]["rows"], page.panel(rect, panel), where, seen)
+    _stack(page, spec, cell["panel"]["rows"], page.panel(rect, panel, head_room), where, seen)
     return rect
 
 
