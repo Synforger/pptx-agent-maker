@@ -106,22 +106,22 @@ new = "Rect(inner.left, inner.top + TEXT_INSET_Y,"
 [[mutant]]
 name = "the rows begin as high as if there were no rule"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "return tall + (TEXT_INSET_Y + s.hairline if panel.rule else 0) + s.gap_s"
-new = "return tall + s.gap_s"
+old = "return max(tall + (TEXT_INSET_Y + s.hairline if panel.rule else 0) + s.gap_s, head_room)"
+new = "return max(tall + s.gap_s, head_room)"
 
 [[mutant]]
 name = "the rows begin right under the heading"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = "return tall + (TEXT_INSET_Y + s.hairline if panel.rule else 0) + s.gap_s"
-new = "return tall + (TEXT_INSET_Y + s.hairline if panel.rule else 0)"
+old = "return max(tall + (TEXT_INSET_Y + s.hairline if panel.rule else 0) + s.gap_s, head_room)"
+new = "return max(tall + (TEXT_INSET_Y + s.hairline if panel.rule else 0), head_room)"
 
 [[mutant]]
 name = "a panel without a heading still keeps room for one"
 file = "src/pptx_agent_maker/layout/parts/page.py"
-old = '''        tall = self._panel_heading_height(panel, width)
+old = '''        tall = self.panel_heading_height(panel, width)
         if not tall:
             return 0'''
-new = '''        tall = self._panel_heading_height(panel, width)
+new = '''        tall = self.panel_heading_height(panel, width)
         if False:
             return 0'''
 
@@ -131,9 +131,9 @@ new = '''        tall = self._panel_heading_height(panel, width)
 name = "the padding of a panel is the small gap"
 file = "src/pptx_agent_maker/layout/parts/page.py"
 old = '''        inner = rect.inset(s.pad)
-        tall = self._panel_heading_height(panel, inner.width)'''
+        tall = self.panel_heading_height(panel, inner.width)'''
 new = '''        inner = rect.inset(s.gap_s)
-        tall = self._panel_heading_height(panel, inner.width)'''
+        tall = self.panel_heading_height(panel, inner.width)'''
 
 [[mutant]]
 name = "the rows are divided over the heading too"
@@ -150,7 +150,7 @@ new = "if False:"
 [[mutant]]
 name = "the rows of a panel are divided in the whole box"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "page.panel(rect, panel), where, seen)"
+old = "page.panel(rect, panel, head_room), where, seen)"
 new = "rect, where, seen)"
 
 # -- how tall it is --
@@ -158,14 +158,14 @@ new = "rect, where, seen)"
 [[mutant]]
 name = "the height of a panel leaves out its heading"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "+ page.panel_head(panel, inside) + 2 * s.pad)"
+old = "+ page.panel_head(panel, inside, head_room) + 2 * s.pad)"
 new = "+ 2 * s.pad)"
 
 [[mutant]]
 name = "the height of a panel leaves out its padding"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "+ page.panel_head(panel, inside) + 2 * s.pad)"
-new = "+ page.panel_head(panel, inside))"
+old = "+ page.panel_head(panel, inside, head_room) + 2 * s.pad)"
+new = "+ page.panel_head(panel, inside, head_room))"
 
 [[mutant]]
 name = "the rows of a panel are measured as wide as the panel"
@@ -202,14 +202,14 @@ new = '"card" in cell or any('
 [[mutant]]
 name = "a panel in a row of its own words is drawn only as tall as its words"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "rect if own_row or page.theme.box_height == \"page\" else fitted, what, seen)"
-new = "fitted, what, seen)"
+old = "rect if own_row or page.theme.box_height == \"page\" else fitted, what, seen, head_room)"
+new = "fitted, what, seen, head_room)"
 
 [[mutant]]
 name = "a panel in a row that shares what is left fills the row"
 file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
-old = "rect if own_row or page.theme.box_height == \"page\" else fitted, what, seen)"
-new = "rect, what, seen)"
+old = "rect if own_row or page.theme.box_height == \"page\" else fitted, what, seen, head_room)"
+new = "rect, what, seen, head_room)"
 
 # -- the links --
 
@@ -392,3 +392,41 @@ name = "a card may choose the paper"
 file = "src/pptx_agent_maker/layout/types/core/read.py"
 old = "def read_style(spec: Spec, item: dict, what: str, unsaid: str, *, also: tuple[str, ...] = ()) -> Style:"
 new = "def read_style(spec: Spec, item: dict, what: str, unsaid: str, *, also: tuple[str, ...] = (PAPER,)) -> Style:"
+
+# -- panels side by side --
+
+[[mutant]]
+name = "each panel beside others begins its rows under its own heading"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "    return max((page.panel_head("
+new = "    return 0 and max((page.panel_head("
+
+[[mutant]]
+name = "the rule drops to the room the tallest heading beside it takes"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = "inner.top + TEXT_INSET_Y + tall,"
+new = "inner.top + head - s.gap_s - s.hairline,"
+
+[[mutant]]
+name = "on a grid every panel lines up with every other, whatever row it begins on"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = "return {line: _head_room(page, spec, listed) for line, listed in begins.items()}"
+new = "return {line: _head_room(page, spec, [item for every in begins.values() for item in every]) for line in begins}"
+
+[[mutant]]
+name = "a panel without a heading moves its rows down to the panels beside it"
+file = "src/pptx_agent_maker/layout/parts/page.py"
+old = '''        if not tall:
+            return 0
+        s = self.theme.spacing
+        return max('''
+new = '''        if not tall:
+            return head_room
+        s = self.theme.spacing
+        return max('''
+
+[[mutant]]
+name = "a panel is measured with its own heading and placed with the tallest beside it"
+file = "src/pptx_agent_maker/layout/types/bodies/compose.py"
+old = '''_natural(page, spec, cell, column.width, f"{what}, cell {index}", head_room=room))'''
+new = '''_natural(page, spec, cell, column.width, f"{what}, cell {index}"))'''

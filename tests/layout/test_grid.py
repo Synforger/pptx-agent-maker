@@ -451,7 +451,8 @@ class TheDottedLineInTheLegend(unittest.TestCase):
 
 class TheDeckOfAGridIsPassedByTheChecks(unittest.TestCase):
     def test_a_page_with_backdrops_names_boxes_over_two_rows_and_bent_arrows_is_read_clean(self) -> None:
-        cells = [{"text": "Users", "role": "label", "at": [1, 1]}, {"text": "Developers", "role": "label", "at": [2, 1]},
+        # 狭い左の列の名前は、列に収まる語にする (= 「Developers」は語の途中で折れ、`broken_words` が言う)
+        cells = [{"text": "Users", "role": "label", "at": [1, 1]}, {"text": "Devs", "role": "label", "at": [2, 1]},
                  card("Hub", at=[1, 2], span=[2, 1], id="hub"), card("Use", at=[1, 3], id="use"),
                  card("Build", at=[2, 3], id="build"), card("Late", at=[2, 4], id="late")]
         backdrops = [{"at": [1, 1], "span": [1, 4], "tone": "band"}, {"at": [2, 1], "span": [1, 4], "tone": "tint"}]

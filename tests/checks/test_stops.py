@@ -1,7 +1,8 @@
 """A check that sets `STOPS = False` is told in the report and does not end a `build` or a `check` with 1.
 
-`untoned_cards` and `near_alignment` are for a person to look at: forgetting a colour's name is a matter of
-taste, and a small miss is theirs to decide on. Every other check still ends the run with 1.
+`untoned_cards`, `near_alignment` and `broken_words` are for a person to look at: forgetting a colour's name is a
+matter of taste, a small miss is theirs to decide on, and whether to widen a column or shorten a word that breaks in
+the middle is theirs too. Every other check still ends the run with 1.
 """
 
 from __future__ import annotations
@@ -20,11 +21,11 @@ sys.path.insert(0, str(REPO / "tests"))
 from pptx_agent_maker.__main__ import main  # noqa: E402
 from pptx_agent_maker.checks import CHECKS, DECLARED, Finding, report, stopping  # noqa: E402
 from pptx_agent_maker.checks.declared import untoned_cards  # noqa: E402
-from pptx_agent_maker.checks.rules import near_alignment  # noqa: E402
+from pptx_agent_maker.checks.rules import broken_words, near_alignment  # noqa: E402
 from pptx_agent_maker.project import create  # noqa: E402
 from support.templates import a_template  # noqa: E402
 
-QUIET = (near_alignment, untoned_cards)
+QUIET = (near_alignment, untoned_cards, broken_words)
 AGENDA = ('[[pages]]\nkind = "declare"\ntype = "agenda"\ntitle = "Agenda"\nlook = "cards"\n'
           'buckets = [["First", ["a"]], ["Second", ["b"]]]\nhighlight = 1\n')
 UNTONED = ('[[pages]]\nkind = "declare"\ntype = "cards"\ntitle = "Cards"\nno_figure = "a test of the report"\n'
@@ -32,7 +33,7 @@ UNTONED = ('[[pages]]\nkind = "declare"\ntype = "cards"\ntitle = "Cards"\nno_fig
 
 
 class WhichChecksStop(unittest.TestCase):
-    def test_the_two_checks_for_a_person_to_look_at_do_not_stop_and_the_rest_do(self) -> None:
+    def test_the_checks_for_a_person_to_look_at_do_not_stop_and_the_rest_do(self) -> None:
         quiet = {check.NAME for check in (*CHECKS, *DECLARED) if not getattr(check, "STOPS", True)}
         self.assertEqual({check.NAME for check in QUIET}, quiet)
 

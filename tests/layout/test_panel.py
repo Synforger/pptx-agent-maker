@@ -180,6 +180,78 @@ class TheHeadingAndTheRule(unittest.TestCase):
         self.assertGreater(heading.rect.height, text_of(short, "Short").rect.height)
 
 
+class PanelsSideBySide(unittest.TestCase):
+    """The rows of panels in one row begin at one height, however their headings fold and whether they have a rule."""
+
+    #: 狭い列で 2 行に折れる見出し
+    FOLDING = "ABCDEFGHIJKLMNOP QRSTUVWXYZ"
+
+    def three(self, middle: dict, **more):
+        return compose([row(panel(row(card("one")), heading="Short", **more), panel(row(card("two")), **middle),
+                            panel(row(card("three")), heading="Short too"))])
+
+    def test_a_heading_that_folds_moves_the_rows_of_every_panel_beside_it_down_with_it(self) -> None:
+        page = self.three({"heading": self.FOLDING})
+        tops = [text_of(page, name).rect.top for name in ("one", "two", "three")]
+        self.assertEqual(1, len(set(tops)), tops)
+        self.assertGreater(tops[0], text_of(self.three({"heading": "Short"}), "one").rect.top)
+
+    def test_the_heading_and_its_rule_stay_at_the_top_and_the_room_is_left_under_the_rule(self) -> None:
+        page = self.three({"heading": self.FOLDING}, rule=True)
+        head = text_of(page, "Short").rect
+        line = [e for e in kinds(page, "rule") if e.rect.top > head.top][0].rect
+        self.assertEqual(head.top + TEXT_INSET_Y + head.height, line.top)
+        self.assertGreater(text_of(page, "one").rect.top, line.bottom + S.gap_s)
+
+    def test_a_rule_on_one_panel_moves_the_rows_of_the_others_down_by_its_room(self) -> None:
+        page = self.three({"heading": "Short"}, rule=True)
+        tops = [text_of(page, name).rect.top for name in ("one", "two", "three")]
+        self.assertEqual(1, len(set(tops)), tops)
+
+    def test_a_panel_without_a_heading_keeps_its_rows_at_the_padding(self) -> None:
+        page = self.three({})
+        bare = [e.rect for e in kinds(page, "panel")][1]
+        self.assertEqual(bare.top + S.pad, box_top(page, "two"))
+        self.assertGreater(box_top(page, "one"), box_top(page, "two"))
+
+    def test_every_panel_is_measured_with_the_room_it_is_given_so_its_rows_stay_inside_it(self) -> None:
+        page = compose([row(panel(row(card("one", "a long body that folds onto many lines " * 6)), heading="Short"),
+                            panel(row(card("two", "x")), heading=self.FOLDING),
+                            panel(row(card("three", "x")), heading="Short too"))])
+        self.assertGreater(kinds(page, "panel_heading")[1].rect.height, text_of(page, "Short").rect.height)
+        for box, name in zip(kinds(page, "panel"), ("one", "two", "three")):
+            self.assertLessEqual(box_bottom(page, name), box.rect.bottom - S.pad)
+
+    def test_on_a_grid_the_panels_that_begin_on_one_row_line_up_and_the_others_do_not(self) -> None:
+        def grid(heading: str):
+            cells = [{"at": [1, 1], **panel(row(card("one")), heading="Short")},
+                     {"at": [1, 2], **panel(row(card("two")), heading=heading)},
+                     {"at": [2, 1], **panel(row(card("three")), heading="Short")},
+                     {"at": [2, 2], **panel(row(card("four")), heading="Short")}]
+            return build({"type": "compose", "title": "A page", "grid": {"columns": [3, 1], "rows": [1, 1]},
+                          "cells": cells}, FILLED)
+
+        folded, plain = grid(self.FOLDING), grid("Short")
+        self.assertEqual(text_of(folded, "one").rect.top, text_of(folded, "two").rect.top)
+        self.assertGreater(text_of(folded, "one").rect.top, text_of(plain, "one").rect.top)
+        self.assertEqual(text_of(plain, "three").rect.top, text_of(folded, "three").rect.top)
+
+
+def box_top(page, heading: str) -> int:
+    """The top of the box the card of this heading is drawn in."""
+    return box_of(page, heading).top
+
+
+def box_bottom(page, heading: str) -> int:
+    return box_of(page, heading).bottom
+
+
+def box_of(page, heading: str):
+    words = text_of(page, heading).rect
+    return next(e.rect for e in kinds(page, "box") if e.rect.left <= words.left and e.rect.top <= words.top
+                and e.rect.bottom >= words.bottom and e.rect.right >= words.right)
+
+
 class TheRoomTheHeadingTakes(unittest.TestCase):
     #: 太字で数えると 3 行、太字でなければ 2 行に折れる見出しと、その字が使える幅
     HEADING, ROOM = "Heading of the panel with words", 1780000

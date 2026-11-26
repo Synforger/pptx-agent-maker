@@ -25,7 +25,7 @@ sys.path.insert(0, str(REPO / "tests"))
 from pptx_agent_maker import DEFAULT, Page  # noqa: E402
 from pptx_agent_maker.checks import CHECKS, run_all  # noqa: E402
 from pptx_agent_maker.checks.rules import (  # noqa: E402
-    avoided_words, contrast, empty_cells, internal_names, long_title, low_resolution, near_alignment, off_page,
+    avoided_words, broken_words, contrast, empty_cells, internal_names, long_title, low_resolution, near_alignment, off_page,
     overlap, stretched, type_floor, unreplaced, untyped_parts)
 from pptx_agent_maker.write import add_page, new_deck, save  # noqa: E402
 from deck.test_deck import make_dot  # noqa: E402
@@ -255,7 +255,8 @@ class ChecksFireTest(unittest.TestCase):
         """A check nobody proved is a check nobody can trust."""
         proven = {off_page.NAME, overlap.NAME, type_floor.NAME, empty_cells.NAME,
                   internal_names.NAME, unreplaced.NAME, avoided_words.NAME, untyped_parts.NAME, long_title.NAME,
-                  contrast.NAME, stretched.NAME, low_resolution.NAME, near_alignment.NAME}
+                  contrast.NAME, stretched.NAME, low_resolution.NAME, near_alignment.NAME,
+                  broken_words.NAME}  # its fixtures: tests/checks/test_broken_words.py
         self.assertEqual({check.NAME for check in CHECKS}, proven,
                          "a check exists with no fixture proving it fires")
 

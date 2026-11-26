@@ -778,7 +778,7 @@
 <p:nvPr/>
 </p:nvGraphicFramePr>
 <p:xfrm>
-<a:off x="8254000" y="2076000"/>
+<a:off x="8254000" y="2134420"/>
 <a:ext cx="3380000" cy="858600"/>
 </p:xfrm>
 <a:graphic>
@@ -1068,8 +1068,8 @@
 <p:nvPr/>
 </p:nvGraphicFramePr>
 <p:xfrm>
-<a:off x="8254000" y="3150600"/>
-<a:ext cx="3380000" cy="2645400"/>
+<a:off x="8254000" y="3209020"/>
+<a:ext cx="3380000" cy="2586980"/>
 </p:xfrm>
 <a:graphic>
 <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">
