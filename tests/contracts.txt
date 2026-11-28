@@ -127,3 +127,4 @@ preview/src/pptx_live_preview | preview/tests/test_numbering.py                |
 preview/src/pptx_live_preview | preview/tests/test_projects.py                 | Several projects behind one page (= Switchboard).
 preview/src/pptx_live_preview | preview/tests/test_request_guard.py            | Which requests the preview's server answers, asked of a real server over HTTP.
 preview/src/pptx_live_preview | preview/tests/test_server.py                   | The preview's HTTP paths answer what they should, and a crafted picture name is refused.
+preview/src/pptx_live_preview | preview/tests/test_soffice_fonts.py            | On macOS, LibreOffice converts with the typefaces of the machine, so Japanese is drawn in letters, not boxes.
