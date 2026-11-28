@@ -16,6 +16,7 @@ import queue
 import re
 import shutil
 import subprocess
+import sys
 import zipfile
 import zlib
 from collections.abc import Callable
@@ -35,7 +36,7 @@ DEFAULT_DPI = 200
 
 # 描き方の版。描く前に deck へ手を入れる処理 (= 頁番号の開始、隠した頁) を変えたら上げる。キャッシュは deck の
 # 中身の hash で引くので、上げないと、前の描き方で焼いた絵が使われ続ける。
-RENDERER = 3
+RENDERER = 4
 
 # 頁一覧に並べる小さい絵の解像度。本画像を CSS で縮めると 100 頁ぶんの原寸を
 # 読み込むことになるので、専用に低い解像度でもう一度焼く。PDF は既に手元に
@@ -105,6 +106,41 @@ def xdg_environment(home: Path) -> dict[str, str] | None:
         folder = home / leaf
         folder.mkdir(parents=True, exist_ok=True)
         environment[variable] = str(folder)
+    return environment
+
+
+#: Where macOS keeps the typefaces of the machine, the ones installed for every user and the user's own.
+MACOS_FONT_FOLDERS = ("/System/Library/Fonts", "/Library/Fonts", "~/Library/Fonts")
+
+
+def fontconfig_file(folder: Path) -> Path:
+    """A fontconfig file that names the folders macOS keeps its typefaces in, written under `folder`.
+
+    The fontconfig that ships inside LibreOffice for macOS looks for its settings under /usr/local/etc/fonts.
+    Where that folder does not exist (a Mac with Homebrew under /opt/homebrew), it knows no folder of
+    typefaces, finds only the ones LibreOffice carries, and draws Japanese and other scripts as empty boxes.
+    """
+    folder.mkdir(parents=True, exist_ok=True)
+    folders = "".join(f"  <dir>{name}</dir>\n" for name in MACOS_FONT_FOLDERS)
+    settings = folder / "fonts.conf"
+    text = ('<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">\n<fontconfig>\n'
+            f"{folders}  <cachedir>{folder / 'cache'}</cachedir>\n</fontconfig>\n")
+    if not settings.is_file() or settings.read_text(encoding="utf-8") != text:
+        settings.write_text(text, encoding="utf-8")
+    return settings
+
+
+def soffice_environment(profile: Path) -> dict[str, str] | None:
+    """The environment LibreOffice converts in: `xdg_environment`, and on macOS the typefaces of the machine.
+
+    A `FONTCONFIG_FILE` the environment already names is kept. Elsewhere than macOS nothing is added, since
+    LibreOffice there reads the system's own fontconfig settings.
+    """
+    environment = xdg_environment(profile.with_name(f"{profile.name}-xdg"))
+    if sys.platform != "darwin" or "FONTCONFIG_FILE" in os.environ:
+        return environment
+    environment = environment if environment is not None else dict(os.environ)
+    environment["FONTCONFIG_FILE"] = str(fontconfig_file(cache_root() / "_fontconfig"))
     return environment
 
 
@@ -291,7 +327,7 @@ def convert_to_pdfs(decks: list[Path], work_dir: Path, profile: Path) -> list[Pa
         capture_output=True,
         text=True,
         # 1 つのプロファイルは 1 本の変換だけが借りる。その設定と cache もプロファイルごとに分ける
-        env=xdg_environment(profile.with_name(f"{profile.name}-xdg")),
+        env=soffice_environment(profile),
     )
     if result.returncode != 0:
         raise RenderError(
