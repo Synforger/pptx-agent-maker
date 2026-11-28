@@ -1,0 +1,129 @@
+# The promises the tests keep: one row is one thing the toolkit promises, and the test file that guards it.
+#
+# Format = <what keeps the promise> | <the test file> | <the promise, in one sentence>   (paths from the repository root)
+# Checked by scripts/check/contracts.py (run by `task ci`): every test file under tests/ and preview/tests/ is in a
+# row, and every row names a target and a test file that exist.
+#
+# A new test file comes with its row. A promise is said in what can be seen from outside: what a deck looks like,
+# what is refused, what a command prints or writes. Before removing a test, look for the red it has seen
+# (tests/mutants/ and the history); a test that stopped a real defect keeps its row.
+#
+# Slow tests (Actions, PR #197, the ten slowest): test_line_breaks.py 3.84 s (every name of the corpus is built),
+# test_mutant_tables.py 1.59 s (the example table is run end to end). Every other test call is under 1 s.
+
+# --- checks ---
+src/pptx_agent_maker/checks   | tests/checks/test_avoided_words.py             | A word the project has said not to use is stopped wherever it stands on a page.
+src/pptx_agent_maker/checks   | tests/checks/test_broken_words.py              | broken_words: a word wider than the room its box has for words is told, since it breaks in the middle.
+src/pptx_agent_maker/checks   | tests/checks/test_checks.py                    | Each check must fire on a deck that is actually broken, and stay quiet on a good one.
+src/pptx_agent_maker/checks   | tests/checks/test_overlap.py                   | Things printed on top of each other — and the far larger number that only look it.
+src/pptx_agent_maker/checks   | tests/checks/test_page_numbers.py              | A report names a page the way the person reading the deck counts it.
+src/pptx_agent_maker/checks   | tests/checks/test_readable_colours.py          | Words reach the contrast floor on every ground the toolkit paints, and a template's brand pairs pass by name.
+src/pptx_agent_maker/checks   | tests/checks/test_section_agenda.py            | A deck has an agenda page, and a long chapter of several parts comes back to its agenda at the head of each part.
+src/pptx_agent_maker/checks   | tests/checks/test_stops.py                     | A check that sets `STOPS = False` is told in the report and does not end a `build` or a `check` with 1.
+src/pptx_agent_maker/checks   | tests/checks/test_story.py                     | Reading a deck as a story: its titles in order, a title that runs too long, data with no source.
+src/pptx_agent_maker/checks   | tests/checks/test_unnamed_axis.py              | A declared chart of categories whose value axis has no name is said, wherever on the page it stands.
+src/pptx_agent_maker/checks   | tests/checks/test_untoned_cards.py             | A card with no `tone`, in a project that names its own grounds (= `untoned_cards`).
+
+# --- compare ---
+src/pptx_agent_maker/compare  | tests/compare/test_bake.py                     | Both decks of a comparison are drawn by one LibreOffice process, so they get the same stand-in face.
+src/pptx_agent_maker/compare  | tests/compare/test_decks.py                    | `compare` on real decks, drawn by LibreOffice: the pages that did not change count zero pixels.
+src/pptx_agent_maker/compare  | tests/compare/test_fonts.py                    | Telling a person that a deck names a typeface this machine does not have.
+src/pptx_agent_maker/compare  | tests/compare/test_pictures.py                 | Counting the pixels that differ between the pictures of two decks' pages.
+src/pptx_agent_maker/compare  | tests/compare/test_report.py                   | The report `compare` prints: a line a page, then how many pages changed.
+
+# --- deck ---
+src/pptx_agent_maker/deck     | tests/deck/test_build.py                       | One manifest, three ways to make a page, one deck.
+src/pptx_agent_maker/deck     | tests/deck/test_build_out.py                   | `build --out <file>`: a trial build that writes beside nothing the manifest names.
+src/pptx_agent_maker/deck     | tests/deck/test_deck.py                        | Copying a specimen page and importing one from an earlier deck.
+src/pptx_agent_maker/deck     | tests/deck/test_frames.py                      | The frame each declared picture is given, read without building (= `frames`).
+src/pptx_agent_maker/deck     | tests/deck/test_no_figure.py                   | A page whose requester said no figure is wanted passes the figure rule, and the build report says so.
+src/pptx_agent_maker/deck     | tests/deck/test_swap.py                        | New pictures and table cells on a page someone arranged by hand.
+src/pptx_agent_maker/deck     | tests/deck/test_under.py                       | A declared page knows the layout it will sit on.
+src/pptx_agent_maker/deck     | tests/deck/test_xml_parts.py                   | The toolkit reads the XML parts of a deck with the same parser settings as python-pptx.
+
+# --- install ---
+pyproject.toml                | tests/install/test_install.py                  | Installing the toolkit installs the live preview with it.
+.claude-plugin                | tests/install/test_plugin.py                   | The repository installs as a Claude Code plugin whose skills Claude can load.
+
+# --- layout ---
+src/pptx_agent_maker/layout   | tests/layout/test_arrange.py                   | Arrangements a compose cell can hold: a ring, a tree, circles that overlap.
+src/pptx_agent_maker/layout   | tests/layout/test_caption_look.py              | The look of the name under a picture (= `[theme] caption_look`).
+src/pptx_agent_maker/layout   | tests/layout/test_card_look.py                 | What a card and a band may be written with: their own sizes, no heading, a tag, a list of bullets.
+src/pptx_agent_maker/layout   | tests/layout/test_card_sizes.py                | The size of a tag, the look of a table a use picks, and the single words of a card standing in the middle of their frame.
+src/pptx_agent_maker/layout   | tests/layout/test_chart.py                     | A chart drawn from its numbers, which a person can still edit.
+src/pptx_agent_maker/layout   | tests/layout/test_chart_axes.py                | The axes of a chart of categories: their names, and where the names of the categories stand below zero.
+src/pptx_agent_maker/layout   | tests/layout/test_compose.py                   | compose: the body written as rows of cells, one part in each.
+src/pptx_agent_maker/layout   | tests/layout/test_compose_gaps.py              | compose: the gap across a row and the gap between rows, cells of no words, rules over a picture, one `weight`.
+src/pptx_agent_maker/layout   | tests/layout/test_corpus.py                    | The corpus has to use everything a page can be written with.
+src/pptx_agent_maker/layout   | tests/layout/test_figure_floor.py              | A picture squeezed by height stops below a floor; a use may lower the floor for line drawings that read small.
+src/pptx_agent_maker/layout   | tests/layout/test_figure_rule.py               | The rule "every page carries a figure": what counts as one, what does not, and what the refusal says.
+src/pptx_agent_maker/layout   | tests/layout/test_flow.py                      | The flow: stages left to right, nodes under each, and how tall a node is for its words.
+src/pptx_agent_maker/layout   | tests/layout/test_flow_down.py                 | A flow that runs down the page: `direction = "down"`.
+src/pptx_agent_maker/layout   | tests/layout/test_geometry.py                  | Dividing a rectangle must never produce one that escapes it.
+src/pptx_agent_maker/layout   | tests/layout/test_grid.py                      | A compose page laid out on a grid (cells at a row and a column, backdrops under them), and the legend a cell may hold.
+src/pptx_agent_maker/layout   | tests/layout/test_grounds.py                   | Grounds a project names for what they mean, and the legend that says so.
+src/pptx_agent_maker/layout   | tests/layout/test_heights.py                   | How tall the bands are, and how tall the boxes of one use are: written by a use, not by the type of the text.
+src/pptx_agent_maker/layout   | tests/layout/test_kicker_beside.py             | The small words above a title can stand beside it instead: on the title's own line, in the accent colour.
+src/pptx_agent_maker/layout   | tests/layout/test_leading.py                   | A deck or a use may write the height of a line; the layout counts with it and the writer sets it.
+src/pptx_agent_maker/layout   | tests/layout/test_line_breaks.py               | A line break in a name is a line of its own wherever a name is written, not only in a bar.
+src/pptx_agent_maker/layout   | tests/layout/test_link_lines.py                | A line of a page written into the file: straight, bent at right angles, or hopping over the lines it crosses.
+src/pptx_agent_maker/layout   | tests/layout/test_link_routes.py               | The way an arrow runs between two cells that do not face each other: round the cells, through the gaps between them.
+src/pptx_agent_maker/layout   | tests/layout/test_link_sides.py                | The edges a link is written to leave and enter by, the lines that leave or enter one edge together, and the words on a bent line.
+src/pptx_agent_maker/layout   | tests/layout/test_linked_boxes_diagram.py      | Boxes joined by arrows across rows and columns are a shape diagram; a single row or column of them is not.
+src/pptx_agent_maker/layout   | tests/layout/test_look.py                      | One set of looks for everything shaped like a box: a tone, an icon, a dashed line, a strong edge.
+src/pptx_agent_maker/layout   | tests/layout/test_page.py                      | A declared page cannot place anything outside its frame, and refuses the pages we were told not to make.
+src/pptx_agent_maker/layout   | tests/layout/test_page_look.py                 | Three looks a project picks for its pages: how tall the boxes stand, how a card is painted, how the bands are.
+src/pptx_agent_maker/layout   | tests/layout/test_panel.py                     | A panel: a box in a `compose` cell that holds rows of cells of its own.
+src/pptx_agent_maker/layout   | tests/layout/test_readable_grounds.py          | Words on a ground the project coloured stay readable, and a template's own pictures are its own.
+src/pptx_agent_maker/layout   | tests/layout/test_roadmap.py                   | The roadmap: stages to a goal as arrowheads, and the icon a box may carry.
+src/pptx_agent_maker/layout   | tests/layout/test_scatter.py                   | A chart of points: `kind = "scatter"`.
+src/pptx_agent_maker/layout   | tests/layout/test_shaded_cells.py              | A table cell can stand on a ground as deep as its value: `{ text = "82%", shade = 3 }`.
+src/pptx_agent_maker/layout   | tests/layout/test_stickers_and_marks.py        | A sticker on a page, and a status mark in a table's cell.
+src/pptx_agent_maker/layout   | tests/layout/test_table_columns.py             | A table's columns can be given a ratio: `table_columns = [1, 2, 2]`, beside the table.
+src/pptx_agent_maker/layout   | tests/layout/test_table_data.py                | A table can name a CSV among the assets instead of listing its rows: `table = { data = "x.csv" }`.
+src/pptx_agent_maker/layout   | tests/layout/test_table_plain.py               | A table in the plain look, and a row that divides a table.
+src/pptx_agent_maker/layout   | tests/layout/test_table_widths.py              | How a table's width is shared out among its columns, and how tall its rows are counted.
+src/pptx_agent_maker/layout   | tests/layout/test_tentative_look.py            | What a tentative box, bar or arrowhead is painted in: grey, or the colour of its tone (= `[theme] tentative_look`).
+src/pptx_agent_maker/layout   | tests/layout/test_text_links.py                | What a text cell and a link may say: the roles of a text, its colour and its alignment, and words beside an arrow.
+src/pptx_agent_maker/layout   | tests/layout/test_theme.py                     | A project sets its own look, and only its look.
+src/pptx_agent_maker/layout   | tests/layout/test_timeline.py                  | The timeline: periods left to right, lanes top to bottom, bars and marks on the lanes.
+src/pptx_agent_maker/layout   | tests/layout/test_timeline_bars.py             | What a timeline's bars take beyond their own stretch: line breaks in a name, arrows between bars, and a pale look.
+src/pptx_agent_maker/layout   | tests/layout/test_title_gap.py                 | The gap under the title stands apart from the gap between the bands and the body.
+src/pptx_agent_maker/layout   | tests/layout/test_types.py                     | The page types: what they build, and what they refuse.
+src/pptx_agent_maker/layout   | tests/layout/test_types_listing.py             | `types` lists what a manifest may say, read from the code itself.
+src/pptx_agent_maker/layout   | tests/layout/test_uses.py                      | The size of the type is picked by name: by the project, by a deck, and by a page.
+
+# --- project ---
+src/pptx_agent_maker/project  | tests/project/test_lift.py                     | Lifting into the template every later project starts from.
+src/pptx_agent_maker/project  | tests/project/test_platform_root.py            | Where the tool keeps its files: under `AGENT_PLATFORM_ROOT` when one is given, as before when not.
+src/pptx_agent_maker/project  | tests/project/test_preview_projects.py         | `preview <folder of projects>` finds the projects under it.
+src/pptx_agent_maker/project  | tests/project/test_project.py                  | A deck project lives outside the toolkit, and the toolkit will not pretend otherwise.
+src/pptx_agent_maker/project  | tests/project/test_recipes.py                  | Recipes: a page written the same way twice, kept once.
+src/pptx_agent_maker/project  | tests/project/test_refresh.py                  | Handing an existing project what a newer toolkit carries.
+src/pptx_agent_maker/project  | tests/project/test_round.py                    | Starting the next round from the one before.
+src/pptx_agent_maker/project  | tests/project/test_template.py                 | The project template ships with real files, and they are the toolkit's own look.
+
+# --- review ---
+src/pptx_agent_maker/review   | tests/review/test_apply.py                     | Taking a PowerPoint edit back into the manifest (= `review --apply`).
+src/pptx_agent_maker/review   | tests/review/test_ledger.py                    | The ledger of what the toolkit last wrote matches a deck by name in one Unicode form.
+src/pptx_agent_maker/review   | tests/review/test_parts.py                     | The part-level comparison: it must not drop anything it was not told to drop.
+src/pptx_agent_maker/review   | tests/review/test_review.py                    | A person's edit must survive, be visible, and be foldable back in.
+
+# --- scripts ---
+scripts/check                 | tests/scripts/check/test_check_tools.py        | The two tools a refactor is checked with have to catch what they are for.
+scripts/check/contracts.py    | tests/scripts/check/test_contracts.py          | Every test file is in this table, and every row names a target and a test file that exist.
+scripts/check                 | tests/scripts/check/test_mutant_tables.py      | The tables of mutants this repository keeps still fit the code they break.
+scripts/examples              | tests/scripts/examples/test_example_albums.py  | The albums the example collection is browsed with: one per deck under each scene, one per form.
+scripts/examples              | tests/scripts/examples/test_example_folders.py | The collection of examples is written inside the folder it is gathered in.
+
+# --- preview ---
+preview/src/pptx_live_preview | preview/tests/test_albums.py                   | An album: pictures listed in a file, shown as the pages of one deck, with no rendering.
+preview/src/pptx_live_preview | preview/tests/test_answers.py                  | What the preview's answers carry: the reasons it shows, their headers, and who may read what it stores.
+preview/src/pptx_live_preview | preview/tests/test_cache.py                    | The cache keeps one copy of a picture, drops the pictures no deck needs, and reads back after a restart.
+preview/src/pptx_live_preview | preview/tests/test_deck_state.py               | A deck is drawn again only when its file changed, and the scan of a folder finds the decks in it.
+preview/src/pptx_live_preview | preview/tests/test_named_page.py               | A page that names a project is answered with that project, or with nothing and why.
+preview/src/pptx_live_preview | preview/tests/test_notes.py                    | Speaker notes are read page by page, and a page with no notes does not shift the notes of the others.
+preview/src/pptx_live_preview | preview/tests/test_numbering.py                | Page numbers in the preview match PowerPoint when a deck starts counting elsewhere or hides pages.
+preview/src/pptx_live_preview | preview/tests/test_projects.py                 | Several projects behind one page (= Switchboard).
+preview/src/pptx_live_preview | preview/tests/test_request_guard.py            | Which requests the preview's server answers, asked of a real server over HTTP.
+preview/src/pptx_live_preview | preview/tests/test_server.py                   | The preview's HTTP paths answer what they should, and a crafted picture name is refused.

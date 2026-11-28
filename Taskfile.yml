@@ -42,6 +42,11 @@ tasks:
     cmds:
       - uv lock --check
 
+  lint:contracts:
+    desc: Fail when a test file has no row in tests/contracts.txt, or a row names a test or target that is gone
+    cmds:
+      - uv run python scripts/check/contracts.py
+
   test:unit:
     desc: Run the toolkit's own suite
     cmds:
@@ -78,6 +83,7 @@ tasks:
     cmds:
       - task: lint
       - task: lint:lock
+      - task: lint:contracts
       - task: test:unit
       - task: test:integration
       - task: docs:check

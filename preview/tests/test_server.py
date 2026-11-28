@@ -57,7 +57,7 @@ def live(tmp_path, monkeypatch):
     deckset.rescan_and_rerender(force=True)
 
     server = QuietThreadingHTTPServer(("127.0.0.1", 0), make_handler(deckset))
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    threading.Thread(target=server.serve_forever, args=(0.02,), daemon=True).start()
     base = f"http://127.0.0.1:{server.server_address[1]}"
     yield base, deckset
     server.shutdown()

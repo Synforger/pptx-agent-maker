@@ -42,7 +42,7 @@ def _fake_render(monkeypatch):
 
 def _serve(deckset):
     server = QuietThreadingHTTPServer(("127.0.0.1", 0), make_handler(deckset))
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    threading.Thread(target=server.serve_forever, args=(0.02,), daemon=True).start()
     return server, f"http://127.0.0.1:{server.server_address[1]}"
 
 
